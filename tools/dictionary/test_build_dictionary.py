@@ -56,12 +56,19 @@ class SelectWordTest(unittest.TestCase):
         self.assertEqual(w.kanji, "歯磨")
         self.assertFalse(w.usually_kana)
 
-    def test_kana_only_list_row_is_shown_in_kana_but_keeps_kanji(self):
+    def test_kana_only_list_row_with_common_kanji_is_shown_in_kanji(self):
         rows = [bd.JlptRow("1601040", "はみがき", "", 5)]
-        w = bd.select_word(HAMIGAKI, rows, {"はみがき": [("歯磨き", 5)]}, {})
-        self.assertTrue(w.usually_kana)
+        w = bd.select_word(HAMIGAKI, rows, {}, {})
+        self.assertFalse(w.usually_kana)
         self.assertEqual(w.kanji, "歯磨き")
-        self.assertEqual(w.forms[0], ("はみがき", True))
+        self.assertEqual(w.forms[0], ("歯磨き", False))
+
+    def test_usually_kana_word_stays_in_kana_but_keeps_kanji(self):
+        e = entry(1415000, [kanji("沢山")], [kana("たくさん")], [sense("many", misc=["uk"])])
+        w = bd.select_word(e, [bd.JlptRow("1415000", "たくさん", "", 5)], {}, {})
+        self.assertTrue(w.usually_kana)
+        self.assertEqual(w.kanji, "沢山")
+        self.assertEqual(w.forms[0], ("たくさん", True))
 
     def test_rare_kanji_is_dropped(self):
         rows = [bd.JlptRow("1577980", "いる", "居る", 5)]
