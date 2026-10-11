@@ -2,20 +2,20 @@ package ca.danielpower.jstudy.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,10 +23,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.StudySettings
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -37,7 +39,6 @@ fun SettingsScreen(
     onChange: (StudySettings) -> Unit,
     onSaveClaudeKey: (String) -> Unit,
     onImport: () -> Unit,
-    onBack: () -> Unit,
 ) {
     val s = state.settings
     val m = s.mastery
@@ -49,10 +50,7 @@ fun SettingsScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Settings", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = onBack) { Text("Done") }
-        }
+        Text("Settings", style = MaterialTheme.typography.headlineMedium)
 
         Section("Daily study")
         Stepper("New words per day", "${s.newPerDay}") { d ->
@@ -103,7 +101,7 @@ fun SettingsScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         )
         if (key.trim() != state.claudeKey) {
-            OutlinedButton(onClick = { onSaveClaudeKey(key) }) { Text("Save key") }
+            SecondaryButton(onClick = { onSaveClaudeKey(key) }) { Text("Save key") }
         } else if (state.claudeKey.isNotEmpty()) {
             Text("Saved", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         }
@@ -114,11 +112,12 @@ fun SettingsScreen(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        OutlinedButton(onClick = onImport) { Text("Import from Renshuu") }
+        SecondaryButton(onClick = onImport) { Text("Import from Renshuu") }
 
         Section("About")
         Text(
-            "Word list and dictionary data:\n" + state.attribution.split("; ").joinToString("\n") { "• $it" },
+            "Word list and dictionary data:\n" + state.attribution.split("; ").joinToString("\n") { "• $it" } +
+                "\n\nFonts: Shippori Mincho and Zen Kaku Gothic New, under the SIL Open Font License.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -127,16 +126,27 @@ fun SettingsScreen(
 
 @Composable
 private fun Section(title: String) {
-    HorizontalDivider(Modifier.padding(top = 16.dp))
-    Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
+    HorizontalDivider(Modifier.padding(top = 16.dp), color = MaterialTheme.colorScheme.onSurface)
+    SectionLabel(title, Modifier.padding(top = 4.dp, bottom = 4.dp))
 }
 
 @Composable
 private fun Stepper(label: String, value: String, onStep: (Int) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        OutlinedButton(onClick = { onStep(-1) }) { Text("−") }
-        Text(value, modifier = Modifier.widthIn(min = 64.dp), textAlign = TextAlign.Center)
-        OutlinedButton(onClick = { onStep(1) }) { Text("+") }
+        SecondaryButton(onClick = { onStep(-1) }, modifier = Modifier.size(44.dp), contentPadding = PaddingValues(0.dp)) {
+            Text("−", fontSize = 18.sp)
+        }
+        Text(
+            value,
+            modifier = Modifier.widthIn(min = 64.dp),
+            textAlign = TextAlign.Center,
+            fontFamily = Mincho,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+        )
+        SecondaryButton(onClick = { onStep(1) }, modifier = Modifier.size(44.dp), contentPadding = PaddingValues(0.dp)) {
+            Text("+", fontSize = 18.sp)
+        }
     }
 }

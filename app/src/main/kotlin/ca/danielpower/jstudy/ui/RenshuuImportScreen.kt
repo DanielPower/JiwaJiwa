@@ -10,7 +10,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -68,7 +67,7 @@ fun RenshuuImportScreen(step: ImportStep, vm: AppViewModel) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Button(onClick = vm::goHome) { Text("Done") }
+                PrimaryButton(onClick = vm::goHome) { Text("Done") }
             }
         }
     }
@@ -94,7 +93,7 @@ private fun EnterKey(error: String?, onSubmit: (String) -> Unit) {
         supportingText = if (error != null) { { Text(error) } } else null,
         modifier = Modifier.fillMaxWidth(),
     )
-    Button(onClick = { onSubmit(key) }, enabled = key.isNotBlank()) { Text("Check my words") }
+    PrimaryButton(onClick = { onSubmit(key) }, enabled = key.isNotBlank()) { Text("Check my words") }
     Text(
         "You'll see what would change before anything is imported.",
         style = MaterialTheme.typography.bodySmall,
@@ -118,7 +117,7 @@ private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit
     }
     if (plan.updates.isEmpty()) {
         Text("There's nothing to import.", style = MaterialTheme.typography.bodyLarge)
-        Button(onClick = onCancel) { Text("Close") }
+        PrimaryButton(onClick = onCancel) { Text("Close") }
     } else {
         Text(
             "Each word is marked known at its mastery, as \"I already know this\" does, and gets reviews to match.",
@@ -126,7 +125,7 @@ private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onImport) { Text("Import ${plan.updates.size} words") }
+            PrimaryButton(onClick = onImport) { Text("Import ${plan.updates.size} words") }
             TextButton(onClick = onCancel) { Text("Cancel") }
         }
     }

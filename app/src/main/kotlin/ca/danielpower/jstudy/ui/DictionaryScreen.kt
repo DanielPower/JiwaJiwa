@@ -1,8 +1,10 @@
 package ca.danielpower.jstudy.ui
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,21 +12,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,7 +41,9 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
@@ -55,7 +58,6 @@ import java.time.format.FormatStyle
 
 // ------------------------------------------------------------------ word list
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: LazyListState) {
     val keyboard = LocalSoftwareKeyboardController.current
@@ -67,21 +69,20 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
     }
 
     Column(Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp, top = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Dictionary", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = vm::goHome) { Text("Done") }
-        }
+        Text(
+            "Dictionary",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 4.dp),
+        )
         OutlinedTextField(
             value = state.query,
             onValueChange = vm::search,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             placeholder = { Text("Kana, kanji, romaji or English") },
+            leadingIcon = { Icon(WashiIcons.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
             singleLine = true,
             trailingIcon = {
-                if (state.query.isNotEmpty()) TextButton(onClick = { vm.search("") }) { Text("Clear") }
+                if (state.query.isNotEmpty()) WashiIconButton(WashiIcons.Close, "Clear", { vm.search("") })
             },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
@@ -92,10 +93,10 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
         ) {
             // 0 is "Other": words off the JLPT lists, shown once searched for or started.
             for (level in listOf(5, 4, 3, 2, 1, 0)) {
-                FilterChip(
+                WashiChip(
                     selected = level in state.levels,
                     onClick = { vm.toggleLevel(level) },
-                    label = { Text(levelLabel(level)) },
+                    label = levelLabel(level),
                 )
             }
         }
@@ -104,10 +105,10 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             for (filter in StatusFilter.entries) {
-                FilterChip(
+                WashiChip(
                     selected = state.status == filter,
                     onClick = { vm.setStatusFilter(filter) },
-                    label = { Text(filter.label) },
+                    label = filter.label,
                 )
             }
         }
@@ -117,14 +118,14 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
         )
-        HorizontalDivider()
+        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 24.dp))
         LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
             items(state.rows, key = { it.entry.id }) { row ->
                 DictionaryRowItem(row) {
                     keyboard?.hide()
                     vm.openWord(row.entry.id)
                 }
-                HorizontalDivider()
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 24.dp))
             }
         }
     }
@@ -183,111 +184,130 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
 
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = vm::closeWord) { Text("Back") }
+            WashiIconButton(WashiIcons.Back, "Back", vm::closeWord)
         }
         Column(
             modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                WordFace(word, showFurigana = true)
-                Text(
-                    levelLabel(word.jlpt),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-            val others = detail.forms.filter { it != word.display && it != word.kana }
-            if (others.isNotEmpty()) {
-                Text(
-                    "Also written " + others.joinToString("、"),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                    Box(Modifier.weight(1f)) { WordFace(word, showFurigana = true) }
+                    LevelSeal(levelLabel(word.jlpt), Modifier.padding(start = 12.dp, bottom = 12.dp))
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface)
+                val others = detail.forms.filter { it != word.display && it != word.kana }
+                if (others.isNotEmpty()) {
+                    Text(
+                        "Also written " + others.joinToString("、"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
-            Heading("Meanings")
-            word.senses.forEachIndexed { i, sense ->
-                Column {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionLabel("Meanings")
+                word.senses.forEachIndexed { i, sense ->
                     val pos = detail.partsOfSpeech.getOrNull(i).orEmpty()
                     // Repeat the part of speech only when it changes.
                     if (pos.isNotEmpty() && pos != detail.partsOfSpeech.getOrNull(i - 1)) {
-                        Text(pos, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            pos,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = if (i == 0) 0.dp else 6.dp),
+                        )
                     }
-                    Text("${i + 1}. " + sense.glosses.joinToString("; "), style = MaterialTheme.typography.bodyLarge)
-                    sense.info?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    MeaningLine(if (word.senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "), sense.info)
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionLabel("Progress")
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    if (started && !detail.suspended) {
+                        Box(
+                            Modifier.size(64.dp).border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("${detail.mastery}", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 26.sp)
+                                Text("mastery", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        when {
+                            detail.suspended -> Text("Suspended", style = MaterialTheme.typography.bodyLarge)
+                            recognition == null -> Text("Not started", style = MaterialTheme.typography.bodyLarge)
+                            recognition.state == CardState.NEW ->
+                                Text("Waiting in the new-word queue", style = MaterialTheme.typography.bodyLarge)
+                            else -> {
+                                CardLine("Japanese → English", recognition, state.clock)
+                                production?.let { CardLine("English → Japanese", it, state.clock) }
+                            }
+                        }
+                    }
+                }
+                if (detail.history.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        for ((_, entry) in detail.history.take(10)) AnswerMark(entry.correct)
                     }
                 }
             }
 
-            Heading("Progress")
-            Text(
-                when {
-                    detail.suspended -> "Suspended"
-                    recognition == null -> "Not started"
-                    recognition.state == CardState.NEW -> "Waiting in the new-word queue"
-                    else -> "Mastery ${detail.mastery}"
-                },
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            if (started) {
-                CardLine("Japanese → English", recognition!!, state.clock)
-                production?.let { CardLine("English → Japanese", it, state.clock) }
-            }
-
-            Heading("Actions")
-            if (!started) {
-                Button(onClick = vm::learnNext, modifier = Modifier.fillMaxWidth()) { Text("Learn next") }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                val verb = if (started) "Set as" else "Mark"
-                OutlinedButton(onClick = { vm.markKnown(state.rules.hideAt) }, modifier = Modifier.weight(1f)) {
-                    Text("$verb known")
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionLabel("Actions")
+                if (!started) {
+                    PrimaryButton(onClick = vm::learnNext, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Learn next") }
                 }
-                OutlinedButton(onClick = { vm.markKnown(state.rules.offAt) }, modifier = Modifier.weight(1f)) {
-                    Text("$verb mastered")
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val verb = if (started) "Set as" else "Mark"
+                    SecondaryButton(onClick = { vm.markKnown(state.rules.hideAt) }, modifier = Modifier.weight(1f).height(48.dp)) {
+                        Text("$verb known")
+                    }
+                    SecondaryButton(onClick = { vm.markKnown(state.rules.offAt) }, modifier = Modifier.weight(1f).height(48.dp)) {
+                        Text("$verb mastered")
+                    }
                 }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
+                    TextButton(onClick = { vm.setSuspended(!detail.suspended) }) {
+                        Text(if (detail.suspended) "Unsuspend" else "Suspend", color = MaterialTheme.colorScheme.primary)
+                    }
+                    if (detail.cards.isNotEmpty() || detail.mastery > 0) {
+                        TextButton(onClick = { confirmReset = true }) {
+                            Text("Reset progress", color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+                Text(
+                    "Suspended words never come up for review or as new words. Reset forgets the word's progress and " +
+                        "history, and it comes back as a new word in its usual place.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = { vm.setSuspended(!detail.suspended) }, modifier = Modifier.weight(1f)) {
-                    Text(if (detail.suspended) "Unsuspend" else "Suspend")
-                }
-                if (detail.cards.isNotEmpty() || detail.mastery > 0) {
-                    OutlinedButton(onClick = { confirmReset = true }, modifier = Modifier.weight(1f)) { Text("Reset") }
-                }
-            }
-            Text(
-                "Suspended words never come up for review or as new words. Reset forgets the word's progress and " +
-                    "history, and it comes back as a new word in its usual place.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
 
             if (detail.history.isNotEmpty()) {
-                Heading("History")
-                val format = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
-                for ((direction, entry) in detail.history.take(50)) {
-                    Row(Modifier.fillMaxWidth()) {
-                        Text(
-                            Instant.ofEpochMilli(entry.at).atZone(ZoneId.systemDefault()).format(format),
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            if (direction == Direction.RECOGNITION) "JP→EN" else "EN→JP",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            if (entry.correct) "Right" else "Wrong",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (entry.correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.width(56.dp),
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionLabel("History")
+                    val format = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+                    for ((direction, entry) in detail.history.take(50)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                Instant.ofEpochMilli(entry.at).atZone(ZoneId.systemDefault()).format(format),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Text(
+                                if (direction == Direction.RECOGNITION) "JP→EN" else "EN→JP",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            AnswerMark(entry.correct, size = 22.dp)
+                        }
                     }
                 }
             }
@@ -304,16 +324,29 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                 TextButton(onClick = {
                     confirmReset = false
                     vm.resetWord()
-                }) { Text("Reset") }
+                }) { Text("Reset", color = MaterialTheme.colorScheme.primary) }
             },
-            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } },
+            dismissButton = {
+                TextButton(onClick = { confirmReset = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
+            },
         )
     }
 }
 
+/** A right answer as a red circle, a wrong one as an ink cross. */
 @Composable
-private fun Heading(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
+private fun AnswerMark(correct: Boolean, size: Dp = 26.dp) {
+    val color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    Box(Modifier.size(size).border(2.dp, color, CircleShape), contentAlignment = Alignment.Center) {
+        Text(
+            if (correct) "○" else "×",
+            fontFamily = Mincho,
+            fontWeight = FontWeight.Bold,
+            fontSize = (size.value * 0.5f).sp,
+            lineHeight = (size.value * 0.55f).sp,
+            color = color,
+        )
+    }
 }
 
 @Composable
@@ -323,11 +356,10 @@ private fun CardLine(label: String, card: Card, clock: StudyClock) {
         CardState.LEARNING, CardState.RELEARNING -> "learning"
         CardState.REVIEW -> dueText(card.dueAt, clock)
     }
-    Text(
-        "$label: $due · ${card.reps} reviews, ${card.lapses} lapses",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    Row(Modifier.fillMaxWidth()) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(due, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
 private fun dueText(dueAt: Long, clock: StudyClock): String {

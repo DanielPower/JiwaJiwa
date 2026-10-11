@@ -1,3 +1,6 @@
 <resources>
-    <style name="Theme.JStudy" parent="android:Theme.Material.NoActionBar" />
+    <!-- Paper behind the app while Compose starts, so launch doesn't flash white or black. -->
+    <style name="Theme.JStudy" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>

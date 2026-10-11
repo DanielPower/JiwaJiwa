@@ -1,7 +1,10 @@
 package ca.danielpower.jstudy.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,19 +17,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
@@ -40,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,17 +67,14 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Stories", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = vm::goHome) { Text("Home") }
-        }
+        Text("Stories", style = MaterialTheme.typography.headlineMedium)
 
         if (!state.hasClaudeKey) {
             Text(
                 "Stories are written by Claude. Add your Claude API key in Settings to start.",
                 style = MaterialTheme.typography.bodyLarge,
             )
-            OutlinedButton(onClick = vm::openSettings) { Text("Settings") }
+            SecondaryButton(onClick = vm::openSettings) { Text("Settings") }
         } else {
             OutlinedTextField(
                 value = draft.prompt,
@@ -108,10 +103,10 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
             Text("Length", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (length in StoryLength.entries) {
-                    FilterChip(
+                    WashiChip(
                         selected = draft.length == length,
                         onClick = { vm.editDraft { it.copy(length = length) } },
-                        label = { Text(length.label) },
+                        label = length.label,
                         enabled = !writing,
                     )
                 }
@@ -119,10 +114,10 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
             Text("Difficulty", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (difficulty in StoryDifficulty.entries) {
-                    FilterChip(
+                    WashiChip(
                         selected = draft.difficulty == difficulty,
                         onClick = { vm.editDraft { it.copy(difficulty = difficulty) } },
-                        label = { Text(difficulty.label) },
+                        label = difficulty.label,
                         enabled = !writing,
                     )
                 }
@@ -144,11 +139,11 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
 
             if (writing) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp, color = MaterialTheme.colorScheme.primary)
                     Text(state.writing.orEmpty() + "…", style = MaterialTheme.typography.bodyLarge)
                 }
             } else {
-                Button(onClick = vm::writeStory, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                PrimaryButton(onClick = vm::writeStory, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                     Text("Write a story", fontSize = 18.sp)
                 }
             }
@@ -158,7 +153,8 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         }
 
         if (state.stories.isNotEmpty()) {
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(Modifier.padding(top = 12.dp), color = MaterialTheme.colorScheme.onSurface)
+            SectionLabel("Your stories")
             for (story in state.stories) StoryRow(story) { vm.openStory(story.id) }
         }
     }
@@ -166,12 +162,19 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
 
 @Composable
 private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
+            .clickable(onClick = onClick),
+    ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.titleMedium)
+            Text(story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.titleLarge)
             Text(
                 story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
+                fontFamily = Mincho,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -195,54 +198,64 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
 fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val reading = state.reading
     var confirmDelete by remember { mutableStateOf(false) }
-    // The word whose popover is open, as (paragraph, index).
+    // The word shown in the sheet, as (paragraph, index).
     var open by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    val openWord = open?.let { (p, i) -> reading.paragraphs.getOrNull(p)?.getOrNull(i) }
 
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = vm::openStories) { Text("Back") }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = { confirmDelete = true }) { Text("Delete") }
-        }
-        Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(reading.story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.headlineSmall)
-            val cov = reading.coverage
-            Text(
-                buildString {
-                    append("${(cov.knownShare * 100).roundToInt()}% known")
-                    val n = cov.newWords.size
-                    append(if (n == 1) "  ·  1 new word" else "  ·  $n new words")
-                    if (state.queued != null && state.queued > 0) {
-                        append(
-                            if (state.queued == 1) "\nIts new word is now first in your new-word queue."
-                            else "\nIts ${state.queued} new words are now first in your new-word queue.",
-                        )
-                    }
-                },
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            reading.paragraphs.forEachIndexed { p, words ->
-                FlowRow(modifier = Modifier.fillMaxWidth()) {
-                    words.forEachIndexed { i, word ->
-                        StoryWord(
-                            word = word,
-                            reading = reading,
-                            expanded = open == (p to i),
-                            onOpen = { open = p to i },
-                            onClose = { open = null },
-                            onKnow = { id ->
-                                open = null
-                                vm.knowStoryWord(id)
-                            },
-                        )
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                WashiIconButton(WashiIcons.Back, "Back", vm::openStories)
+                val cov = reading.coverage
+                val n = cov.newWords.size
+                Text(
+                    "${(cov.knownShare * 100).roundToInt()}% known  ·  " + if (n == 1) "1 new word" else "$n new words",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                WashiIconButton(WashiIcons.Delete, "Delete story", { confirmDelete = true })
+            }
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(reading.story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.headlineMedium)
+                if (state.queued != null && state.queued > 0) {
+                    Text(
+                        if (state.queued == 1) "Its new word is now first in your new-word queue."
+                        else "Its ${state.queued} new words are now first in your new-word queue.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                reading.paragraphs.forEachIndexed { p, words ->
+                    FlowRow(modifier = Modifier.fillMaxWidth()) {
+                        words.forEachIndexed { i, word ->
+                            StoryWord(
+                                word = word,
+                                reading = reading,
+                                selected = open == (p to i),
+                                onOpen = { open = if (open == (p to i)) null else (p to i) },
+                            )
+                        }
                     }
                 }
+                // Room to scroll the last lines out from under the sheet.
+                Spacer(Modifier.height(if (openWord != null) 300.dp else 24.dp))
             }
-            Spacer(Modifier.height(24.dp))
+        }
+        if (openWord != null) {
+            WordSheet(
+                word = openWord,
+                reading = reading,
+                onKnow = { id ->
+                    open = null
+                    vm.knowStoryWord(id)
+                },
+                onClose = { open = null },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
     }
 
@@ -254,9 +267,11 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 TextButton(onClick = {
                     confirmDelete = false
                     vm.deleteStory(reading.story.id)
-                }) { Text("Delete") }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.primary) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
+            },
         )
     }
 }
@@ -266,107 +281,118 @@ private fun StoryReading.isKnown(id: Long?): Boolean {
     return s.state != CardState.NEW || s.suspended
 }
 
+private fun StoryReading.isUnknown(word: ReadingWord) = word.kind == WordKind.WORD && !isKnown(word.wordId)
+
 private const val TEXT_SIZE = 22
-private const val RUBY_SIZE = 11
+private const val RUBY_SIZE = 10
 
 @Composable
-private fun StoryWord(
-    word: ReadingWord,
-    reading: StoryReading,
-    expanded: Boolean,
-    onOpen: () -> Unit,
-    onClose: () -> Unit,
-    onKnow: (Long) -> Unit,
-) {
+private fun StoryWord(word: ReadingWord, reading: StoryReading, selected: Boolean, onOpen: () -> Unit) {
     val tappable = word.kind == WordKind.WORD || word.kind == WordKind.NAME
-    val unknown = word.kind == WordKind.WORD && !reading.isKnown(word.wordId)
+    val unknown = reading.isUnknown(word)
     val mastery = word.wordId?.let { reading.statuses[it]?.mastery } ?: 0
     // Furigana follows each word's mastery, as on cards; new words always have it.
     val showRuby = unknown || word.kind == WordKind.NAME || reading.rules.furigana(mastery) == FuriganaMode.SHOWN
-    val color = if (unknown) MaterialTheme.colorScheme.primary else LocalContentColor.current
+    val color = if (unknown || selected) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
-    Box {
-        Row(
-            modifier = if (tappable) Modifier.clickable(onClick = onOpen) else Modifier,
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            for (piece in word.ruby) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = piece.ruby ?: " ",
-                        fontSize = RUBY_SIZE.sp,
-                        lineHeight = (RUBY_SIZE * 1.2).sp,
-                        maxLines = 1,
-                        softWrap = false,
-                        color = color.copy(alpha = 0.8f),
-                        modifier = Modifier.alpha(if (showRuby && piece.ruby != null) 1f else 0f),
-                    )
-                    Text(
-                        text = piece.base,
-                        fontSize = TEXT_SIZE.sp,
-                        lineHeight = (TEXT_SIZE * 1.4).sp,
-                        softWrap = false,
-                        color = color,
-                        fontWeight = if (unknown) FontWeight.Medium else null,
-                    )
-                }
-            }
-        }
-        if (tappable) {
-            DropdownMenu(expanded = expanded, onDismissRequest = onClose) {
-                WordPopover(word, reading, unknown, onKnow)
+    var modifier: Modifier = Modifier
+    if (selected) modifier = modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), WashiShape)
+    if (tappable) modifier = modifier.clickable(onClick = onOpen)
+    Row(modifier = modifier, verticalAlignment = Alignment.Bottom) {
+        for (piece in word.ruby) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = piece.ruby ?: " ",
+                    fontSize = RUBY_SIZE.sp,
+                    lineHeight = (RUBY_SIZE * 1.2).sp,
+                    fontFamily = Gothic,
+                    maxLines = 1,
+                    softWrap = false,
+                    color = color.copy(alpha = 0.75f),
+                    modifier = Modifier.alpha(if (showRuby && piece.ruby != null) 1f else 0f),
+                )
+                Text(
+                    text = piece.base,
+                    fontSize = TEXT_SIZE.sp,
+                    lineHeight = (TEXT_SIZE * 1.5).sp,
+                    fontFamily = Mincho,
+                    softWrap = false,
+                    color = color,
+                    textDecoration = if (unknown) TextDecoration.Underline else null,
+                )
             }
         }
     }
 }
 
+/** The tapped word, in a sheet along the bottom of the reader. */
 @Composable
-private fun WordPopover(word: ReadingWord, reading: StoryReading, unknown: Boolean, onKnow: (Long) -> Unit) {
+private fun WordSheet(
+    word: ReadingWord,
+    reading: StoryReading,
+    onKnow: (Long) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val entry = word.wordId?.let { reading.words[it] }
+    val noRipple = remember { MutableInteractionSource() }
     Column(
-        modifier = Modifier.widthIn(min = 200.dp, max = 320.dp).padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            // Taps on the sheet stay on the sheet.
+            .clickable(interactionSource = noRipple, indication = null) {},
     ) {
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(entry?.display ?: word.lemma, style = MaterialTheme.typography.headlineSmall)
-            val kana = entry?.kana ?: word.reading
-            if (kana != (entry?.display ?: word.lemma)) {
-                Text(kana, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.onSurface)
+        Column(
+            Modifier.padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(entry?.display ?: word.lemma, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 30.sp)
+                val kana = entry?.kana ?: word.reading
+                if (kana != (entry?.display ?: word.lemma)) {
+                    Text(kana, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.weight(1f))
+                WashiIconButton(WashiIcons.Close, "Close", onClose)
             }
-        }
-        if (word.conjugated) {
-            Text(
-                "${word.surface}: ${word.conjugation.joinToString(", ")}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-        }
-        if (entry == null) {
-            Text(
-                if (word.kind == WordKind.NAME) "A name or number" else "Not in the dictionary",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else {
-            val senses = entry.senses.take(3)
-            senses.forEachIndexed { i, sense ->
-                val text = sense.glosses.joinToString("; ")
-                Text(if (senses.size > 1) "${i + 1}. $text" else text, style = MaterialTheme.typography.bodyLarge)
-            }
-            val status = reading.statuses[entry.id]
-            Text(
-                levelLabel(entry.jlpt) + "  ·  " + when {
-                    status == null -> "New"
-                    status.suspended -> "Suspended"
-                    status.state == CardState.NEW -> "New, in your new-word queue"
-                    else -> "Mastery ${status.mastery}"
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (unknown) {
-                TextButton(onClick = { onKnow(entry.id) }, modifier = Modifier.padding(top = 2.dp)) {
-                    Text("I know this")
+            Column(Modifier.padding(end = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (word.conjugated) {
+                    Text(
+                        "${word.surface}: ${word.conjugation.joinToString(", ")}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
+                if (entry == null) {
+                    Text(
+                        if (word.kind == WordKind.NAME) "A name or number" else "Not in the dictionary",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    val senses = entry.senses.take(3)
+                    senses.forEachIndexed { i, sense ->
+                        MeaningLine(if (senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "))
+                    }
+                    val status = reading.statuses[entry.id]
+                    Text(
+                        levelLabel(entry.jlpt) + "  ·  " + when {
+                            status == null -> "New"
+                            status.suspended -> "Suspended"
+                            status.state == CardState.NEW -> "New, in your new-word queue"
+                            else -> "Mastery ${status.mastery}"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (reading.isUnknown(word)) {
+                        SecondaryButton(
+                            onClick = { onKnow(entry.id) },
+                            modifier = Modifier.fillMaxWidth().height(48.dp).padding(top = 4.dp),
+                        ) { Text("I know this") }
+                    }
                 }
             }
         }

@@ -9,6 +9,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
@@ -24,8 +26,10 @@ fun FuriganaText(
     showFurigana: Boolean,
     modifier: Modifier = Modifier,
     fontSize: TextUnit = 44.sp,
+    fontFamily: FontFamily = Mincho,
+    fontWeight: FontWeight = FontWeight.Bold,
 ) {
-    val rubySize = fontSize * 0.42f
+    val rubySize = fontSize * RUBY_SCALE
     Row(modifier = modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.Bottom) {
         for (segment in segments) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -36,11 +40,22 @@ fun FuriganaText(
                     maxLines = 1,
                     softWrap = false,
                     textAlign = TextAlign.Center,
+                    fontFamily = Gothic,
                     color = LocalContentColor.current.copy(alpha = 0.8f),
                     modifier = Modifier.alpha(if (showFurigana && segment.ruby != null) 1f else 0f),
                 )
-                Text(text = segment.base, fontSize = fontSize, lineHeight = fontSize * 1.2f, softWrap = false)
+                Text(
+                    text = segment.base,
+                    fontSize = fontSize,
+                    fontFamily = fontFamily,
+                    fontWeight = fontWeight,
+                    lineHeight = fontSize * 1.2f,
+                    softWrap = false,
+                )
             }
         }
     }
 }
+
+/** Furigana size, as a share of the word's size. */
+const val RUBY_SCALE = 0.36f

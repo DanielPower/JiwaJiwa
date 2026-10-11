@@ -29,9 +29,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.math.ceil
 
-private val CELL = 14.dp
+private val CELL = 13.dp
 private val GAP = 3.dp
-private val SHAPE = RoundedCornerShape(3.dp)
+private val SHAPE = RoundedCornerShape(2.dp)
 
 /**
  * Cards answered each study day, one column per week ending with this week,
