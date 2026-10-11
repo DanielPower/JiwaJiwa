@@ -241,6 +241,13 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         db.delete("review_log", "id = ?", arrayOf(id.toString()))
     }
 
+    /** Answers per study day, from [fromDay] on. */
+    fun answersPerDay(fromDay: Long): Map<Long, Int> =
+        readableDatabase.rawQuery(
+            "SELECT day, COUNT(*) FROM review_log WHERE day >= ? GROUP BY day",
+            arrayOf(fromDay.toString()),
+        ).use { c -> buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1)) } }
+
     /** Study days with at least one review, newest first. */
     fun studyDays(): List<Long> =
         readableDatabase.rawQuery("SELECT DISTINCT day FROM review_log ORDER BY day DESC", null).use { c ->

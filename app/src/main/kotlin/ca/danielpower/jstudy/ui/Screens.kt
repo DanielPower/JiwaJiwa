@@ -87,6 +87,7 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
                 }
             }
         }
+        StudyHeatmap(summary.answersPerDay, summary.today)
         Text(
             buildString {
                 append(if (summary.streak == 1) "1 day streak" else "${summary.streak} day streak")

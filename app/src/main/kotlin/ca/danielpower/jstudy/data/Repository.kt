@@ -26,6 +26,9 @@ data class Summary(
     val correctToday: Int,
     val wordsStarted: Int,
     val wordsTotal: Int,
+    val today: Long,
+    /** Cards answered per study day over the last year. */
+    val answersPerDay: Map<Long, Int>,
 ) {
     val anythingDue get() = newCards + learning + reviews > 0
 }
@@ -349,6 +352,8 @@ class Repository(context: Context) {
                 CardState.NEW.value,
             ).coerceAtMost(started),
             wordsTotal = total,
+            today = today,
+            answersPerDay = store.answersPerDay(today - 370),
         )
     }
 
