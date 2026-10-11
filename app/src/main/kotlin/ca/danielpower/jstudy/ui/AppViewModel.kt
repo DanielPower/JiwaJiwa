@@ -148,16 +148,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Mark the current new word as known. The session is rebuilt so the
-     * word's place goes to the next new word.
+     * Answer the first sight of a new word. Mastery 0 starts learning it;
+     * anything higher marks it known at that mastery, and the session is
+     * rebuilt so the next new word takes its place.
      */
-    fun markKnown(mastery: Int) = launchIo {
+    fun introduce(mastery: Int) = launchIo {
         val state = _screen.value as? Screen.Review ?: return@launchIo
         if (state.current.card.state != CardState.NEW) return@launchIo
+        val s = session ?: return@launchIo
         val now = now()
-        val (_, u) = repo.markKnown(state.current.card, mastery, now)
-        session = repo.session(now)
-        undo = u
+        if (mastery <= 0) {
+            val (card, u) = repo.introduce(state.current.card, now)
+            s.answered(card, repo.endOfToday(now))
+            undo = u
+        } else {
+            val (_, u) = repo.markKnown(state.current.card, mastery, now)
+            session = repo.session(now)
+            undo = u
+        }
         advance()
     }
 
@@ -165,7 +173,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val u = undo ?: return@launchIo
         repo.undo(u)
         if (u.logId == null) {
-            // Undoing "already know": the word is new again, so rebuild the queue around it.
+            // Undoing a first sight: the word is new again, so rebuild the queue around it.
             session = repo.session(now())
         }
         session?.restore(u.cardBefore)

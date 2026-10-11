@@ -179,6 +179,16 @@ class Repository(context: Context) {
         }
     }
 
+    /** First sight of a word you don't know yet: start learning it, ungraded. */
+    fun introduce(card: Card, now: Long): Pair<Card, Undo> {
+        val settings = settings()
+        val reviewer = Reviewer(Fsrs(desiredRetention = settings.desiredRetention), settings.mastery, clock(settings))
+        val before = store.progress(card.wordId)
+        val introduced = reviewer.introduce(card, now)
+        store.transaction { db -> store.updateCard(db, introduced) }
+        return introduced to Undo(card, before, null, null)
+    }
+
     /** Mark a word you already know at [mastery]. Returns the review interval in days. */
     fun markKnown(card: Card, mastery: Int, now: Long): Pair<Int, Undo> {
         val settings = settings()

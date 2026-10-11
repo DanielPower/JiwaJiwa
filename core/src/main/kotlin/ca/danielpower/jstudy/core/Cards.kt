@@ -159,6 +159,24 @@ class Reviewer(
     }
 
     /**
+     * First sight of a new word you don't know yet. Nothing is graded: the
+     * card enters its first learning step, and its first FSRS review is the
+     * next time you see it.
+     */
+    fun introduce(card: Card, now: Long): Card {
+        require(card.state == CardState.NEW)
+        val firstStep = fsrs.learningStepsMinutes.firstOrNull() ?: 0.0
+        return card.copy(
+            state = CardState.LEARNING,
+            step = 0,
+            stability = null,
+            difficulty = null,
+            dueAt = now + (firstStep * 60_000).toLong(),
+            introducedDay = clock.dayOf(now),
+        )
+    }
+
+    /**
      * Mark a word you already know. The card skips learning and gets a
      * review schedule to match the chosen mastery, so it still comes back
      * for occasional checks. The first review lands on a random day within

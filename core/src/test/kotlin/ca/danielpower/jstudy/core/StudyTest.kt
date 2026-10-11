@@ -186,5 +186,22 @@ class StudyTest {
         assertEquals(CardState.REVIEW, next.card.state)
         assertEquals(80, next.progress.mastery)
     }
+
+    @Test
+    fun `introducing an unknown word starts learning without grading it`() {
+        val now = at("2026-10-10T20:00")
+        val card = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)
+        val intro = reviewer.introduce(card, now)
+        assertEquals(CardState.LEARNING, intro.state)
+        assertEquals(now + 60_000, intro.dueAt)
+        assertEquals(clock.dayOf(now), intro.introducedDay)
+        assertNull(intro.stability)
+
+        // The first test is FSRS's first review, and the first mastery change.
+        val first = reviewer.answer(intro, WordProgress(7), correct = true, now = now + 90_000)
+        assertNull(first.log.elapsedDays)
+        assertEquals(Fsrs().review(FsrsMemory.NEW, Rating.GOOD, null).memory, FsrsMemory(FsrsState.LEARNING, first.card.step, first.card.stability, first.card.difficulty))
+        assertEquals(10, first.progress.mastery)
+    }
 }
 

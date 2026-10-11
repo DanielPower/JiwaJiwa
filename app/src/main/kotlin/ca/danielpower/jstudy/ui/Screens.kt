@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -23,17 +22,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -43,12 +37,9 @@ import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.FuriganaMode
-import ca.danielpower.jstudy.core.MasteryRules
-import ca.danielpower.jstudy.core.Reviewer
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Word
 import kotlinx.coroutines.delay
-import kotlin.math.roundToInt
 
 @Composable
 fun App(vm: AppViewModel, screen: Screen) {
@@ -128,6 +119,9 @@ private fun Count(label: String, value: Int, color: androidx.compose.ui.graphics
 private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
     val word = state.current.word
     val production = state.current.card.direction == Direction.PRODUCTION
+    // First sight of a new word: show everything and ask how well it's known.
+    val intro = !production && state.current.card.state == CardState.NEW
+    val revealed = state.revealed || intro
     val noRipple = remember { MutableInteractionSource() }
 
     Column(Modifier.fillMaxSize()) {
@@ -150,12 +144,21 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .clickable(interactionSource = noRipple, indication = null) {
-                    if (!state.revealed) vm.reveal()
+                    if (!revealed) vm.reveal()
                 }
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(32.dp))
+            if (intro) {
+                Text(
+                    "New word",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            } else {
+                Spacer(Modifier.height(32.dp))
+            }
             if (production) {
                 Meanings(word, limit = 3, large = true)
                 if (state.revealed) {
@@ -170,9 +173,9 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                         enabled = word.showsKanji && state.current.furigana != FuriganaMode.OFF,
                     ) { vm.toggleFurigana() },
                 ) {
-                    WordFace(word, showFurigana = state.revealed || state.furiganaVisible)
+                    WordFace(word, showFurigana = revealed || state.furiganaVisible)
                 }
-                if (!state.revealed && word.showsKanji && state.current.furigana == FuriganaMode.HIDDEN) {
+                if (!revealed && word.showsKanji && state.current.furigana == FuriganaMode.HIDDEN) {
                     Text(
                         "Tap the word for its reading",
                         style = MaterialTheme.typography.labelMedium,
@@ -180,12 +183,19 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }
-                if (state.revealed) {
+                if (revealed) {
                     HorizontalDivider(Modifier.padding(vertical = 24.dp))
                     Meanings(word, limit = 3, large = false)
                 }
             }
-            if (state.revealed) {
+            if (intro) {
+                Text(
+                    "N${word.jlpt}  ·  How well do you know this word?",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 24.dp),
+                )
+            } else if (revealed) {
                 Text(
                     "N${word.jlpt}  ·  mastery ${state.current.mastery}",
                     style = MaterialTheme.typography.labelMedium,
@@ -195,32 +205,22 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             }
         }
 
-        if (state.current.card.state == CardState.NEW) {
-            var asking by remember(state.current.card.id) { mutableStateOf(false) }
-            TextButton(
-                onClick = { asking = true },
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            ) {
-                Text("I already know this", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (asking) {
-                KnownDialog(
-                    word = word,
-                    rules = state.rules,
-                    onDismiss = { asking = false },
-                    onConfirm = { mastery ->
-                        asking = false
-                        vm.markKnown(mastery)
-                    },
-                )
-            }
-        }
-
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (state.revealed) {
+            if (intro) {
+                val rules = state.rules
+                OutlinedButton(onClick = { vm.introduce(0) }, modifier = Modifier.weight(1f).height(64.dp)) {
+                    Text("Unknown")
+                }
+                OutlinedButton(onClick = { vm.introduce(rules.hideAt) }, modifier = Modifier.weight(1f).height(64.dp)) {
+                    Text("Known")
+                }
+                OutlinedButton(onClick = { vm.introduce(rules.offAt) }, modifier = Modifier.weight(1f).height(64.dp)) {
+                    Text("Mastered")
+                }
+            } else if (state.revealed) {
                 Button(
                     onClick = { vm.answer(false) },
                     modifier = Modifier.weight(1f).height(64.dp),
@@ -240,40 +240,6 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             }
         }
     }
-}
-
-@Composable
-private fun KnownDialog(word: Word, rules: MasteryRules, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
-    var mastery by remember { mutableIntStateOf(70) }
-    val furigana = when (rules.furigana(mastery)) {
-        FuriganaMode.SHOWN -> "furigana shown"
-        FuriganaMode.HIDDEN -> "furigana hidden, tap to show"
-        FuriganaMode.OFF -> "no furigana"
-    }
-    val days = Reviewer.knownIntervalDays(mastery)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Already know ${word.display}?") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("How well do you know it?")
-                Slider(
-                    value = mastery.toFloat(),
-                    onValueChange = { mastery = (it / 10).roundToInt() * 10 },
-                    valueRange = 10f..100f,
-                    steps = 8,
-                )
-                Text("Mastery $mastery: $furigana", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    "It will come back for a check within ${if (days == 1) "a day" else "$days days"}.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        },
-        confirmButton = { TextButton(onClick = { onConfirm(mastery) }) { Text("Mark known") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
 }
 
 @Composable
