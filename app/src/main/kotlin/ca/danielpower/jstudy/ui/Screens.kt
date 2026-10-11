@@ -241,14 +241,6 @@ private fun WordFace(word: Word, showFurigana: Boolean) {
             Text(word.kana, fontSize = size)
         }
     }
-    if (showFurigana && word.usuallyKana && word.kanji != null) {
-        Text(
-            word.kanji,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-    }
 }
 
 @Composable

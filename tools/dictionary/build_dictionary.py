@@ -203,6 +203,10 @@ def has_kanji(text: str) -> bool:
     return any("\u4e00" <= c <= "\u9fff" or "\u3400" <= c <= "\u4dbf" or c == "々" for c in text)
 
 
+def is_common(entry: dict, kanji_text: str) -> bool:
+    return any(k["text"] == kanji_text and k["common"] for k in entry["kanji"])
+
+
 def kana_applies(kana: dict, kanji_text: str) -> bool:
     applies = kana.get("appliesToKanji", ["*"])
     return "*" in applies or kanji_text in applies
@@ -307,6 +311,13 @@ def select_word(
         kanji = min(usable, key=lambda k: (not next(f["common"] for f in entry["kanji"] if f["text"] == k), rank(k)))
 
     senses = senses_for(entry, kanji, kana)
+    # The JLPT lists write many easy words in kana only because their kanji
+    # are above that level. Furigana covers that here, so a word is shown in
+    # kanji whenever JMdict has a common kanji spelling and doesn't mark the
+    # word as usually written in kana.
+    if usually_kana and kanji and is_common(entry, kanji) and "uk" not in senses[0]["misc"]:
+        usually_kana = False
+        notes.append(f"shown in kanji as {kanji} (common spelling, not usually kana)")
 
     # Kana-only spellings collide with particles and homophones (歯 は vs は),
     # so kanji words are ranked by their kanji spellings.
