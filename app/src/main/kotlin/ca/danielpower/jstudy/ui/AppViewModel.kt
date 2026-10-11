@@ -6,11 +6,14 @@ import androidx.lifecycle.viewModelScope
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FuriganaMode
+import ca.danielpower.jstudy.core.ImportPlan
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Entry
+import ca.danielpower.jstudy.data.RenshuuClient
+import ca.danielpower.jstudy.data.RenshuuException
 import ca.danielpower.jstudy.data.Repository
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Undo
@@ -19,6 +22,7 @@ import ca.danielpower.jstudy.data.WordDetail
 import ca.danielpower.jstudy.data.WordStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -87,6 +91,16 @@ sealed interface Screen {
     ) : Screen
 
     data class WordPage(val detail: WordDetail, val rules: MasteryRules, val clock: StudyClock) : Screen
+
+    data class RenshuuImport(val step: ImportStep) : Screen
+}
+
+sealed interface ImportStep {
+    data class EnterKey(val error: String? = null) : ImportStep
+    data class Fetching(val page: Int, val pages: Int) : ImportStep
+    data class Preview(val plan: ImportPlan) : ImportStep
+    data object Applying : ImportStep
+    data class Done(val updated: Int) : ImportStep
 }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -102,6 +116,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var statuses: Map<Long, WordStatus> = emptyMap()
     private var lastDictionary: Screen.Dictionary? = null
     private var searchJob: Job? = null
+    private var importJob: Job? = null
 
     init {
         launchIo {
@@ -126,9 +141,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun goHome() = launchIo { showHome() }
 
-    /** The system back button: word page to dictionary, anything else home. */
+    /** The system back button: word page to dictionary, import to settings, anything else home. */
     fun back() {
-        if (_screen.value is Screen.WordPage) closeWord() else goHome()
+        when (_screen.value) {
+            is Screen.WordPage -> closeWord()
+            is Screen.RenshuuImport -> closeImport()
+            else -> goHome()
+        }
     }
 
     fun startReview() = launchIo {
@@ -239,6 +258,53 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun saveSettings(settings: StudySettings) = launchIo {
         repo.saveSettings(settings)
         _screen.update { if (it is Screen.Settings) it.copy(settings = settings) else it }
+    }
+
+    // ------------------------------------------------------------ renshuu import
+
+    fun openImport() {
+        _screen.value = Screen.RenshuuImport(ImportStep.EnterKey())
+    }
+
+    fun closeImport() {
+        importJob?.cancel()
+        importJob = null
+        openSettings()
+    }
+
+    private fun importStep(step: ImportStep) =
+        _screen.update { if (it is Screen.RenshuuImport) Screen.RenshuuImport(step) else it }
+
+    /** Download your studied words and show what importing them would change. Nothing is written yet. */
+    fun fetchRenshuu(apiKey: String) {
+        val key = apiKey.trim()
+        if (key.isEmpty()) return
+        importJob?.cancel()
+        importStep(ImportStep.Fetching(0, 0))
+        // Not under the lock: the download can take a while and shouldn't block leaving the screen.
+        importJob = viewModelScope.launch {
+            try {
+                val terms = withContext(Dispatchers.IO) {
+                    RenshuuClient(key).studiedVocab { page, pages ->
+                        ensureActive()
+                        importStep(ImportStep.Fetching(page, pages))
+                    }
+                }
+                lock.withLock {
+                    val plan = withContext(Dispatchers.IO) { repo.renshuuPlan(terms) }
+                    importStep(ImportStep.Preview(plan))
+                }
+            } catch (e: RenshuuException) {
+                importStep(ImportStep.EnterKey(e.message))
+            }
+        }
+    }
+
+    fun applyImport() = launchIo {
+        val step = (_screen.value as? Screen.RenshuuImport)?.step as? ImportStep.Preview ?: return@launchIo
+        importStep(ImportStep.Applying)
+        repo.importMastery(step.plan.updates, now())
+        importStep(ImportStep.Done(step.plan.updates.size))
     }
 
     // ------------------------------------------------------------ dictionary

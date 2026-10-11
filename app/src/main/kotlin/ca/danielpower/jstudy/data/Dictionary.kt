@@ -205,6 +205,11 @@ class Dictionary(context: Context) {
 
     private fun escapeLike(s: String) = s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
+    fun wordIds(): Set<Long> =
+        db.rawQuery("SELECT id FROM word", null).use { c ->
+            buildSet { while (c.moveToNext()) add(c.getLong(0)) }
+        }
+
     fun wordCount(): Int = db.rawQuery("SELECT COUNT(*) FROM word", null).use { it.moveToFirst(); it.getInt(0) }
 
     fun partOfSpeechNames(): Map<String, String> =

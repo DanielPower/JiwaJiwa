@@ -7,7 +7,11 @@ import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.DailyLimits
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.Fsrs
+import ca.danielpower.jstudy.core.ImportPlan
+import ca.danielpower.jstudy.core.LocalWord
 import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.RenshuuImport
+import ca.danielpower.jstudy.core.RenshuuTerm
 import ca.danielpower.jstudy.core.Reviewer
 import ca.danielpower.jstudy.core.StudyAhead
 import ca.danielpower.jstudy.core.StudyClock
@@ -306,6 +310,37 @@ class Repository(context: Context) {
                 // An unstarted word goes back to its usual place in the study order.
                 val card = recognitionCard(wordId)
                 if (card != null && card.state == CardState.NEW && card.reps == 0) store.deleteCard(db, card.id)
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ renshuu
+
+    /** What importing [terms] would change. */
+    fun renshuuPlan(terms: List<RenshuuTerm>): ImportPlan {
+        val ids = dictionary.wordIds()
+        val local = store.wordStatuses().mapValues { (_, s) ->
+            LocalWord(s.mastery, started = s.state != CardState.NEW, suspended = s.suspended)
+        }
+        return RenshuuImport.plan(terms, { it in ids }, local)
+    }
+
+    /** Mark each word known at its mastery, as "I already know this" does, in one transaction. */
+    fun importMastery(updates: Map<Long, Int>, now: Long) {
+        val settings = settings()
+        val reviewer = Reviewer(Fsrs(desiredRetention = settings.desiredRetention), settings.mastery, clock(settings))
+        store.transaction { db ->
+            for ((wordId, mastery) in updates) {
+                if (recognitionCard(wordId) == null) {
+                    store.insertNewCard(db, wordId, Direction.RECOGNITION, now / 1000 - LEARN_NEXT_FIRST)
+                }
+                val card = recognitionCard(wordId) ?: continue
+                val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default)
+                store.updateCard(db, known.card)
+                store.saveProgress(db, known.progress)
+                if (known.unlockedProduction) {
+                    store.insertNewCard(db, wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
+                }
             }
         }
     }

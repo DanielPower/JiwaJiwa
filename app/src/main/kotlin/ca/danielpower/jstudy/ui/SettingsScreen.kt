@@ -24,7 +24,12 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
-fun SettingsScreen(state: Screen.Settings, onChange: (StudySettings) -> Unit, onBack: () -> Unit) {
+fun SettingsScreen(
+    state: Screen.Settings,
+    onChange: (StudySettings) -> Unit,
+    onImport: () -> Unit,
+    onBack: () -> Unit,
+) {
     val s = state.settings
     val m = s.mastery
     fun update(block: () -> StudySettings) {
@@ -70,6 +75,14 @@ fun SettingsScreen(state: Screen.Settings, onChange: (StudySettings) -> Unit, on
         Stepper("English to Japanese cards from", "${m.productionAt}") { d ->
             update { s.copy(mastery = m.copy(productionAt = (m.productionAt + d * 5).coerceIn(0, 100))) }
         }
+
+        Section("Import")
+        Text(
+            "Bring in the mastery of words you've studied on Renshuu.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(onClick = onImport) { Text("Import from Renshuu") }
 
         Section("About")
         Text(
