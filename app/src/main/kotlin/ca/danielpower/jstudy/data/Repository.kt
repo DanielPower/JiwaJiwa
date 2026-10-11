@@ -372,6 +372,13 @@ class Repository(context: Context) {
 
     // ------------------------------------------------------------ stories
 
+    /** Whether stories are set vertically, top to bottom and right to left. */
+    fun storyVertical(): Boolean = store.getValue("story_vertical") == "1"
+
+    fun setStoryVertical(vertical: Boolean) {
+        store.setValues(mapOf("story_vertical" to if (vertical) "1" else "0"))
+    }
+
     fun claudeKey(): String = secrets.getString("claude_api_key", null).orEmpty()
 
     fun saveClaudeKey(key: String) {

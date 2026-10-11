@@ -84,7 +84,12 @@ sealed interface Screen {
     /** Only learning steps remain and none is due yet. */
     data class Waiting(val dueAt: Long, val counts: ReviewCounts) : Screen
     data class Done(val summary: Summary) : Screen
-    data class Settings(val settings: StudySettings, val attribution: String, val claudeKey: String) : Screen
+    data class Settings(
+        val settings: StudySettings,
+        val attribution: String,
+        val claudeKey: String,
+        val storyVertical: Boolean,
+    ) : Screen
 
     data class Dictionary(
         val query: String,
@@ -113,6 +118,8 @@ sealed interface Screen {
         val reading: StoryReading,
         /** New words this story just added to the front of the queue, shown once. */
         val queued: Int?,
+        /** Set top to bottom, right to left, as Japanese books are. */
+        val vertical: Boolean,
     ) : Screen
 }
 
@@ -288,7 +295,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openSettings() = launchIo {
         val attribution = repo.dictionary.meta("attribution").orEmpty()
-        _screen.value = Screen.Settings(repo.settings(), attribution, repo.claudeKey())
+        _screen.value = Screen.Settings(repo.settings(), attribution, repo.claudeKey(), repo.storyVertical())
     }
 
     fun saveClaudeKey(key: String) = launchIo {
@@ -299,6 +306,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun saveSettings(settings: StudySettings) = launchIo {
         repo.saveSettings(settings)
         _screen.update { if (it is Screen.Settings) it.copy(settings = settings) else it }
+    }
+
+    fun setStoryVertical(vertical: Boolean) = launchIo {
+        repo.setStoryVertical(vertical)
+        _screen.update {
+            when (it) {
+                is Screen.StoryReader -> it.copy(vertical = vertical)
+                is Screen.Settings -> it.copy(storyVertical = vertical)
+                else -> it
+            }
+        }
     }
 
     // ------------------------------------------------------------ renshuu import
@@ -407,7 +425,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun showStory(id: Long, queued: Int?) {
         val reading = repo.readStory(id) ?: return showStories()
-        _screen.value = Screen.StoryReader(reading, queued)
+        _screen.value = Screen.StoryReader(reading, queued, repo.storyVertical())
     }
 
     fun deleteStory(id: Long) = launchIo {

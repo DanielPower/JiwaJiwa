@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -201,6 +204,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     // The word shown in the sheet, as (paragraph, index).
     var open by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val openWord = open?.let { (p, i) -> reading.paragraphs.getOrNull(p)?.getOrNull(i) }
+    // In vertical text a word low on the page would sit under the sheet, so it moves to the top.
+    var sheetAtTop by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -214,21 +219,43 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
+                val switchTo = if (state.vertical) "Horizontal text" else "Vertical text"
+                SecondaryButton(
+                    onClick = { vm.setStoryVertical(!state.vertical) },
+                    modifier = Modifier.size(40.dp).semantics { contentDescription = switchTo },
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text(if (state.vertical) "横" else "縦", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                }
                 WashiIconButton(WashiIcons.Delete, "Delete story", { confirmDelete = true })
             }
-            Column(
+            if (state.vertical) {
+                Column(
+                    Modifier.padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(reading.story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.headlineSmall)
+                    QueuedNote(state.queued)
+                }
+                VerticalStory(
+                    reading = reading,
+                    selected = open,
+                    onOpen = { p, i, low ->
+                        if (open == (p to i)) {
+                            open = null
+                        } else {
+                            open = p to i
+                            sheetAtTop = low
+                        }
+                    },
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+                )
+            } else Column(
                 modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(reading.story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.headlineMedium)
-                if (state.queued != null && state.queued > 0) {
-                    Text(
-                        if (state.queued == 1) "Its new word is now first in your new-word queue."
-                        else "Its ${state.queued} new words are now first in your new-word queue.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                QueuedNote(state.queued)
                 reading.paragraphs.forEachIndexed { p, words ->
                     FlowRow(modifier = Modifier.fillMaxWidth()) {
                         words.forEachIndexed { i, word ->
@@ -236,7 +263,10 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                                 word = word,
                                 reading = reading,
                                 selected = open == (p to i),
-                                onOpen = { open = if (open == (p to i)) null else (p to i) },
+                                onOpen = {
+                                    open = if (open == (p to i)) null else (p to i)
+                                    sheetAtTop = false
+                                },
                             )
                         }
                     }
@@ -254,7 +284,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     vm.knowStoryWord(id)
                 },
                 onClose = { open = null },
-                modifier = Modifier.align(Alignment.BottomCenter),
+                atTop = sheetAtTop,
+                modifier = Modifier.align(if (sheetAtTop) Alignment.TopCenter else Alignment.BottomCenter),
             )
         }
     }
@@ -276,23 +307,41 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     }
 }
 
+@Composable
+private fun QueuedNote(queued: Int?) {
+    if (queued != null && queued > 0) {
+        Text(
+            if (queued == 1) "Its new word is now first in your new-word queue."
+            else "Its $queued new words are now first in your new-word queue.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 private fun StoryReading.isKnown(id: Long?): Boolean {
     val s = id?.let { statuses[it] } ?: return false
     return s.state != CardState.NEW || s.suspended
 }
 
-private fun StoryReading.isUnknown(word: ReadingWord) = word.kind == WordKind.WORD && !isKnown(word.wordId)
+internal fun StoryReading.isUnknown(word: ReadingWord) = word.kind == WordKind.WORD && !isKnown(word.wordId)
 
-private const val TEXT_SIZE = 22
-private const val RUBY_SIZE = 10
+/** Furigana follows each word's mastery, as on cards; new words and names always have it. */
+internal fun StoryReading.showsRuby(word: ReadingWord): Boolean {
+    val mastery = word.wordId?.let { statuses[it]?.mastery } ?: 0
+    return isUnknown(word) || word.kind == WordKind.NAME || rules.furigana(mastery) == FuriganaMode.SHOWN
+}
+
+internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME
+
+internal const val TEXT_SIZE = 22
+internal const val RUBY_SIZE = 10
 
 @Composable
 private fun StoryWord(word: ReadingWord, reading: StoryReading, selected: Boolean, onOpen: () -> Unit) {
-    val tappable = word.kind == WordKind.WORD || word.kind == WordKind.NAME
+    val tappable = word.tappable()
     val unknown = reading.isUnknown(word)
-    val mastery = word.wordId?.let { reading.statuses[it]?.mastery } ?: 0
-    // Furigana follows each word's mastery, as on cards; new words always have it.
-    val showRuby = unknown || word.kind == WordKind.NAME || reading.rules.furigana(mastery) == FuriganaMode.SHOWN
+    val showRuby = reading.showsRuby(word)
     val color = if (unknown || selected) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
     var modifier: Modifier = Modifier
@@ -332,6 +381,7 @@ private fun WordSheet(
     reading: StoryReading,
     onKnow: (Long) -> Unit,
     onClose: () -> Unit,
+    atTop: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val entry = word.wordId?.let { reading.words[it] }
@@ -343,7 +393,7 @@ private fun WordSheet(
             // Taps on the sheet stay on the sheet.
             .clickable(interactionSource = noRipple, indication = null) {},
     ) {
-        HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.onSurface)
+        if (!atTop) HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.onSurface)
         Column(
             Modifier.padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -396,5 +446,6 @@ private fun WordSheet(
                 }
             }
         }
+        if (atTop) HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.onSurface)
     }
 }

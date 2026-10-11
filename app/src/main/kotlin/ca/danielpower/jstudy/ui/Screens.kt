@@ -85,7 +85,7 @@ fun App(vm: AppViewModel, screen: Screen) {
                     is Screen.Review -> ReviewScreen(screen, vm)
                     is Screen.Waiting -> WaitingScreen(screen, vm)
                     is Screen.Done -> DoneScreen(screen.summary, vm::studyMore, vm::goHome)
-                    is Screen.Settings -> SettingsScreen(screen, vm::saveSettings, vm::saveClaudeKey, vm::openImport)
+                    is Screen.Settings -> SettingsScreen(screen, vm::saveSettings, vm::saveClaudeKey, vm::openImport, vm::setStoryVertical)
                     is Screen.Dictionary -> DictionaryScreen(screen, vm, dictionaryList)
                     is Screen.WordPage -> WordScreen(screen, vm)
                     is Screen.RenshuuImport -> RenshuuImportScreen(screen.step, vm)

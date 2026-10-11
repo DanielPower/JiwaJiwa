@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +40,7 @@ fun SettingsScreen(
     onChange: (StudySettings) -> Unit,
     onSaveClaudeKey: (String) -> Unit,
     onImport: () -> Unit,
+    onStoryVertical: (Boolean) -> Unit,
 ) {
     val s = state.settings
     val m = s.mastery
@@ -104,6 +106,18 @@ fun SettingsScreen(
             SecondaryButton(onClick = { onSaveClaudeKey(key) }) { Text("Save key") }
         } else if (state.claudeKey.isNotEmpty()) {
             Text("Saved", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        }
+
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Vertical text", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "縦書き: top to bottom, right to left, like a Japanese book.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = state.storyVertical, onCheckedChange = onStoryVertical)
         }
 
         Section("Import")
