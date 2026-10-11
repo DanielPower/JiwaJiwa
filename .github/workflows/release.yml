@@ -48,6 +48,6 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "$apk"
           notes="$(git log -1 --pretty=%B)"
           if [ "$SIGNED" != "true" ]; then
-            notes="${notes}"$'\n\n'"Signed with a temporary debug key. Add the signing secrets (see the Create signing key workflow) so updates install over each other."
+            notes="${notes}"$'\n\n'"Signed with a temporary debug key. Add the signing secrets (see Release signing in the README) so updates install over each other."
           fi
           gh release create "v${version}" "$apk" --title "jstudy ${version}" --notes "$notes" --target "$GITHUB_SHA"

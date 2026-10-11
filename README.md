@@ -49,6 +49,14 @@ frequency list compiled by Kuuuube.
 ## Release signing
 
 Releases are signed with the key in the `SIGNING_KEYSTORE_BASE64` and
-`SIGNING_PASSWORD` repository secrets. Run the **Create signing key** workflow
-once to generate them. Without the secrets, releases are signed with a
-throwaway debug key and each update needs a reinstall.
+`SIGNING_PASSWORD` repository secrets (alias `jstudy`, with the same password
+for the store and the key). To make a new key locally:
+
+```sh
+keytool -genkeypair -keystore release.jks -alias jstudy -keyalg RSA -keysize 4096 \
+  -validity 36500 -dname "CN=jstudy"
+base64 -w0 release.jks   # the value for SIGNING_KEYSTORE_BASE64
+```
+
+Without the secrets, releases are signed with a throwaway debug key and each
+update needs a reinstall.

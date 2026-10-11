@@ -9,8 +9,8 @@ plugins {
 // CI passes the run number so every release installs over the previous one.
 val buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
 
-// Release signing comes from repository secrets (see the "Create signing key"
-// workflow). Without them the release is signed with the debug key.
+// Release signing comes from repository secrets (see "Release signing" in the
+// README). Without them the release is signed with the debug key.
 val signingKeystore = System.getenv("SIGNING_KEYSTORE_BASE64")?.takeIf { it.isNotBlank() }?.let {
     val file = layout.buildDirectory.file("signing/release.jks").get().asFile
     file.parentFile.mkdirs()
