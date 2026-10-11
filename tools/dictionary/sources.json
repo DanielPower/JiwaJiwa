@@ -1,0 +1,73 @@
+{
+  "jmdict": {
+    "description": "JMdict (English), via jmdict-simplified",
+    "license": "CC BY-SA 4.0, Electronic Dictionary Research and Development Group",
+    "homepage": "https://github.com/scriptin/jmdict-simplified",
+    "url": "https://github.com/scriptin/jmdict-simplified/releases/download/3.6.2%2B20261005200550/jmdict-eng-3.6.2%2B20261005200550.json.zip",
+    "sha256": "4601650cb900865cb9b388d6a045835120b90fbe451048d319bb8999635d596f",
+    "zip_member": "jmdict-eng-3.6.2.json"
+  },
+  "furigana": {
+    "description": "JmdictFurigana: per-kanji reading alignment for JMdict",
+    "license": "CC BY-SA 4.0, Doublevil",
+    "homepage": "https://github.com/Doublevil/JmdictFurigana",
+    "url": "https://github.com/Doublevil/JmdictFurigana/releases/download/2.3.1%2B2026-09-25/JmdictFurigana.json",
+    "sha256": "2a8e206f0b171fa5acdce89e5f5798621b227175e5bfa2db6bd92fef63dd962e"
+  },
+  "frequency": {
+    "description": "JPDB v2.2 frequency list (rank by occurrence in a large corpus of Japanese media)",
+    "license": "Data from jpdb.io, list compiled by Kuuuube; no explicit license (personal use)",
+    "homepage": "https://github.com/Kuuuube/yomitan-dictionaries",
+    "url": "https://raw.githubusercontent.com/Kuuuube/yomitan-dictionaries/main/data/jpdb_v2.2_freq_list_2024-10-13.csv",
+    "sha256": "5cf103c1538a2189cda2fe0d462ebfe08eb09f211a48b727f533d387b371c5eb"
+  },
+  "jlpt": {
+    "description": "Jonathan Waller's JLPT vocabulary lists, linked to JMdict entries and with spellings curated by Stephen Kraus",
+    "license": "CC BY (Jonathan Waller); CC BY-SA 4.0 (Stephen Kraus)",
+    "homepage": "https://github.com/stephenmk/yomitan-jlpt-vocab",
+    "levels": {
+      "5": {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/original_data/n5.csv",
+        "sha256": "07dc6f197b51cc076c65c3c9f23218d10c2b67f76545f5c1c4d9e3750495533a"
+      },
+      "4": {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/original_data/n4.csv",
+        "sha256": "a14dcc7fdc02259b22331a486c6ff66df74c16472c8aeb5a0ebe7e5fa8ee8eb4"
+      },
+      "3": {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/original_data/n3.csv",
+        "sha256": "bd4d68c59cfee861351e1bdf9d99818e434392201eabbed4d3657225fe53a3ac"
+      },
+      "2": {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/original_data/n2.csv",
+        "sha256": "42a4413326e857d701dc9659b2711637ab612304a339fe0d09f4f0f042d3a214"
+      },
+      "1": {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/original_data/n1.csv",
+        "sha256": "7a58f0584e9ec2b0299ccb9b109f3bd03e08b90d129a714307c0a1cb72f07b32"
+      }
+    },
+    "spellings": [
+      {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/yomitan-jlpt-vocab/term_meta_bank_1.json",
+        "sha256": "80698c74b0d4efe476db35626b60324007f66d5ca32c0178bf3f9456a0290abf"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/yomitan-jlpt-vocab/term_meta_bank_2.json",
+        "sha256": "c58e20a6fc2dececf6a5e42bd1163212615ef79deec85e77c6f7c7deb4d4cc7e"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/yomitan-jlpt-vocab/term_meta_bank_3.json",
+        "sha256": "baeee2da06c41ea973cb54a6118834682b33857128f7d97577f21cbaaae7c51b"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/yomitan-jlpt-vocab/term_meta_bank_4.json",
+        "sha256": "844590546217e084f8244f3cf9e6eb6054f5f7a370857bf5917fe19d4d83d7a8"
+      },
+      {
+        "url": "https://raw.githubusercontent.com/stephenmk/yomitan-jlpt-vocab/b062d4e38c4bdd0950ae1d4ec55f04b176182e03/yomitan-jlpt-vocab/term_meta_bank_5.json",
+        "sha256": "a169779f5b8e4dbf4aaa86c367e2b0e24721b5d247c8e0c5b37b18189bc1be83"
+      }
+    ]
+  }
+}

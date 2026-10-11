@@ -1,0 +1,39 @@
+name: Create signing key
+
+# Run once from the Actions tab. It makes a release keystore and uploads it as
+# a short-lived private artifact. Download it, then add two repository secrets
+# (Settings > Secrets and variables > Actions):
+#   SIGNING_KEYSTORE_BASE64  the contents of keystore.base64.txt
+#   SIGNING_PASSWORD         the contents of password.txt
+# Keep the downloaded files somewhere safe: every future update must be signed
+# with the same key, or Android refuses to install it over the old version.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keystore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Generate
+        run: |
+          mkdir out
+          password="$(openssl rand -base64 24 | tr -d '/+=')"
+          keytool -genkeypair -keystore out/release.jks -alias jstudy -keyalg RSA -keysize 4096 \
+            -validity 36500 -storepass "$password" -keypass "$password" -dname "CN=jstudy"
+          base64 -w0 out/release.jks > out/keystore.base64.txt
+          printf '%s' "$password" > out/password.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jstudy-signing-key
+          path: out/
+          retention-days: 1

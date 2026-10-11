@@ -1,0 +1,19 @@
+# Hand corrections applied after automatic selection.
+# field: kanji | kana | jlpt | usually_kana | exclude. An empty kanji value removes the kanji spelling.
+#
+# The JLPT list links these basic words to rarer JMdict entries with the same
+# spelling (interjections and the like). Each pair would otherwise show the
+# same face on two cards, so the common meaning keeps the easier level.
+jmdict_seq,field,value
+2216210,exclude,1
+1006970,jlpt,5
+2216120,exclude,1
+1628530,jlpt,5
+1000430,exclude,1
+1000420,jlpt,5
+1006610,exclude,1
+2137720,jlpt,4
+1565440,exclude,1
+2219590,exclude,1
+2771700,exclude,1
+1570120,jlpt,3

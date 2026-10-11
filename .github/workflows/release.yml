@@ -1,0 +1,53 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test the dictionary build
+        run: python3 -m unittest discover tools/dictionary
+
+      - name: Test and build
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: ./gradlew :core:test :app:assembleRelease
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SIGNED: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' }}
+        run: |
+          version="0.1.${GITHUB_RUN_NUMBER}"
+          apk="jstudy-${version}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          notes="$(git log -1 --pretty=%B)"
+          if [ "$SIGNED" != "true" ]; then
+            notes="${notes}"$'\n\n'"Signed with a temporary debug key. Add the signing secrets (see the Create signing key workflow) so updates install over each other."
+          fi
+          gh release create "v${version}" "$apk" --title "jstudy ${version}" --notes "$notes" --target "$GITHUB_SHA"

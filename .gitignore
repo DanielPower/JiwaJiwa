@@ -1,0 +1,18 @@
+# Gradle and build output
+.gradle/
+build/
+local.properties
+.kotlin/
+
+# IDEs
+.idea/
+*.iml
+.DS_Store
+
+# Dictionary build downloads
+tools/dictionary/.cache/
+__pycache__/
+
+# Signing material is provided by CI secrets, never committed
+*.jks
+*.keystore

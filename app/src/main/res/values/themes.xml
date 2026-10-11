@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.JStudy" parent="android:Theme.Material.NoActionBar" />
+</resources>
