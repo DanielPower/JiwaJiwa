@@ -157,4 +157,55 @@ class Reviewer(
             ),
         )
     }
+
+    /**
+     * Mark a word you already know. The card skips learning and gets a
+     * review schedule to match the chosen mastery, so it still comes back
+     * for occasional checks. The first review lands on a random day within
+     * that interval, so marking many words at once doesn't bunch them up.
+     */
+    fun markKnown(card: Card, progress: WordProgress, mastery: Int, now: Long, random: Random): Known {
+        require(card.wordId == progress.wordId)
+        val newMastery = mastery.coerceIn(0, MasteryRules.MAX)
+        val days = knownIntervalDays(newMastery)
+        val today = clock.dayOf(now)
+        val firstDue = 1 + random.nextInt(days)
+        val unlock = card.direction == Direction.RECOGNITION &&
+            !progress.productionUnlocked &&
+            newMastery >= this.mastery.productionAt
+        return Known(
+            card = card.copy(
+                state = CardState.REVIEW,
+                step = null,
+                // At 90% target retention the FSRS interval equals the stability.
+                stability = days.toDouble(),
+                difficulty = fsrs.startingDifficulty(Rating.GOOD),
+                dueAt = clock.startOf(today + firstDue),
+                lastReviewAt = now,
+                lastMasteryDay = today,
+            ),
+            progress = progress.copy(mastery = newMastery, productionUnlocked = progress.productionUnlocked || unlock),
+            unlockedProduction = unlock,
+            intervalDays = days,
+        )
+    }
+
+    companion object {
+        private val KNOWN_POINTS = listOf(0 to 1.0, 40 to 7.0, 70 to 30.0, 100 to 90.0)
+
+        /** Review interval for a known word: about a week at 40, a month at 70, three months at 100. */
+        fun knownIntervalDays(mastery: Int): Int {
+            val m = mastery.coerceIn(0, MasteryRules.MAX)
+            val (lo, hi) = KNOWN_POINTS.zipWithNext().first { (_, b) -> m <= b.first }
+            val t = (m - lo.first).toDouble() / (hi.first - lo.first)
+            return kotlin.math.round(lo.second + t * (hi.second - lo.second)).toInt().coerceAtLeast(1)
+        }
+    }
 }
+
+data class Known(
+    val card: Card,
+    val progress: WordProgress,
+    val unlockedProduction: Boolean,
+    val intervalDays: Int,
+)

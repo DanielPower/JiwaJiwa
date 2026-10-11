@@ -34,7 +34,8 @@ data class Summary(
 data class Undo(
     val cardBefore: Card,
     val progressBefore: WordProgress,
-    val logId: Long,
+    /** Null when the action wasn't a review (marking a word known). */
+    val logId: Long?,
     val productionCardId: Long?,
 )
 
@@ -178,11 +179,30 @@ class Repository(context: Context) {
         }
     }
 
+    /** Mark a word you already know at [mastery]. Returns the review interval in days. */
+    fun markKnown(card: Card, mastery: Int, now: Long): Pair<Int, Undo> {
+        val settings = settings()
+        val reviewer = Reviewer(Fsrs(desiredRetention = settings.desiredRetention), settings.mastery, clock(settings))
+        val before = store.progress(card.wordId)
+        val known = reviewer.markKnown(card, before, mastery, now, Random.Default)
+        return store.transaction { db ->
+            store.updateCard(db, known.card)
+            store.saveProgress(db, known.progress)
+            val production = if (known.unlockedProduction) {
+                store.insertNewCard(db, card.wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
+                    .takeIf { it > 0 }
+            } else {
+                null
+            }
+            known.intervalDays to Undo(card, before, null, production)
+        }
+    }
+
     fun undo(undo: Undo) {
         store.transaction { db ->
             store.updateCard(db, undo.cardBefore)
             store.saveProgress(db, undo.progressBefore)
-            store.deleteLog(db, undo.logId)
+            undo.logId?.let { store.deleteLog(db, it) }
             undo.productionCardId?.let { store.deleteCard(db, it) }
         }
     }

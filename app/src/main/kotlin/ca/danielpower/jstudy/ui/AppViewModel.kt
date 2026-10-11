@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FuriganaMode
+import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Repository
@@ -42,6 +43,7 @@ sealed interface Screen {
         val furiganaVisible: Boolean,
         val counts: ReviewCounts,
         val canUndo: Boolean,
+        val rules: MasteryRules,
     ) : Screen
 
     /** Only learning steps remain and none is due yet. */
@@ -112,13 +114,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return advance()
         }
         val mastery = repo.progress(card.wordId).mastery
-        val mode = repo.settings().mastery.furigana(mastery)
+        val rules = repo.settings().mastery
+        val mode = rules.furigana(mastery)
         _screen.value = Screen.Review(
             current = ReviewCard(card, word, mode, mastery),
             revealed = false,
             furiganaVisible = mode == FuriganaMode.SHOWN,
             counts = counts,
             canUndo = undo != null,
+            rules = rules,
         )
     }
 
@@ -143,9 +147,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         advance()
     }
 
+    /**
+     * Mark the current new word as known. The session is rebuilt so the
+     * word's place goes to the next new word.
+     */
+    fun markKnown(mastery: Int) = launchIo {
+        val state = _screen.value as? Screen.Review ?: return@launchIo
+        if (state.current.card.state != CardState.NEW) return@launchIo
+        val now = now()
+        val (_, u) = repo.markKnown(state.current.card, mastery, now)
+        session = repo.session(now)
+        undo = u
+        advance()
+    }
+
     fun undoLast() = launchIo {
         val u = undo ?: return@launchIo
         repo.undo(u)
+        if (u.logId == null) {
+            // Undoing "already know": the word is new again, so rebuild the queue around it.
+            session = repo.session(now())
+        }
         session?.restore(u.cardBefore)
         undo = null
         advance()

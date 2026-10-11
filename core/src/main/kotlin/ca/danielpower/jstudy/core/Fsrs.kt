@@ -137,6 +137,9 @@ class Fsrs(
 
     private fun clampDifficulty(d: Double) = d.coerceIn(1.0, 10.0)
 
+    /** Difficulty FSRS gives a new card answered with [rating]. */
+    fun startingDifficulty(rating: Rating): Double = initialDifficulty(rating, clamp = true)
+
     private fun initialStability(rating: Rating) = clampStability(w[rating.value - 1])
 
     private fun initialDifficulty(rating: Rating, clamp: Boolean): Double {

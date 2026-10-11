@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -22,23 +23,32 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.FuriganaMode
+import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.Reviewer
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Word
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 @Composable
 fun App(vm: AppViewModel, screen: Screen) {
@@ -185,6 +195,27 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             }
         }
 
+        if (state.current.card.state == CardState.NEW) {
+            var asking by remember(state.current.card.id) { mutableStateOf(false) }
+            TextButton(
+                onClick = { asking = true },
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                Text("I already know this", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (asking) {
+                KnownDialog(
+                    word = word,
+                    rules = state.rules,
+                    onDismiss = { asking = false },
+                    onConfirm = { mastery ->
+                        asking = false
+                        vm.markKnown(mastery)
+                    },
+                )
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -209,6 +240,40 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             }
         }
     }
+}
+
+@Composable
+private fun KnownDialog(word: Word, rules: MasteryRules, onDismiss: () -> Unit, onConfirm: (Int) -> Unit) {
+    var mastery by remember { mutableIntStateOf(70) }
+    val furigana = when (rules.furigana(mastery)) {
+        FuriganaMode.SHOWN -> "furigana shown"
+        FuriganaMode.HIDDEN -> "furigana hidden, tap to show"
+        FuriganaMode.OFF -> "no furigana"
+    }
+    val days = Reviewer.knownIntervalDays(mastery)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Already know ${word.display}?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("How well do you know it?")
+                Slider(
+                    value = mastery.toFloat(),
+                    onValueChange = { mastery = (it / 10).roundToInt() * 10 },
+                    valueRange = 10f..100f,
+                    steps = 8,
+                )
+                Text("Mastery $mastery: $furigana", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    "It will come back for a check within ${if (days == 1) "a day" else "$days days"}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirm(mastery) }) { Text("Mark known") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable

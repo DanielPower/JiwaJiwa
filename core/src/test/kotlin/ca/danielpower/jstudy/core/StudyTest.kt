@@ -159,4 +159,32 @@ class StudyTest {
         assertEquals(1, session.next(now)!!.id)
         assertEquals(0, session.learningRemaining)
     }
+
+    @Test
+    fun `marking a word known schedules it from its mastery`() {
+        assertEquals(1, Reviewer.knownIntervalDays(0))
+        assertEquals(7, Reviewer.knownIntervalDays(40))
+        assertEquals(30, Reviewer.knownIntervalDays(70))
+        assertEquals(90, Reviewer.knownIntervalDays(100))
+
+        val now = at("2026-10-10T20:00")
+        val today = clock.dayOf(now)
+        val card = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)
+        val random = kotlin.random.Random(3)
+        repeat(50) {
+            val known = reviewer.markKnown(card, WordProgress(7), 70, now, random)
+            assertEquals(CardState.REVIEW, known.card.state)
+            assertEquals(70, known.progress.mastery)
+            assertTrue(known.unlockedProduction)
+            assertNull(known.card.introducedDay, "doesn't use up a new-card slot")
+            val dueDay = clock.dayOf(known.card.dueAt)
+            assertTrue(dueDay in (today + 1)..(today + 30), "due $dueDay")
+        }
+        // The first review after marking behaves like any review.
+        val known = reviewer.markKnown(card, WordProgress(7), 70, now, kotlin.random.Random(1))
+        val next = reviewer.answer(known.card, known.progress, true, known.card.dueAt + 3_600_000)
+        assertEquals(CardState.REVIEW, next.card.state)
+        assertEquals(80, next.progress.mastery)
+    }
 }
+
