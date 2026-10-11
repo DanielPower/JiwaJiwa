@@ -61,6 +61,13 @@ android {
         compose = true
     }
 
+    packaging {
+        resources {
+            // Both Kuromoji jars carry the same license and contributor notes.
+            pickFirsts += setOf("META-INF/CONTRIBUTORS.md", "META-INF/LICENSE.md")
+        }
+    }
+
 }
 
 dependencies {
