@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             JStudyTheme {
                 val screen by vm.screen.collectAsStateWithLifecycle()
-                BackHandler(enabled = screen !is Screen.Home && screen !is Screen.Loading) { vm.goHome() }
+                BackHandler(enabled = screen !is Screen.Home && screen !is Screen.Loading) { vm.back() }
                 App(vm, screen)
             }
         }

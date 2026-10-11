@@ -2,6 +2,7 @@ package ca.danielpower.jstudy.data
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import ca.danielpower.jstudy.core.Kana
 import org.json.JSONArray
 import java.io.File
 
@@ -25,6 +26,18 @@ data class Word(
     /** The spelling shown on cards. */
     val display get() = if (showsKanji) kanji!! else kana
 }
+
+/** A dictionary list row. */
+data class Entry(
+    val id: Long,
+    /** The spelling shown on cards. */
+    val display: String,
+    /** The reading for a kanji spelling, or the occasional kanji for a kana word. */
+    val secondary: String?,
+    val gloss: String,
+    val jlpt: Int,
+    val studyOrder: Int,
+)
 
 /**
  * The read-only word database built by tools/dictionary and shipped in the
@@ -107,6 +120,91 @@ class Dictionary(context: Context) {
         return out
     }
 
+    /** Every word in study order, for the dictionary list. */
+    fun entries(): List<Entry> =
+        db.rawQuery(
+            """
+            SELECT w.id, w.kanji, w.kana, w.usually_kana, w.furigana IS NOT NULL, w.jlpt, w.study_order,
+                (SELECT gloss FROM sense s WHERE s.word_id = w.id ORDER BY s.ord LIMIT 1)
+            FROM word w ORDER BY w.study_order
+            """,
+            null,
+        ).use { c ->
+            buildList {
+                while (c.moveToNext()) {
+                    val kanji = if (c.isNull(1)) null else c.getString(1)
+                    val kana = c.getString(2)
+                    val showsKanji = kanji != null && c.getInt(3) == 0 && c.getInt(4) != 0
+                    add(
+                        Entry(
+                            id = c.getLong(0),
+                            display = if (showsKanji) kanji!! else kana,
+                            secondary = if (showsKanji) kana else kanji,
+                            gloss = c.getString(7)?.let { strings(it).joinToString("; ") }.orEmpty(),
+                            jlpt = c.getInt(5),
+                            studyOrder = c.getInt(6),
+                        ),
+                    )
+                }
+            }
+        }
+
+    /**
+     * Words matching [query] with a rank for each, lower is better: an exact
+     * spelling, then a spelling that starts with it, then one containing it,
+     * then English meanings. Romaji is matched as hiragana and katakana too.
+     */
+    fun search(query: String): Map<Long, Int> {
+        val q = query.trim()
+        if (q.isEmpty()) return emptyMap()
+        val ranks = HashMap<Long, Int>()
+        fun hit(id: Long, rank: Int) {
+            ranks.merge(id, rank) { a, b -> minOf(a, b) }
+        }
+        for (variant in Kana.searchVariants(q)) {
+            db.rawQuery(
+                "SELECT word_id, text FROM form WHERE text LIKE ? ESCAPE '\\'",
+                arrayOf("%" + escapeLike(variant) + "%"),
+            ).use { c ->
+                while (c.moveToNext()) {
+                    val text = c.getString(1)
+                    hit(c.getLong(0), if (text == variant) 0 else if (text.startsWith(variant)) 1 else 2)
+                }
+            }
+        }
+        if (q.any { it in 'a'..'z' || it in 'A'..'Z' }) {
+            val english = q.lowercase()
+            val word = Regex("(^|[^a-z])" + Regex.escape(english) + "($|[^a-z])")
+            db.rawQuery(
+                "SELECT word_id, ord, gloss FROM sense WHERE gloss LIKE ? ESCAPE '\\'",
+                arrayOf("%" + escapeLike(english) + "%"),
+            ).use { c ->
+                while (c.moveToNext()) {
+                    val first = c.getInt(1) == 0
+                    for (gloss in strings(c.getString(2))) {
+                        val g = gloss.lowercase().replace(PARENTHESES, "").trim()
+                        val rank = when {
+                            g == english || g == "to $english" -> if (first) 3 else 4
+                            word.containsMatchIn(g) -> if (first) 5 else 6
+                            english in g -> 7
+                            else -> continue
+                        }
+                        hit(c.getLong(0), rank)
+                    }
+                }
+            }
+        }
+        return ranks
+    }
+
+    /** Every spelling of a word, kanji first. */
+    fun forms(id: Long): List<String> =
+        db.rawQuery("SELECT text FROM form WHERE word_id = ? ORDER BY is_kana, ord", arrayOf(id.toString())).use { c ->
+            buildList { while (c.moveToNext()) add(c.getString(0)) }
+        }
+
+    private fun escapeLike(s: String) = s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
     fun wordCount(): Int = db.rawQuery("SELECT COUNT(*) FROM word", null).use { it.moveToFirst(); it.getInt(0) }
 
     fun partOfSpeechNames(): Map<String, String> =
@@ -132,5 +230,6 @@ class Dictionary(context: Context) {
 
     companion object {
         const val NAME = "dictionary.db"
+        private val PARENTHESES = Regex("\\([^)]*\\)")
     }
 }

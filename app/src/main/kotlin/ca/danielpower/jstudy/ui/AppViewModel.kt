@@ -7,12 +7,18 @@ import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
+import ca.danielpower.jstudy.data.Entry
 import ca.danielpower.jstudy.data.Repository
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Undo
 import ca.danielpower.jstudy.data.Word
+import ca.danielpower.jstudy.data.WordDetail
+import ca.danielpower.jstudy.data.WordStatus
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +39,27 @@ data class ReviewCard(
 
 data class ReviewCounts(val new: Int, val learning: Int, val review: Int)
 
+enum class StatusFilter(val label: String) {
+    ALL("All"),
+    NOT_STARTED("Not started"),
+    STUDYING("Studying"),
+    SUSPENDED("Suspended"),
+    ;
+
+    fun matches(status: WordStatus?): Boolean {
+        val started = status != null && status.state != CardState.NEW
+        val suspended = status?.suspended == true
+        return when (this) {
+            ALL -> true
+            NOT_STARTED -> !started && !suspended
+            STUDYING -> started && !suspended
+            SUSPENDED -> suspended
+        }
+    }
+}
+
+data class DictionaryRow(val entry: Entry, val status: WordStatus?)
+
 sealed interface Screen {
     data object Loading : Screen
     data class Home(val summary: Summary) : Screen
@@ -50,6 +77,16 @@ sealed interface Screen {
     data class Waiting(val dueAt: Long, val counts: ReviewCounts) : Screen
     data class Done(val summary: Summary) : Screen
     data class Settings(val settings: StudySettings, val attribution: String) : Screen
+
+    data class Dictionary(
+        val query: String,
+        /** JLPT levels to show; empty shows all. */
+        val levels: Set<Int>,
+        val status: StatusFilter,
+        val rows: List<DictionaryRow>,
+    ) : Screen
+
+    data class WordPage(val detail: WordDetail, val rules: MasteryRules, val clock: StudyClock) : Screen
 }
 
 class AppViewModel(app: Application) : AndroidViewModel(app) {
@@ -60,6 +97,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var session: StudySession? = null
     private var undo: Undo? = null
     private val lock = Mutex()
+
+    private var entries: List<Entry>? = null
+    private var statuses: Map<Long, WordStatus> = emptyMap()
+    private var lastDictionary: Screen.Dictionary? = null
+    private var searchJob: Job? = null
 
     init {
         launchIo {
@@ -83,6 +125,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun goHome() = launchIo { showHome() }
+
+    /** The system back button: word page to dictionary, anything else home. */
+    fun back() {
+        if (_screen.value is Screen.WordPage) closeWord() else goHome()
+    }
 
     fun startReview() = launchIo {
         session = repo.session(now())
@@ -193,4 +240,86 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         repo.saveSettings(settings)
         _screen.update { if (it is Screen.Settings) it.copy(settings = settings) else it }
     }
+
+    // ------------------------------------------------------------ dictionary
+
+    fun openDictionary() = launchIo {
+        if (entries == null) entries = repo.dictionary.entries()
+        statuses = repo.wordStatuses()
+        val state = Screen.Dictionary("", emptySet(), StatusFilter.ALL, emptyList())
+        _screen.value = state.copy(rows = rows(state))
+    }
+
+    /** Words matching the query and filters, best match first. */
+    private fun rows(state: Screen.Dictionary): List<DictionaryRow> {
+        val all = entries ?: return emptyList()
+        val ranks = if (state.query.isBlank()) null else repo.dictionary.search(state.query)
+        val matching = all.filter { e ->
+            (ranks == null || e.id in ranks) &&
+                (state.levels.isEmpty() || e.jlpt in state.levels) &&
+                state.status.matches(statuses[e.id])
+        }
+        // Entries are in study order, and the sort is stable.
+        val sorted = if (ranks == null) matching else matching.sortedBy { ranks.getValue(it.id) }
+        return sorted.map { DictionaryRow(it, statuses[it.id]) }
+    }
+
+    private fun filterDictionary(debounce: Long, change: (Screen.Dictionary) -> Screen.Dictionary) {
+        val current = _screen.value as? Screen.Dictionary ?: return
+        val next = change(current)
+        _screen.value = next
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(debounce)
+            val rows = withContext(Dispatchers.IO) { rows(next) }
+            _screen.update {
+                val same = it is Screen.Dictionary && it.query == next.query && it.levels == next.levels && it.status == next.status
+                if (same) (it as Screen.Dictionary).copy(rows = rows) else it
+            }
+        }
+    }
+
+    fun search(query: String) = filterDictionary(150) { it.copy(query = query) }
+
+    fun toggleLevel(level: Int) = filterDictionary(0) {
+        it.copy(levels = if (level in it.levels) it.levels - level else it.levels + level)
+    }
+
+    fun setStatusFilter(status: StatusFilter) = filterDictionary(0) { it.copy(status = status) }
+
+    fun openWord(wordId: Long) = launchIo {
+        (_screen.value as? Screen.Dictionary)?.let { lastDictionary = it }
+        showWord(wordId)
+    }
+
+    private fun showWord(wordId: Long) {
+        val detail = repo.wordDetail(wordId) ?: return
+        val settings = repo.settings()
+        _screen.value = Screen.WordPage(detail, settings.mastery, repo.clock(settings))
+    }
+
+    fun closeWord() = launchIo {
+        val state = lastDictionary
+        if (state == null) {
+            showHome()
+            return@launchIo
+        }
+        statuses = repo.wordStatuses()
+        _screen.value = state.copy(rows = rows(state))
+    }
+
+    private fun wordAction(action: (wordId: Long) -> Unit) = launchIo {
+        val page = _screen.value as? Screen.WordPage ?: return@launchIo
+        val wordId = page.detail.word.id
+        action(wordId)
+        showWord(wordId)
+    }
+
+    fun learnNext() = wordAction { repo.learnNext(it, now()) }
+
+    fun markKnown(mastery: Int) = wordAction { repo.markKnown(it, mastery, now()) }
+
+    fun resetWord() = wordAction { repo.reset(it) }
+
+    fun setSuspended(suspended: Boolean) = wordAction { repo.setSuspended(it, suspended) }
 }

@@ -30,6 +30,17 @@ data class Summary(
     val anythingDue get() = newCards + learning + reviews > 0
 }
 
+data class WordDetail(
+    val word: Word,
+    val forms: List<String>,
+    /** Part-of-speech names for each sense, in order. */
+    val partsOfSpeech: List<String>,
+    val cards: List<Card>,
+    val mastery: Int,
+    val suspended: Boolean,
+    val history: List<Pair<Direction, ReviewEntry>>,
+)
+
 /** Everything needed to take back the last answer. */
 data class Undo(
     val cardBefore: Card,
@@ -121,7 +132,7 @@ class Repository(context: Context) {
 
     /** Make sure at least [count] new cards exist, taking the next words in study order. */
     private fun ensureNewCards(count: Int) {
-        val existing = store.count("SELECT COUNT(*) FROM card WHERE state = ?", CardState.NEW.value)
+        val existing = store.count("SELECT COUNT(*) FROM card WHERE state = ? AND suspended = 0", CardState.NEW.value)
         if (existing >= count) return
         val started = store.wordIdsWithCards(Direction.RECOGNITION)
         val words = dictionary.nextWords(started, count - existing)
@@ -136,17 +147,22 @@ class Repository(context: Context) {
         val limits = limits(settings, clock, now)
         ensureNewCards(limits.newCards)
         val learning = store.cards(
-            "state IN (?, ?)",
+            "state IN (?, ?) AND suspended = 0",
             arrayOf(CardState.LEARNING.value.toString(), CardState.RELEARNING.value.toString()),
             "due_at",
         )
         val reviews = store.cards(
-            "state = ? AND due_at < ?",
+            "state = ? AND due_at < ? AND suspended = 0",
             arrayOf(CardState.REVIEW.value.toString(), limits.reviewDueBefore.toString()),
             "due_at, id",
             limits.reviews,
         )
-        val newCards = store.cards("state = ?", arrayOf(CardState.NEW.value.toString()), "sort_key, id", limits.newCards)
+        val newCards = store.cards(
+            "state = ? AND suspended = 0",
+            arrayOf(CardState.NEW.value.toString()),
+            "sort_key, id",
+            limits.newCards,
+        )
         return StudySession(reviews, newCards, learning)
     }
 
@@ -222,6 +238,75 @@ class Repository(context: Context) {
         saveAhead(ahead().studyMore(clock.dayOf(now)))
     }
 
+    // ------------------------------------------------------------ dictionary
+
+    fun wordStatuses(): Map<Long, WordStatus> = store.wordStatuses()
+
+    fun wordDetail(wordId: Long): WordDetail? {
+        val word = dictionary.word(wordId) ?: return null
+        val names = dictionary.partOfSpeechNames()
+        return WordDetail(
+            word = word,
+            forms = dictionary.forms(wordId),
+            partsOfSpeech = word.senses.map { sense -> sense.partsOfSpeech.joinToString(", ") { names[it] ?: it } },
+            cards = store.cards("word_id = ?", arrayOf(wordId.toString()), "direction"),
+            mastery = store.progress(wordId).mastery,
+            suspended = store.isSuspended(wordId),
+            history = store.logs(wordId),
+        )
+    }
+
+    private fun recognitionCard(wordId: Long): Card? =
+        store.cards(
+            "word_id = ? AND direction = ?",
+            arrayOf(wordId.toString(), Direction.RECOGNITION.value.toString()),
+            "id",
+        ).firstOrNull()
+
+    /** Put a word at the front of the new-word queue. */
+    fun learnNext(wordId: Long, now: Long) {
+        store.transaction { db ->
+            store.setSuspended(db, wordId, false)
+            val card = recognitionCard(wordId)
+            if (card == null) {
+                store.insertNewCard(db, wordId, Direction.RECOGNITION, now / 1000 - LEARN_NEXT_FIRST)
+            } else if (card.state == CardState.NEW) {
+                store.setSortKey(db, card.id, now / 1000 - LEARN_NEXT_FIRST)
+            }
+        }
+    }
+
+    /** Mark a word from the dictionary as known at [mastery], starting it if needed. */
+    fun markKnown(wordId: Long, mastery: Int, now: Long) {
+        store.transaction { db ->
+            store.setSuspended(db, wordId, false)
+            if (recognitionCard(wordId) == null) {
+                store.insertNewCard(db, wordId, Direction.RECOGNITION, now / 1000 - LEARN_NEXT_FIRST)
+            }
+        }
+        markKnown(recognitionCard(wordId) ?: return, mastery, now)
+    }
+
+    /** Forget a word: its cards, mastery and history. It returns to its place in the study order. */
+    fun reset(wordId: Long) {
+        store.transaction { db -> store.deleteWord(db, wordId) }
+    }
+
+    fun setSuspended(wordId: Long, suspended: Boolean) {
+        store.transaction { db ->
+            if (suspended && recognitionCard(wordId) == null) {
+                // Keeps an unstarted word out of the new-word queue.
+                store.insertNewCard(db, wordId, Direction.RECOGNITION, 0, suspended = true)
+            }
+            store.setSuspended(db, wordId, suspended)
+            if (!suspended) {
+                // An unstarted word goes back to its usual place in the study order.
+                val card = recognitionCard(wordId)
+                if (card != null && card.state == CardState.NEW && card.reps == 0) store.deleteCard(db, card.id)
+            }
+        }
+    }
+
     // ------------------------------------------------------------ summary
 
     fun summary(now: Long): Summary {
@@ -230,26 +315,26 @@ class Repository(context: Context) {
         val today = clock.dayOf(now)
         val limits = limits(settings, clock, now)
         val reviewsDue = store.count(
-            "SELECT COUNT(*) FROM card WHERE state = ? AND due_at < ?",
+            "SELECT COUNT(*) FROM card WHERE state = ? AND due_at < ? AND suspended = 0",
             CardState.REVIEW.value,
             limits.reviewDueBefore,
         )
         val started = store.count("SELECT COUNT(*) FROM card WHERE direction = ?", Direction.RECOGNITION.value)
         val total = dictionary.wordCount()
         val unstarted = total - store.count(
-            "SELECT COUNT(*) FROM card WHERE direction = ? AND state != ?",
+            "SELECT COUNT(*) FROM card WHERE direction = ? AND (state != ? OR suspended = 1)",
             Direction.RECOGNITION.value,
             CardState.NEW.value,
         )
         val newWaiting = store.count(
-            "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ?",
+            "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ? AND suspended = 0",
             CardState.NEW.value,
             Direction.PRODUCTION.value,
         ) + unstarted
         return Summary(
             newCards = minOf(limits.newCards, newWaiting),
             learning = store.count(
-                "SELECT COUNT(*) FROM card WHERE state IN (?, ?)",
+                "SELECT COUNT(*) FROM card WHERE state IN (?, ?) AND suspended = 0",
                 CardState.LEARNING.value,
                 CardState.RELEARNING.value,
             ),
@@ -269,6 +354,7 @@ class Repository(context: Context) {
 
     companion object {
         private const val PRODUCTION_FIRST = 10_000_000_000L
+        private const val LEARN_NEXT_FIRST = 20_000_000_000L
 
         /** Consecutive study days ending today, or yesterday if today has no reviews yet. */
         fun streak(daysNewestFirst: List<Long>, today: Long): Int {

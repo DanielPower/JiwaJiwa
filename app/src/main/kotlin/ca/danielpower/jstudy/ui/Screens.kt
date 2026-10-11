@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -43,17 +44,21 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun App(vm: AppViewModel, screen: Screen) {
+    // Kept here so the list keeps its place while a word is open.
+    val dictionaryList = rememberLazyListState()
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box(modifier = Modifier.safeDrawingPadding()) {
             when (screen) {
                 Screen.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                is Screen.Home -> HomeScreen(screen.summary, vm::startReview, vm::studyMore, vm::openSettings)
+                is Screen.Home -> HomeScreen(screen.summary, vm)
                 is Screen.Review -> ReviewScreen(screen, vm)
                 is Screen.Waiting -> WaitingScreen(screen, vm)
                 is Screen.Done -> DoneScreen(screen.summary, vm::studyMore, vm::goHome)
                 is Screen.Settings -> SettingsScreen(screen, vm::saveSettings, vm::goHome)
+                is Screen.Dictionary -> DictionaryScreen(screen, vm, dictionaryList)
+                is Screen.WordPage -> WordScreen(screen, vm)
             }
         }
     }
@@ -62,14 +67,15 @@ fun App(vm: AppViewModel, screen: Screen) {
 // ------------------------------------------------------------------ home
 
 @Composable
-private fun HomeScreen(summary: Summary, onStudy: () -> Unit, onStudyMore: () -> Unit, onSettings: () -> Unit) {
+private fun HomeScreen(summary: Summary, vm: AppViewModel) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("jstudy", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = onSettings) { Text("Settings") }
+            TextButton(onClick = vm::openDictionary) { Text("Dictionary") }
+            TextButton(onClick = vm::openSettings) { Text("Settings") }
         }
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -95,10 +101,10 @@ private fun HomeScreen(summary: Summary, onStudy: () -> Unit, onStudyMore: () ->
         )
         Spacer(Modifier.weight(1f))
         if (summary.anythingDue) {
-            Button(onClick = onStudy, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Study", fontSize = 18.sp) }
+            Button(onClick = vm::startReview, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Study", fontSize = 18.sp) }
         } else {
             Text("All done for today.", style = MaterialTheme.typography.titleMedium)
-            Button(onClick = onStudyMore, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            Button(onClick = vm::studyMore, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                 Text("Study more", fontSize = 18.sp)
             }
         }
@@ -254,7 +260,7 @@ private fun QueueCount(value: Int, color: androidx.compose.ui.graphics.Color) {
 }
 
 @Composable
-private fun WordFace(word: Word, showFurigana: Boolean) {
+internal fun WordFace(word: Word, showFurigana: Boolean) {
     val length = word.display.length
     val size = when {
         length <= 4 -> 48.sp

@@ -11,6 +11,10 @@ import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.ReviewLog
 import ca.danielpower.jstudy.core.WordProgress
 
+data class WordStatus(val state: CardState, val suspended: Boolean, val mastery: Int)
+
+data class ReviewEntry(val at: Long, val correct: Boolean, val masteryAfter: Int)
+
 /** Your cards, mastery and review history. This is what a backup saves. */
 class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION) {
 
@@ -32,6 +36,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 introduced_day INTEGER,
                 last_mastery_day INTEGER,
                 sort_key INTEGER NOT NULL,
+                suspended INTEGER NOT NULL DEFAULT 0,
                 UNIQUE (word_id, direction)
             )
             """,
@@ -71,7 +76,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // No migrations yet; version 1 is the first schema.
+        if (oldVersion < 2) db.execSQL("ALTER TABLE card ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0")
     }
 
     // ------------------------------------------------------------ cards
@@ -90,8 +95,15 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             arrayOf(direction.value.toString()),
         ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
 
-    fun insertNewCard(db: SQLiteDatabase, wordId: Long, direction: Direction, sortKey: Long): Long {
+    fun insertNewCard(
+        db: SQLiteDatabase,
+        wordId: Long,
+        direction: Direction,
+        sortKey: Long,
+        suspended: Boolean = false,
+    ): Long {
         val values = ContentValues().apply {
+            put("suspended", if (suspended) 1 else 0)
             put("word_id", wordId)
             put("direction", direction.value)
             put("state", CardState.NEW.value)
@@ -118,6 +130,59 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         }
         db.update("card", values, "id = ?", arrayOf(card.id.toString()))
     }
+
+    fun setSortKey(db: SQLiteDatabase, id: Long, sortKey: Long) {
+        db.update("card", ContentValues().apply { put("sort_key", sortKey) }, "id = ?", arrayOf(id.toString()))
+    }
+
+    fun setSuspended(db: SQLiteDatabase, wordId: Long, suspended: Boolean) {
+        val values = ContentValues().apply { put("suspended", if (suspended) 1 else 0) }
+        db.update("card", values, "word_id = ?", arrayOf(wordId.toString()))
+    }
+
+    fun isSuspended(wordId: Long): Boolean =
+        count("SELECT COUNT(*) FROM card WHERE word_id = ? AND suspended = 1", wordId) > 0
+
+    /** Recognition state, suspension and mastery for every word with a card. */
+    fun wordStatuses(): Map<Long, WordStatus> =
+        readableDatabase.rawQuery(
+            """
+            SELECT c.word_id, c.state, c.suspended, COALESCE(p.mastery, 0)
+            FROM card c LEFT JOIN word_progress p ON p.word_id = c.word_id
+            WHERE c.direction = ?
+            """,
+            arrayOf(Direction.RECOGNITION.value.toString()),
+        ).use { c ->
+            buildMap {
+                while (c.moveToNext()) {
+                    put(c.getLong(0), WordStatus(CardState.of(c.getInt(1)), c.getInt(2) != 0, c.getInt(3)))
+                }
+            }
+        }
+
+    /** Removes every card, the mastery and the history of a word. */
+    fun deleteWord(db: SQLiteDatabase, wordId: Long) {
+        val id = arrayOf(wordId.toString())
+        db.delete("review_log", "card_id IN (SELECT id FROM card WHERE word_id = ?)", id)
+        db.delete("card", "word_id = ?", id)
+        db.delete("word_progress", "word_id = ?", id)
+    }
+
+    fun logs(wordId: Long): List<Pair<Direction, ReviewEntry>> =
+        readableDatabase.rawQuery(
+            """
+            SELECT c.direction, l.reviewed_at, l.correct, l.mastery_after
+            FROM review_log l JOIN card c ON c.id = l.card_id
+            WHERE c.word_id = ? ORDER BY l.reviewed_at DESC
+            """,
+            arrayOf(wordId.toString()),
+        ).use { c ->
+            buildList {
+                while (c.moveToNext()) {
+                    add(Direction.of(c.getInt(0)) to ReviewEntry(c.getLong(1), c.getInt(2) != 0, c.getInt(3)))
+                }
+            }
+        }
 
     fun deleteCard(db: SQLiteDatabase, id: Long) {
         db.delete("card", "id = ?", arrayOf(id.toString()))
@@ -250,7 +315,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 1
+        const val VERSION = 2
         private const val CARD_COLUMNS =
             "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, last_mastery_day"
     }
