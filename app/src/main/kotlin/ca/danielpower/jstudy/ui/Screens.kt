@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.FuriganaMode
@@ -60,6 +62,7 @@ import kotlinx.coroutines.delay
 fun App(vm: AppViewModel, screen: Screen) {
     // Kept here so the list keeps its place while a word is open.
     val dictionaryList = rememberLazyListState()
+    val theme by vm.theme.collectAsStateWithLifecycle()
     val tab = when (screen) {
         is Screen.Home -> Tab.HOME
         is Screen.Dictionary -> Tab.DICTIONARY
@@ -85,7 +88,15 @@ fun App(vm: AppViewModel, screen: Screen) {
                     is Screen.Review -> ReviewScreen(screen, vm)
                     is Screen.Waiting -> WaitingScreen(screen, vm)
                     is Screen.Done -> DoneScreen(screen.summary, vm::studyMore, vm::goHome)
-                    is Screen.Settings -> SettingsScreen(screen, vm::saveSettings, vm::saveClaudeKey, vm::openImport, vm::setStoryVertical)
+                    is Screen.Settings -> SettingsScreen(
+                        screen,
+                        theme,
+                        vm::saveSettings,
+                        vm::saveClaudeKey,
+                        vm::openImport,
+                        vm::setStoryVertical,
+                        vm::setTheme,
+                    )
                     is Screen.Dictionary -> DictionaryScreen(screen, vm, dictionaryList)
                     is Screen.WordPage -> WordScreen(screen, vm)
                     is Screen.RenshuuImport -> RenshuuImportScreen(screen.step, vm)

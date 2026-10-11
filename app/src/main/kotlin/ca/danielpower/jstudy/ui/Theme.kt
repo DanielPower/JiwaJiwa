@@ -150,10 +150,23 @@ private val WashiShapes = Shapes(
     extraLarge = RoundedCornerShape(8.dp),
 )
 
+enum class ThemeMode(val label: String) {
+    AUTO("Auto"),
+    LIGHT("Light"),
+    DARK("Dark"),
+}
+
 @Composable
-fun JStudyTheme(content: @Composable () -> Unit) {
+fun ThemeMode.isDark(): Boolean = when (this) {
+    ThemeMode.AUTO -> isSystemInDarkTheme()
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+}
+
+@Composable
+fun JStudyTheme(mode: ThemeMode, content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) Dark else Light,
+        colorScheme = if (mode.isDark()) Dark else Light,
         typography = WashiTypography,
         shapes = WashiShapes,
         content = content,

@@ -37,10 +37,12 @@ import kotlin.math.roundToInt
 @Composable
 fun SettingsScreen(
     state: Screen.Settings,
+    theme: ThemeMode,
     onChange: (StudySettings) -> Unit,
     onSaveClaudeKey: (String) -> Unit,
     onImport: () -> Unit,
     onStoryVertical: (Boolean) -> Unit,
+    onTheme: (ThemeMode) -> Unit,
 ) {
     val s = state.settings
     val m = s.mastery
@@ -53,6 +55,16 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
+
+        Section("Appearance")
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Theme", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (mode in ThemeMode.entries) {
+                    WashiChip(selected = theme == mode, onClick = { onTheme(mode) }, label = mode.label)
+                }
+            }
+        }
 
         Section("Daily study")
         Stepper("New words per day", "${s.newPerDay}") { d ->

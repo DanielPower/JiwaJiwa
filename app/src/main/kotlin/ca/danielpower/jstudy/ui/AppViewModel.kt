@@ -1,6 +1,7 @@
 package ca.danielpower.jstudy.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ca.danielpower.jstudy.core.Card
@@ -141,6 +142,13 @@ sealed interface ImportStep {
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _screen = MutableStateFlow<Screen>(Screen.Loading)
     val screen: StateFlow<Screen> = _screen.asStateFlow()
+
+    // Kept outside the database so the theme is right from the first frame.
+    private val display = app.getSharedPreferences("display", Context.MODE_PRIVATE)
+    private val _theme = MutableStateFlow(
+        ThemeMode.entries.firstOrNull { it.name == display.getString("theme", null) } ?: ThemeMode.AUTO,
+    )
+    val theme: StateFlow<ThemeMode> = _theme.asStateFlow()
 
     private lateinit var repo: Repository
     private var session: StudySession? = null
@@ -306,6 +314,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun saveSettings(settings: StudySettings) = launchIo {
         repo.saveSettings(settings)
         _screen.update { if (it is Screen.Settings) it.copy(settings = settings) else it }
+    }
+
+    fun setTheme(mode: ThemeMode) {
+        display.edit().putString("theme", mode.name).apply()
+        _theme.value = mode
     }
 
     fun setStoryVertical(vertical: Boolean) = launchIo {
