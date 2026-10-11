@@ -40,6 +40,7 @@ import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Word
+import ca.danielpower.jstudy.data.levelLabel
 import kotlinx.coroutines.delay
 
 @Composable
@@ -56,10 +57,12 @@ fun App(vm: AppViewModel, screen: Screen) {
                 is Screen.Review -> ReviewScreen(screen, vm)
                 is Screen.Waiting -> WaitingScreen(screen, vm)
                 is Screen.Done -> DoneScreen(screen.summary, vm::studyMore, vm::goHome)
-                is Screen.Settings -> SettingsScreen(screen, vm::saveSettings, vm::openImport, vm::goHome)
+                is Screen.Settings -> SettingsScreen(screen, vm::saveSettings, vm::saveClaudeKey, vm::openImport, vm::goHome)
                 is Screen.Dictionary -> DictionaryScreen(screen, vm, dictionaryList)
                 is Screen.WordPage -> WordScreen(screen, vm)
                 is Screen.RenshuuImport -> RenshuuImportScreen(screen.step, vm)
+                is Screen.Stories -> StoriesScreen(screen, vm)
+                is Screen.StoryReader -> StoryReaderScreen(screen, vm)
             }
         }
     }
@@ -102,6 +105,9 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.weight(1f))
+        OutlinedButton(onClick = vm::openStories, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            Text("Read a story", fontSize = 18.sp)
+        }
         if (summary.anythingDue) {
             Button(onClick = vm::startReview, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Study", fontSize = 18.sp) }
         } else {
@@ -198,14 +204,14 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             }
             if (intro) {
                 Text(
-                    "N${word.jlpt}  ·  How well do you know this word?",
+                    "${levelLabel(word.jlpt)}  ·  How well do you know this word?",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 24.dp),
                 )
             } else if (revealed) {
                 Text(
-                    "N${word.jlpt}  ·  mastery ${state.current.mastery}",
+                    "${levelLabel(word.jlpt)}  ·  mastery ${state.current.mastery}",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 24.dp),

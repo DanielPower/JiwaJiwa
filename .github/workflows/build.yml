@@ -1,0 +1,40 @@
+name: Build
+
+# Builds and tests branches other than main, without publishing a release.
+on:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/cache@v4
+        with:
+          path: tools/dictionary/.cache
+          key: dictionary-sources-${{ hashFiles('tools/dictionary/sources.json') }}
+
+      - name: Build the dictionary
+        run: |
+          python3 -m unittest discover tools/dictionary
+          python3 tools/dictionary/build_dictionary.py
+
+      - name: Test and build
+        run: ./gradlew :core:test :app:assembleDebug

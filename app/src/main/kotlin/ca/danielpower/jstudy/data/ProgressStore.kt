@@ -15,6 +15,17 @@ data class WordStatus(val state: CardState, val suspended: Boolean, val mastery:
 
 data class ReviewEntry(val at: Long, val correct: Boolean, val masteryAfter: Int)
 
+/** A story written for you, as saved. */
+data class SavedStory(
+    val id: Long,
+    val createdAt: Long,
+    val title: String,
+    val body: String,
+    val prompt: String,
+    val length: String,
+    val difficulty: String,
+)
+
 /** Your cards, mastery and review history. This is what a backup saves. */
 class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION) {
 
@@ -73,11 +84,65 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         )
         db.execSQL("CREATE INDEX review_log_day ON review_log (day)")
         db.execSQL("CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        createStories(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) db.execSQL("ALTER TABLE card ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0")
+        if (oldVersion < 3) createStories(db)
     }
+
+    private fun createStories(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE story (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                length TEXT NOT NULL,
+                difficulty TEXT NOT NULL
+            )
+            """,
+        )
+    }
+
+    // ------------------------------------------------------------ stories
+
+    fun insertStory(story: SavedStory): Long {
+        val values = ContentValues().apply {
+            put("created_at", story.createdAt)
+            put("title", story.title)
+            put("body", story.body)
+            put("prompt", story.prompt)
+            put("length", story.length)
+            put("difficulty", story.difficulty)
+        }
+        return writableDatabase.insert("story", null, values)
+    }
+
+    /** Newest first. */
+    fun stories(): List<SavedStory> = storyRows(null, null)
+
+    fun story(id: Long): SavedStory? = storyRows("id = ?", arrayOf(id.toString())).firstOrNull()
+
+    fun deleteStory(id: Long) {
+        writableDatabase.delete("story", "id = ?", arrayOf(id.toString()))
+    }
+
+    private fun storyRows(where: String?, args: Array<String>?): List<SavedStory> =
+        readableDatabase.rawQuery(
+            "SELECT id, created_at, title, body, prompt, length, difficulty FROM story" +
+                (where?.let { " WHERE $it" } ?: "") + " ORDER BY created_at DESC",
+            args,
+        ).use { c ->
+            buildList {
+                while (c.moveToNext()) {
+                    add(SavedStory(c.getLong(0), c.getLong(1), c.getString(2), c.getString(3), c.getString(4), c.getString(5), c.getString(6)))
+                }
+            }
+        }
 
     // ------------------------------------------------------------ cards
 
@@ -322,7 +387,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 2
+        const val VERSION = 3
         private const val CARD_COLUMNS =
             "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, last_mastery_day"
     }

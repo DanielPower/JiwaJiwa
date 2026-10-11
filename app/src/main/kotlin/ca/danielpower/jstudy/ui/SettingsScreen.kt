@@ -8,15 +8,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ca.danielpower.jstudy.core.StudySettings
@@ -27,6 +35,7 @@ import kotlin.math.roundToInt
 fun SettingsScreen(
     state: Screen.Settings,
     onChange: (StudySettings) -> Unit,
+    onSaveClaudeKey: (String) -> Unit,
     onImport: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -74,6 +83,29 @@ fun SettingsScreen(
         }
         Stepper("English to Japanese cards from", "${m.productionAt}") { d ->
             update { s.copy(mastery = m.copy(productionAt = (m.productionAt + d * 5).coerceIn(0, 100))) }
+        }
+
+        Section("Stories")
+        Text(
+            "Stories are written by Claude using your own API key from console.anthropic.com, " +
+                "and billed to it.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        var key by remember(state.claudeKey) { mutableStateOf(state.claudeKey) }
+        OutlinedTextField(
+            value = key,
+            onValueChange = { key = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Claude API key") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        )
+        if (key.trim() != state.claudeKey) {
+            OutlinedButton(onClick = { onSaveClaudeKey(key) }) { Text("Save key") }
+        } else if (state.claudeKey.isNotEmpty()) {
+            Text("Saved", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         }
 
         Section("Import")

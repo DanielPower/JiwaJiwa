@@ -9,8 +9,9 @@ local.properties
 *.iml
 .DS_Store
 
-# Dictionary build downloads
+# Dictionary build downloads, and the database it builds (about 75 MB, built in CI)
 tools/dictionary/.cache/
+app/src/main/assets/databases/dictionary.db
 __pycache__/
 
 # Signing material is provided by CI secrets, never committed

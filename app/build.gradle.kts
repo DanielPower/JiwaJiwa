@@ -61,11 +61,6 @@ android {
         compose = true
     }
 
-    androidResources {
-        // The dictionary is copied out of the APK on first launch; storing it
-        // uncompressed keeps that copy fast.
-        noCompress += "db"
-    }
 }
 
 dependencies {

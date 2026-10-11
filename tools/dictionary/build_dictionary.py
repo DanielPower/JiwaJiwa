@@ -3,7 +3,10 @@
 
 Usage:
     python3 tools/dictionary/build_dictionary.py            # download (cached), build, write report
-    python3 tools/dictionary/build_dictionary.py --check    # rebuild and compare with the committed database
+    python3 tools/dictionary/build_dictionary.py --check    # rebuild and compare with the digest in the report
+
+The database holds every JMdict entry, about 70 MB, so it is built in CI and
+not committed. build_report.md records its content digest instead.
 
 Sources and their checksums are pinned in sources.json. Hand corrections go in
 overrides.csv. Only the Python standard library is used.
@@ -32,8 +35,8 @@ REPORT = HERE / "build_report.md"
 OUTPUT = REPO / "app" / "src" / "main" / "assets" / "databases" / "dictionary.db"
 CACHE = HERE / ".cache"
 
-# Bump when the table layout changes; the app's Room entities must match.
-SCHEMA_VERSION = 1
+# Bump when the table layout changes; the app's queries must match.
+SCHEMA_VERSION = 2
 
 # Kanji and kana forms that are rare, outdated, irregular or search-only.
 BAD_KANJI_TAGS = {"rK", "sK", "oK", "iK"}
@@ -50,7 +53,7 @@ CREATE TABLE word (
     furigana TEXT,
     jlpt INTEGER NOT NULL,
     freq_rank INTEGER,
-    study_order INTEGER NOT NULL
+    study_order INTEGER
 );
 CREATE UNIQUE INDEX index_word_study_order ON word (study_order);
 CREATE INDEX index_word_jlpt ON word (jlpt);
@@ -361,6 +364,40 @@ def apply_override(word: Word, entry: dict, fields: dict[str, str]) -> Word | No
     return word
 
 
+def select_other(entry: dict, ranks: dict[tuple[str, str], int]) -> Word:
+    """A word that isn't on the JLPT lists: only looked up while reading, or studied on request.
+
+    Its level is 0 and it has no place in the study order. Every spelling is
+    kept, rare ones included, so the reader can match whatever a story uses.
+    """
+    usable = [k for k in valid_kanji(entry) if has_kanji(k["text"])]
+    common = [k for k in usable if k["common"]]
+    kanji = (common or usable or [None])[0]
+    kanji_text = kanji["text"] if kanji else None
+    kanas = valid_kana(entry)
+    applying = [k for k in kanas if kanji_text is None or kana_applies(k, kanji_text)] or kanas
+    kana = next((k for k in applying if k["common"]), applying[0])["text"]
+    senses = senses_for(entry, kanji_text, kana)
+    usually_kana = kanji_text is None or "uk" in senses[0]["misc"]
+
+    forms: list[tuple[str, bool]] = []
+    shown = [(kana, True), (kanji_text, False)] if usually_kana else [(kanji_text, False), (kana, True)]
+    for item in shown + [(k["text"], False) for k in entry["kanji"]] + [(k["text"], True) for k in entry["kana"]]:
+        if item[0] and item not in forms:
+            forms.append(item)
+    rank = min([ranks.get((t, kana), UNRANKED) for t, _ in forms] or [UNRANKED])
+    return Word(
+        id=int(entry["id"]),
+        kanji=kanji_text,
+        kana=kana,
+        usually_kana=usually_kana,
+        jlpt=0,
+        freq_rank=None if rank == UNRANKED else rank,
+        senses=senses,
+        forms=forms,
+    )
+
+
 def segments(word: Word, furigana: dict) -> tuple[list | None, bool]:
     """Furigana segments for the kanji spelling, and whether they came from JmdictFurigana."""
     if not word.kanji:
@@ -377,6 +414,8 @@ def segments(word: Word, furigana: dict) -> tuple[list | None, bool]:
 @dataclass
 class Build:
     words: list[Word]
+    # JMdict entries that aren't on the JLPT lists, in id order.
+    others: list[Word]
     furigana: dict[int, list | None]
     missing_furigana: list[Word]
     unlinked: list[JlptRow]
@@ -411,6 +450,12 @@ def build(src: dict, overrides: dict[str, dict[str, str]]) -> Build:
 
     words.sort(key=lambda w: (-w.jlpt, w.freq_rank or UNRANKED, w.id))
 
+    listed = {w.id for w in words}
+    others = sorted(
+        (select_other(e, ranks) for e in jmdict["words"] if int(e["id"]) not in listed),
+        key=lambda w: w.id,
+    )
+
     seg_by_id: dict[int, list | None] = {}
     missing: list[Word] = []
     for w in words:
@@ -418,6 +463,8 @@ def build(src: dict, overrides: dict[str, dict[str, str]]) -> Build:
         seg_by_id[w.id] = seg
         if not ok:
             missing.append(w)
+    for w in others:
+        seg_by_id[w.id] = segments(w, furigana)[0]
 
     spec = src["spec"]
     meta = {
@@ -429,6 +476,7 @@ def build(src: dict, overrides: dict[str, dict[str, str]]) -> Build:
     }
     return Build(
         words=words,
+        others=others,
         furigana=seg_by_id,
         missing_furigana=missing,
         unlinked=unlinked,
@@ -446,7 +494,8 @@ def write_db(result: Build, path: Path) -> None:
     try:
         db.executescript(SCHEMA)
         used_tags: set[str] = set()
-        for order, w in enumerate(result.words):
+        orders: list[int | None] = list(range(len(result.words))) + [None] * len(result.others)
+        for order, w in zip(orders, result.words + result.others):
             seg = result.furigana[w.id]
             db.execute(
                 "INSERT INTO word VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -506,6 +555,15 @@ def content_digest(path: Path) -> str:
 # ---------------------------------------------------------------- report
 
 
+def reported_digest(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("Content digest: `"):
+            return line.split("`")[1]
+    return None
+
+
 def write_report(result: Build, digest: str, path: Path) -> None:
     words = result.words
     by_level = Counter(w.jlpt for w in words)
@@ -529,6 +587,13 @@ def write_report(result: Build, digest: str, path: Path) -> None:
     lines.append(
         f"| All | {len(words)} | {kanji_total} | {len(words) - kanji_total} | {sum(1 for w in words if w.freq_rank is None)} |"
     )
+    others = result.others
+    other_kanji = sum(1 for w in others if w.kanji and not w.usually_kana)
+    lines += [
+        "",
+        f"Other JMdict words, for lookups while reading: {len(others)}"
+        f" ({other_kanji} shown in kanji, {sum(1 for w in others if w.freq_rank is not None)} with a frequency rank).",
+    ]
 
     def word_label(w: Word) -> str:
         return f"{w.kanji}【{w.kana}】" if w.kanji else w.kana
@@ -589,17 +654,21 @@ def main() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             fresh = Path(tmp) / "dictionary.db"
             write_db(result, fresh)
-            want, have = content_digest(fresh), content_digest(OUTPUT)
-        if want != have:
-            print(f"dictionary.db is stale: committed {have}, rebuilt {want}", file=sys.stderr)
+            rebuilt = content_digest(fresh)
+        recorded = reported_digest(REPORT)
+        if rebuilt != recorded:
+            print(f"build_report.md is stale: it records {recorded}, the build gives {rebuilt}", file=sys.stderr)
             return 1
-        print(f"dictionary.db is up to date ({have})")
+        print(f"build_report.md is up to date ({rebuilt})")
         return 0
 
     write_db(result, OUTPUT)
     digest = content_digest(OUTPUT)
     write_report(result, digest, REPORT)
-    print(f"wrote {OUTPUT.relative_to(REPO)}: {len(result.words)} words, {OUTPUT.stat().st_size // 1024} KiB")
+    print(
+        f"wrote {OUTPUT.relative_to(REPO)}: {len(result.words)} JLPT words, {len(result.others)} others, "
+        f"{OUTPUT.stat().st_size // 1024} KiB"
+    )
     print(f"wrote {REPORT.relative_to(REPO)}")
     return 0
 

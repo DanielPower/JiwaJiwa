@@ -1,0 +1,357 @@
+package ca.danielpower.jstudy.core
+
+import com.atilika.kuromoji.ipadic.Token
+import com.atilika.kuromoji.ipadic.Tokenizer
+
+/** A dictionary entry matched to a word, and the entry's reading of that spelling in hiragana. */
+data class LexiconMatch(val wordId: Long, val reading: String)
+
+/** Finds dictionary entries for the words in a story. */
+fun interface Lexicon {
+    /**
+     * The entry best matching a word spelled [text], or null. [reading] is the
+     * word's reading in hiragana when known, to choose between homographs.
+     */
+    fun find(text: String, reading: String?): LexiconMatch?
+}
+
+/** One piece of a written word and the reading above it (null for kana). */
+data class Ruby(val base: String, val ruby: String?)
+
+enum class WordKind {
+    /** A content word: counted as known or new, and tappable. */
+    WORD,
+
+    /** A content word that isn't vocabulary to learn: a name or a number. Tappable, never counted. */
+    NAME,
+
+    /** A particle, auxiliary or other grammar on its own. */
+    GRAMMAR,
+    PUNCTUATION,
+}
+
+/**
+ * A word as it appears in a story: a dictionary word with any conjugation
+ * attached, so 食べさせられた is one word whose dictionary form is 食べる.
+ */
+data class ReadingWord(
+    val surface: String,
+    /** The dictionary form, e.g. 食べる for 食べさせられた. */
+    val lemma: String,
+    /** The reading of [surface] in hiragana. */
+    val reading: String,
+    val kind: WordKind,
+    val wordId: Long?,
+    /** What the conjugation does, e.g. ["causative", "passive", "past"]. Empty when not conjugated. */
+    val conjugation: List<String>,
+    val ruby: List<Ruby>,
+) {
+    val conjugated get() = conjugation.isNotEmpty()
+
+    /** Identifies the word for counting: its dictionary entry, or its dictionary form if it has none. */
+    val key: String get() = wordId?.toString() ?: lemma
+}
+
+/** Splits Japanese text into words with Kuromoji (IPADIC) and matches them to the dictionary. */
+class Reader(private val lexicon: Lexicon) {
+
+    /** Paragraphs of words. Blank lines and single line breaks both start a new paragraph. */
+    fun read(text: String): List<List<ReadingWord>> =
+        text.split('\n').map { it.trim() }.filter { it.isNotEmpty() }.map { words(it) }
+
+    fun words(paragraph: String): List<ReadingWord> {
+        val tokens = tokenizer.tokenize(paragraph).map(::Morpheme)
+        val out = ArrayList<ReadingWord>()
+        var i = 0
+        while (i < tokens.size) {
+            val t = tokens[i]
+            val compound = compound(tokens, i)
+            when {
+                compound != null -> {
+                    out += compound.first
+                    i = compound.second
+                }
+                t.pos == "記号" || t.surface.isBlank() -> {
+                    out += plain(listOf(t), WordKind.PUNCTUATION, null)
+                    i++
+                }
+                t.isInflectingHead || (t.isSuruNoun && tokens.getOrNull(i + 1)?.isSuru == true) -> {
+                    val end = chainEnd(tokens, i + if (t.isSuruNoun) 2 else 1)
+                    out += inflected(tokens.subList(i, end))
+                    i = end
+                }
+                t.pos == "名詞" && t.pos2 == "形容動詞語幹" -> {
+                    // A na-adjective takes the copula as its conjugation (きれいだった),
+                    // but plain だ or な is grammar of its own.
+                    val end = chainEnd(tokens, i + 1)
+                    val group = tokens.subList(i, end)
+                    if (end > i + 1 && labels(group).isNotEmpty()) {
+                        out += inflected(group)
+                        i = end
+                    } else {
+                        out += content(t)
+                        i++
+                    }
+                }
+                t.pos == "助詞" || t.pos == "助動詞" || (t.pos == "動詞" && t.pos2 == "非自立") ||
+                    (t.pos == "名詞" && t.pos2 == "非自立") || t.pos == "フィラー" -> {
+                    out += plain(listOf(t), WordKind.GRAMMAR, null)
+                    i++
+                }
+                else -> {
+                    out += content(t)
+                    i++
+                }
+            }
+        }
+        return out
+    }
+
+    /** A run of nouns the dictionary knows as one word (図書館員, 魔導士), longest first. */
+    private fun compound(tokens: List<Morpheme>, start: Int): Pair<ReadingWord, Int>? {
+        val first = tokens[start]
+        if (!(first.pos == "名詞" || first.pos == "接頭詞") || first.pos2 == "数") return null
+        var end = start
+        while (end < tokens.size && end - start < MAX_COMPOUND &&
+            (tokens[end].pos == "名詞" || (end == start && tokens[end].pos == "接頭詞")) &&
+            tokens[end].pos2 != "数" && tokens[end].pos2 != "非自立"
+        ) {
+            end++
+        }
+        for (stop in end downTo start + 2) {
+            val group = tokens.subList(start, stop)
+            val text = group.joinToString("") { it.surface }
+            val reading = group.joinToString("") { it.readingOrSurface }
+            val match = lexicon.find(text, reading) ?: continue
+            // The tokenizer reads unfamiliar compounds piece by piece (魔導士 as ま・しるべ・し),
+            // so the dictionary's reading wins.
+            return plain(group, WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(text, match.reading)) to stop
+        }
+        return null
+    }
+
+    /** Where the conjugation attached to a verb or adjective at [from] - 1 ends. */
+    private fun chainEnd(tokens: List<Morpheme>, from: Int): Int {
+        var i = from
+        while (i < tokens.size) {
+            val t = tokens[i]
+            val prev = tokens[i - 1]
+            val attaches = when {
+                t.pos == "助動詞" -> true
+                t.pos == "動詞" && t.pos2 == "接尾" -> true
+                t.pos == "助詞" && t.pos2 == "接続助詞" && t.base in CONNECTIVES -> true
+                t.pos == "助詞" && t.pos2 == "並立助詞" && t.base == "たり" -> true
+                t.pos == "動詞" && t.pos2 == "非自立" ->
+                    prev.base in setOf("て", "で", "ば") || t.base in CONTRACTIONS
+                t.pos == "形容詞" && t.pos2 == "非自立" -> true
+                t.pos == "名詞" && t.pos3 == "助動詞語幹" && t.base == "そう" -> prev.form.startsWith("連用")
+                else -> false
+            }
+            if (!attaches) break
+            i++
+        }
+        return i
+    }
+
+    private fun inflected(group: List<Morpheme>): ReadingWord {
+        val head = group[0]
+        val suru = head.isSuruNoun && group.getOrNull(1)?.isSuru == true
+        val lemma = if (suru) head.surface else head.base
+        val reading = if (suru) head.readingOrSurface else baseReading(head)
+        val id = if (suru) {
+            lexicon.find(head.surface + "する", reading + "する") ?: lexicon.find(head.surface, reading)
+        } else {
+            lexicon.find(head.base, reading)
+        }?.wordId
+        return ReadingWord(
+            surface = group.joinToString("") { it.surface },
+            lemma = if (suru) lemma + "する" else lemma,
+            reading = group.joinToString("") { it.readingOrSurface },
+            kind = WordKind.WORD,
+            wordId = id,
+            conjugation = labels(group),
+            ruby = group.flatMap { ruby(it.surface, it.readingOrSurface) },
+        )
+    }
+
+    private fun content(t: Morpheme): ReadingWord {
+        val name = t.pos2 == "固有名詞" || t.pos2 == "数" || t.pos2 == "接尾" || (t.unknown && Kana.isKana(t.surface))
+        val id = if (t.unknown && name) null else lexicon.find(t.base, t.readingOrSurface)?.wordId
+        return plain(listOf(t), if (name) WordKind.NAME else WordKind.WORD, id)
+    }
+
+    private fun plain(group: List<Morpheme>, kind: WordKind, id: Long?): ReadingWord {
+        val surface = group.joinToString("") { it.surface }
+        return ReadingWord(
+            surface = surface,
+            lemma = if (group.size == 1) group[0].base else surface,
+            reading = group.joinToString("") { it.readingOrSurface },
+            kind = kind,
+            wordId = id,
+            conjugation = emptyList(),
+            ruby = if (kind == WordKind.PUNCTUATION) listOf(Ruby(surface, null)) else group.flatMap { ruby(it.surface, it.readingOrSurface) },
+        )
+    }
+
+    companion object {
+        private const val MAX_COMPOUND = 4
+        private val CONNECTIVES = setOf("て", "で", "ば", "ながら", "つつ")
+        private val CONTRACTIONS = setOf("ちゃう", "じゃう", "ちまう", "とく", "てる", "でる")
+
+        /** Loading the IPADIC dictionary takes a moment, so it happens once, on first use. */
+        val tokenizer: Tokenizer by lazy { Tokenizer() }
+
+        /** What a conjugated word's attached pieces do, in order and without repeats. */
+        internal fun labels(group: List<Morpheme>): List<String> {
+            val out = LinkedHashSet<String>()
+            val rest = group.drop(1)
+            val chain = rest.joinToString("") { it.surface }
+            if (MUST.any { chain.contains(it) }) out += "must"
+            for ((i, t) in rest.withIndex()) {
+                val next = rest.getOrNull(i + 1)
+                when {
+                    "must" in out && t.base in setOf("ない", "ば", "なる", "いける", "ぬ", "ん", "ちゃ", "て", "は") &&
+                        MUST.any { chain.contains(it) } -> {}
+                    t.pos == "動詞" && t.pos2 == "接尾" -> when (t.base) {
+                        "させる", "せる", "す", "さす" -> out += "causative"
+                        "れる" -> out += "passive"
+                        "られる" -> out += "passive or potential"
+                    }
+                    t.pos == "助動詞" -> when (t.base) {
+                        "ます" -> out += "polite"
+                        "ない", "ぬ", "ん" -> out += "negative"
+                        "た", "だ" -> when {
+                            // The copula だ (of na-adjectives) only matters in だろう; its past comes from た.
+                            t.type != "特殊・タ" -> if (t.form.startsWith("未然") && next?.base == "う") out += "probably"
+                            t.form == "仮定形" -> out += "conditional (if/when)"
+                            else -> out += "past"
+                        }
+                        "たい" -> out += "want to"
+                        "う", "よう" -> if (rest.getOrNull(i - 1)?.form?.startsWith("未然") == true && rest.getOrNull(i - 1)?.base in setOf("だ", "です")) {
+                            // だろう and でしょう
+                        } else {
+                            out += "volitional (let's)"
+                        }
+                        "まい" -> out += "negative volitional"
+                        "です" -> {
+                            out += "polite"
+                            if (t.form.startsWith("未然") && next?.base == "う") out += "probably"
+                        }
+                        "らしい" -> out += "seems"
+                    }
+                    t.pos == "助詞" -> when (t.base) {
+                        "て", "で" -> if (next == null) out += "te-form"
+                        "ば" -> out += "conditional (if)"
+                        "ながら" -> out += "while"
+                        "つつ" -> out += "while"
+                        "たり" -> out += "things like"
+                    }
+                    t.pos == "動詞" && t.pos2 == "非自立" -> {
+                        val meaning = AUXILIARY_VERBS[t.base]
+                        if (meaning != null) out += meaning
+                        if (t.form.startsWith("命令") && t.base != "くださる") out += "imperative"
+                    }
+                    t.pos == "形容詞" && t.pos2 == "非自立" -> when (t.base) {
+                        "やすい" -> out += "easy to"
+                        "にくい", "づらい" -> out += "hard to"
+                        "ほしい" -> out += "want someone to"
+                    }
+                    t.pos == "名詞" && t.base == "そう" -> out += "looks like"
+                }
+            }
+            val head = group[0]
+            if (head.form.startsWith("命令")) out.add("imperative")
+            if (rest.isEmpty()) {
+                when {
+                    head.pos == "形容詞" && head.form == "連用テ接続" -> out += "adverb (-ly)"
+                    head.pos == "形容詞" && head.form == "ガル接続" -> out += "stem"
+                    head.pos == "動詞" && head.form == "連用形" -> out += "stem (continuing)"
+                }
+            }
+            return out.toList()
+        }
+
+        private val MUST = listOf("なければなら", "なければいけ", "なくてはなら", "なくてはいけ", "なきゃ", "なくちゃ")
+
+        private val AUXILIARY_VERBS = mapOf(
+            "いる" to "ongoing or resulting state",
+            "おる" to "ongoing (humble)",
+            "ある" to "has been done",
+            "おく" to "in advance",
+            "とく" to "in advance",
+            "しまう" to "completely or regrettably",
+            "ちゃう" to "completely or regrettably",
+            "じゃう" to "completely or regrettably",
+            "ちまう" to "completely or regrettably",
+            "みる" to "try",
+            "くる" to "toward now",
+            "いく" to "from now on",
+            "もらう" to "get someone to",
+            "いただく" to "get someone to (humble)",
+            "くれる" to "for me",
+            "くださる" to "please",
+            "あげる" to "for someone",
+            "やる" to "for someone",
+            "てる" to "ongoing or resulting state",
+            "でる" to "ongoing or resulting state",
+        )
+
+        /**
+         * The reading of a conjugated word's dictionary form, from the reading of
+         * its conjugated stem: 読ん (よん) and 読む give よむ. Only used to choose
+         * between homographs, so an occasional miss (来る) does no harm.
+         */
+        internal fun baseReading(t: Morpheme): String {
+            val reading = t.readingOrSurface
+            if (t.surface == t.base) return reading
+            val common = t.surface.commonPrefixWith(t.base).length
+            val surfaceTail = t.surface.length - common
+            if (surfaceTail > reading.length) return reading
+            return reading.dropLast(surfaceTail) + Kana.toHiragana(t.base.substring(common))
+        }
+
+        /**
+         * Furigana for one written piece: kana in the spelling is matched against
+         * the reading so only the kanji get a reading above them (食べ -> 食[た]べ).
+         */
+        fun ruby(surface: String, reading: String): List<Ruby> {
+            if (!surface.any(::isKanji)) return listOf(Ruby(surface, null))
+            val runs = ArrayList<Pair<String, Boolean>>()
+            for (c in surface) {
+                val kanji = isKanji(c)
+                if (runs.isNotEmpty() && runs.last().second == kanji) {
+                    runs[runs.size - 1] = runs.last().first + c to kanji
+                } else {
+                    runs += c.toString() to kanji
+                }
+            }
+            val pattern = runs.joinToString("", "^", "$") { (text, kanji) ->
+                if (kanji) "(.+?)" else "(" + Regex.escape(Kana.toHiragana(text)) + ")"
+            }
+            val match = Regex(pattern).find(Kana.toHiragana(reading)) ?: return listOf(Ruby(surface, reading))
+            return runs.mapIndexed { i, (text, kanji) -> Ruby(text, if (kanji) match.groupValues[i + 1] else null) }
+        }
+
+        private fun isKanji(c: Char) = c in '一'..'鿿' || c in '㐀'..'䶿' || c == '々'
+    }
+}
+
+/** One Kuromoji token with its IPADIC features named. */
+internal class Morpheme(token: Token) {
+    val surface: String = token.surface
+    val pos: String = token.partOfSpeechLevel1
+    val pos2: String = token.partOfSpeechLevel2
+    val pos3: String = token.partOfSpeechLevel3
+    val form: String = token.conjugationForm
+    val type: String = token.conjugationType
+    val unknown: Boolean = token.baseForm == "*"
+    val base: String = if (unknown) surface else token.baseForm
+    private val reading: String? = token.reading.takeIf { it != "*" }?.let(Kana::toHiragana)
+
+    /** The reading in hiragana, or the surface if the tokenizer has none. */
+    val readingOrSurface: String get() = reading ?: Kana.toHiragana(surface)
+
+    val isInflectingHead get() = (pos == "動詞" || pos == "形容詞") && pos2 == "自立"
+    val isSuruNoun get() = pos == "名詞" && pos2 == "サ変接続"
+    val isSuru get() = pos == "動詞" && base == "する"
+}

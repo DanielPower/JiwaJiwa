@@ -3,6 +3,9 @@ package ca.danielpower.jstudy.data
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import ca.danielpower.jstudy.core.Kana
+import ca.danielpower.jstudy.core.Lexicon
+import ca.danielpower.jstudy.core.LexiconMatch
+import ca.danielpower.jstudy.core.VocabWord
 import org.json.JSONArray
 import java.io.File
 
@@ -17,6 +20,7 @@ data class Word(
     val kana: String,
     val usuallyKana: Boolean,
     val furigana: List<FuriganaSegment>?,
+    /** 5 to 1, or 0 for a word that isn't on the JLPT lists. */
     val jlpt: Int,
     val senses: List<Sense>,
 ) {
@@ -36,14 +40,21 @@ data class Entry(
     val secondary: String?,
     val gloss: String,
     val jlpt: Int,
+    /** Int.MAX_VALUE for words that aren't on the JLPT lists. */
     val studyOrder: Int,
 )
+
+/** "N5" to "N1", or "Other" for a word that isn't on the JLPT lists. */
+fun levelLabel(jlpt: Int) = if (jlpt in 1..5) "N$jlpt" else "Other"
 
 /**
  * The read-only word database built by tools/dictionary and shipped in the
  * APK. It is copied to app storage when the app is installed or updated.
+ *
+ * It holds every JMdict entry. The JLPT words have a level and a place in
+ * the study order; the rest (level 0) are there to look up while reading.
  */
-class Dictionary(context: Context) {
+class Dictionary(context: Context) : Lexicon {
     private val db: SQLiteDatabase
 
     init {
@@ -120,15 +131,21 @@ class Dictionary(context: Context) {
         return out
     }
 
-    /** Every word in study order, for the dictionary list. */
-    fun entries(): List<Entry> =
+    /** Every JLPT word in study order, for the dictionary list. */
+    fun entries(): List<Entry> = entryRows("w.jlpt > 0", emptyArray())
+
+    /** List rows for particular words, e.g. search hits that aren't on the JLPT lists. */
+    fun entries(ids: Collection<Long>): List<Entry> =
+        ids.chunked(500).flatMap { chunk -> entryRows("w.id IN (${chunk.joinToString(",")})", emptyArray()) }
+
+    private fun entryRows(where: String, args: Array<String>): List<Entry> =
         db.rawQuery(
             """
             SELECT w.id, w.kanji, w.kana, w.usually_kana, w.furigana IS NOT NULL, w.jlpt, w.study_order,
                 (SELECT gloss FROM sense s WHERE s.word_id = w.id ORDER BY s.ord LIMIT 1)
-            FROM word w ORDER BY w.study_order
+            FROM word w WHERE $where ORDER BY w.study_order IS NULL, w.study_order, w.id
             """,
-            null,
+            args,
         ).use { c ->
             buildList {
                 while (c.moveToNext()) {
@@ -142,7 +159,7 @@ class Dictionary(context: Context) {
                             secondary = if (showsKanji) kana else kanji,
                             gloss = c.getString(7)?.let { strings(it).joinToString("; ") }.orEmpty(),
                             jlpt = c.getInt(5),
-                            studyOrder = c.getInt(6),
+                            studyOrder = if (c.isNull(6)) Int.MAX_VALUE else c.getInt(6),
                         ),
                     )
                 }
@@ -210,7 +227,56 @@ class Dictionary(context: Context) {
             buildSet { while (c.moveToNext()) add(c.getLong(0)) }
         }
 
-    fun wordCount(): Int = db.rawQuery("SELECT COUNT(*) FROM word", null).use { it.moveToFirst(); it.getInt(0) }
+    /** Words on the JLPT lists. */
+    fun wordCount(): Int = db.rawQuery("SELECT COUNT(*) FROM word WHERE jlpt > 0", null).use { it.moveToFirst(); it.getInt(0) }
+
+    /**
+     * The entry for a word spelled [text]. Among homographs, one with a kana
+     * spelling matching [reading] wins, then JLPT words, then the more frequent.
+     */
+    override fun find(text: String, reading: String?): LexiconMatch? {
+        data class Candidate(val id: Long, val kana: String, val jlpt: Int, val rank: Int)
+        val candidates = db.rawQuery(
+            """
+            SELECT w.id, w.kana, w.jlpt, COALESCE(w.freq_rank, 1000000000)
+            FROM form f JOIN word w ON w.id = f.word_id WHERE f.text = ?
+            """,
+            arrayOf(text),
+        ).use { c ->
+            buildList { while (c.moveToNext()) add(Candidate(c.getLong(0), c.getString(1), c.getInt(2), c.getInt(3))) }
+        }.distinctBy { it.id }
+        if (candidates.isEmpty()) return null
+        val wanted = reading?.let(Kana::toHiragana)
+        val readingMatches = if (wanted == null) emptySet() else candidates.filter { cand ->
+            Kana.toHiragana(cand.kana) == wanted || forms(cand.id).any { Kana.isKana(it) && Kana.toHiragana(it) == wanted }
+        }.map { it.id }.toSet()
+        val best = candidates.minWith(
+            compareBy<Candidate>({ it.id !in readingMatches }, { it.jlpt == 0 }, { it.rank }, { it.id }),
+        )
+        val bestReading = if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana)
+        return LexiconMatch(best.id, bestReading)
+    }
+
+    /** How the story writer should see each word: the spelling cards show, and its reading. */
+    fun vocab(ids: Collection<Long>): List<VocabWord> =
+        ids.chunked(500).flatMap { chunk ->
+            db.rawQuery(
+                "SELECT id, kanji, kana, usually_kana, furigana IS NOT NULL FROM word WHERE id IN (${chunk.joinToString(",")})",
+                null,
+            ).use { c ->
+                buildList {
+                    while (c.moveToNext()) {
+                        val kanji = if (c.isNull(1)) null else c.getString(1)
+                        val kana = c.getString(2)
+                        val showsKanji = kanji != null && c.getInt(3) == 0 && c.getInt(4) != 0
+                        add(VocabWord(c.getLong(0), if (showsKanji) kanji!! else kana, kana))
+                    }
+                }
+            }
+        }
+
+    fun level(id: Long): Int =
+        db.rawQuery("SELECT jlpt FROM word WHERE id = ?", arrayOf(id.toString())).use { if (it.moveToFirst()) it.getInt(0) else 0 }
 
     fun partOfSpeechNames(): Map<String, String> =
         db.rawQuery("SELECT code, description FROM tag", null).use { c ->

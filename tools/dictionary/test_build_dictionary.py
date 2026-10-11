@@ -3,6 +3,7 @@
 Run with: python3 -m unittest discover tools/dictionary
 """
 
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -38,6 +39,13 @@ HAMIGAKI = entry(
     [kanji("歯磨き"), kanji("歯磨", common=False)],
     [kana("はみがき")],
     [sense("toothpaste")],
+)
+
+MADOUSHI = entry(
+    2000001,
+    [kanji("魔導士", common=False), kanji("魔導師", common=False, tags=["rK"])],
+    [kana("まどうし")],
+    [sense("sorcerer")],
 )
 
 IRU = entry(1577980, [kanji("居る", common=False, tags=["rK"])], [kana("いる")], [sense("to be")])
@@ -138,6 +146,42 @@ class BuildTest(unittest.TestCase):
     def test_override_excludes_and_relevels(self):
         result = bd.build(self.source(), {"1577980": {"exclude": "1"}, "1601040": {"jlpt": "3"}})
         self.assertEqual([(w.id, w.jlpt) for w in result.words], [(1601040, 3)])
+        # An excluded word is still there to look up.
+        self.assertEqual([(w.id, w.jlpt) for w in result.others], [(1577980, 0)])
+
+    def test_words_off_the_lists_are_kept_for_lookups(self):
+        src = self.source()
+        src["jmdict"]["words"].append(MADOUSHI)
+        result = bd.build(src, {})
+        self.assertEqual([w.id for w in result.words], [1577980, 1601040])
+        self.assertEqual([w.id for w in result.others], [2000001])
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "d.db"
+            bd.write_db(result, db)
+            con = sqlite3.connect(db)
+            row = con.execute("SELECT kanji, kana, jlpt, study_order FROM word WHERE id = 2000001").fetchone()
+            con.close()
+        self.assertEqual(row, ("魔導士", "まどうし", 0, None))
+
+
+class SelectOtherTest(unittest.TestCase):
+    def test_common_spelling_and_every_form(self):
+        w = bd.select_other(MADOUSHI, {("魔導士", "まどうし"): 40000})
+        self.assertEqual((w.kanji, w.kana, w.usually_kana, w.jlpt), ("魔導士", "まどうし", False, 0))
+        self.assertEqual(w.freq_rank, 40000)
+        self.assertEqual([f for f, _ in w.forms], ["魔導士", "まどうし", "魔導師"])
+
+    def test_usually_kana(self):
+        e = entry(3, [kanji("流石")], [kana("さすが")], [sense("as expected", misc=["uk"])])
+        w = bd.select_other(e, {})
+        self.assertTrue(w.usually_kana)
+        self.assertEqual(w.forms[0], ("さすが", True))
+
+    def test_kana_only(self):
+        e = entry(4, [], [kana("ふわふわ")], [sense("fluffy")])
+        w = bd.select_other(e, {})
+        self.assertIsNone(w.kanji)
+        self.assertTrue(w.usually_kana)
 
 
 if __name__ == "__main__":

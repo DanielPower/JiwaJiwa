@@ -11,10 +11,14 @@ import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
+import ca.danielpower.jstudy.core.StoryDifficulty
+import ca.danielpower.jstudy.core.StoryLength
 import ca.danielpower.jstudy.data.Entry
 import ca.danielpower.jstudy.data.RenshuuClient
 import ca.danielpower.jstudy.data.RenshuuException
 import ca.danielpower.jstudy.data.Repository
+import ca.danielpower.jstudy.data.SavedStory
+import ca.danielpower.jstudy.data.StoryReading
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Undo
 import ca.danielpower.jstudy.data.Word
@@ -80,7 +84,7 @@ sealed interface Screen {
     /** Only learning steps remain and none is due yet. */
     data class Waiting(val dueAt: Long, val counts: ReviewCounts) : Screen
     data class Done(val summary: Summary) : Screen
-    data class Settings(val settings: StudySettings, val attribution: String) : Screen
+    data class Settings(val settings: StudySettings, val attribution: String, val claudeKey: String) : Screen
 
     data class Dictionary(
         val query: String,
@@ -93,7 +97,31 @@ sealed interface Screen {
     data class WordPage(val detail: WordDetail, val rules: MasteryRules, val clock: StudyClock) : Screen
 
     data class RenshuuImport(val step: ImportStep) : Screen
+
+    data class Stories(
+        val stories: List<SavedStory>,
+        val draft: StoryDraft,
+        val hasClaudeKey: Boolean,
+        /** Words you've started, to warn when there are too few for a story. */
+        val knownWords: Int,
+        /** What the story writer is doing, while it works. */
+        val writing: String?,
+        val error: String?,
+    ) : Screen
+
+    data class StoryReader(
+        val reading: StoryReading,
+        /** New words this story just added to the front of the queue, shown once. */
+        val queued: Int?,
+    ) : Screen
 }
+
+/** The story form, kept while you move around the app. */
+data class StoryDraft(
+    val prompt: String = "",
+    val length: StoryLength = StoryLength.SHORT,
+    val difficulty: StoryDifficulty = StoryDifficulty.NORMAL,
+)
 
 sealed interface ImportStep {
     data class EnterKey(val error: String? = null) : ImportStep
@@ -112,11 +140,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var undo: Undo? = null
     private val lock = Mutex()
 
+    /** The JLPT words. Other words join the list when a search finds them or you've started them. */
     private var entries: List<Entry>? = null
+    private var entryIds: Set<Long> = emptySet()
     private var statuses: Map<Long, WordStatus> = emptyMap()
     private var lastDictionary: Screen.Dictionary? = null
     private var searchJob: Job? = null
     private var importJob: Job? = null
+
+    private var draft = StoryDraft()
+    private var storyJob: Job? = null
+    private var storyProgress: String? = null
+    private var storyError: String? = null
 
     init {
         launchIo {
@@ -141,11 +176,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun goHome() = launchIo { showHome() }
 
-    /** The system back button: word page to dictionary, import to settings, anything else home. */
+    /** The system back button: word page to dictionary, import to settings, story to stories, anything else home. */
     fun back() {
         when (_screen.value) {
             is Screen.WordPage -> closeWord()
             is Screen.RenshuuImport -> closeImport()
+            is Screen.StoryReader -> openStories()
             else -> goHome()
         }
     }
@@ -252,7 +288,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openSettings() = launchIo {
         val attribution = repo.dictionary.meta("attribution").orEmpty()
-        _screen.value = Screen.Settings(repo.settings(), attribution)
+        _screen.value = Screen.Settings(repo.settings(), attribution, repo.claudeKey())
+    }
+
+    fun saveClaudeKey(key: String) = launchIo {
+        repo.saveClaudeKey(key)
+        _screen.update { if (it is Screen.Settings) it.copy(claudeKey = repo.claudeKey()) else it }
     }
 
     fun saveSettings(settings: StudySettings) = launchIo {
@@ -307,10 +348,88 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         importStep(ImportStep.Done(step.plan.updates.size))
     }
 
+    // ------------------------------------------------------------ stories
+
+    fun openStories() = launchIo { showStories() }
+
+    private fun showStories() {
+        _screen.value = Screen.Stories(
+            stories = repo.stories(),
+            draft = draft,
+            hasClaudeKey = repo.claudeKey().isNotEmpty(),
+            knownWords = repo.knownWordCount(),
+            writing = storyProgress,
+            error = storyError,
+        )
+    }
+
+    fun editDraft(change: (StoryDraft) -> StoryDraft) {
+        draft = change(draft)
+        _screen.update { if (it is Screen.Stories) it.copy(draft = draft) else it }
+    }
+
+    private fun storyStatus(progress: String?, error: String?) {
+        storyProgress = progress
+        storyError = error
+        _screen.update { if (it is Screen.Stories) it.copy(writing = progress, error = error) else it }
+    }
+
+    /** Write a story from the draft. It keeps going if you leave the screen, and opens when done if you're still here. */
+    fun writeStory() {
+        if (storyJob?.isActive == true) return
+        val request = draft
+        storyStatus("Getting your words ready", null)
+        // Not under the lock: writing takes a while and shouldn't block the rest of the app.
+        storyJob = viewModelScope.launch {
+            try {
+                val (id, queued) = withContext(Dispatchers.IO) {
+                    val req = lock.withLock { repo.storyRequest(request.prompt, request.length, request.difficulty) }
+                    val id = repo.writeStory(req, now()) { storyStatus(it, null) }
+                    id to (repo.readStory(id)?.coverage?.newWords?.count { it.wordId != null } ?: 0)
+                }
+                storyStatus(null, null)
+                draft = draft.copy(prompt = "")
+                if (_screen.value is Screen.Stories) {
+                    lock.withLock { withContext(Dispatchers.IO) { showStory(id, queued) } }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                storyStatus(null, e.message ?: "Something went wrong writing the story.")
+            }
+        }
+    }
+
+    fun openStory(id: Long) = launchIo {
+        _screen.value = Screen.Loading
+        showStory(id, null)
+    }
+
+    private fun showStory(id: Long, queued: Int?) {
+        val reading = repo.readStory(id) ?: return showStories()
+        _screen.value = Screen.StoryReader(reading, queued)
+    }
+
+    fun deleteStory(id: Long) = launchIo {
+        repo.deleteStory(id)
+        showStories()
+    }
+
+    /** "I know this" on a word in a story: mark it known, as on a new card. */
+    fun knowStoryWord(wordId: Long) = launchIo {
+        val state = _screen.value as? Screen.StoryReader ?: return@launchIo
+        repo.markKnown(wordId, repo.settings().mastery.hideAt, now())
+        val reading = repo.readStory(state.reading.story.id) ?: return@launchIo
+        _screen.update { if (it is Screen.StoryReader) it.copy(reading = reading) else it }
+    }
+
     // ------------------------------------------------------------ dictionary
 
     fun openDictionary() = launchIo {
-        if (entries == null) entries = repo.dictionary.entries()
+        if (entries == null) {
+            entries = repo.dictionary.entries()
+            entryIds = entries!!.mapTo(HashSet()) { it.id }
+        }
         statuses = repo.wordStatuses()
         val state = Screen.Dictionary("", emptySet(), StatusFilter.ALL, emptyList())
         _screen.value = state.copy(rows = rows(state))
@@ -318,8 +437,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Words matching the query and filters, best match first. */
     private fun rows(state: Screen.Dictionary): List<DictionaryRow> {
-        val all = entries ?: return emptyList()
+        val jlpt = entries ?: return emptyList()
         val ranks = if (state.query.isBlank()) null else repo.dictionary.search(state.query)
+        val others = if (ranks == null) {
+            statuses.keys.filter { it !in entryIds }
+        } else {
+            ranks.keys.filter { it !in entryIds }.sortedBy { ranks.getValue(it) }.take(MAX_OTHER_HITS)
+        }
+        val all = jlpt + repo.dictionary.entries(others)
         val matching = all.filter { e ->
             (ranks == null || e.id in ranks) &&
                 (state.levels.isEmpty() || e.jlpt in state.levels) &&
@@ -388,4 +513,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun resetWord() = wordAction { repo.reset(it) }
 
     fun setSuspended(suspended: Boolean) = wordAction { repo.setSuspended(it, suspended) }
+
+    companion object {
+        /** Search hits beyond the JLPT words to list, best first. */
+        private const val MAX_OTHER_HITS = 200
+    }
 }

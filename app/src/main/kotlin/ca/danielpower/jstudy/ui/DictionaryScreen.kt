@@ -46,6 +46,7 @@ import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.data.WordStatus
+import ca.danielpower.jstudy.data.levelLabel
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -89,11 +90,12 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            for (level in 5 downTo 1) {
+            // 0 is "Other": words off the JLPT lists, shown once searched for or started.
+            for (level in listOf(5, 4, 3, 2, 1, 0)) {
                 FilterChip(
                     selected = level in state.levels,
                     onClick = { vm.toggleLevel(level) },
-                    label = { Text("N$level") },
+                    label = { Text(levelLabel(level)) },
                 )
             }
         }
@@ -153,7 +155,7 @@ private fun DictionaryRowItem(row: DictionaryRow, onClick: () -> Unit) {
         }
         Spacer(Modifier.width(12.dp))
         Column(horizontalAlignment = Alignment.End) {
-            Text("N${e.jlpt}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(levelLabel(e.jlpt), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             statusLabel(row.status)?.let {
                 Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             }
@@ -190,7 +192,7 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 WordFace(word, showFurigana = true)
                 Text(
-                    "N${word.jlpt}",
+                    levelLabel(word.jlpt),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp),

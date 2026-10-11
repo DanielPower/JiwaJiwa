@@ -32,6 +32,18 @@ jobs:
       - name: Test the dictionary build
         run: python3 -m unittest discover tools/dictionary
 
+      - uses: actions/cache@v4
+        with:
+          path: tools/dictionary/.cache
+          key: dictionary-sources-${{ hashFiles('tools/dictionary/sources.json') }}
+
+      # The database isn't committed (it holds all of JMdict). Building it also
+      # rewrites build_report.md, which must come out unchanged.
+      - name: Build the dictionary
+        run: |
+          python3 tools/dictionary/build_dictionary.py
+          git diff --exit-code tools/dictionary/build_report.md
+
       - name: Test and build
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}

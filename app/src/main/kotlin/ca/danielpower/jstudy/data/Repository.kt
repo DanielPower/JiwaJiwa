@@ -18,6 +18,16 @@ import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.core.WordProgress
+import ca.danielpower.jstudy.core.ClaudeConversation
+import ca.danielpower.jstudy.core.Coverage
+import ca.danielpower.jstudy.core.Reader
+import ca.danielpower.jstudy.core.ReadingWord
+import ca.danielpower.jstudy.core.StoryDifficulty
+import ca.danielpower.jstudy.core.StoryLength
+import ca.danielpower.jstudy.core.StoryRequest
+import ca.danielpower.jstudy.core.StoryWriter
+import ca.danielpower.jstudy.core.coverage
+import ca.danielpower.jstudy.core.newWordBudget
 import kotlin.random.Random
 
 data class Summary(
@@ -58,9 +68,24 @@ data class Undo(
 )
 
 /** All reads and writes go through here; call it off the main thread. */
+/** A saved story split into words, with what's needed to show each one. */
+data class StoryReading(
+    val story: SavedStory,
+    val paragraphs: List<List<ReadingWord>>,
+    /** Dictionary entries for the story's words. */
+    val words: Map<Long, Word>,
+    val statuses: Map<Long, WordStatus>,
+    val coverage: Coverage,
+    val rules: MasteryRules,
+)
+
 class Repository(context: Context) {
     val dictionary = Dictionary(context)
     private val store = ProgressStore(context)
+
+    /** Kept out of the progress database so a backup doesn't carry it. */
+    private val secrets = context.getSharedPreferences("secrets", Context.MODE_PRIVATE)
+    private val reader by lazy { Reader(dictionary) }
 
     // ------------------------------------------------------------ settings
 
@@ -345,6 +370,113 @@ class Repository(context: Context) {
         }
     }
 
+    // ------------------------------------------------------------ stories
+
+    fun claudeKey(): String = secrets.getString("claude_api_key", null).orEmpty()
+
+    fun saveClaudeKey(key: String) {
+        secrets.edit().putString("claude_api_key", key.trim()).apply()
+    }
+
+    fun stories(): List<SavedStory> = store.stories()
+
+    fun deleteStory(id: Long) = store.deleteStory(id)
+
+    /** Words you've started, or suspended to leave alone, count as known while reading. */
+    private fun known(statuses: Map<Long, WordStatus>): (Long) -> Boolean = { id ->
+        val s = statuses[id]
+        s != null && (s.state != CardState.NEW || s.suspended)
+    }
+
+    fun knownWordCount(): Int = wordStatuses().values.count { it.state != CardState.NEW }
+
+    /** What to ask for: your started words, the shakiest of them to practise, and the next new words. */
+    fun storyRequest(prompt: String, length: StoryLength, difficulty: StoryDifficulty): StoryRequest {
+        val statuses = store.wordStatuses()
+        val started = statuses.filterValues { it.state != CardState.NEW }
+        val known = dictionary.vocab(started.keys)
+        val rules = settings().mastery
+        val shaky = started.filterValues { !it.suspended && it.mastery < rules.hideAt }.entries
+            .sortedBy { it.value.mastery }.take(PRACTICE_POOL).map { it.key }.shuffled().take(PRACTICE)
+        val budget = newWordBudget(length, difficulty)
+        val queued = store.cards(
+            "state = ? AND direction = ? AND suspended = 0",
+            arrayOf(CardState.NEW.value.toString(), Direction.RECOGNITION.value.toString()),
+            "sort_key, id",
+        ).map { it.wordId }
+        val introduceCount = maxOf(1, budget / 2)
+        val next = (queued + dictionary.nextWords(statuses.keys, introduceCount).map { it.first })
+            .distinct().take(introduceCount)
+        val frontier = dictionary.nextWords(statuses.keys, 1).firstOrNull()?.first
+        return StoryRequest(
+            prompt = prompt,
+            length = length,
+            difficulty = difficulty,
+            grammarLevel = frontier?.let { dictionary.level(it) }?.takeIf { it in 1..5 } ?: 1,
+            known = known,
+            practice = dictionary.vocab(shaky),
+            introduce = dictionary.vocab(next).sortedBy { next.indexOf(it.wordId) },
+        )
+    }
+
+    /**
+     * Have Claude write a story, save it, and put its new words at the front
+     * of the new-word queue in the order they appear. Returns the story's id.
+     */
+    fun writeStory(request: StoryRequest, now: Long, progress: (String) -> Unit): Long {
+        val key = claudeKey()
+        check(key.isNotEmpty()) { "Add a Claude API key in Settings first." }
+        val writer = StoryWriter(ClaudeConversation(key), reader)
+        val written = writer.write(request, known(store.wordStatuses()), progress)
+        progress("Saving")
+        val id = store.insertStory(
+            SavedStory(
+                id = 0,
+                createdAt = now,
+                title = written.story.title,
+                body = written.story.body,
+                prompt = request.prompt.trim(),
+                length = request.length.name,
+                difficulty = request.difficulty.name,
+            ),
+        )
+        queueFirst(written.coverage.newWords.mapNotNull { it.wordId }, now)
+        return id
+    }
+
+    /** Put words at the front of the new-word queue, keeping their order. */
+    private fun queueFirst(wordIds: List<Long>, now: Long) {
+        val statuses = store.wordStatuses()
+        store.transaction { db ->
+            for ((i, wordId) in wordIds.withIndex()) {
+                val status = statuses[wordId]
+                if (status != null && (status.state != CardState.NEW || status.suspended)) continue
+                val sortKey = now / 1000 - LEARN_NEXT_FIRST + i
+                val card = recognitionCard(wordId)
+                if (card == null) {
+                    store.insertNewCard(db, wordId, Direction.RECOGNITION, sortKey)
+                } else {
+                    store.setSortKey(db, card.id, sortKey)
+                }
+            }
+        }
+    }
+
+    fun readStory(id: Long): StoryReading? {
+        val story = store.story(id) ?: return null
+        val paragraphs = reader.read(story.body)
+        val ids = paragraphs.flatten().mapNotNull { it.wordId }.toSet()
+        val statuses = store.wordStatuses()
+        return StoryReading(
+            story = story,
+            paragraphs = paragraphs,
+            words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
+            statuses = statuses,
+            coverage = coverage(paragraphs, known(statuses)),
+            rules = settings().mastery,
+        )
+    }
+
     // ------------------------------------------------------------ summary
 
     fun summary(now: Long): Summary {
@@ -395,6 +527,8 @@ class Repository(context: Context) {
     companion object {
         private const val PRODUCTION_FIRST = 10_000_000_000L
         private const val LEARN_NEXT_FIRST = 20_000_000_000L
+        private const val PRACTICE_POOL = 20
+        private const val PRACTICE = 8
 
         /** Consecutive study days ending today, or yesterday if today has no reviews yet. */
         fun streak(daysNewestFirst: List<Long>, today: Long): Int {
