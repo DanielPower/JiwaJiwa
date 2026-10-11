@@ -239,6 +239,15 @@ private fun WordFace(word: Word, showFurigana: Boolean) {
             // Keep the same height as a word with a reading row.
             Text(" ", fontSize = size * 0.42f)
             Text(word.kana, fontSize = size)
+            if (word.usuallyKana && word.kanji != null) {
+                // Usually written in kana, but the kanji spelling turns up too.
+                Text(
+                    "sometimes ${word.kanji}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
     }
 }
