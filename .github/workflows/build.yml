@@ -37,4 +37,4 @@ jobs:
           python3 tools/dictionary/build_dictionary.py
 
       - name: Test and build
-        run: ./gradlew :core:test :app:assembleDebug
+        run: ./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug

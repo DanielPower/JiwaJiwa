@@ -1,0 +1,76 @@
+name: Tests
+
+# Unit tests, as checks on every pull request and every push to main. These
+# don't need the dictionary database, so they finish well before the APK
+# builds in "Check pull request" and "Build and release".
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  core:
+    name: Core unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # -PcoreOnly leaves the Android app out of the build, so no SDK is needed.
+      - run: ./gradlew -PcoreOnly=true :core:test
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-test-report
+          path: core/build/reports/tests/test
+          retention-days: 14
+
+  app:
+    name: App unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # JVM tests with Robolectric (app/src/test). The runner image has the Android SDK.
+      - run: ./gradlew :app:testDebugUnitTest
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-test-report
+          path: app/build/reports/tests/testDebugUnitTest
+          retention-days: 14
+
+  dictionary:
+    name: Dictionary build tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: python3 -m unittest discover tools/dictionary

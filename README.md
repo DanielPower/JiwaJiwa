@@ -24,10 +24,12 @@ The dictionary database isn't committed, so build it first:
 
 ```sh
 python3 tools/dictionary/build_dictionary.py
-./gradlew :core:test :app:assembleDebug
+./gradlew :core:test :app:testDebugUnitTest :app:assembleDebug
 ```
 
 Pushes to other branches run the same build in CI without publishing a release.
+Every pull request and every push to `main` also runs the unit tests as
+separate checks (`.github/workflows/test.yml`).
 
 Without the Android SDK, the core can be built and tested on its own:
 

@@ -1,0 +1,59 @@
+# app/AGENTS.md
+
+The Android app: Kotlin, Jetpack Compose, minSdk 26, target/compile SDK 35.
+It can't be built in cloud agent containers (Google's Maven hosts are
+blocked there), so CI is the build check. Keep logic in `core` where you can.
+
+## Structure
+
+| Path | What's in it |
+| --- | --- |
+| `MainActivity.kt` | Entry point; theme and the screen switch. |
+| `ui/AppViewModel.kt` | The single view model. Navigation is a `Screen` sealed interface held in state, not a nav library. |
+| `ui/*Screen.kt`, `ui/Screens.kt` | Compose screens: home, review, done, dictionary and word page, settings, setup, stats, stories, Renshuu import. |
+| `ui/Washi.kt`, `ui/Theme.kt` | The Washi design system (see below). |
+| `ui/VerticalStory.kt` | Custom vertical (tategaki) layout; Compose has no vertical writing mode. |
+| `data/Repository.kt` | Everything the UI asks for. Owns settings, sessions, undo, backup, reset, stories, stats. |
+| `data/ProgressStore.kt` | The user's SQLite DB (`progress.db`): cards, word progress, review log, a `kv` settings table, stories. |
+| `data/Dictionary.kt` | The read-only dictionary DB, copied from assets on install or update. |
+| `data/RenshuuClient.kt` | Renshuu API client (`/list/all/vocab`, 50 per page). |
+| `reminder/DailyReminder.kt` | Inexact daily alarm and notification. |
+
+## Storage
+
+- Plain `SQLiteOpenHelper`, not Room (avoids KSP and prepackaged-DB schema
+  validation). Settings live in the progress DB's `kv` table, not DataStore,
+  so a backup carries them.
+- `ProgressStore.VERSION` is 4. Schema changes need an `onUpgrade` step, and
+  backups from older versions must still restore (they're upgraded when
+  reopened). A backup from a newer version is refused.
+- SharedPreferences hold only what must not go in a backup or must load
+  before the DB: `secrets` (the Claude API key), `display` (theme, read on
+  the first frame), `dictionary` (asset copy bookkeeping).
+- The dictionary DB (`assets/databases/dictionary.db`, about 75 MB, all of
+  JMdict) is built by `tools/dictionary` and isn't committed. JLPT words
+  have level 1–5 and a `study_order`; others have level 0 and no order.
+  `levelLabel` shows them as "Other".
+
+## Design: Washi
+
+Paper `#F4EFE4`, ink `#1F1A16`, seal red `#B8381E`; dark mode ink `#171412`
+with red `#E0644A`. No dynamic colour. Fonts are bundled: Shippori Mincho for
+Japanese and headings, Zen Kaku Gothic New for UI. Use the shared components
+in `ui/Washi.kt` (`PrimaryButton`, `SealButton`, `SecondaryButton`,
+`WashiChip`, `LevelSeal`, bottom nav, line icons) for new screens rather than
+stock Material ones. New/learning/review counts use 新/習/復.
+
+## Tests
+
+`src/test/kotlin`, JUnit 4. Tests that need Android (SQLite, `Context`) use
+`@RunWith(RobolectricTestRunner::class)`; Robolectric is pinned to SDK 34 in
+`src/test/resources/robolectric.properties`. `ProgressStoreTest` covers the
+DB layer including the version 3 → 4 migration; add a migration test with
+any schema change. Run with `./gradlew :app:testDebugUnitTest` (CI only in
+cloud containers).
+
+## Debug builds
+
+The debug build type has app id `ca.danielpower.jstudy.debug`, so a PR's APK
+installs next to the real app without touching its progress.
