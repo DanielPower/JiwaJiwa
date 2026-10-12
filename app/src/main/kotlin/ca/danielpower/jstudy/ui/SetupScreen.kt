@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ca.danielpower.jstudy.core.KanaKnown
 
 /** First run: pick a starting level, and say how well you know the levels below it. */
 @Composable
@@ -33,6 +34,22 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
             "Where do you want to start? New words come from this level first, most common first, " +
                 "then the harder levels, then any easier ones.",
             style = MaterialTheme.typography.bodyLarge,
+        )
+
+        SectionLabel("Kana you can read", Modifier.padding(top = 8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for ((known, label) in KANA_CHOICES) {
+                WashiChip(
+                    selected = state.kanaChoice == known,
+                    onClick = { vm.editSetup { it.copy(kana = known) } },
+                    label = label,
+                )
+            }
+        }
+        Text(
+            kanaHelp(state.kanaChoice),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         SectionLabel("Starting level", Modifier.padding(top = 8.dp))
@@ -97,7 +114,7 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
         }
 
         Text(
-            "You can change the starting level and the reminder later in Settings, and mark single words from the dictionary.",
+            "You can change kana, the starting level and the reminder later in Settings, and mark single words from the dictionary.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),
@@ -106,4 +123,18 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
             Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
+}
+
+/** The kana choices, as chips. */
+internal val KANA_CHOICES = listOf(
+    KanaKnown.BOTH to "Both",
+    KanaKnown.HIRAGANA to "Hiragana only",
+    KanaKnown.NONE to "Neither",
+)
+
+internal fun kanaHelp(known: KanaKnown) = when (known) {
+    KanaKnown.BOTH -> "Straight to vocabulary."
+    KanaKnown.HIRAGANA -> "Katakana cards come first, a few a day. Words in katakana join once you can read them."
+    KanaKnown.NONE -> "Hiragana and katakana are taught together, a sound at a time (か and カ). " +
+        "New words join as soon as you can read them."
 }

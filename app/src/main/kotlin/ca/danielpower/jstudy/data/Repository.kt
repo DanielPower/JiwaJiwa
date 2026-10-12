@@ -12,11 +12,14 @@ import ca.danielpower.jstudy.core.DailyLimits
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.Fsrs
 import ca.danielpower.jstudy.core.ImportPlan
+import ca.danielpower.jstudy.core.KanaCourse
+import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.LocalWord
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.RenshuuImport
 import ca.danielpower.jstudy.core.RenshuuTerm
 import ca.danielpower.jstudy.core.Reviewer
+import ca.danielpower.jstudy.core.Script
 import ca.danielpower.jstudy.core.StudyAhead
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
@@ -47,6 +50,9 @@ data class Summary(
     val today: Long,
     /** Cards answered per study day over the last year. */
     val answersPerDay: Map<Long, Int>,
+    /** Kana learned and still to learn; both 0 when you read all kana. */
+    val kanaLearned: Int = 0,
+    val kanaTotal: Int = 0,
 ) {
     val anythingDue get() = newCards + learning + reviews > 0
 }
@@ -94,13 +100,15 @@ data class Stats(
     val recall30: Pair<Int, Int>,
     val recallAll: Pair<Int, Int>,
     val levels: List<LevelStats>,
+    /** Hiragana and katakana you're learning here; empty when you read them already. */
+    val kana: List<LevelStats>,
     val wordsStarted: Int,
     val totalAnswers: Int,
     val studyDays: Int,
 )
 
-/** Words of one JLPT level by how far along they are. Each count includes the ones after it. */
-data class LevelStats(val level: Int, val total: Int, val started: Int, val known: Int, val mastered: Int)
+/** Words of one JLPT level, or kana of one script, by how far along they are. Each count includes the ones after it. */
+data class LevelStats(val label: String, val total: Int, val started: Int, val known: Int, val mastered: Int)
 
 /** The daily reminder. There's no default time: [minuteOfDay] is null until you pick one. */
 data class Reminder(val enabled: Boolean, val minuteOfDay: Int?) {
@@ -127,6 +135,7 @@ class Repository(context: Context) {
         return runCatching {
             StudySettings(
                 newPerDay = int("new_per_day", d.newPerDay),
+                newKanaPerDay = int("new_kana_per_day", d.newKanaPerDay),
                 reviewCap = int("review_cap", d.reviewCap),
                 desiredRetention = store.getValue("retention")?.toDoubleOrNull() ?: d.desiredRetention,
                 rolloverHour = int("rollover_hour", d.rolloverHour),
@@ -145,6 +154,7 @@ class Repository(context: Context) {
         store.setValues(
             mapOf(
                 "new_per_day" to s.newPerDay.toString(),
+                "new_kana_per_day" to s.newKanaPerDay.toString(),
                 "review_cap" to s.reviewCap.toString(),
                 "retention" to s.desiredRetention.toString(),
                 "rollover_hour" to s.rolloverHour.toString(),
@@ -184,7 +194,16 @@ class Repository(context: Context) {
             ahead = ahead(),
             clock = clock,
             now = now,
-            newIntroducedToday = store.count("SELECT COUNT(*) FROM card WHERE introduced_day = ?", today),
+            newIntroducedToday = store.count(
+                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND direction != ?",
+                today,
+                Direction.KANA.value,
+            ),
+            newKanaIntroducedToday = store.count(
+                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND direction = ?",
+                today,
+                Direction.KANA.value,
+            ),
             reviewsDoneToday = store.count(
                 "SELECT COUNT(*) FROM review_log WHERE day = ? AND state_before = ?",
                 today,
@@ -193,14 +212,40 @@ class Repository(context: Context) {
         )
     }
 
-    /** Make sure at least [count] new cards exist, taking the next words in study order. */
+    /**
+     * Make sure at least [count] new word cards exist, taking the next words
+     * in study order that you can read.
+     */
     private fun ensureNewCards(count: Int) {
-        val existing = store.count("SELECT COUNT(*) FROM card WHERE state = ? AND suspended = 0", CardState.NEW.value)
+        val existing = newWordCards()
         if (existing >= count) return
         val started = store.wordIdsWithCards(Direction.RECOGNITION)
-        val words = dictionary.nextWords(started, count - existing, startLevel())
+        val words = dictionary.nextWords(started, count - existing, startLevel(), canRead())
         store.transaction { db ->
             for ((wordId, order) in words) store.insertNewCard(db, wordId, Direction.RECOGNITION, order.toLong())
+        }
+    }
+
+    private fun newWordCards() = store.count(
+        "SELECT COUNT(*) FROM card WHERE state = ? AND direction != ? AND suspended = 0",
+        CardState.NEW.value,
+        Direction.KANA.value,
+    )
+
+    private fun newKanaCards() = store.count(
+        "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ? AND suspended = 0",
+        CardState.NEW.value,
+        Direction.KANA.value,
+    )
+
+    /** Make sure at least [count] new kana cards exist, taking the next kana in teaching order. */
+    private fun ensureNewKana(count: Int) {
+        val existing = newKanaCards()
+        if (existing >= count) return
+        val started = store.wordIdsWithCards(Direction.KANA)
+        val next = KanaCourse.toTeach(kanaKnown()).withIndex().filter { it.value.id !in started }.take(count - existing)
+        store.transaction { db ->
+            for ((order, unit) in next) store.insertNewCard(db, unit.id, Direction.KANA, order.toLong())
         }
     }
 
@@ -209,6 +254,7 @@ class Repository(context: Context) {
         val clock = clock(settings)
         val limits = limits(settings, clock, now)
         ensureNewCards(limits.newCards)
+        if (kanaKnown() != KanaKnown.BOTH) ensureNewKana(limits.newKana)
         val learning = store.cards(
             "state IN (?, ?) AND suspended = 0",
             arrayOf(CardState.LEARNING.value.toString(), CardState.RELEARNING.value.toString()),
@@ -220,13 +266,19 @@ class Repository(context: Context) {
             "due_at, id",
             limits.reviews,
         )
-        val newCards = store.cards(
-            "state = ? AND suspended = 0",
-            arrayOf(CardState.NEW.value.toString()),
+        val newKana = store.cards(
+            "state = ? AND direction = ? AND suspended = 0",
+            arrayOf(CardState.NEW.value.toString(), Direction.KANA.value.toString()),
+            "sort_key, id",
+            limits.newKana,
+        )
+        val newWords = store.cards(
+            "state = ? AND direction != ? AND suspended = 0",
+            arrayOf(CardState.NEW.value.toString(), Direction.KANA.value.toString()),
             "sort_key, id",
             limits.newCards,
         )
-        return StudySession(reviews, newCards, learning)
+        return StudySession(reviews, newKana + newWords, learning)
     }
 
     fun endOfToday(now: Long): Long {
@@ -448,7 +500,7 @@ class Repository(context: Context) {
             "sort_key, id",
         ).map { it.wordId }
         val introduceCount = maxOf(1, budget / 2)
-        val next = (queued + dictionary.nextWords(statuses.keys, introduceCount, startLevel()).map { it.first })
+        val next = (queued + dictionary.nextWords(statuses.keys, introduceCount, startLevel(), canRead()).map { it.first })
             .distinct().take(introduceCount)
         val frontier = dictionary.nextWords(statuses.keys, 1, startLevel()).firstOrNull()?.first
         return StoryRequest(
@@ -520,6 +572,34 @@ class Repository(context: Context) {
         )
     }
 
+    // ------------------------------------------------------------ kana
+
+    /** Which kana you read without studying them here. Installs from before kana lessons read both. */
+    fun kanaKnown(): KanaKnown = KanaKnown.of(store.getValue("kana_known"))
+
+    /**
+     * Change which kana you read already. Kana and words queued but not yet
+     * shown are dropped, so both queues are rebuilt for what you can read.
+     */
+    fun setKanaKnown(known: KanaKnown) {
+        store.setValues(mapOf("kana_known" to known.value))
+        store.transaction { db ->
+            store.deleteUnstartedKana(db)
+            store.deleteQueuedNewCards(db)
+        }
+    }
+
+    /**
+     * Whether a word's kana spelling can be read with the kana you know, or
+     * null when you read all kana.
+     */
+    private fun canRead(): ((String) -> Boolean)? {
+        val known = kanaKnown()
+        if (known == KanaKnown.BOTH) return null
+        val learned = store.kanaInReview()
+        return { kana -> KanaCourse.canRead(kana, known, learned) }
+    }
+
     // ------------------------------------------------------------ first run
 
     /** The JLPT level new words start from: 5 for N5 down to 1 for N1. */
@@ -549,7 +629,8 @@ class Repository(context: Context) {
      * Finish the first run: start new words at [startLevel], and if
      * [lowerMastery] is set, mark every word of the easier levels known at it.
      */
-    fun finishSetup(startLevel: Int, lowerMastery: Int?, reminderMinute: Int?, now: Long) {
+    fun finishSetup(startLevel: Int, lowerMastery: Int?, kana: KanaKnown, reminderMinute: Int?, now: Long) {
+        setKanaKnown(kana)
         if (reminderMinute != null) saveReminder(Reminder(enabled = true, minuteOfDay = reminderMinute))
         setStartLevel(startLevel)
         if (lowerMastery != null && lowerMastery > 0) {
@@ -642,8 +723,22 @@ class Repository(context: Context) {
         val levels = (5 downTo 1).map { level ->
             val mine = statuses.filter { (id, st) -> levelOf[id] == level && st.state != CardState.NEW && !st.suspended }.values
             LevelStats(
-                level = level,
+                label = "N$level",
                 total = counts[level] ?: 0,
+                started = mine.size,
+                known = mine.count { it.mastery >= settings.mastery.hideAt },
+                mastered = mine.count { it.mastery >= settings.mastery.offAt },
+            )
+        }
+        val kanaStatuses = store.kanaStatuses()
+        val toTeach = KanaCourse.toTeach(kanaKnown())
+        val kana = listOf(Script.HIRAGANA to "あ", Script.KATAKANA to "ア").mapNotNull { (script, label) ->
+            val units = toTeach.filter { it.script == script }
+            if (units.isEmpty()) return@mapNotNull null
+            val mine = units.mapNotNull { kanaStatuses[it.id] }.filter { it.state != CardState.NEW && !it.suspended }
+            LevelStats(
+                label = label,
+                total = units.size,
                 started = mine.size,
                 known = mine.count { it.mastery >= settings.mastery.hideAt },
                 mastered = mine.count { it.mastery >= settings.mastery.offAt },
@@ -656,6 +751,7 @@ class Repository(context: Context) {
             recall30 = store.reviewRecall(today - (HISTORY_DAYS - 1)),
             recallAll = store.reviewRecall(Long.MIN_VALUE),
             levels = levels,
+            kana = kana,
             wordsStarted = statuses.values.count { it.state != CardState.NEW },
             totalAnswers = store.count("SELECT COUNT(*) FROM review_log"),
             studyDays = store.studyDays().size,
@@ -681,13 +777,28 @@ class Repository(context: Context) {
             Direction.RECOGNITION.value,
             CardState.NEW.value,
         )
-        val newWaiting = store.count(
-            "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ? AND suspended = 0",
-            CardState.NEW.value,
-            Direction.PRODUCTION.value,
-        ) + unstarted
+        val known = kanaKnown()
+        val newWaiting = if (known == KanaKnown.BOTH) {
+            store.count(
+                "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ? AND suspended = 0",
+                CardState.NEW.value,
+                Direction.PRODUCTION.value,
+            ) + unstarted
+        } else {
+            // Only words you can read are waiting, so queue them to count them.
+            ensureNewCards(limits.newCards)
+            newWordCards()
+        }
+        val kanaWaiting = if (known == KanaKnown.BOTH) {
+            0
+        } else {
+            ensureNewKana(limits.newKana)
+            newKanaCards()
+        }
+        val toTeach = KanaCourse.toTeach(known)
+        val learned = store.kanaInReview()
         return Summary(
-            newCards = minOf(limits.newCards, newWaiting),
+            newCards = minOf(limits.newCards, newWaiting) + minOf(limits.newKana, kanaWaiting),
             learning = store.count(
                 "SELECT COUNT(*) FROM card WHERE state IN (?, ?) AND suspended = 0",
                 CardState.LEARNING.value,
@@ -706,6 +817,8 @@ class Repository(context: Context) {
             wordsTotal = total,
             today = today,
             answersPerDay = store.answersPerDay(today - 370),
+            kanaLearned = toTeach.count { it.id in learned },
+            kanaTotal = toTeach.size,
         )
     }
 

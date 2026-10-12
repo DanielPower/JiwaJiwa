@@ -2,13 +2,15 @@ package ca.danielpower.jstudy.core
 
 data class StudySettings(
     val newPerDay: Int = 10,
+    /** New kana cards a day, while there are kana to learn. Both scripts of a sound count separately. */
+    val newKanaPerDay: Int = 10,
     val reviewCap: Int = 200,
     val desiredRetention: Double = 0.9,
     val rolloverHour: Int = 4,
     val mastery: MasteryRules = MasteryRules(),
 ) {
     init {
-        require(newPerDay >= 0 && reviewCap >= 0)
+        require(newPerDay >= 0 && newKanaPerDay >= 0 && reviewCap >= 0)
         require(desiredRetention in 0.7..0.97)
         require(rolloverHour in 0..23)
     }
@@ -36,6 +38,7 @@ data class DailyLimits(
     val reviewDueBefore: Long,
     val newCards: Int,
     val reviews: Int,
+    val newKana: Int = 0,
 ) {
     companion object {
         fun of(
@@ -45,6 +48,7 @@ data class DailyLimits(
             now: Long,
             newIntroducedToday: Int,
             reviewsDoneToday: Int,
+            newKanaIntroducedToday: Int = 0,
         ): DailyLimits {
             val today = clock.dayOf(now)
             val days = 1 + ahead.extraOn(today)
@@ -52,6 +56,7 @@ data class DailyLimits(
                 reviewDueBefore = clock.startOf(today + 1 + ahead.daysAhead),
                 newCards = (settings.newPerDay * days - newIntroducedToday).coerceAtLeast(0),
                 reviews = (settings.reviewCap * days - reviewsDoneToday).coerceAtLeast(0),
+                newKana = (settings.newKanaPerDay * days - newKanaIntroducedToday).coerceAtLeast(0),
             )
         }
     }
