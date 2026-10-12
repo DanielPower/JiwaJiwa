@@ -2,127 +2,218 @@ package ca.danielpower.jstudy.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.KanaKnown
 
-/** First run: pick a starting level, and say how well you know the levels below it. */
+/** First run, a page at a time: welcome, kana, starting level (if you read kana), reminder. */
 @Composable
 fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
+    val pages = state.pages
+    val index = pages.indexOf(state.page)
+    val last = index == pages.lastIndex
+
+    Column(Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                "${index + 1} / ${pages.size}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            when (state.page) {
+                SetupPage.WELCOME -> WelcomePage()
+                SetupPage.KANA -> KanaPage(state, vm)
+                SetupPage.LEVEL -> LevelPage(state, vm)
+                SetupPage.REMINDER -> ReminderPage(state, vm)
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 20.dp, top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (index > 0) {
+                SecondaryButton(onClick = vm::setupBack, modifier = Modifier.weight(1f).height(58.dp)) {
+                    Text("Back", fontSize = 18.sp)
+                }
+            }
+            PrimaryButton(
+                onClick = if (last) vm::finishSetup else vm::setupNext,
+                enabled = state.page != SetupPage.KANA || state.kana != null,
+                modifier = Modifier.weight(1f).height(58.dp),
+            ) {
+                Text(if (last) "Start" else "Next", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Title(text: String) {
+    Text(text, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp)
+}
+
+@Composable
+private fun Body(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyLarge)
+}
+
+@Composable
+private fun Help(text: String) {
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** A script or level with an example: the Japanese large on the left, what it is on the right. */
+@Composable
+private fun Example(japanese: String, name: String, description: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            japanese,
+            fontFamily = Mincho,
+            fontWeight = FontWeight.Bold,
+            fontSize = 26.sp,
+            modifier = Modifier.width(76.dp),
+        )
+        Column(Modifier.weight(1f)) {
+            Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Help(description)
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.WelcomePage() {
+    Title("ようこそ")
+    Body(
+        "jstudy teaches Japanese words with flashcards. Each day brings a few new words, and reviews of " +
+            "earlier ones timed for just before you'd forget them.",
+    )
+    Body("A couple of questions first, so it starts at the right place for you.")
+}
+
+@Composable
+private fun ColumnScope.KanaPage(state: Screen.Setup, vm: AppViewModel) {
+    Title("Kana")
+    Body("Japanese is written with three scripts, often mixed in one sentence.")
+    Example("ひらがな", "Hiragana", "Grammar and native words, like たべる (to eat).")
+    Example("カタカナ", "Katakana", "Words borrowed from other languages, like テレビ (television).")
+    Example("漢字", "Kanji", "Characters from Chinese, each with a meaning, like 山 (mountain).")
+    Body(
+        "Hiragana and katakana are the kana. Each has 46 basic characters, one per sound, and the two " +
+            "share the same sounds. Kanji take years, so every card here shows the reading in hiragana " +
+            "above the kanji until you know the word. Reading kana comes first.",
+    )
+
+    SectionLabel("Which can you read?", Modifier.padding(top = 8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for ((known, label) in KANA_CHOICES) {
+            WashiChip(
+                selected = state.kana == known,
+                onClick = { vm.editSetup { it.copy(kana = known) } },
+                label = label,
+            )
+        }
+    }
+    // Anyone still learning kana starts at N5, so the level page is skipped.
+    state.kana?.let { Help(kanaHelp(it) + if (it == KanaKnown.BOTH) "" else " Words start at N5, the first level.") }
+}
+
+@Composable
+private fun ColumnScope.LevelPage(state: Screen.Setup, vm: AppViewModel) {
     val below = (5 downTo state.startLevel + 1).toList()
     val belowCount = below.sumOf { state.levelCounts[it] ?: 0 }
     val belowNames = below.joinToString(" and ") { "N$it" }
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Text("ようこそ", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 36.sp)
-        Text(
-            "Where do you want to start? New words come from this level first, most common first, " +
-                "then the harder levels, then any easier ones.",
-            style = MaterialTheme.typography.bodyLarge,
-        )
+    Title("Starting level")
+    Body(
+        "Words here are grouped by the levels of the JLPT, the Japanese-Language Proficiency Test. " +
+            "N5 is the first level and N1 the last.",
+    )
+    Example("N5", "Beginner", "Everyday basics, like 水 (water) and 行く (to go).")
+    Example("N3", "Intermediate", "Ordinary conversation and simple reading.")
+    Example("N1", "Advanced", "Newspapers, books and abstract topics.")
+    Body(
+        "New words come from your starting level first, most common first, then the harder levels, then " +
+            "any easier ones. Start where words begin to feel unfamiliar.",
+    )
 
-        SectionLabel("Kana you can read", Modifier.padding(top = 8.dp))
+    SectionLabel("Start from", Modifier.padding(top = 8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (level in 5 downTo 1) {
+            WashiChip(
+                selected = state.startLevel == level,
+                onClick = { vm.editSetup { it.copy(startLevel = level) } },
+                label = "N$level",
+            )
+        }
+    }
+    Help("${state.levelCounts[state.startLevel] ?: 0} words at N${state.startLevel}")
+
+    if (below.isNotEmpty()) {
+        SectionLabel("The $belowCount words in $belowNames", Modifier.padding(top = 8.dp))
+        val options = listOf(
+            Triple(0, "Learn later", "They come after the harder levels, as new words."),
+            Triple(state.rules.hideAt, "Known", "Reviewed over the next week, furigana hidden but tappable."),
+            Triple(state.rules.offAt, "Mastered", "Reviewed over the next month, no furigana."),
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for ((known, label) in KANA_CHOICES) {
+            for ((mastery, label, _) in options) {
                 WashiChip(
-                    selected = state.kanaChoice == known,
-                    onClick = { vm.editSetup { it.copy(kana = known) } },
+                    selected = state.lowerMastery == mastery,
+                    onClick = { vm.editSetup { it.copy(lowerMastery = mastery) } },
                     label = label,
                 )
             }
         }
-        Text(
-            kanaHelp(state.kanaChoice),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Help(
+            options.first { it.first == state.lowerMastery }.third +
+                if (state.lowerMastery > 0) " Any you miss go back to learning." else "",
         )
+    }
+}
 
-        SectionLabel("Starting level", Modifier.padding(top = 8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (level in 5 downTo 1) {
-                WashiChip(
-                    selected = state.startLevel == level,
-                    onClick = { vm.editSetup { it.copy(startLevel = level) } },
-                    label = "N$level",
-                )
-            }
+@Composable
+private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
+    Title("Daily reminder")
+    val pickReminder = rememberReminderPicker { minute -> vm.editSetup { it.copy(reminderMinute = minute) } }
+    val reminder = state.reminderMinute
+    Body(
+        if (reminder == null) {
+            "A little every day works better than a lot now and then. Get a notification when cards are " +
+                "waiting, at a time you choose."
+        } else {
+            "Every day at ${reminderTime(reminder)}, if cards are waiting."
+        },
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        SecondaryButton(onClick = { pickReminder(reminder) }) {
+            Text(if (reminder == null) "Choose a time" else "Change time")
         }
-        Text(
-            "${state.levelCounts[state.startLevel] ?: 0} words at N${state.startLevel}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        if (below.isNotEmpty()) {
-            SectionLabel("The $belowCount words in $belowNames", Modifier.padding(top = 8.dp))
-            val options = listOf(
-                Triple(0, "Learn later", "They come after the harder levels, as new words."),
-                Triple(state.rules.hideAt, "Known", "Reviewed over the next week, furigana hidden but tappable."),
-                Triple(state.rules.offAt, "Mastered", "Reviewed over the next month, no furigana."),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                for ((mastery, label, _) in options) {
-                    WashiChip(
-                        selected = state.lowerMastery == mastery,
-                        onClick = { vm.editSetup { it.copy(lowerMastery = mastery) } },
-                        label = label,
-                    )
-                }
-            }
-            Text(
-                options.first { it.first == state.lowerMastery }.third +
-                    if (state.lowerMastery > 0) " Any you miss go back to learning." else "",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        SectionLabel("Daily reminder", Modifier.padding(top = 8.dp))
-        val pickReminder = rememberReminderPicker { minute -> vm.editSetup { it.copy(reminderMinute = minute) } }
-        val reminder = state.reminderMinute
-        Text(
-            if (reminder == null) {
-                "Get a notification when cards are waiting, at a time you choose."
-            } else {
-                "Every day at ${reminderTime(reminder)}, if cards are waiting."
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SecondaryButton(onClick = { pickReminder(reminder) }) {
-                Text(if (reminder == null) "Choose a time" else "Change time")
-            }
-            if (reminder != null) {
-                SecondaryButton(onClick = { vm.editSetup { it.copy(reminderMinute = null) } }) { Text("No reminder") }
-            }
-        }
-
-        Text(
-            "You can change kana, the starting level and the reminder later in Settings, and mark single words from the dictionary.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        PrimaryButton(onClick = vm::finishSetup, modifier = Modifier.fillMaxWidth().padding(top = 16.dp).height(58.dp)) {
-            Text("Start", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        if (reminder != null) {
+            SecondaryButton(onClick = { vm.editSetup { it.copy(reminderMinute = null) } }) { Text("No reminder") }
         }
     }
+    Help(
+        "You can change kana, the starting level and the reminder later in Settings, and mark single " +
+            "words from the dictionary.",
+    )
 }
 
 /** The kana choices, as chips. */
