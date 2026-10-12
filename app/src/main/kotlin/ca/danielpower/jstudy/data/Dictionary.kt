@@ -115,13 +115,20 @@ class Dictionary(context: Context) : Lexicon {
         return word.copy(senses = senses)
     }
 
-    /** Words in study order that aren't in [exclude], starting at study position [from]. */
-    fun nextWords(exclude: Set<Long>, limit: Int, from: Int = 0): List<Pair<Long, Int>> {
+    /**
+     * Words in study order that aren't in [exclude]. Levels from [startLevel]
+     * up come first (N3 first means N3, N2, N1, then N5 and N4). The second
+     * value is the word's place in that order, for sorting its card.
+     */
+    fun nextWords(exclude: Set<Long>, limit: Int, startLevel: Int = 5): List<Pair<Long, Int>> {
         if (limit <= 0) return emptyList()
         val out = ArrayList<Pair<Long, Int>>(limit)
         db.rawQuery(
-            "SELECT id, study_order FROM word WHERE study_order >= ? ORDER BY study_order",
-            arrayOf(from.toString()),
+            """
+            SELECT id, study_order + CASE WHEN jlpt > ? THEN $LATER_LEVELS ELSE 0 END AS place
+            FROM word WHERE study_order IS NOT NULL ORDER BY place
+            """,
+            arrayOf(startLevel.toString()),
         ).use { c ->
             while (out.size < limit && c.moveToNext()) {
                 val id = c.getLong(0)
@@ -130,6 +137,25 @@ class Dictionary(context: Context) : Lexicon {
         }
         return out
     }
+
+    /** JLPT words below [startLevel] (easier levels), in study order. */
+    fun wordsBelow(startLevel: Int): List<Long> =
+        db.rawQuery(
+            "SELECT id FROM word WHERE jlpt > ? AND study_order IS NOT NULL ORDER BY study_order",
+            arrayOf(startLevel.toString()),
+        ).use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }
+
+    /** Word count per JLPT level (5 for N5 down to 1 for N1). */
+    fun levelCounts(): Map<Int, Int> =
+        db.rawQuery("SELECT jlpt, COUNT(*) FROM word WHERE jlpt > 0 GROUP BY jlpt", null).use { c ->
+            buildMap { while (c.moveToNext()) put(c.getInt(0), c.getInt(1)) }
+        }
+
+    /** JLPT level of each word, for the stats. */
+    fun levels(): Map<Long, Int> =
+        db.rawQuery("SELECT id, jlpt FROM word WHERE jlpt > 0", null).use { c ->
+            buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1)) }
+        }
 
     /** Every JLPT word in study order, for the dictionary list. */
     fun entries(): List<Entry> = entryRows("w.jlpt > 0", emptyArray())
@@ -301,6 +327,9 @@ class Dictionary(context: Context) : Lexicon {
 
     companion object {
         const val NAME = "dictionary.db"
+
+        /** Added to the study order of words before the starting level, so they come last. */
+        private const val LATER_LEVELS = 1_000_000
         private val PARENTHESES = Regex("\\([^)]*\\)")
     }
 }

@@ -1,6 +1,10 @@
 package ca.danielpower.jstudy.data
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import ca.danielpower.jstudy.core.Answer
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
@@ -79,7 +83,34 @@ data class StoryReading(
     val rules: MasteryRules,
 )
 
+/** Numbers for the stats screen. */
+data class Stats(
+    val today: Long,
+    /** Reviews due on each of the next 30 days; today includes anything overdue and still learning. */
+    val forecast: List<Int>,
+    /** Answers and right answers on each of the last 30 days, oldest first. */
+    val answers: List<Pair<Int, Int>>,
+    /** Right and total answers on cards in review, over the last 30 days and ever. */
+    val recall30: Pair<Int, Int>,
+    val recallAll: Pair<Int, Int>,
+    val levels: List<LevelStats>,
+    val wordsStarted: Int,
+    val totalAnswers: Int,
+    val studyDays: Int,
+)
+
+/** Words of one JLPT level by how far along they are. Each count includes the ones after it. */
+data class LevelStats(val level: Int, val total: Int, val started: Int, val known: Int, val mastered: Int)
+
+/** The daily reminder. There's no default time: [minuteOfDay] is null until you pick one. */
+data class Reminder(val enabled: Boolean, val minuteOfDay: Int?) {
+    val time: Int? get() = minuteOfDay?.takeIf { enabled }
+}
+
+class BackupException(message: String) : Exception(message)
+
 class Repository(context: Context) {
+    private val appContext = context.applicationContext
     val dictionary = Dictionary(context)
     private val store = ProgressStore(context)
 
@@ -167,7 +198,7 @@ class Repository(context: Context) {
         val existing = store.count("SELECT COUNT(*) FROM card WHERE state = ? AND suspended = 0", CardState.NEW.value)
         if (existing >= count) return
         val started = store.wordIdsWithCards(Direction.RECOGNITION)
-        val words = dictionary.nextWords(started, count - existing)
+        val words = dictionary.nextWords(started, count - existing, startLevel())
         store.transaction { db ->
             for ((wordId, order) in words) store.insertNewCard(db, wordId, Direction.RECOGNITION, order.toLong())
         }
@@ -350,8 +381,13 @@ class Repository(context: Context) {
         return RenshuuImport.plan(terms, { it in ids }, local)
     }
 
-    /** Mark each word known at its mastery, as "I already know this" does, in one transaction. */
-    fun importMastery(updates: Map<Long, Int>, now: Long) {
+    /**
+     * Mark each word known at its mastery, as "I already know this" does, in
+     * one transaction. With [unlockProduction] off, English-to-Japanese cards
+     * wait until each word is next answered right, so a big batch doesn't
+     * crowd out new words.
+     */
+    fun importMastery(updates: Map<Long, Int>, now: Long, unlockProduction: Boolean = true) {
         val settings = settings()
         val reviewer = Reviewer(Fsrs(desiredRetention = settings.desiredRetention), settings.mastery, clock(settings))
         store.transaction { db ->
@@ -362,8 +398,8 @@ class Repository(context: Context) {
                 val card = recognitionCard(wordId) ?: continue
                 val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default)
                 store.updateCard(db, known.card)
-                store.saveProgress(db, known.progress)
-                if (known.unlockedProduction) {
+                store.saveProgress(db, if (unlockProduction) known.progress else known.progress.copy(productionUnlocked = false))
+                if (known.unlockedProduction && unlockProduction) {
                     store.insertNewCard(db, wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
                 }
             }
@@ -412,9 +448,9 @@ class Repository(context: Context) {
             "sort_key, id",
         ).map { it.wordId }
         val introduceCount = maxOf(1, budget / 2)
-        val next = (queued + dictionary.nextWords(statuses.keys, introduceCount).map { it.first })
+        val next = (queued + dictionary.nextWords(statuses.keys, introduceCount, startLevel()).map { it.first })
             .distinct().take(introduceCount)
-        val frontier = dictionary.nextWords(statuses.keys, 1).firstOrNull()?.first
+        val frontier = dictionary.nextWords(statuses.keys, 1, startLevel()).firstOrNull()?.first
         return StoryRequest(
             prompt = prompt,
             length = length,
@@ -484,6 +520,148 @@ class Repository(context: Context) {
         )
     }
 
+    // ------------------------------------------------------------ first run
+
+    /** The JLPT level new words start from: 5 for N5 down to 1 for N1. */
+    fun startLevel(): Int = store.getValue("start_level")?.toIntOrNull()?.coerceIn(1, 5) ?: 5
+
+    /** Start new words from another level. Words already queued in the old order are re-queued. */
+    fun setStartLevel(level: Int) {
+        store.setValues(mapOf("start_level" to level.coerceIn(1, 5).toString()))
+        store.transaction { db -> store.deleteQueuedNewCards(db) }
+    }
+
+    /** True on a fresh install, before you've picked a starting level. Existing progress counts as set up. */
+    fun needsSetup(): Boolean {
+        if (store.getValue("setup_done") == "1") return false
+        val started = store.count("SELECT COUNT(*) FROM card WHERE state != ?", CardState.NEW.value) +
+            store.count("SELECT COUNT(*) FROM review_log")
+        if (started > 0) {
+            store.setValues(mapOf("setup_done" to "1"))
+            return false
+        }
+        return true
+    }
+
+    fun levelCounts(): Map<Int, Int> = dictionary.levelCounts()
+
+    /**
+     * Finish the first run: start new words at [startLevel], and if
+     * [lowerMastery] is set, mark every word of the easier levels known at it.
+     */
+    fun finishSetup(startLevel: Int, lowerMastery: Int?, reminderMinute: Int?, now: Long) {
+        if (reminderMinute != null) saveReminder(Reminder(enabled = true, minuteOfDay = reminderMinute))
+        setStartLevel(startLevel)
+        if (lowerMastery != null && lowerMastery > 0) {
+            val words = dictionary.wordsBelow(startLevel)
+            importMastery(words.associateWith { lowerMastery }, now, unlockProduction = false)
+        }
+        store.setValues(mapOf("setup_done" to "1"))
+    }
+
+    // ------------------------------------------------------------ backup
+
+    /** Write a copy of all your progress, settings and stories. The Claude API key isn't included. */
+    fun exportBackup(out: OutputStream) {
+        store.checkpoint()
+        appContext.getDatabasePath(ProgressStore.NAME).inputStream().use { it.copyTo(out) }
+    }
+
+    /** Replace all progress with a backup. The file is checked before anything is replaced. */
+    fun importBackup(input: InputStream) {
+        val incoming = File(appContext.cacheDir, "import.db")
+        try {
+            incoming.outputStream().use { input.copyTo(it) }
+            checkBackup(incoming)
+            store.close()
+            val target = appContext.getDatabasePath(ProgressStore.NAME)
+            for (suffix in listOf("-wal", "-shm", "-journal")) File(target.path + suffix).delete()
+            incoming.copyTo(target, overwrite = true)
+        } finally {
+            incoming.delete()
+        }
+        // The next query reopens the database, upgrading an older backup's schema.
+        store.count("SELECT COUNT(*) FROM card")
+    }
+
+    private fun checkBackup(file: File) {
+        val db = try {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY)
+        } catch (e: Exception) {
+            throw BackupException("That file isn't a jstudy backup.")
+        }
+        db.use {
+            val tables = it.rawQuery("SELECT name FROM sqlite_master WHERE type = 'table'", null).use { c ->
+                buildSet { while (c.moveToNext()) add(c.getString(0)) }
+            }
+            if (!tables.containsAll(listOf("card", "word_progress", "review_log", "kv"))) {
+                throw BackupException("That file isn't a jstudy backup.")
+            }
+            if (it.version > ProgressStore.VERSION) {
+                throw BackupException("That backup is from a newer version of jstudy. Update the app first.")
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ reminder
+
+    fun reminder(): Reminder = Reminder(
+        enabled = store.getValue("reminder_enabled") == "1",
+        minuteOfDay = store.getValue("reminder_minute")?.toIntOrNull()?.coerceIn(0, 24 * 60 - 1),
+    )
+
+    fun saveReminder(r: Reminder) {
+        store.setValues(
+            mapOf(
+                "reminder_enabled" to if (r.enabled) "1" else "0",
+            ) + (r.minuteOfDay?.let { mapOf("reminder_minute" to it.toString()) } ?: emptyMap()),
+        )
+    }
+
+    // ------------------------------------------------------------ stats
+
+    fun stats(now: Long): Stats {
+        val settings = settings()
+        val clock = clock(settings)
+        val today = clock.dayOf(now)
+        val forecast = IntArray(FORECAST_DAYS)
+        for (dueAt in store.reviewDueTimes(clock.startOf(today + FORECAST_DAYS))) {
+            forecast[(clock.dayOf(dueAt) - today).toInt().coerceIn(0, FORECAST_DAYS - 1)]++
+        }
+        forecast[0] += store.count(
+            "SELECT COUNT(*) FROM card WHERE state IN (?, ?) AND suspended = 0",
+            CardState.LEARNING.value,
+            CardState.RELEARNING.value,
+        )
+        val perDay = store.answersAndRightPerDay(today - (HISTORY_DAYS - 1))
+        val answers = (0 until HISTORY_DAYS).map { perDay[today - (HISTORY_DAYS - 1) + it] ?: (0 to 0) }
+
+        val levelOf = dictionary.levels()
+        val counts = dictionary.levelCounts()
+        val statuses = store.wordStatuses()
+        val levels = (5 downTo 1).map { level ->
+            val mine = statuses.filter { (id, st) -> levelOf[id] == level && st.state != CardState.NEW && !st.suspended }.values
+            LevelStats(
+                level = level,
+                total = counts[level] ?: 0,
+                started = mine.size,
+                known = mine.count { it.mastery >= settings.mastery.hideAt },
+                mastered = mine.count { it.mastery >= settings.mastery.offAt },
+            )
+        }
+        return Stats(
+            today = today,
+            forecast = forecast.toList(),
+            answers = answers,
+            recall30 = store.reviewRecall(today - (HISTORY_DAYS - 1)),
+            recallAll = store.reviewRecall(Long.MIN_VALUE),
+            levels = levels,
+            wordsStarted = statuses.values.count { it.state != CardState.NEW },
+            totalAnswers = store.count("SELECT COUNT(*) FROM review_log"),
+            studyDays = store.studyDays().size,
+        )
+    }
+
     // ------------------------------------------------------------ summary
 
     fun summary(now: Long): Summary {
@@ -533,6 +711,8 @@ class Repository(context: Context) {
 
     companion object {
         private const val PRODUCTION_FIRST = 10_000_000_000L
+        private const val FORECAST_DAYS = 30
+        private const val HISTORY_DAYS = 30
         private const val LEARN_NEXT_FIRST = 20_000_000_000L
         private const val PRACTICE_POOL = 20
         private const val PRACTICE = 8

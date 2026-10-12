@@ -42,6 +42,11 @@ android {
     }
 
     buildTypes {
+        // Pull request builds install next to the release app, so trying one doesn't touch your progress.
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
