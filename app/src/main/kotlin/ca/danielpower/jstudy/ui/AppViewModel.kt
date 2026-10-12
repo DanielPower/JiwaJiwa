@@ -421,6 +421,32 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         showSettings(message)
     }
 
+    // ------------------------------------------------------------ reset
+
+    /** Wipe all progress, settings, stories and keys, and start again at first-run setup. */
+    fun resetAll() {
+        storyJob?.cancel()
+        importJob?.cancel()
+        searchJob?.cancel()
+        launchIo {
+            _screen.value = Screen.Loading
+            repo.resetAll()
+            session = null
+            undo = null
+            entries = null
+            entryIds = emptySet()
+            statuses = emptyMap()
+            lastDictionary = null
+            draft = StoryDraft()
+            storyProgress = null
+            storyError = null
+            display.edit().clear().commit()
+            _theme.value = ThemeMode.AUTO
+            DailyReminder.schedule(getApplication(), repo.reminder())
+            _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null, repo.settings().mastery)
+        }
+    }
+
     // ------------------------------------------------------------ first run
 
     fun editSetup(change: (Screen.Setup) -> Screen.Setup) = _screen.update { if (it is Screen.Setup) change(it) else it }
