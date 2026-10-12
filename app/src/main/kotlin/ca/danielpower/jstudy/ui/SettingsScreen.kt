@@ -239,6 +239,37 @@ fun SettingsScreen(
             )
         }
 
+        Section("Reset")
+        Text(
+            "Erase all your progress, settings, stories and your Claude API key, " +
+                "and start again from first-run setup.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        var resetting by remember { mutableStateOf(false) }
+        SecondaryButton(onClick = { resetting = true }) {
+            Text("Reset everything", color = MaterialTheme.colorScheme.error)
+        }
+        if (resetting) {
+            AlertDialog(
+                onDismissRequest = { resetting = false },
+                title = { Text("Reset everything?") },
+                text = {
+                    Text(
+                        "All your cards, mastery, review history, settings, stories and your Claude API key " +
+                            "will be deleted. This can't be undone. Save a backup first if you might want them back.",
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        resetting = false
+                        vm.resetAll()
+                    }) { Text("Reset", color = MaterialTheme.colorScheme.error) }
+                },
+                dismissButton = { TextButton(onClick = { resetting = false }) { Text("Cancel") } },
+            )
+        }
+
         Section("About")
         Text(
             "Word list and dictionary data:\n" + state.attribution.split("; ").joinToString("\n") { "• $it" } +

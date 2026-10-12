@@ -684,6 +684,21 @@ class Repository(context: Context) {
         }
     }
 
+    // ------------------------------------------------------------ reset
+
+    /**
+     * Erase everything you've done here: cards, mastery, history, settings,
+     * stories and the Claude API key. The next query recreates an empty
+     * database, so the app starts again at first-run setup.
+     */
+    fun resetAll() {
+        store.close()
+        val target = appContext.getDatabasePath(ProgressStore.NAME)
+        SQLiteDatabase.deleteDatabase(target)
+        secrets.edit().clear().commit()
+        store.count("SELECT COUNT(*) FROM card")
+    }
+
     // ------------------------------------------------------------ reminder
 
     fun reminder(): Reminder = Reminder(
