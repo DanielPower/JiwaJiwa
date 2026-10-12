@@ -32,11 +32,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -253,7 +256,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
     val word = state.current.word
     val kana = state.current.kana
     val production = state.current.card.direction == Direction.PRODUCTION
-    // First sight of a new word: show everything and ask how well it's known.
+    // First sight of a new word: show everything, with Continue to start learning it.
     val intro = !production && state.current.card.state == CardState.NEW
     val revealed = state.revealed || intro
     val noRipple = remember { MutableInteractionSource() }
@@ -342,14 +345,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                 }
             }
 
-            if (intro) {
-                Text(
-                    if (kana != null) "How well do you know this kana?" else "How well do you know this word?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 24.dp),
-                )
-            } else if (state.revealed) {
+            if (!intro && state.revealed) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -362,22 +358,16 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             }
         }
 
+        if (intro) {
+            IntroActions(state.current.card.id, state.rules.hideAt, state.rules.offAt, vm)
+            return@Column
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (intro) {
-                val rules = state.rules
-                SecondaryButton(onClick = { vm.introduce(0) }, modifier = Modifier.weight(1f).height(64.dp)) {
-                    Text("Unknown")
-                }
-                SecondaryButton(onClick = { vm.introduce(rules.hideAt) }, modifier = Modifier.weight(1f).height(64.dp)) {
-                    Text("Known")
-                }
-                SecondaryButton(onClick = { vm.introduce(rules.offAt) }, modifier = Modifier.weight(1f).height(64.dp)) {
-                    Text("Mastered")
-                }
-            } else if (state.revealed) {
+            if (state.revealed) {
                 GradeButton(right = false, onClick = { vm.answer(false) }, modifier = Modifier.weight(1f).height(72.dp)) {
                     GradeLabel("×", "Wrong")
                 }
@@ -389,6 +379,42 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                     Text("Show answer", fontSize = 18.sp)
                 }
             }
+        }
+    }
+}
+
+/**
+ * The first sight of a new word or kana. Most of the time it's new to the
+ * learner, so "Continue" is the main action. "I know this" is a quiet link
+ * that opens the two ways to skip it as already known.
+ */
+@Composable
+private fun IntroActions(cardId: Long, knownAt: Int, masteredAt: Int, vm: AppViewModel) {
+    var knows by remember(cardId) { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (knows) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                SecondaryButton(onClick = { vm.introduce(knownAt) }, modifier = Modifier.weight(1f).height(48.dp)) {
+                    Text("I know it well")
+                }
+                SecondaryButton(onClick = { vm.introduce(masteredAt) }, modifier = Modifier.weight(1f).height(48.dp)) {
+                    Text("Mastered")
+                }
+            }
+            TextButton(onClick = { knows = false }) {
+                Text("Never mind", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            TextButton(onClick = { knows = true }) {
+                Text("I know this", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        PrimaryButton(onClick = { vm.introduce(0) }, modifier = Modifier.fillMaxWidth().height(72.dp)) {
+            Text("Continue", fontSize = 18.sp)
         }
     }
 }
