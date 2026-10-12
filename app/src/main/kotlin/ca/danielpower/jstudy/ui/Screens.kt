@@ -378,10 +378,10 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                     Text("Mastered")
                 }
             } else if (state.revealed) {
-                SecondaryButton(onClick = { vm.answer(false) }, modifier = Modifier.weight(1f).height(72.dp)) {
+                GradeButton(right = false, onClick = { vm.answer(false) }, modifier = Modifier.weight(1f).height(72.dp)) {
                     GradeLabel("×", "Wrong")
                 }
-                SealButton(onClick = { vm.answer(true) }, modifier = Modifier.weight(1f).height(72.dp)) {
+                GradeButton(right = true, onClick = { vm.answer(true) }, modifier = Modifier.weight(1f).height(72.dp)) {
                     GradeLabel("○", "Right")
                 }
             } else {

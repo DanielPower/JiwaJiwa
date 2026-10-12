@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.semantics.Role
@@ -66,20 +67,28 @@ fun PrimaryButton(
     )
 }
 
-/** The seal colour, for "Right". */
+/** The grade buttons on a revealed card: green for "Right", red for "Wrong". */
 @Composable
-fun SealButton(
+fun GradeButton(
+    right: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val colors = MaterialTheme.colorScheme
+    val dark = colors.background.luminance() < 0.5f
+    val container = when {
+        !right -> colors.error
+        dark -> Color(0xFF8DBF7E)
+        else -> Color(0xFF3F6B3A)
+    }
     Button(
         onClick = onClick,
         modifier = modifier,
         shape = WashiShape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = container,
+            contentColor = if (right) colors.surface else colors.onError,
         ),
         content = content,
     )
