@@ -1,7 +1,8 @@
 name: Check pull request
 
-# Builds and tests a pull request the way a release would, without
-# publishing anything. The APK is attached to the run so it can be tried.
+# Builds a pull request the way a release would, without publishing
+# anything. The APK is attached to the run so it can be tried. Unit tests
+# run separately, in test.yml.
 
 on:
   pull_request:
@@ -26,9 +27,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Test the dictionary build
-        run: python3 -m unittest discover tools/dictionary
-
       - uses: actions/cache@v4
         with:
           path: tools/dictionary/.cache
@@ -41,8 +39,8 @@ jobs:
 
       # The release build runs the same checks as a real release. The debug
       # build has its own app id, so it installs next to the release app.
-      - name: Test and build
-        run: ./gradlew :core:test :app:assembleRelease :app:assembleDebug
+      - name: Build
+        run: ./gradlew :app:assembleRelease :app:assembleDebug
 
       - uses: actions/upload-artifact@v4
         with:

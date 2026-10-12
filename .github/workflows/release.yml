@@ -44,11 +44,13 @@ jobs:
           python3 tools/dictionary/build_dictionary.py
           git diff --exit-code tools/dictionary/build_report.md
 
+      # The tests also run in test.yml; running them here keeps a failing
+      # build from being published.
       - name: Test and build
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-        run: ./gradlew :core:test :app:assembleRelease
+        run: ./gradlew :core:test :app:testReleaseUnitTest :app:assembleRelease
 
       - name: Publish the release
         env:

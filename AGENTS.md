@@ -1,0 +1,141 @@
+# AGENTS.md
+
+Notes for coding agents working on jstudy. Read this first, then the
+AGENTS.md in the module you're changing (`core/`, `app/`, `tools/dictionary/`).
+
+## What this is
+
+jstudy is Daniel's Android app for learning Japanese vocabulary, JLPT N5 to
+N1. It's Anki-style (you grade yourself Wrong or Right, FSRS schedules the
+card) with a friendlier, Renshuu-like feel. It's built for Daniel's own use
+first; publishing on Google Play may come later.
+
+Guiding rules from Daniel:
+
+- **Personal use first.** Never trade quality for publishability (for
+  example, the dictionary keeps the best community sources even where their
+  licences are awkward). Groundwork that makes publishing easier later is
+  welcome.
+- **Go ahead on best guesses.** Pick a reasonable default, say which, and
+  keep going. Save questions for the end.
+- Don't re-open the decisions below without a reason; they were made on
+  purpose.
+
+## Layout
+
+| Path | What it is |
+| --- | --- |
+| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kana course, romaji, story budgets, Kuromoji word splitting, the Claude API client, Renshuu import planning. No Android imports. |
+| `app/` | The Android app: Jetpack Compose UI, SQLite storage, reminder, backup. |
+| `tools/dictionary/` | Python (stdlib only) build of the bundled dictionary DB from pinned sources. |
+| `tools/fsrs/` | Generates `core/src/test/resources/fsrs_vectors.tsv` from py-fsrs. |
+| `.github/workflows/` | CI (see below). |
+
+Put logic in `core` whenever it doesn't need Android, so it can be tested
+anywhere. `app` should mostly be wiring, storage and UI.
+
+## Building and testing
+
+```sh
+./gradlew -PcoreOnly=true :core:test      # core only, no Android SDK needed
+./gradlew :app:testDebugUnitTest          # app JVM tests (Robolectric), needs the SDK
+python3 -m unittest discover tools/dictionary
+python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
+./gradlew :app:assembleDebug
+```
+
+- Cloud agent containers usually can't reach `dl.google.com` or
+  `maven.google.com`, so the Android app can't be built or tested there. Run
+  the core tests locally and let CI build the app. `-PcoreOnly=true` drops
+  `:app` from `settings.gradle.kts` for this.
+- Maven Central sometimes answers 429 from those containers; retry, with
+  `--max-workers=1` if it keeps happening.
+- Tests use JUnit 5 + `kotlin.test` in core, JUnit 4 + Robolectric in app
+  (pinned to SDK 34 in `app/src/test/resources/robolectric.properties`,
+  because Robolectric needs Java 21 for SDK 35 and CI uses Java 17).
+- Core test names are backtick sentences describing behaviour; follow that.
+
+## CI
+
+| Workflow | When | What |
+| --- | --- | --- |
+| `test.yml` (Tests) | every PR, every push to main | core tests, app unit tests, dictionary tests, as separate checks |
+| `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `ca.danielpower.jstudy.debug`, installs next to the real app) |
+| `build.yml` | pushes to branches other than main | test and build without releasing |
+| `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
+| `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
+
+Every push to main ships a release, so main must always be releasable.
+Release signing comes from repository secrets (see the README); never put
+keys, passwords or API keys in the repo. Daniel may open-source it later.
+
+## Working in the repo
+
+- Several agents work here at once. Fetch and rebase on `origin/main` before
+  each push.
+- Open a pull request for feature work rather than pushing to main. Daniel
+  sometimes okays a direct push for a small tweak; ask or follow his word.
+- Commit messages are a short imperative summary of what the user sees
+  ("Teach hiragana and katakana before the words that need them").
+- Comments explain why, briefly, in plain sentences. Match the surrounding
+  density; don't narrate code.
+- User-facing text is plain and friendly, sentence case, no jargon ("Right" /
+  "Wrong", not "Good" / "Again").
+
+## Product decisions (don't re-ask)
+
+Study and scheduling:
+
+- Two grade buttons only: **Wrong** (red) and **Right** (green), mapped to
+  FSRS Again and Good. FSRS-6, 90% target retention.
+- Study days roll over at 4am local time (`StudyClock`).
+- **Mastery** (0–100) is derived from the recognition card's FSRS stability:
+  7 days = 40, 30 days = 70, 90 days = 100 (`MasteryRules.fromStability`).
+  It replaced an older +10/−30 points score (progress DB version 4 migrates).
+- Furigana: shown below mastery 40, hidden with a tap-to-show from 40 to 69,
+  off from 70. The answer side always shows it.
+- Recognition (Japanese → English) comes first. The production card
+  (English → Japanese) unlocks when mastery reaches 40. Production reviews
+  schedule their own card but don't change mastery.
+- New words go N5 → N1, by frequency within a level. A new word's first
+  showing offers Continue (main action) or a quiet "I know this".
+- "Mark known" lets you set the word's mastery; it gets a review schedule to
+  match, first due on a random day in that interval.
+- "Study more" pulls every schedule one day earlier (a `daysAhead` counter)
+  and adds another day's worth of new cards for today.
+- v1 card back is minimal: word, reading, English meanings. No example
+  sentences, TTS or pitch accent yet.
+
+Kana:
+
+- Taught as flashcards, hiragana and katakana paired per sound (あ then ア).
+  No quiz or lesson screen.
+- A new word only enters once every kana in its kana spelling has a kana card
+  in review. There's no override.
+- No romaji on vocabulary cards.
+
+Other features (all shipped):
+
+- Dictionary search and word pages; non-JLPT words show as "Other".
+- First-run setup: start level, kana known, optional reminder time.
+- Daily reminder has **no default time**; the user picks one. Don't request
+  notification permission until they turn it on.
+- Manual backup/restore only (`jstudy-<date>.jstudy`, a copy of the progress
+  DB). No automatic backups. The Claude API key isn't included.
+- Settings has a reset button that erases all user data.
+- Stats page (heatmap, recall, forecast, per-level progress) is a link on the
+  home screen, not a tab.
+- Renshuu import: takes the higher of the two masteries per word, skips
+  suspended words, never stores the Renshuu key. Renshuu's `edict_ent` is
+  the JMdict id, which is jstudy's word id.
+- AI graded-reader stories: the user enters their own Claude API key in
+  Settings. Short/Medium/Long, Easy/Normal/Hard sets the share of known
+  words; unknown words beyond the budget trigger a rewrite. Tapping a word
+  shows its meaning (and conjugation, when conjugated). Unknown words met in
+  a story go to the front of the new-word queue. Optional vertical (tategaki)
+  text.
+- Visual design is "Washi" (paper, ink, vermilion seal) with light, dark and
+  auto themes. See `app/AGENTS.md`.
+
+Not decided or not built yet: Play Store publishing (open item: the JPDB
+frequency list licence), example sentences, audio.
