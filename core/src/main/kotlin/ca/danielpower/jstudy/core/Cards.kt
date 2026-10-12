@@ -8,6 +8,9 @@ enum class Direction(val value: Int) {
 
     /** Meaning on the front, Japanese on the back. */
     PRODUCTION(1),
+
+    /** A kana on the front, its sound on the back. The card's word id is a [KanaUnit] id. */
+    KANA(2),
     ;
 
     companion object {

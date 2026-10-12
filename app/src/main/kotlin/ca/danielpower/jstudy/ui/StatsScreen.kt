@@ -87,6 +87,12 @@ fun StatsScreen(state: Screen.StatsPage, vm: AppViewModel) {
                     if (total > 0) ", $right right" else "",
             )
 
+            if (s.kana.isNotEmpty()) {
+                Heading("Kana")
+                for (script in s.kana) LevelRow(script)
+                Legend(listOf("Mastered" to 1f, "Known" to 0.6f, "Started" to 0.3f))
+            }
+
             Heading("Words by level")
             for (level in s.levels) LevelRow(level)
             Legend(listOf("Mastered" to 1f, "Known" to 0.6f, "Started" to 0.3f))
@@ -177,7 +183,7 @@ private fun LevelRow(level: LevelStats) {
     val ink = MaterialTheme.colorScheme.primary
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Text("N${level.level}", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.width(44.dp))
+            Text(level.label, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.width(44.dp))
             Text(
                 "${level.started} of ${level.total} started · ${level.known} known · ${level.mastered} mastered",
                 style = MaterialTheme.typography.bodySmall,

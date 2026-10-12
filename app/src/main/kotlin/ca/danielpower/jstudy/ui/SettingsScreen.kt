@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
 import java.time.LocalDate
@@ -70,6 +71,24 @@ fun SettingsScreen(
                 for (mode in ThemeMode.entries) {
                     WashiChip(selected = theme == mode, onClick = { onTheme(mode) }, label = mode.label)
                 }
+            }
+        }
+
+        Section("Kana")
+        Text("Kana you could read already", style = MaterialTheme.typography.bodyLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for ((known, label) in KANA_CHOICES) {
+                WashiChip(selected = state.kanaKnown == known, onClick = { vm.setKanaKnown(known) }, label = label)
+            }
+        }
+        Text(
+            kanaHelp(state.kanaKnown),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (state.kanaKnown != KanaKnown.BOTH) {
+            Stepper("New kana per day", "${s.newKanaPerDay}") { d ->
+                update { s.copy(newKanaPerDay = (s.newKanaPerDay + d * 2).coerceIn(0, 60)) }
             }
         }
 

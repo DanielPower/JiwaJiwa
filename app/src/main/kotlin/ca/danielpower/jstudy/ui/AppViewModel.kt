@@ -8,7 +8,11 @@ import androidx.lifecycle.viewModelScope
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FuriganaMode
+import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.ImportPlan
+import ca.danielpower.jstudy.core.KanaCourse
+import ca.danielpower.jstudy.core.KanaKnown
+import ca.danielpower.jstudy.core.KanaUnit
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
@@ -45,10 +49,13 @@ import kotlinx.coroutines.withContext
 
 data class ReviewCard(
     val card: Card,
-    val word: Word,
+    /** The word, or null on a kana card. */
+    val word: Word?,
     /** Furigana on the front, from the word's mastery. */
     val furigana: FuriganaMode,
     val mastery: Int,
+    /** The kana on a kana card. */
+    val kana: KanaUnit? = null,
 )
 
 data class ReviewCounts(val new: Int, val learning: Int, val review: Int)
@@ -97,6 +104,7 @@ sealed interface Screen {
         val storyVertical: Boolean,
         val startLevel: Int,
         val reminder: Reminder,
+        val kanaKnown: KanaKnown,
         /** The result of the last backup export or import. */
         val backupMessage: String? = null,
     ) : Screen
@@ -110,7 +118,12 @@ sealed interface Screen {
         /** The daily reminder's time, if you chose one. */
         val reminderMinute: Int?,
         val rules: MasteryRules,
-    ) : Screen
+        /** Which kana you read already; null until you choose. */
+        val kana: KanaKnown? = null,
+    ) : Screen {
+        /** Until you choose, starting past N5 means you read kana, and starting at N5 means learning them. */
+        val kanaChoice get() = kana ?: if (startLevel < 5) KanaKnown.BOTH else KanaKnown.NONE
+    }
 
     data class StatsPage(val stats: Stats) : Screen
 
@@ -251,6 +264,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             _screen.value = if (due != null) Screen.Waiting(due, counts) else Screen.Done(repo.summary(now()))
             return
         }
+        val rules = repo.settings().mastery
+        if (card.direction == Direction.KANA) {
+            val unit = KanaCourse.unit(card.wordId)
+            if (unit == null) {
+                s.answered(card.copy(state = CardState.REVIEW), 0)
+                return advance()
+            }
+            _screen.value = Screen.Review(
+                current = ReviewCard(card, null, FuriganaMode.OFF, repo.progress(card.wordId).mastery, unit),
+                revealed = false,
+                furiganaVisible = false,
+                counts = counts,
+                canUndo = undo != null,
+                rules = rules,
+            )
+            return
+        }
         val word = repo.dictionary.word(card.wordId)
         if (word == null) {
             // A word removed from the dictionary in an update; skip it.
@@ -258,7 +288,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return advance()
         }
         val mastery = repo.progress(card.wordId).mastery
-        val rules = repo.settings().mastery
         val mode = rules.furigana(mastery)
         _screen.value = Screen.Review(
             current = ReviewCard(card, word, mode, mastery),
@@ -273,7 +302,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun reveal() = _screen.update { if (it is Screen.Review) it.copy(revealed = true) else it }
 
     fun toggleFurigana() = _screen.update {
-        if (it is Screen.Review && it.current.furigana != FuriganaMode.OFF && it.current.word.showsKanji) {
+        if (it is Screen.Review && it.current.furigana != FuriganaMode.OFF && it.current.word?.showsKanji == true) {
             it.copy(furiganaVisible = !it.furiganaVisible)
         } else {
             it
@@ -339,6 +368,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             storyVertical = repo.storyVertical(),
             startLevel = repo.startLevel(),
             reminder = repo.reminder(),
+            kanaKnown = repo.kanaKnown(),
             backupMessage = backupMessage,
         )
     }
@@ -346,6 +376,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setStartLevel(level: Int) = launchIo {
         repo.setStartLevel(level)
         _screen.update { if (it is Screen.Settings) it.copy(startLevel = repo.startLevel()) else it }
+    }
+
+    fun setKanaKnown(known: KanaKnown) = launchIo {
+        repo.setKanaKnown(known)
+        _screen.update { if (it is Screen.Settings) it.copy(kanaKnown = repo.kanaKnown()) else it }
     }
 
     fun setReminder(reminder: Reminder) = launchIo {
@@ -394,7 +429,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val setup = _screen.value as? Screen.Setup ?: return@launchIo
         _screen.value = Screen.Loading
         val lower = setup.lowerMastery.takeIf { setup.startLevel < 5 && it > 0 }
-        repo.finishSetup(setup.startLevel, lower, setup.reminderMinute, now())
+        repo.finishSetup(setup.startLevel, lower, setup.kanaChoice, setup.reminderMinute, now())
         DailyReminder.schedule(getApplication(), repo.reminder())
         showHome()
     }

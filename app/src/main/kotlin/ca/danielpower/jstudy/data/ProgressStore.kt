@@ -209,14 +209,19 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         count("SELECT COUNT(*) FROM card WHERE word_id = ? AND suspended = 1", wordId) > 0
 
     /** Recognition state, suspension and mastery for every word with a card. */
-    fun wordStatuses(): Map<Long, WordStatus> =
+    fun wordStatuses(): Map<Long, WordStatus> = statuses(Direction.RECOGNITION)
+
+    /** The same for kana, keyed by kana unit id. */
+    fun kanaStatuses(): Map<Long, WordStatus> = statuses(Direction.KANA)
+
+    private fun statuses(direction: Direction): Map<Long, WordStatus> =
         readableDatabase.rawQuery(
             """
             SELECT c.word_id, c.state, c.suspended, COALESCE(p.mastery, 0)
             FROM card c LEFT JOIN word_progress p ON p.word_id = c.word_id
             WHERE c.direction = ?
             """,
-            arrayOf(Direction.RECOGNITION.value.toString()),
+            arrayOf(direction.value.toString()),
         ).use { c ->
             buildMap {
                 while (c.moveToNext()) {
@@ -346,6 +351,22 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             "card",
             "state = ? AND direction = ? AND reps = 0 AND suspended = 0 AND sort_key >= 0",
             arrayOf(CardState.NEW.value.toString(), Direction.RECOGNITION.value.toString()),
+        )
+    }
+
+    /** Kana units whose cards have finished learning, so their kana count as readable. */
+    fun kanaInReview(): Set<Long> =
+        readableDatabase.rawQuery(
+            "SELECT word_id FROM card WHERE direction = ? AND state = ?",
+            arrayOf(Direction.KANA.value.toString(), CardState.REVIEW.value.toString()),
+        ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
+
+    /** Drop kana cards that haven't been shown yet, so the kana queue is rebuilt. */
+    fun deleteUnstartedKana(db: SQLiteDatabase) {
+        db.delete(
+            "card",
+            "state = ? AND direction = ? AND reps = 0",
+            arrayOf(CardState.NEW.value.toString(), Direction.KANA.value.toString()),
         )
     }
 

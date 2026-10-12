@@ -119,20 +119,28 @@ class Dictionary(context: Context) : Lexicon {
      * Words in study order that aren't in [exclude]. Levels from [startLevel]
      * up come first (N3 first means N3, N2, N1, then N5 and N4). The second
      * value is the word's place in that order, for sorting its card.
+     * With [canRead], words whose kana spelling it rejects are skipped, so
+     * new words wait until you can read them.
      */
-    fun nextWords(exclude: Set<Long>, limit: Int, startLevel: Int = 5): List<Pair<Long, Int>> {
+    fun nextWords(
+        exclude: Set<Long>,
+        limit: Int,
+        startLevel: Int = 5,
+        canRead: ((kana: String) -> Boolean)? = null,
+    ): List<Pair<Long, Int>> {
         if (limit <= 0) return emptyList()
         val out = ArrayList<Pair<Long, Int>>(limit)
         db.rawQuery(
             """
-            SELECT id, study_order + CASE WHEN jlpt > ? THEN $LATER_LEVELS ELSE 0 END AS place
+            SELECT id, study_order + CASE WHEN jlpt > ? THEN $LATER_LEVELS ELSE 0 END AS place, kana
             FROM word WHERE study_order IS NOT NULL ORDER BY place
             """,
             arrayOf(startLevel.toString()),
         ).use { c ->
             while (out.size < limit && c.moveToNext()) {
                 val id = c.getLong(0)
-                if (id !in exclude) out.add(id to c.getInt(1))
+                if (id in exclude || (canRead != null && !canRead(c.getString(2)))) continue
+                out.add(id to c.getInt(1))
             }
         }
         return out

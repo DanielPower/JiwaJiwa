@@ -48,6 +48,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.FuriganaMode
+import ca.danielpower.jstudy.core.KanaUnit
+import ca.danielpower.jstudy.core.Script
 import ca.danielpower.jstudy.data.Sense
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Word
@@ -209,6 +211,13 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (summary.kanaLearned < summary.kanaTotal) {
+                Text(
+                    "${summary.kanaLearned} of ${summary.kanaTotal} kana learned. New words join once you can read them.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
         Spacer(Modifier.weight(1f))
@@ -242,6 +251,7 @@ private fun Count(kanji: String, label: String, value: Int, color: Color, modifi
 @Composable
 private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
     val word = state.current.word
+    val kana = state.current.kana
     val production = state.current.card.direction == Direction.PRODUCTION
     // First sight of a new word: show everything and ask how well it's known.
     val intro = !production && state.current.card.state == CardState.NEW
@@ -278,7 +288,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (intro) {
                     Text(
-                        "新 New word",
+                        if (kana != null) "新 New kana" else "新 New word",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f),
@@ -286,10 +296,13 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                 } else {
                     Spacer(Modifier.weight(1f))
                 }
-                LevelSeal(levelLabel(word.jlpt), tilted = true)
+                if (word != null) LevelSeal(levelLabel(word.jlpt), tilted = true)
+                if (kana != null) LevelSeal(if (kana.script == Script.HIRAGANA) "ひら" else "カナ", tilted = true)
             }
 
-            if (production) {
+            if (kana != null) {
+                KanaFace(kana, revealed)
+            } else if (word != null && production) {
                 Box(Modifier.fillMaxWidth().heightIn(min = 160.dp), contentAlignment = Alignment.Center) {
                     Meanings(word.senses, limit = 3, large = true)
                 }
@@ -299,7 +312,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                         WordFace(word, showFurigana = true)
                     }
                 }
-            } else {
+            } else if (word != null) {
                 Column(
                     Modifier.fillMaxWidth().heightIn(min = 200.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -331,7 +344,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
 
             if (intro) {
                 Text(
-                    "How well do you know this word?",
+                    if (kana != null) "How well do you know this kana?" else "How well do you know this word?",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 24.dp),
@@ -375,6 +388,42 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                 SecondaryButton(onClick = vm::reveal, modifier = Modifier.fillMaxWidth().height(72.dp)) {
                     Text("Show answer", fontSize = 18.sp)
                 }
+            }
+        }
+    }
+}
+
+/** A kana card: the kana, then its sound and its twin in the other script. */
+@Composable
+private fun KanaFace(kana: KanaUnit, revealed: Boolean) {
+    Box(Modifier.fillMaxWidth().heightIn(min = 200.dp), contentAlignment = Alignment.Center) {
+        Text(kana.text, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 96.sp, lineHeight = 112.sp)
+    }
+    if (revealed) {
+        HorizontalDivider(Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurface)
+        Column(
+            Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(kana.romaji, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+            val twin = kana.twin
+            if (twin != null) {
+                Text(
+                    (if (kana.script == Script.HIRAGANA) "Katakana " else "Hiragana ") + twin,
+                    fontFamily = Mincho,
+                    fontSize = 22.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            val note = kana.note
+            if (note != null) {
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }
