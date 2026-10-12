@@ -97,7 +97,8 @@ Study and scheduling:
 - Recognition (Japanese → English) comes first. The production card
   (English → Japanese) unlocks when mastery reaches 40. Production reviews
   schedule their own card but don't change mastery.
-- New words go N5 → N1, by frequency within a level. A new word's first
+- New words go N5 → N1, by frequency within a level. Within a sitting,
+  reviews and the day's new words are shuffled; new kana keep their order. A new word's first
   showing offers Continue (main action) or a quiet "I know this".
 - "Mark known" lets you set the word's mastery; it gets a review schedule to
   match, first due on a random day in that interval.

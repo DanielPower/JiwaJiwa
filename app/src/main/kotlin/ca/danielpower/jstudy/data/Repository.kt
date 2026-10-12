@@ -282,7 +282,7 @@ class Repository(context: Context) {
             "sort_key, id",
             limits.newCards,
         )
-        return StudySession(reviews, newKana + newWords, learning)
+        return StudySession(reviews, newKana + newWords, learning, random = Random.Default)
     }
 
     fun endOfToday(now: Long): Long {

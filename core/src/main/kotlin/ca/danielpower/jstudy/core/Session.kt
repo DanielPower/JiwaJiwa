@@ -1,5 +1,7 @@
 package ca.danielpower.jstudy.core
 
+import kotlin.random.Random
+
 data class StudySettings(
     val newPerDay: Int = 10,
     /** New kana cards a day, while there are kana to learn. Both scripts of a sound count separately. */
@@ -68,14 +70,26 @@ data class DailyLimits(
  * Learning cards come first once their step is due. Otherwise reviews and
  * new cards alternate, spread evenly. When only learning cards remain, the
  * next one is shown early if it is due within [learnAheadMillis], as Anki does.
+ *
+ * With [random], reviews and new words come in a shuffled order, so cards
+ * aren't always met in the same order or next to the same neighbours. New
+ * kana keep their order, so each sound's hiragana comes before its katakana.
  */
 class StudySession(
     reviews: List<Card>,
     newCards: List<Card>,
     learning: List<Card>,
     private val learnAheadMillis: Long = 20 * 60_000L,
+    random: Random? = null,
 ) {
-    private val main = ArrayDeque(interleave(reviews, newCards))
+    private val main = ArrayDeque(
+        if (random == null) {
+            interleave(reviews, newCards)
+        } else {
+            val (kana, words) = newCards.partition { it.direction == Direction.KANA }
+            interleave(reviews.shuffled(random), kana + words.shuffled(random))
+        },
+    )
     private val learning = learning.sortedBy { it.dueAt }.toMutableList()
     private var lastShownId: Long? = null
 
