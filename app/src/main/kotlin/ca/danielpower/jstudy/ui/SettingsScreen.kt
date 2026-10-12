@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.KanaKnown
+import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
 import java.time.LocalDate
@@ -118,19 +119,18 @@ fun SettingsScreen(
         }
 
         Section("Mastery")
-        Stepper("Gain when right", "+${m.gainOnRight}") { d ->
-            update { s.copy(mastery = m.copy(gainOnRight = (m.gainOnRight + d).coerceIn(1, 50))) }
-        }
-        Stepper("Loss when wrong", "−${m.lossOnWrong}") { d ->
-            update { s.copy(mastery = m.copy(lossOnWrong = (m.lossOnWrong + d * 5).coerceIn(0, 100))) }
-        }
-        Stepper("Hide furigana from", "${m.hideAt}") { d ->
+        Text(
+            "Mastery comes from how long you're expected to remember a word: 40 is about a week, 70 a month and 100 three months.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Stepper("Hide furigana from", masteryLabel(m.hideAt)) { d ->
             update { s.copy(mastery = m.copy(hideAt = (m.hideAt + d * 5).coerceIn(0, m.offAt))) }
         }
-        Stepper("Turn furigana off from", "${m.offAt}") { d ->
+        Stepper("Turn furigana off from", masteryLabel(m.offAt)) { d ->
             update { s.copy(mastery = m.copy(offAt = (m.offAt + d * 5).coerceIn(m.hideAt, 100))) }
         }
-        Stepper("English to Japanese cards from", "${m.productionAt}") { d ->
+        Stepper("English to Japanese cards from", masteryLabel(m.productionAt)) { d ->
             update { s.copy(mastery = m.copy(productionAt = (m.productionAt + d * 5).coerceIn(0, 100))) }
         }
 
@@ -306,3 +306,6 @@ private fun Stepper(label: String, value: String, onStep: (Int) -> Unit) {
         }
     }
 }
+
+/** A mastery threshold with the stability it stands for, like "40 · 7 days". */
+private fun masteryLabel(mastery: Int) = "$mastery · ${MasteryRules.stabilityDays(mastery)} days"

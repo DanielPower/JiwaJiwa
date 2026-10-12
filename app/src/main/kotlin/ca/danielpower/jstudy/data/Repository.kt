@@ -140,8 +140,6 @@ class Repository(context: Context) {
                 desiredRetention = store.getValue("retention")?.toDoubleOrNull() ?: d.desiredRetention,
                 rolloverHour = int("rollover_hour", d.rolloverHour),
                 mastery = MasteryRules(
-                    gainOnRight = int("mastery_gain", m.gainOnRight),
-                    lossOnWrong = int("mastery_loss", m.lossOnWrong),
                     hideAt = int("mastery_hide_at", m.hideAt),
                     offAt = int("mastery_off_at", m.offAt),
                     productionAt = int("production_at", m.productionAt),
@@ -158,8 +156,6 @@ class Repository(context: Context) {
                 "review_cap" to s.reviewCap.toString(),
                 "retention" to s.desiredRetention.toString(),
                 "rollover_hour" to s.rolloverHour.toString(),
-                "mastery_gain" to s.mastery.gainOnRight.toString(),
-                "mastery_loss" to s.mastery.lossOnWrong.toString(),
                 "mastery_hide_at" to s.mastery.hideAt.toString(),
                 "mastery_off_at" to s.mastery.offAt.toString(),
                 "production_at" to s.mastery.productionAt.toString(),
