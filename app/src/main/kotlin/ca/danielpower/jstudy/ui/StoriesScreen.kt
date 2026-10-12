@@ -41,8 +41,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -76,14 +74,14 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Stories", style = MaterialTheme.typography.headlineMedium)
+        Text(ui("Stories", "物語"), style = MaterialTheme.typography.headlineMedium)
 
         if (!state.hasClaudeKey) {
             Text(
                 "Stories are written by Claude. Add your Claude API key in Settings to start.",
                 style = MaterialTheme.typography.bodyLarge,
             )
-            SecondaryButton(onClick = vm::openSettings) { Text("Settings") }
+            SecondaryButton(onClick = vm::openSettings) { Text(ui("Settings", "設定")) }
         } else {
             OutlinedTextField(
                 value = draft.prompt,
@@ -109,24 +107,24 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
                 }
             }
 
-            Text("Length", style = MaterialTheme.typography.titleSmall)
+            Text(ui("Length", "長さ"), style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (length in StoryLength.entries) {
                     WashiChip(
                         selected = draft.length == length,
                         onClick = { vm.editDraft { it.copy(length = length) } },
-                        label = length.label,
+                        label = ui(length.label),
                         enabled = !writing,
                     )
                 }
             }
-            Text("Difficulty", style = MaterialTheme.typography.titleSmall)
+            Text(ui("Difficulty", "難しさ"), style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (difficulty in StoryDifficulty.entries) {
                     WashiChip(
                         selected = draft.difficulty == difficulty,
                         onClick = { vm.editDraft { it.copy(difficulty = difficulty) } },
-                        label = difficulty.label,
+                        label = ui(difficulty.label),
                         enabled = !writing,
                     )
                 }
@@ -153,7 +151,7 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
                 }
             } else {
                 PrimaryButton(onClick = vm::writeStory, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text("Write a story", fontSize = 18.sp)
+                    Text(ui("Write a story", "物語を書く"), fontSize = 18.sp)
                 }
             }
             state.error?.let {
@@ -163,7 +161,7 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
 
         if (state.stories.isNotEmpty()) {
             HorizontalDivider(Modifier.padding(top = 12.dp), color = MaterialTheme.colorScheme.onSurface)
-            SectionLabel("Your stories")
+            SectionLabel(ui("Your stories", "あなたの物語"))
             for (story in state.stories) StoryRow(story) { vm.openStory(story.id) }
         }
     }
@@ -179,7 +177,7 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
             .clickable(onClick = onClick),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.titleLarge)
+            Text(story.title.ifBlank { ui("Untitled", "無題", "題") }, style = MaterialTheme.typography.titleLarge)
             Text(
                 story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
@@ -190,8 +188,8 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
             Text(
                 listOfNotNull(
                     DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(story.createdAt)),
-                    StoryLength.entries.firstOrNull { it.name == story.length }?.label,
-                    StoryDifficulty.entries.firstOrNull { it.name == story.difficulty }?.label,
+                    StoryLength.entries.firstOrNull { it.name == story.length }?.let { ui(it.label) },
+                    StoryDifficulty.entries.firstOrNull { it.name == story.difficulty }?.let { ui(it.label) },
                 ).joinToString("  ·  "),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -252,13 +250,13 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
-                val switchTo = if (state.vertical) "Horizontal text" else "Vertical text"
+                // Names the layout it switches to.
                 SecondaryButton(
                     onClick = { vm.setStoryVertical(!state.vertical) },
-                    modifier = Modifier.size(40.dp).semantics { contentDescription = switchTo },
-                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.height(40.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
                 ) {
-                    Text(if (state.vertical) "横" else "縦", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text(if (state.vertical) ui("Horizontal", "横書き", "横", "書く") else ui("Vertical", "縦書き", "縦", "書く"), fontSize = 14.sp)
                 }
                 WashiIconButton(WashiIcons.Delete, "Delete story", { confirmDelete = true })
             }
@@ -267,7 +265,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     Modifier.padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(reading.story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.headlineSmall)
+                    Text(reading.story.title.ifBlank { ui("Untitled", "無題", "題") }, style = MaterialTheme.typography.headlineSmall)
                 }
                 VerticalStory(
                     reading = reading,
@@ -282,7 +280,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(reading.story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.headlineMedium)
+                Text(reading.story.title.ifBlank { ui("Untitled", "無題", "題") }, style = MaterialTheme.typography.headlineMedium)
                 reading.paragraphs.forEachIndexed { p, words ->
                     FlowRow(modifier = Modifier.fillMaxWidth()) {
                         words.forEachIndexed { i, word ->
@@ -311,10 +309,10 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 TextButton(onClick = {
                     confirmDelete = false
                     vm.deleteStory(reading.story.id)
-                }) { Text("Delete", color = MaterialTheme.colorScheme.primary) }
+                }) { Text(ui("Delete", "削除"), color = MaterialTheme.colorScheme.primary) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
+                TextButton(onClick = { confirmDelete = false }) { Text(ui("Cancel", "やめる"), color = MaterialTheme.colorScheme.onSurface) }
             },
         )
     }
@@ -438,7 +436,7 @@ private fun WordCard(
                 val status = reading.statuses[entry.id]
                 Text(
                     levelLabel(entry.jlpt) + "  ·  " + when {
-                        status == null -> "New"
+                        status == null -> ui("New", "新しい")
                         status.suspended -> "Suspended"
                         status.state == CardState.NEW -> "New, in your new-word queue"
                         else -> "Mastery ${status.mastery}"
@@ -458,13 +456,13 @@ private fun WordCard(
             ) {
                 if (reading.statuses[entry.id] == null) {
                     PrimaryButton(onClick = { onAdd(entry.id) }, modifier = Modifier.weight(1f).height(44.dp)) {
-                        Text("Add to reviews")
+                        Text(ui("Add to reviews", "復習に追加"))
                     }
                 } else {
                     Spacer(Modifier.weight(1f))
                 }
                 TextButton(onClick = { onKnow(entry.id) }) {
-                    Text("I know this", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(ui("I know this", "知っている"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -479,7 +477,7 @@ private fun GrammarNote(point: GrammarPoint) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
             Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Text(
-                "Grammar  ·  " + levelLabel(point.level),
+                ui("Grammar", "文法") + "  ·  " + levelLabel(point.level),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

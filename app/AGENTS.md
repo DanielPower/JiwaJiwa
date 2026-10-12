@@ -45,6 +45,20 @@ in `ui/Washi.kt` (`PrimaryButton`, `SealButton`, `SecondaryButton`,
 `WashiChip`, `LevelSeal`, bottom nav, line icons) for new screens rather than
 stock Material ones. New/learning/review counts use 新/習/復.
 
+## UI text
+
+Write UI labels through `ui("English", "日本語")` (`ui/Labels.kt`), or a
+`UiLabel` for text kept outside a composable (enums, lists). A label shows in
+Japanese once you've mastered every word in it. Its words are found by
+reading the Japanese the first time it's shown, off the main thread, and
+kept in the `labels` SharedPreferences (cleared when the app updates) so
+later launches start in the right language. Pass the dictionary spellings
+after the Japanese (`ui("Vertical", "縦書き", "縦", "書く")`) only where the
+automatic split goes wrong or picks a word outside the JLPT lists; a label
+with a word or loanword the dictionary lacks stays English. Prefer Japanese
+built from JLPT words, which you'll actually study. Explanatory sentences
+and text with numbers stay plain English.
+
 ## Tests
 
 `src/test/kotlin`, JUnit 4. Tests that need Android (SQLite, `Context`) use
