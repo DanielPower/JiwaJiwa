@@ -2,6 +2,7 @@ package ca.danielpower.jstudy.ui
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ca.danielpower.jstudy.core.Card
@@ -14,7 +15,11 @@ import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
+import ca.danielpower.jstudy.data.BackupException
 import ca.danielpower.jstudy.data.Entry
+import ca.danielpower.jstudy.data.Reminder
+import ca.danielpower.jstudy.data.Stats
+import ca.danielpower.jstudy.reminder.DailyReminder
 import ca.danielpower.jstudy.data.RenshuuClient
 import ca.danielpower.jstudy.data.RenshuuException
 import ca.danielpower.jstudy.data.Repository
@@ -90,7 +95,22 @@ sealed interface Screen {
         val attribution: String,
         val claudeKey: String,
         val storyVertical: Boolean,
+        val startLevel: Int,
+        val reminder: Reminder,
+        /** The result of the last backup export or import. */
+        val backupMessage: String? = null,
     ) : Screen
+
+    /** First run: where to start, and what to do with the easier levels. */
+    data class Setup(
+        val levelCounts: Map<Int, Int>,
+        val startLevel: Int,
+        /** Mastery for the words below the starting level; 0 leaves them unstarted. */
+        val lowerMastery: Int,
+        val rules: MasteryRules,
+    ) : Screen
+
+    data class StatsPage(val stats: Stats) : Screen
 
     data class Dictionary(
         val query: String,
@@ -171,7 +191,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     init {
         launchIo {
             repo = Repository(getApplication())
-            showHome()
+            DailyReminder.schedule(getApplication(), repo.reminder())
+            if (repo.needsSetup()) {
+                _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, repo.settings().mastery)
+            } else {
+                showHome()
+            }
         }
     }
 
@@ -301,10 +326,79 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Re-check the queue, e.g. when a learning step falls due. */
     fun refresh() = launchIo { if (session != null) advance() }
 
-    fun openSettings() = launchIo {
+    fun openSettings() = launchIo { showSettings(null) }
+
+    private fun showSettings(backupMessage: String?) {
         val attribution = repo.dictionary.meta("attribution").orEmpty()
-        _screen.value = Screen.Settings(repo.settings(), attribution, repo.claudeKey(), repo.storyVertical())
+        _screen.value = Screen.Settings(
+            settings = repo.settings(),
+            attribution = attribution,
+            claudeKey = repo.claudeKey(),
+            storyVertical = repo.storyVertical(),
+            startLevel = repo.startLevel(),
+            reminder = repo.reminder(),
+            backupMessage = backupMessage,
+        )
     }
+
+    fun setStartLevel(level: Int) = launchIo {
+        repo.setStartLevel(level)
+        _screen.update { if (it is Screen.Settings) it.copy(startLevel = repo.startLevel()) else it }
+    }
+
+    fun setReminder(reminder: Reminder) = launchIo {
+        repo.saveReminder(reminder)
+        DailyReminder.schedule(getApplication(), reminder)
+        _screen.update { if (it is Screen.Settings) it.copy(reminder = reminder) else it }
+    }
+
+    // ------------------------------------------------------------ backup
+
+    fun exportBackup(uri: Uri) = launchIo {
+        val message = try {
+            val out = getApplication<Application>().contentResolver.openOutputStream(uri) ?: error("no stream")
+            out.use { repo.exportBackup(it) }
+            "Backup saved."
+        } catch (e: Exception) {
+            "Couldn't save the backup: ${e.message}"
+        }
+        _screen.update { if (it is Screen.Settings) it.copy(backupMessage = message) else it }
+    }
+
+    fun importBackup(uri: Uri) = launchIo {
+        val message = try {
+            val input = getApplication<Application>().contentResolver.openInputStream(uri) ?: error("no stream")
+            input.use { repo.importBackup(it) }
+            // Everything cached came from the old progress.
+            session = null
+            undo = null
+            statuses = emptyMap()
+            lastDictionary = null
+            DailyReminder.schedule(getApplication(), repo.reminder())
+            "Backup restored."
+        } catch (e: BackupException) {
+            e.message
+        } catch (e: Exception) {
+            "Couldn't restore the backup: ${e.message}"
+        }
+        showSettings(message)
+    }
+
+    // ------------------------------------------------------------ first run
+
+    fun editSetup(change: (Screen.Setup) -> Screen.Setup) = _screen.update { if (it is Screen.Setup) change(it) else it }
+
+    fun finishSetup() = launchIo {
+        val setup = _screen.value as? Screen.Setup ?: return@launchIo
+        _screen.value = Screen.Loading
+        val lower = setup.lowerMastery.takeIf { setup.startLevel < 5 && it > 0 }
+        repo.finishSetup(setup.startLevel, lower, now())
+        showHome()
+    }
+
+    // ------------------------------------------------------------ stats
+
+    fun openStats() = launchIo { _screen.value = Screen.StatsPage(repo.stats(now())) }
 
     fun saveClaudeKey(key: String) = launchIo {
         repo.saveClaudeKey(key)

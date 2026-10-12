@@ -1,5 +1,9 @@
 package ca.danielpower.jstudy.ui
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,7 +16,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -24,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -31,6 +38,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.StudySettings
+import ca.danielpower.jstudy.reminder.DailyReminder
+import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -43,6 +52,7 @@ fun SettingsScreen(
     onImport: () -> Unit,
     onStoryVertical: (Boolean) -> Unit,
     onTheme: (ThemeMode) -> Unit,
+    vm: AppViewModel,
 ) {
     val s = state.settings
     val m = s.mastery
@@ -67,6 +77,17 @@ fun SettingsScreen(
         }
 
         Section("Daily study")
+        Text("Start new words from", style = MaterialTheme.typography.bodyLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (level in 5 downTo 1) {
+                WashiChip(selected = state.startLevel == level, onClick = { vm.setStartLevel(level) }, label = "N$level")
+            }
+        }
+        Text(
+            "New words come from this level first, then the harder ones, then any easier ones.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Stepper("New words per day", "${s.newPerDay}") { d ->
             update { s.copy(newPerDay = (s.newPerDay + d).coerceIn(0, 100)) }
         }
@@ -95,6 +116,38 @@ fun SettingsScreen(
         }
         Stepper("English to Japanese cards from", "${m.productionAt}") { d ->
             update { s.copy(mastery = m.copy(productionAt = (m.productionAt + d * 5).coerceIn(0, 100))) }
+        }
+
+        Section("Reminder")
+        val context = LocalContext.current
+        val r = state.reminder
+        val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) vm.setReminder(r.copy(enabled = true))
+        }
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Daily reminder", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "A notification when cards are waiting. Nothing if you're done for the day.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = r.enabled,
+                onCheckedChange = { on ->
+                    if (on && !DailyReminder.canNotify(context) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        vm.setReminder(r.copy(enabled = on))
+                    }
+                },
+            )
+        }
+        if (r.enabled) {
+            Stepper("Remind me at", String.format(Locale.ROOT, "%02d:%02d", r.minuteOfDay / 60, r.minuteOfDay % 60)) { d ->
+                vm.setReminder(r.copy(minuteOfDay = Math.floorMod(r.minuteOfDay + d * 30, 24 * 60)))
+            }
         }
 
         Section("Stories")
@@ -139,6 +192,44 @@ fun SettingsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         SecondaryButton(onClick = onImport) { Text("Import from Renshuu") }
+
+        Section("Backup")
+        Text(
+            "Save your progress, settings and stories to a file, or restore them from one. " +
+                "Your Claude API key isn't included.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+            if (uri != null) vm.exportBackup(uri)
+        }
+        var restoring by remember { mutableStateOf(false) }
+        val restore = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) vm.importBackup(uri)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SecondaryButton(onClick = { export.launch("jstudy-${LocalDate.now()}.jstudy") }, modifier = Modifier.weight(1f)) {
+                Text("Save backup")
+            }
+            SecondaryButton(onClick = { restoring = true }, modifier = Modifier.weight(1f)) { Text("Restore") }
+        }
+        state.backupMessage?.let {
+            Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        if (restoring) {
+            AlertDialog(
+                onDismissRequest = { restoring = false },
+                title = { Text("Restore a backup?") },
+                text = { Text("Everything in the backup replaces your current progress, settings and stories.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        restoring = false
+                        restore.launch(arrayOf("*/*"))
+                    }) { Text("Choose file") }
+                },
+                dismissButton = { TextButton(onClick = { restoring = false }) { Text("Cancel") } },
+            )
+        }
 
         Section("About")
         Text(

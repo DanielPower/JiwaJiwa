@@ -96,7 +96,10 @@ fun App(vm: AppViewModel, screen: Screen) {
                         vm::openImport,
                         vm::setStoryVertical,
                         vm::setTheme,
+                        vm,
                     )
+                    is Screen.Setup -> SetupScreen(screen, vm)
+                    is Screen.StatsPage -> StatsScreen(screen, vm)
                     is Screen.Dictionary -> DictionaryScreen(screen, vm, dictionaryList)
                     is Screen.WordPage -> WordScreen(screen, vm)
                     is Screen.RenshuuImport -> RenshuuImportScreen(screen.step, vm)
@@ -182,6 +185,13 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SectionLabel("Study days", Modifier.weight(1f))
+                Text(
+                    "Stats",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable(onClick = vm::openStats).padding(horizontal = 8.dp, vertical = 4.dp),
+                )
                 Text(
                     if (summary.streak == 1) "1 day streak" else "${summary.streak} day streak",
                     style = MaterialTheme.typography.bodyMedium,

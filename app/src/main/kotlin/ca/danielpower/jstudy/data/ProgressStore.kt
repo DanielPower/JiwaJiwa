@@ -313,6 +313,49 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             arrayOf(fromDay.toString()),
         ).use { c -> buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1)) } }
 
+    /** Answers and right answers per study day, from [fromDay] on. */
+    fun answersAndRightPerDay(fromDay: Long): Map<Long, Pair<Int, Int>> =
+        readableDatabase.rawQuery(
+            "SELECT day, COUNT(*), SUM(correct) FROM review_log WHERE day >= ? GROUP BY day",
+            arrayOf(fromDay.toString()),
+        ).use { c -> buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1) to c.getInt(2)) } }
+
+    /** Right answers and all answers on cards that were in review (not still learning), from [fromDay] on. */
+    fun reviewRecall(fromDay: Long): Pair<Int, Int> =
+        readableDatabase.rawQuery(
+            "SELECT COALESCE(SUM(correct), 0), COUNT(*) FROM review_log WHERE state_before = ? AND day >= ?",
+            arrayOf(CardState.REVIEW.value.toString(), fromDay.toString()),
+        ).use { c ->
+            c.moveToFirst()
+            c.getInt(0) to c.getInt(1)
+        }
+
+    /** When each review card not suspended is due, for those due before [before]. */
+    fun reviewDueTimes(before: Long): List<Long> =
+        readableDatabase.rawQuery(
+            "SELECT due_at FROM card WHERE state = ? AND suspended = 0 AND due_at < ?",
+            arrayOf(CardState.REVIEW.value.toString(), before.toString()),
+        ).use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }
+
+    /**
+     * Drop unstarted cards that were queued in study order, so the queue is
+     * rebuilt in a new order. Words queued with Learn next, or suspended, stay.
+     */
+    fun deleteQueuedNewCards(db: SQLiteDatabase) {
+        db.delete(
+            "card",
+            "state = ? AND direction = ? AND reps = 0 AND suspended = 0 AND sort_key >= 0",
+            arrayOf(CardState.NEW.value.toString(), Direction.RECOGNITION.value.toString()),
+        )
+    }
+
+    // ------------------------------------------------------------ backup
+
+    /** Fold any write-ahead log into the main file, so the file alone is a complete copy. */
+    fun checkpoint() {
+        writableDatabase.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { it.moveToFirst() }
+    }
+
     /** Study days with at least one review, newest first. */
     fun studyDays(): List<Long> =
         readableDatabase.rawQuery("SELECT DISTINCT day FROM review_log ORDER BY day DESC", null).use { c ->
