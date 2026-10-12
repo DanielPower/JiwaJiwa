@@ -156,8 +156,6 @@ sealed interface Screen {
 
     data class StoryReader(
         val reading: StoryReading,
-        /** New words this story just added to the front of the queue, shown once. */
-        val queued: Int?,
         /** Set top to bottom, right to left, as Japanese books are. */
         val vertical: Boolean,
     ) : Screen
@@ -585,15 +583,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // Not under the lock: writing takes a while and shouldn't block the rest of the app.
         storyJob = viewModelScope.launch {
             try {
-                val (id, queued) = withContext(Dispatchers.IO) {
+                val id = withContext(Dispatchers.IO) {
                     val req = lock.withLock { repo.storyRequest(request.prompt, request.length, request.difficulty) }
-                    val id = repo.writeStory(req, now()) { storyStatus(it, null) }
-                    id to (repo.readStory(id)?.coverage?.newWords?.count { it.wordId != null } ?: 0)
+                    repo.writeStory(req, now()) { storyStatus(it, null) }
                 }
                 storyStatus(null, null)
                 draft = draft.copy(prompt = "")
                 if (_screen.value is Screen.Stories) {
-                    lock.withLock { withContext(Dispatchers.IO) { showStory(id, queued) } }
+                    lock.withLock { withContext(Dispatchers.IO) { showStory(id) } }
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
@@ -605,12 +602,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openStory(id: Long) = launchIo {
         _screen.value = Screen.Loading
-        showStory(id, null)
+        showStory(id)
     }
 
-    private fun showStory(id: Long, queued: Int?) {
+    private fun showStory(id: Long) {
         val reading = repo.readStory(id) ?: return showStories()
-        _screen.value = Screen.StoryReader(reading, queued, repo.storyVertical())
+        _screen.value = Screen.StoryReader(reading, repo.storyVertical())
     }
 
     fun deleteStory(id: Long) = launchIo {
@@ -618,10 +615,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         showStories()
     }
 
+    /** "Add to reviews" on a word in a story: put it at the front of the new-word queue. */
+    fun addStoryWord(wordId: Long) = storyWordAction { repo.learnNext(wordId, now()) }
+
     /** "I know this" on a word in a story: mark it known, as on a new card. */
-    fun knowStoryWord(wordId: Long) = launchIo {
+    fun knowStoryWord(wordId: Long) = storyWordAction { repo.markKnown(wordId, repo.settings().mastery.hideAt, now()) }
+
+    private fun storyWordAction(action: () -> Unit) = launchIo {
         val state = _screen.value as? Screen.StoryReader ?: return@launchIo
-        repo.markKnown(wordId, repo.settings().mastery.hideAt, now())
+        action()
         val reading = repo.readStory(state.reading.story.id) ?: return@launchIo
         _screen.update { if (it is Screen.StoryReader) it.copy(reading = reading) else it }
     }

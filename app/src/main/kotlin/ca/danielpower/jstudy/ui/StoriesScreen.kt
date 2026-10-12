@@ -1,10 +1,12 @@
 package ca.danielpower.jstudy.ui
 
+import android.os.SystemClock
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,11 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.CardState
@@ -203,15 +207,40 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
 fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val reading = state.reading
     var confirmDelete by remember { mutableStateOf(false) }
-    // The word shown in the sheet, as (paragraph, index).
+    // The word whose popover is open, as (paragraph, index).
     var open by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val openWord = open?.let { (p, i) -> reading.paragraphs.getOrNull(p)?.getOrNull(i) }
     // The rest of any grammar pattern the open word is part of, shaded along with it.
     val lit = open?.let { (p, _) -> openWord?.grammar.orEmpty().flatMap { use -> (use.first..use.last).map { p to it } }.toSet() }.orEmpty()
-    // In vertical text a word low on the page would sit under the sheet, so it moves to the top.
-    var sheetAtTop by remember { mutableStateOf(false) }
+    // A tap outside the popover closes it before the tap lands, so a tap on the open word itself
+    // would open it again. Remember what was just closed to let that tap close it instead.
+    var closed by remember { mutableStateOf<Pair<Pair<Int, Int>, Long>?>(null) }
+    val close = {
+        closed = open?.let { it to SystemClock.uptimeMillis() }
+        open = null
+    }
+    val toggle = { word: Pair<Int, Int> ->
+        val justClosed = closed?.let { (w, at) -> w == word && SystemClock.uptimeMillis() - at < 500 } == true
+        open = if (open == word || justClosed) null else word
+    }
+    BackHandler(enabled = open != null) { open = null }
+    val popover: @Composable (Dp) -> Unit = { maxHeight ->
+        if (openWord != null) WordCard(
+            word = openWord,
+            reading = reading,
+            maxHeight = maxHeight,
+            onAdd = vm::addStoryWord,
+            onKnow = { id ->
+                open = null
+                vm.knowStoryWord(id)
+            },
+            onClose = { open = null },
+        )
+    }
 
-    Box(Modifier.fillMaxSize()) {
+    // A tap anywhere that isn't a word or a button closes the popover.
+    val tapToClose = if (open != null) Modifier.pointerInput(Unit) { detectTapGestures { open = null } } else Modifier
+    Box(Modifier.fillMaxSize().then(tapToClose)) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 WashiIconButton(WashiIcons.Back, "Back", vm::openStories)
@@ -239,20 +268,14 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(reading.story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.headlineSmall)
-                    QueuedNote(state.queued)
                 }
                 VerticalStory(
                     reading = reading,
                     selected = open,
                     lit = lit,
-                    onOpen = { p, i, low ->
-                        if (open == (p to i)) {
-                            open = null
-                        } else {
-                            open = p to i
-                            sheetAtTop = low
-                        }
-                    },
+                    onOpen = { p, i -> toggle(p to i) },
+                    popover = popover,
+                    onDismiss = close,
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
                 )
             } else Column(
@@ -260,7 +283,6 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(reading.story.title.ifBlank { "Untitled" }, style = MaterialTheme.typography.headlineMedium)
-                QueuedNote(state.queued)
                 reading.paragraphs.forEachIndexed { p, words ->
                     FlowRow(modifier = Modifier.fillMaxWidth()) {
                         words.forEachIndexed { i, word ->
@@ -269,30 +291,15 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                                 reading = reading,
                                 selected = open == (p to i),
                                 lit = (p to i) in lit,
-                                onOpen = {
-                                    open = if (open == (p to i)) null else (p to i)
-                                    sheetAtTop = false
-                                },
+                                onOpen = { toggle(p to i) },
+                                popover = popover,
+                                onDismiss = close,
                             )
                         }
                     }
                 }
-                // Room to scroll the last lines out from under the sheet.
-                Spacer(Modifier.height(if (openWord != null) 300.dp else 24.dp))
+                Spacer(Modifier.height(24.dp))
             }
-        }
-        if (openWord != null) {
-            WordSheet(
-                word = openWord,
-                reading = reading,
-                onKnow = { id ->
-                    open = null
-                    vm.knowStoryWord(id)
-                },
-                onClose = { open = null },
-                atTop = sheetAtTop,
-                modifier = Modifier.align(if (sheetAtTop) Alignment.TopCenter else Alignment.BottomCenter),
-            )
         }
     }
 
@@ -309,18 +316,6 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             dismissButton = {
                 TextButton(onClick = { confirmDelete = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             },
-        )
-    }
-}
-
-@Composable
-private fun QueuedNote(queued: Int?) {
-    if (queued != null && queued > 0) {
-        Text(
-            if (queued == 1) "Its new word is now first in your new-word queue."
-            else "Its $queued new words are now first in your new-word queue.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -344,7 +339,15 @@ internal const val TEXT_SIZE = 22
 internal const val RUBY_SIZE = 10
 
 @Composable
-private fun StoryWord(word: ReadingWord, reading: StoryReading, selected: Boolean, lit: Boolean, onOpen: () -> Unit) {
+private fun StoryWord(
+    word: ReadingWord,
+    reading: StoryReading,
+    selected: Boolean,
+    lit: Boolean,
+    onOpen: () -> Unit,
+    popover: @Composable (Dp) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val tappable = word.tappable()
     val unknown = reading.isUnknown(word)
     val showRuby = reading.showsRuby(word)
@@ -353,117 +356,122 @@ private fun StoryWord(word: ReadingWord, reading: StoryReading, selected: Boolea
     var modifier: Modifier = Modifier
     if (selected || lit) modifier = modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), WashiShape)
     if (tappable) modifier = modifier.clickable(onClick = onOpen)
-    Row(modifier = modifier, verticalAlignment = Alignment.Bottom) {
-        for (piece in word.ruby) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = piece.ruby ?: " ",
-                    fontSize = RUBY_SIZE.sp,
-                    lineHeight = (RUBY_SIZE * 1.2).sp,
-                    fontFamily = Gothic,
-                    maxLines = 1,
-                    softWrap = false,
-                    color = color.copy(alpha = 0.75f),
-                    modifier = Modifier.alpha(if (showRuby && piece.ruby != null) 1f else 0f),
-                )
-                Text(
-                    text = piece.base,
-                    fontSize = TEXT_SIZE.sp,
-                    lineHeight = (TEXT_SIZE * 1.5).sp,
-                    fontFamily = Gothic,
-                    softWrap = false,
-                    color = color,
-                    textDecoration = if (unknown) TextDecoration.Underline else null,
-                )
+    Box(modifier) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            for (piece in word.ruby) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = piece.ruby ?: " ",
+                        fontSize = RUBY_SIZE.sp,
+                        lineHeight = (RUBY_SIZE * 1.2).sp,
+                        fontFamily = Gothic,
+                        maxLines = 1,
+                        softWrap = false,
+                        color = color.copy(alpha = 0.75f),
+                        modifier = Modifier.alpha(if (showRuby && piece.ruby != null) 1f else 0f),
+                    )
+                    Text(
+                        text = piece.base,
+                        fontSize = TEXT_SIZE.sp,
+                        lineHeight = (TEXT_SIZE * 1.5).sp,
+                        fontFamily = Gothic,
+                        softWrap = false,
+                        color = color,
+                        textDecoration = if (unknown) TextDecoration.Underline else null,
+                    )
+                }
             }
         }
+        if (selected) WordPopover(onDismiss, popover)
     }
 }
 
-/** The tapped word, in a sheet along the bottom of the reader. */
+/** The tapped word's popover: its meanings, conjugation and grammar, and what to do with it. */
 @Composable
-private fun WordSheet(
+private fun WordCard(
     word: ReadingWord,
     reading: StoryReading,
+    maxHeight: Dp,
+    onAdd: (Long) -> Unit,
     onKnow: (Long) -> Unit,
     onClose: () -> Unit,
-    atTop: Boolean,
-    modifier: Modifier = Modifier,
 ) {
     val entry = word.wordId?.let { reading.words[it] }
-    // A particle or ending on its own: the sheet explains its grammar and has no dictionary entry.
+    // A particle or ending on its own: the popover explains its grammar and has no dictionary entry.
     val grammarOnly = word.kind == WordKind.GRAMMAR
-    val noRipple = remember { MutableInteractionSource() }
     Column(
-        modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            // Taps on the sheet stay on the sheet.
-            .clickable(interactionSource = noRipple, indication = null) {},
+        Modifier.heightIn(max = maxHeight).padding(start = 20.dp, end = 4.dp, top = 4.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (!atTop) HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.onSurface)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            val title = if (grammarOnly) word.surface else entry?.display ?: word.lemma
+            Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 28.sp, modifier = Modifier.weight(1f, fill = false))
+            val kana = entry?.kana ?: word.reading
+            if (!grammarOnly && kana != title) {
+                Text(kana, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.weight(1f))
+            WashiIconButton(WashiIcons.Close, "Close", onClose)
+        }
         Column(
-            Modifier.padding(start = 24.dp, end = 8.dp, top = 8.dp, bottom = 20.dp),
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                val title = if (grammarOnly) word.surface else entry?.display ?: word.lemma
-                Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 30.sp)
-                val kana = entry?.kana ?: word.reading
-                if (!grammarOnly && kana != title) {
-                    Text(kana, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(Modifier.weight(1f))
-                WashiIconButton(WashiIcons.Close, "Close", onClose)
+            if (word.conjugated) {
+                Text(
+                    "${word.surface}: ${word.conjugation.joinToString(", ")}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
             }
-            Column(
-                Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()).padding(end = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            if (entry == null) {
+                if (!grammarOnly) Text(
+                    if (word.kind == WordKind.NAME) "A name or number" else "Not in the dictionary",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                val senses = entry.senses.take(3)
+                senses.forEachIndexed { i, sense ->
+                    MeaningLine(if (senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "))
+                }
+                val status = reading.statuses[entry.id]
+                Text(
+                    levelLabel(entry.jlpt) + "  ·  " + when {
+                        status == null -> "New"
+                        status.suspended -> "Suspended"
+                        status.state == CardState.NEW -> "New, in your new-word queue"
+                        else -> "Mastery ${status.mastery}"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            for (use in word.grammar.distinctBy { it.point.id }) GrammarNote(use.point)
+        }
+        if (entry != null && reading.isUnknown(word)) {
+            // Words aren't queued just for being read; "Add to reviews" is the main action, "I know this" the quiet one.
+            Row(
+                Modifier.padding(end = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (word.conjugated) {
-                    Text(
-                        "${word.surface}: ${word.conjugation.joinToString(", ")}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
-                }
-                if (entry == null) {
-                    if (!grammarOnly) Text(
-                        if (word.kind == WordKind.NAME) "A name or number" else "Not in the dictionary",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                if (reading.statuses[entry.id] == null) {
+                    PrimaryButton(onClick = { onAdd(entry.id) }, modifier = Modifier.weight(1f).height(44.dp)) {
+                        Text("Add to reviews")
+                    }
                 } else {
-                    val senses = entry.senses.take(3)
-                    senses.forEachIndexed { i, sense ->
-                        MeaningLine(if (senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "))
-                    }
-                    val status = reading.statuses[entry.id]
-                    Text(
-                        levelLabel(entry.jlpt) + "  ·  " + when {
-                            status == null -> "New"
-                            status.suspended -> "Suspended"
-                            status.state == CardState.NEW -> "New, in your new-word queue"
-                            else -> "Mastery ${status.mastery}"
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (reading.isUnknown(word)) {
-                        SecondaryButton(
-                            onClick = { onKnow(entry.id) },
-                            modifier = Modifier.fillMaxWidth().height(48.dp).padding(top = 4.dp),
-                        ) { Text("I know this") }
-                    }
+                    Spacer(Modifier.weight(1f))
                 }
-                for (use in word.grammar.distinctBy { it.point.id }) GrammarNote(use.point)
+                TextButton(onClick = { onKnow(entry.id) }) {
+                    Text("I know this", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
-        if (atTop) HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
-/** One grammar point in the word sheet: the pattern, what it means, and an example. */
+/** One grammar point in the word popover: the pattern, what it means, and an example. */
 @Composable
 private fun GrammarNote(point: GrammarPoint) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {

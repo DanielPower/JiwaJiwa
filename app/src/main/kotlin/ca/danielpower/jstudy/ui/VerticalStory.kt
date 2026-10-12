@@ -113,18 +113,20 @@ private fun place(pieces: List<Piece>, rows: Int): List<Spot> {
 
 /**
  * The story set vertically. It opens at the right, where reading starts, and
- * scrolls sideways. [onOpen] says whether the tapped word is low on the page,
- * so the word sheet can keep clear of it.
+ * scrolls sideways. The open word's [popover] hangs off its first piece.
  */
 @Composable
 fun VerticalStory(
     reading: StoryReading,
     selected: Pair<Int, Int>?,
     lit: Set<Pair<Int, Int>>,
-    onOpen: (p: Int, i: Int, low: Boolean) -> Unit,
+    onOpen: (p: Int, i: Int) -> Unit,
+    popover: @Composable (Dp) -> Unit,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pieces = remember(reading) { pieces(reading) }
+    val firstPiece = pieces.indexOfFirst { (it.p to it.i) == selected }
     BoxWithConstraints(modifier) {
         val density = LocalDensity.current
         val cell = with(density) { (TEXT_SIZE * 1.15f).sp.toPx() }
@@ -158,10 +160,12 @@ fun VerticalStory(
                             sideline = unknown,
                             background = if (isSelected || (piece.p to piece.i) in lit) highlight else Color.Transparent,
                             onClick = if (word.tappable()) {
-                                { onOpen(piece.p, piece.i, spots[k].row > rows / 2) }
+                                { onOpen(piece.p, piece.i) }
                             } else {
                                 null
                             },
+                            popover = if (k == firstPiece) popover else null,
+                            onDismiss = onDismiss,
                         )
                     }
                 },
@@ -190,6 +194,8 @@ private fun PieceView(
     sideline: Boolean,
     background: Color,
     onClick: (() -> Unit)?,
+    popover: (@Composable (Dp) -> Unit)?,
+    onDismiss: () -> Unit,
 ) {
     var modifier = Modifier.background(background)
     if (onClick != null) modifier = modifier.clickable(onClick = onClick)
@@ -240,5 +246,6 @@ private fun PieceView(
                 }
             }
         }
+        if (popover != null) WordPopover(onDismiss, popover)
     }
 }
