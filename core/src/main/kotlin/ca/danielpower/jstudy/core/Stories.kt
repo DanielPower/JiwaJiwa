@@ -1,16 +1,16 @@
 package ca.danielpower.jstudy.core
 
-enum class StoryLength(val label: String, val characters: Int) {
-    SHORT("Short", 300),
-    MEDIUM("Medium", 800),
-    LONG("Long", 2000),
+enum class StoryLength(val label: UiLabel, val characters: Int) {
+    SHORT(UiLabel("Short", "短い"), 300),
+    MEDIUM(UiLabel("Medium", "普通"), 800),
+    LONG(UiLabel("Long", "長い"), 2000),
 }
 
 /** How many of a story's running words should already be known. */
-enum class StoryDifficulty(val label: String, val knownShare: Double) {
-    EASY("Easy", 0.99),
-    NORMAL("Normal", 0.97),
-    HARD("Hard", 0.95),
+enum class StoryDifficulty(val label: UiLabel, val knownShare: Double) {
+    EASY(UiLabel("Easy", "易しい"), 0.99),
+    NORMAL(UiLabel("Normal", "普通"), 0.97),
+    HARD(UiLabel("Hard", "難しい"), 0.95),
 }
 
 /**

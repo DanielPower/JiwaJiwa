@@ -63,23 +63,23 @@ fun SettingsScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Settings", style = MaterialTheme.typography.headlineMedium)
+        Text(ui("Settings", "設定"), style = MaterialTheme.typography.headlineMedium)
 
-        Section("Appearance")
+        Section(ui("Appearance", "見た目", "見る", "目"))
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Theme", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Text(ui("Theme", "テーマ"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (mode in ThemeMode.entries) {
-                    WashiChip(selected = theme == mode, onClick = { onTheme(mode) }, label = mode.label)
+                    WashiChip(selected = theme == mode, onClick = { onTheme(mode) }, label = ui(mode.label))
                 }
             }
         }
 
-        Section("Kana")
+        Section(ui("Kana", "かな", "仮名"))
         Text("Kana you could read already", style = MaterialTheme.typography.bodyLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for ((known, label) in KANA_CHOICES) {
-                WashiChip(selected = state.kanaKnown == known, onClick = { vm.setKanaKnown(known) }, label = label)
+                WashiChip(selected = state.kanaKnown == known, onClick = { vm.setKanaKnown(known) }, label = ui(label))
             }
         }
         Text(
@@ -93,7 +93,7 @@ fun SettingsScreen(
             }
         }
 
-        Section("Daily study")
+        Section(ui("Daily study", "毎日の勉強"))
         Text("Start new words from", style = MaterialTheme.typography.bodyLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (level in 5 downTo 1) {
@@ -105,7 +105,7 @@ fun SettingsScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Stepper("New words per day", "${s.newPerDay}") { d ->
+        Stepper(ui("New words per day", "一日の新しい単語"), "${s.newPerDay}") { d ->
             update { s.copy(newPerDay = (s.newPerDay + d).coerceIn(0, 100)) }
         }
         Stepper("Review limit per day", "${s.reviewCap}") { d ->
@@ -118,7 +118,7 @@ fun SettingsScreen(
             update { s.copy(rolloverHour = (s.rolloverHour + d + 24) % 24) }
         }
 
-        Section("Mastery")
+        Section(ui("Mastery", "習熟度"))
         Text(
             "Mastery comes from how long you're expected to remember a word: 40 is about a week, 70 a month and 100 three months.",
             style = MaterialTheme.typography.bodySmall,
@@ -134,12 +134,12 @@ fun SettingsScreen(
             update { s.copy(mastery = m.copy(productionAt = (m.productionAt + d * 5).coerceIn(0, 100))) }
         }
 
-        Section("Reminder")
+        Section(ui("Reminder", "通知"))
         val r = state.reminder
         val pickReminder = rememberReminderPicker { vm.setReminder(Reminder(enabled = true, minuteOfDay = it)) }
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Daily reminder", style = MaterialTheme.typography.bodyLarge)
+                Text(ui("Daily reminder", "毎日の通知"), style = MaterialTheme.typography.bodyLarge)
                 Text(
                     "A notification when cards are waiting. Nothing if you're done for the day.",
                     style = MaterialTheme.typography.bodySmall,
@@ -153,12 +153,12 @@ fun SettingsScreen(
         }
         if (r.enabled && r.minuteOfDay != null) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Remind me at", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                Text(ui("Remind me at", "時間"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                 SecondaryButton(onClick = { pickReminder(r.minuteOfDay) }) { Text(reminderTime(r.minuteOfDay)) }
             }
         }
 
-        Section("Stories")
+        Section(ui("Stories", "物語"))
         Text(
             "Stories are written by Claude using your own API key from console.anthropic.com, " +
                 "and billed to it.",
@@ -176,14 +176,14 @@ fun SettingsScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         )
         if (key.trim() != state.claudeKey) {
-            SecondaryButton(onClick = { onSaveClaudeKey(key) }) { Text("Save key") }
+            SecondaryButton(onClick = { onSaveClaudeKey(key) }) { Text(ui("Save key", "保存")) }
         } else if (state.claudeKey.isNotEmpty()) {
-            Text("Saved", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(ui("Saved", "保存しました"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         }
 
         Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Vertical text", style = MaterialTheme.typography.bodyLarge)
+                Text(ui("Vertical text", "縦書き", "縦", "書く"), style = MaterialTheme.typography.bodyLarge)
                 Text(
                     "縦書き: top to bottom, right to left, like a Japanese book.",
                     style = MaterialTheme.typography.bodySmall,
@@ -193,15 +193,15 @@ fun SettingsScreen(
             Switch(checked = state.storyVertical, onCheckedChange = onStoryVertical)
         }
 
-        Section("Import")
+        Section(ui("Import", "インポート"))
         Text(
             "Bring in the mastery of words you've studied on Renshuu.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        SecondaryButton(onClick = onImport) { Text("Import from Renshuu") }
+        SecondaryButton(onClick = onImport) { Text(ui("Import from Renshuu", "Renshuuからインポート", "インポート")) }
 
-        Section("Backup")
+        Section(ui("Backup", "バックアップ"))
         Text(
             "Save your progress, settings and stories to a file, or restore them from one. " +
                 "Your Claude API key isn't included.",
@@ -217,9 +217,9 @@ fun SettingsScreen(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             SecondaryButton(onClick = { export.launch("jstudy-${LocalDate.now()}.jstudy") }, modifier = Modifier.weight(1f)) {
-                Text("Save backup")
+                Text(ui("Save backup", "バックアップを保存"))
             }
-            SecondaryButton(onClick = { restoring = true }, modifier = Modifier.weight(1f)) { Text("Restore") }
+            SecondaryButton(onClick = { restoring = true }, modifier = Modifier.weight(1f)) { Text(ui("Restore", "戻す")) }
         }
         state.backupMessage?.let {
             Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -233,13 +233,13 @@ fun SettingsScreen(
                     TextButton(onClick = {
                         restoring = false
                         restore.launch(arrayOf("*/*"))
-                    }) { Text("Choose file") }
+                    }) { Text(ui("Choose file", "ファイルを選ぶ")) }
                 },
-                dismissButton = { TextButton(onClick = { restoring = false }) { Text("Cancel") } },
+                dismissButton = { TextButton(onClick = { restoring = false }) { Text(ui("Cancel", "やめる")) } },
             )
         }
 
-        Section("Reset")
+        Section(ui("Reset", "消す"))
         Text(
             "Erase all your progress, settings, stories and your Claude API key, " +
                 "and start again from first-run setup.",
@@ -248,7 +248,7 @@ fun SettingsScreen(
         )
         var resetting by remember { mutableStateOf(false) }
         SecondaryButton(onClick = { resetting = true }) {
-            Text("Reset everything", color = MaterialTheme.colorScheme.error)
+            Text(ui("Reset everything", "全部消す"), color = MaterialTheme.colorScheme.error)
         }
         if (resetting) {
             AlertDialog(
@@ -264,13 +264,13 @@ fun SettingsScreen(
                     TextButton(onClick = {
                         resetting = false
                         vm.resetAll()
-                    }) { Text("Reset", color = MaterialTheme.colorScheme.error) }
+                    }) { Text(ui("Reset", "消す"), color = MaterialTheme.colorScheme.error) }
                 },
-                dismissButton = { TextButton(onClick = { resetting = false }) { Text("Cancel") } },
+                dismissButton = { TextButton(onClick = { resetting = false }) { Text(ui("Cancel", "やめる")) } },
             )
         }
 
-        Section("About")
+        Section(ui("About", "このアプリについて", "この", "アプリ"))
         Text(
             "Word list and dictionary data:\n" + state.attribution.split("; ").joinToString("\n") { "• $it" } +
                 "\n\nFont: Zen Kaku Gothic New, under the SIL Open Font License.",

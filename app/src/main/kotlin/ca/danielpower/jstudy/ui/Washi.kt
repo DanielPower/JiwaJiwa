@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ca.danielpower.jstudy.core.UiLabel
 
 // ------------------------------------------------------------------ buttons
 
@@ -197,11 +198,11 @@ fun MasteryBar(mastery: Int, modifier: Modifier = Modifier) {
 
 // ------------------------------------------------------------------ navigation
 
-enum class Tab(val label: String, val icon: ImageVector) {
-    HOME("Home", WashiIcons.Home),
-    DICTIONARY("Dictionary", WashiIcons.Search),
-    STORIES("Stories", WashiIcons.Book),
-    SETTINGS("Settings", WashiIcons.Settings),
+enum class Tab(val label: UiLabel, val icon: ImageVector) {
+    HOME(UiLabel("Home", "ホーム"), WashiIcons.Home),
+    DICTIONARY(UiLabel("Dictionary", "辞書"), WashiIcons.Search),
+    STORIES(UiLabel("Stories", "物語"), WashiIcons.Book),
+    SETTINGS(UiLabel("Settings", "設定"), WashiIcons.Settings),
 }
 
 @Composable
@@ -227,7 +228,7 @@ fun WashiNavBar(current: Tab, onSelect: (Tab) -> Unit) {
                 ) {
                     Icon(tab.icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
                     Text(
-                        tab.label,
+                        ui(tab.label),
                         fontSize = 12.sp,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                         color = color,

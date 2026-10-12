@@ -57,9 +57,12 @@ fun levelLabel(jlpt: Int) = if (jlpt in 1..5) "N$jlpt" else "Other"
 class Dictionary(context: Context) : Lexicon {
     private val db: SQLiteDatabase
 
+    /** Changes whenever the app, and so possibly the dictionary, is updated. */
+    val version: Long = context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
+
     init {
         val target = context.getDatabasePath(NAME)
-        val installedAt = context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
+        val installedAt = version
         val prefs = context.getSharedPreferences("dictionary", Context.MODE_PRIVATE)
         if (!target.exists() || prefs.getLong("copied_for", -1) != installedAt) {
             copyFromAssets(context, target)

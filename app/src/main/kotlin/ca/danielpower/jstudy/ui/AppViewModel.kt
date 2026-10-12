@@ -19,6 +19,8 @@ import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
+import ca.danielpower.jstudy.core.UiLabel
+import ca.danielpower.jstudy.core.UiLanguage
 import ca.danielpower.jstudy.data.BackupException
 import ca.danielpower.jstudy.data.Entry
 import ca.danielpower.jstudy.data.Reminder
@@ -34,7 +36,9 @@ import ca.danielpower.jstudy.data.Undo
 import ca.danielpower.jstudy.data.Word
 import ca.danielpower.jstudy.data.WordDetail
 import ca.danielpower.jstudy.data.WordStatus
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
@@ -60,11 +64,11 @@ data class ReviewCard(
 
 data class ReviewCounts(val new: Int, val learning: Int, val review: Int)
 
-enum class StatusFilter(val label: String) {
-    ALL("All"),
-    NOT_STARTED("Not started"),
-    STUDYING("Studying"),
-    SUSPENDED("Suspended"),
+enum class StatusFilter(val label: UiLabel) {
+    ALL(UiLabel("All", "全部")),
+    NOT_STARTED(UiLabel("Not started", "未学習")),
+    STUDYING(UiLabel("Studying", "勉強中", listOf("勉強"))),
+    SUSPENDED(UiLabel("Suspended", "保留中")),
     ;
 
     fun matches(status: WordStatus?): Boolean {
@@ -189,6 +193,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     )
     val theme: StateFlow<ThemeMode> = _theme.asStateFlow()
 
+    /** Which UI labels are in Japanese: the ones whose words you've mastered. */
+    private val _language = MutableStateFlow(UiLanguage.ENGLISH)
+    val language: StateFlow<UiLanguage> = _language.asStateFlow()
+    private val labelRequests = Channel<UiLabel>(Channel.UNLIMITED)
+    private val requestedLabels = ConcurrentHashMap.newKeySet<String>()
+
     private lateinit var repo: Repository
     private var session: StudySession? = null
     private var undo: Undo? = null
@@ -210,6 +220,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     init {
         launchIo {
             repo = Repository(getApplication())
+            val cached = repo.cachedLabelWords()
+            requestedLabels += cached.keys
+            _language.value = UiLanguage(cached, repo.masteredWords())
+            lookUpLabels()
             DailyReminder.schedule(getApplication(), repo.reminder())
             if (repo.needsSetup()) {
                 _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null, repo.settings().mastery)
@@ -227,7 +241,34 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun now() = System.currentTimeMillis()
 
+    /**
+     * Find the words in a label the first time it's shown. It stays English
+     * until then, which is only ever once: the answer is kept.
+     */
+    fun lookUpLabel(label: UiLabel) {
+        if (!_language.value.knows(label) && requestedLabels.add(label.key)) labelRequests.trySend(label)
+    }
+
+    // Outside the lock, so a screen full of new labels doesn't hold up the screen itself.
+    private fun lookUpLabels() = viewModelScope.launch(Dispatchers.IO) {
+        for (first in labelRequests) {
+            val batch = mutableListOf(first)
+            while (true) batch += labelRequests.tryReceive().getOrNull() ?: break
+            // A label that can't be looked up just stays English.
+            val words = runCatching { repo.labelWords(batch) }.getOrNull() ?: continue
+            _language.update { it.withWords(words) }
+        }
+    }
+
+    /** Pick up mastery changes, so labels turn Japanese as you learn their words. */
+    private fun refreshLanguage() {
+        val mastered = repo.masteredWords()
+        _language.update { it.withMastered(mastered) }
+    }
+
+
     private fun showHome() {
+        refreshLanguage()
         session = null
         undo = null
         _screen.value = Screen.Home(repo.summary(now()))
@@ -262,6 +303,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Show the next card, or the waiting or done screen. */
     private fun advance() {
         val s = session ?: return showHome()
+        refreshLanguage()
         val counts = ReviewCounts(s.newRemaining, s.learningRemaining, s.reviewRemaining)
         val card = s.next(now())
         if (card == null) {
@@ -365,6 +407,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openSettings() = launchIo { showSettings(null) }
 
     private fun showSettings(backupMessage: String?) {
+        refreshLanguage()
         val attribution = repo.dictionary.meta("attribution").orEmpty()
         _screen.value = Screen.Settings(
             settings = repo.settings(),
@@ -448,6 +491,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             display.edit().clear().commit()
             _theme.value = ThemeMode.AUTO
             DailyReminder.schedule(getApplication(), repo.reminder())
+            refreshLanguage()
             _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null, repo.settings().mastery)
         }
     }
@@ -689,6 +733,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun showWord(wordId: Long) {
+        refreshLanguage()
         val detail = repo.wordDetail(wordId) ?: return
         val settings = repo.settings()
         _screen.value = Screen.WordPage(detail, settings.mastery, repo.clock(settings))

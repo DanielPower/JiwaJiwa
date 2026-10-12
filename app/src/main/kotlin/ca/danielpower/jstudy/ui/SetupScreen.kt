@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.KanaKnown
+import ca.danielpower.jstudy.core.UiLabel
 
 /** First run, a page at a time: welcome, kana, starting level (if you read kana), reminder. */
 @Composable
@@ -51,7 +52,7 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
         ) {
             if (index > 0) {
                 SecondaryButton(onClick = vm::setupBack, modifier = Modifier.weight(1f).height(58.dp)) {
-                    Text("Back", fontSize = 18.sp)
+                    Text(ui("Back", "戻る"), fontSize = 18.sp)
                 }
             }
             PrimaryButton(
@@ -59,7 +60,7 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
                 enabled = state.page != SetupPage.KANA || state.kana != null,
                 modifier = Modifier.weight(1f).height(58.dp),
             ) {
-                Text(if (last) "Start" else "Next", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(if (last) ui("Start", "始める") else ui("Next", "次へ"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -100,7 +101,7 @@ private fun Example(japanese: String, name: String, description: String) {
 
 @Composable
 private fun ColumnScope.WelcomePage() {
-    Title("ようこそ")
+    Title(ui("Welcome", "ようこそ"))
     Body(
         "jstudy teaches Japanese words with flashcards. Each day brings a few new words, and reviews of " +
             "earlier ones timed for just before you'd forget them.",
@@ -110,7 +111,7 @@ private fun ColumnScope.WelcomePage() {
 
 @Composable
 private fun ColumnScope.KanaPage(state: Screen.Setup, vm: AppViewModel) {
-    Title("Kana")
+    Title(ui("Kana", "かな", "仮名"))
     Body("Japanese is written with three scripts, often mixed in one sentence.")
     Example("ひらがな", "Hiragana", "Grammar and native words, like たべる (to eat).")
     Example("カタカナ", "Katakana", "Words borrowed from other languages, like テレビ (television).")
@@ -127,7 +128,7 @@ private fun ColumnScope.KanaPage(state: Screen.Setup, vm: AppViewModel) {
             WashiChip(
                 selected = state.kana == known,
                 onClick = { vm.editSetup { it.copy(kana = known) } },
-                label = label,
+                label = ui(label),
             )
         }
     }
@@ -141,7 +142,7 @@ private fun ColumnScope.LevelPage(state: Screen.Setup, vm: AppViewModel) {
     val belowCount = below.sumOf { state.levelCounts[it] ?: 0 }
     val belowNames = below.joinToString(" and ") { "N$it" }
 
-    Title("Starting level")
+    Title(ui("Starting level", "始めるレベル"))
     Body(
         "Words here are grouped by the levels of the JLPT, the Japanese-Language Proficiency Test. " +
             "N5 is the first level and N1 the last.",
@@ -191,7 +192,7 @@ private fun ColumnScope.LevelPage(state: Screen.Setup, vm: AppViewModel) {
 
 @Composable
 private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
-    Title("Daily reminder")
+    Title(ui("Daily reminder", "毎日の通知"))
     val pickReminder = rememberReminderPicker { minute -> vm.editSetup { it.copy(reminderMinute = minute) } }
     val reminder = state.reminderMinute
     Body(
@@ -204,10 +205,10 @@ private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
     )
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         SecondaryButton(onClick = { pickReminder(reminder) }) {
-            Text(if (reminder == null) "Choose a time" else "Change time")
+            Text(if (reminder == null) ui("Choose a time", "時間を選ぶ") else ui("Change time", "時間を変える"))
         }
         if (reminder != null) {
-            SecondaryButton(onClick = { vm.editSetup { it.copy(reminderMinute = null) } }) { Text("No reminder") }
+            SecondaryButton(onClick = { vm.editSetup { it.copy(reminderMinute = null) } }) { Text(ui("No reminder", "通知しない")) }
         }
     }
     Help(
@@ -218,9 +219,9 @@ private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
 
 /** The kana choices, as chips. */
 internal val KANA_CHOICES = listOf(
-    KanaKnown.BOTH to "Both",
-    KanaKnown.HIRAGANA to "Hiragana only",
-    KanaKnown.NONE to "Neither",
+    KanaKnown.BOTH to UiLabel("Both", "両方"),
+    KanaKnown.HIRAGANA to UiLabel("Hiragana only", "ひらがなだけ", listOf("ひらがな")),
+    KanaKnown.NONE to UiLabel("Neither", "どちらも"),
 )
 
 internal fun kanaHelp(known: KanaKnown) = when (known) {

@@ -294,6 +294,13 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             if (c.moveToFirst()) WordProgress(wordId, c.getInt(0), c.getInt(1) != 0) else WordProgress(wordId)
         }
 
+    /** The words (not kana) at [mastery] or higher. */
+    fun wordsAtMastery(mastery: Int): Set<Long> =
+        readableDatabase.rawQuery(
+            "SELECT word_id FROM word_progress WHERE mastery >= ? AND word_id > 0",
+            arrayOf(mastery.toString()),
+        ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
+
     fun saveProgress(db: SQLiteDatabase, progress: WordProgress) {
         val values = ContentValues().apply {
             put("word_id", progress.wordId)
