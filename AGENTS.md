@@ -133,8 +133,11 @@ Other features (all shipped):
   words; unknown words beyond the budget trigger a rewrite. Tapping a word
   shows its meaning (and conjugation, when conjugated), plus any grammar
   point it's part of (`core/Grammar.kt`); particles and endings are tappable
-  for their grammar alone. Unknown words met in a story go to the front of
-  the new-word queue. Optional vertical (tategaki) text.
+  for their grammar alone. The meaning opens in a popover beside the word
+  (below it, or above when there's more room), never covering it. Story
+  words are never queued automatically: an unknown word's popover offers
+  "Add to reviews" (front of the new-word queue) as the main action and a
+  quieter "I know this". Optional vertical (tategaki) text.
 - Visual design is "Washi" (paper, ink, vermilion seal) with light, dark and
   auto themes. See `app/AGENTS.md`.
 

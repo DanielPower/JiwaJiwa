@@ -511,8 +511,8 @@ class Repository(context: Context) {
     }
 
     /**
-     * Have Claude write a story, save it, and put its new words at the front
-     * of the new-word queue in the order they appear. Returns the story's id.
+     * Have Claude write a story and save it. Its new words aren't queued;
+     * the reader adds the ones the learner picks. Returns the story's id.
      */
     fun writeStory(request: StoryRequest, now: Long, progress: (String) -> Unit): Long {
         val key = claudeKey()
@@ -531,26 +531,7 @@ class Repository(context: Context) {
                 difficulty = request.difficulty.name,
             ),
         )
-        queueFirst(written.coverage.newWords.mapNotNull { it.wordId }, now)
         return id
-    }
-
-    /** Put words at the front of the new-word queue, keeping their order. */
-    private fun queueFirst(wordIds: List<Long>, now: Long) {
-        val statuses = store.wordStatuses()
-        store.transaction { db ->
-            for ((i, wordId) in wordIds.withIndex()) {
-                val status = statuses[wordId]
-                if (status != null && (status.state != CardState.NEW || status.suspended)) continue
-                val sortKey = now / 1000 - LEARN_NEXT_FIRST + i
-                val card = recognitionCard(wordId)
-                if (card == null) {
-                    store.insertNewCard(db, wordId, Direction.RECOGNITION, sortKey)
-                } else {
-                    store.setSortKey(db, card.id, sortKey)
-                }
-            }
-        }
     }
 
     fun readStory(id: Long): StoryReading? {
