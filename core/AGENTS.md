@@ -15,6 +15,7 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 | `Kana.kt` | Romaji → kana for search, hiragana/katakana variants. |
 | `KanaCourse.kt` | The kana units (negative ids, so they never clash with JMdict word ids), teaching order, and the "kana known" setting. |
 | `Reading.kt` | Kuromoji tokens grouped into words, matched to the dictionary, with conjugation labels. |
+| `Grammar.kt` | About 100 hand-written grammar points (particles and N5–N3 patterns), each with token patterns over Kuromoji output. `Reader` attaches them to words; a match inside a longer match is dropped. `GrammarTest` checks every point's own example sentence finds it, so add an example that does. |
 | `Stories.kt` | Graded-reader story requests, budgets of new words, prompts, and the rewrite loop. |
 | `Claude.kt` | A minimal Messages API client over `HttpURLConnection`. The Anthropic Java SDK was too heavy for the APK. Model `claude-opus-5-5`, effort high, server-side fallbacks on. The `send` parameter is the seam for tests. |
 | `RenshuuImport.kt` | Plans a Renshuu mastery import (take the higher). |
