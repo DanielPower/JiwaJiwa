@@ -232,7 +232,7 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                             contentAlignment = Alignment.Center,
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("${detail.mastery}", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 26.sp)
+                                Text("${detail.mastery}", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 26.sp)
                                 Text("mastery", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -340,7 +340,7 @@ private fun AnswerMark(correct: Boolean, size: Dp = 26.dp) {
     Box(Modifier.size(size).border(2.dp, color, CircleShape), contentAlignment = Alignment.Center) {
         Text(
             if (correct) "○" else "×",
-            fontFamily = Mincho,
+            fontFamily = Gothic,
             fontWeight = FontWeight.Bold,
             fontSize = (size.value * 0.5f).sp,
             lineHeight = (size.value * 0.55f).sp,

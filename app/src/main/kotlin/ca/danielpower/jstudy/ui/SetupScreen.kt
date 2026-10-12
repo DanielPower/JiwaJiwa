@@ -67,7 +67,7 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
 
 @Composable
 private fun Title(text: String) {
-    Text(text, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp)
+    Text(text, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 32.sp, lineHeight = 40.sp)
 }
 
 @Composable
@@ -86,7 +86,7 @@ private fun Example(japanese: String, name: String, description: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             japanese,
-            fontFamily = Mincho,
+            fontFamily = Gothic,
             fontWeight = FontWeight.Bold,
             fontSize = 26.sp,
             modifier = Modifier.width(76.dp),

@@ -26,7 +26,7 @@ fun FuriganaText(
     showFurigana: Boolean,
     modifier: Modifier = Modifier,
     fontSize: TextUnit = 44.sp,
-    fontFamily: FontFamily = Mincho,
+    fontFamily: FontFamily = Gothic,
     fontWeight: FontWeight = FontWeight.Bold,
 ) {
     val rubySize = fontSize * RUBY_SCALE

@@ -132,7 +132,7 @@ private fun Caption(text: String) {
 @Composable
 private fun Tile(label: String, value: String, modifier: Modifier) {
     Column(modifier) {
-        Text(value, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 30.sp)
+        Text(value, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 30.sp)
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -183,7 +183,7 @@ private fun LevelRow(level: LevelStats) {
     val ink = MaterialTheme.colorScheme.primary
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(level.label, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.width(44.dp))
+            Text(level.label, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.width(44.dp))
             Text(
                 "${level.started} of ${level.total} started · ${level.known} known · ${level.mastered} mastered",
                 style = MaterialTheme.typography.bodySmall,
