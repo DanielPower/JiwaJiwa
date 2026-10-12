@@ -33,7 +33,8 @@ class MainActivity : ComponentActivity() {
             }
             JStudyTheme(theme) {
                 val screen by vm.screen.collectAsStateWithLifecycle()
-                BackHandler(enabled = screen !is Screen.Home && screen !is Screen.Loading) { vm.back() }
+                val firstPage = (screen as? Screen.Setup)?.let { it.page == it.pages.first() } == true
+                BackHandler(enabled = screen !is Screen.Home && screen !is Screen.Loading && !firstPage) { vm.back() }
                 App(vm, screen)
             }
         }

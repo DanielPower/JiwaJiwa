@@ -109,7 +109,7 @@ sealed interface Screen {
         val backupMessage: String? = null,
     ) : Screen
 
-    /** First run: where to start, and what to do with the easier levels. */
+    /** First run, a page at a time: kana, where to start, and the reminder. */
     data class Setup(
         val levelCounts: Map<Int, Int>,
         val startLevel: Int,
@@ -120,9 +120,13 @@ sealed interface Screen {
         val rules: MasteryRules,
         /** Which kana you read already; null until you choose. */
         val kana: KanaKnown? = null,
+        val page: SetupPage = SetupPage.WELCOME,
     ) : Screen {
-        /** Until you choose, starting past N5 means you read kana, and starting at N5 means learning them. */
-        val kanaChoice get() = kana ?: if (startLevel < 5) KanaKnown.BOTH else KanaKnown.NONE
+        /**
+         * The pages in order. Picking a level only makes sense if you read
+         * kana; anyone still learning them starts at N5.
+         */
+        val pages get() = SetupPage.entries.filter { it != SetupPage.LEVEL || kana == KanaKnown.BOTH }
     }
 
     data class StatsPage(val stats: Stats) : Screen
@@ -158,6 +162,8 @@ sealed interface Screen {
         val vertical: Boolean,
     ) : Screen
 }
+
+enum class SetupPage { WELCOME, KANA, LEVEL, REMINDER }
 
 /** The story form, kept while you move around the app. */
 data class StoryDraft(
@@ -237,6 +243,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             is Screen.WordPage -> closeWord()
             is Screen.RenshuuImport -> closeImport()
             is Screen.StoryReader -> openStories()
+            is Screen.Setup -> setupBack()
             else -> goHome()
         }
     }
@@ -451,11 +458,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun editSetup(change: (Screen.Setup) -> Screen.Setup) = _screen.update { if (it is Screen.Setup) change(it) else it }
 
+    fun setupNext() = editSetup { s -> s.pages.getOrNull(s.pages.indexOf(s.page) + 1)?.let { s.copy(page = it) } ?: s }
+
+    fun setupBack() = editSetup { s -> s.pages.getOrNull(s.pages.indexOf(s.page) - 1)?.let { s.copy(page = it) } ?: s }
+
     fun finishSetup() = launchIo {
         val setup = _screen.value as? Screen.Setup ?: return@launchIo
         _screen.value = Screen.Loading
-        val lower = setup.lowerMastery.takeIf { setup.startLevel < 5 && it > 0 }
-        repo.finishSetup(setup.startLevel, lower, setup.kanaChoice, setup.reminderMinute, now())
+        val kana = setup.kana ?: KanaKnown.BOTH
+        // Still learning kana: start at the beginning, whatever was picked before going back.
+        val startLevel = if (kana == KanaKnown.BOTH) setup.startLevel else 5
+        val lower = setup.lowerMastery.takeIf { startLevel < 5 && it > 0 }
+        repo.finishSetup(startLevel, lower, kana, setup.reminderMinute, now())
         DailyReminder.schedule(getApplication(), repo.reminder())
         showHome()
     }
