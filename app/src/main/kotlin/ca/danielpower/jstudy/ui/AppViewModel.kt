@@ -107,6 +107,8 @@ sealed interface Screen {
         val startLevel: Int,
         /** Mastery for the words below the starting level; 0 leaves them unstarted. */
         val lowerMastery: Int,
+        /** The daily reminder's time, if you chose one. */
+        val reminderMinute: Int?,
         val rules: MasteryRules,
     ) : Screen
 
@@ -193,7 +195,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             repo = Repository(getApplication())
             DailyReminder.schedule(getApplication(), repo.reminder())
             if (repo.needsSetup()) {
-                _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, repo.settings().mastery)
+                _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null, repo.settings().mastery)
             } else {
                 showHome()
             }
@@ -392,7 +394,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val setup = _screen.value as? Screen.Setup ?: return@launchIo
         _screen.value = Screen.Loading
         val lower = setup.lowerMastery.takeIf { setup.startLevel < 5 && it > 0 }
-        repo.finishSetup(setup.startLevel, lower, now())
+        repo.finishSetup(setup.startLevel, lower, setup.reminderMinute, now())
+        DailyReminder.schedule(getApplication(), repo.reminder())
         showHome()
     }
 

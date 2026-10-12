@@ -1,7 +1,5 @@
 package ca.danielpower.jstudy.ui
 
-import android.Manifest
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -38,7 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.StudySettings
-import ca.danielpower.jstudy.reminder.DailyReminder
+import ca.danielpower.jstudy.data.Reminder
 import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -119,11 +116,8 @@ fun SettingsScreen(
         }
 
         Section("Reminder")
-        val context = LocalContext.current
         val r = state.reminder
-        val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) vm.setReminder(r.copy(enabled = true))
-        }
+        val pickReminder = rememberReminderPicker { vm.setReminder(Reminder(enabled = true, minuteOfDay = it)) }
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Daily reminder", style = MaterialTheme.typography.bodyLarge)
@@ -135,18 +129,13 @@ fun SettingsScreen(
             }
             Switch(
                 checked = r.enabled,
-                onCheckedChange = { on ->
-                    if (on && !DailyReminder.canNotify(context) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        vm.setReminder(r.copy(enabled = on))
-                    }
-                },
+                onCheckedChange = { on -> if (on) pickReminder(r.minuteOfDay) else vm.setReminder(r.copy(enabled = false)) },
             )
         }
-        if (r.enabled) {
-            Stepper("Remind me at", String.format(Locale.ROOT, "%02d:%02d", r.minuteOfDay / 60, r.minuteOfDay % 60)) { d ->
-                vm.setReminder(r.copy(minuteOfDay = Math.floorMod(r.minuteOfDay + d * 30, 24 * 60)))
+        if (r.enabled && r.minuteOfDay != null) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Remind me at", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                SecondaryButton(onClick = { pickReminder(r.minuteOfDay) }) { Text(reminderTime(r.minuteOfDay)) }
             }
         }
 

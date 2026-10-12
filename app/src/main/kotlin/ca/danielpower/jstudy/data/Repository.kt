@@ -102,7 +102,10 @@ data class Stats(
 /** Words of one JLPT level by how far along they are. Each count includes the ones after it. */
 data class LevelStats(val level: Int, val total: Int, val started: Int, val known: Int, val mastered: Int)
 
-data class Reminder(val enabled: Boolean, val minuteOfDay: Int)
+/** The daily reminder. There's no default time: [minuteOfDay] is null until you pick one. */
+data class Reminder(val enabled: Boolean, val minuteOfDay: Int?) {
+    val time: Int? get() = minuteOfDay?.takeIf { enabled }
+}
 
 class BackupException(message: String) : Exception(message)
 
@@ -546,7 +549,8 @@ class Repository(context: Context) {
      * Finish the first run: start new words at [startLevel], and if
      * [lowerMastery] is set, mark every word of the easier levels known at it.
      */
-    fun finishSetup(startLevel: Int, lowerMastery: Int?, now: Long) {
+    fun finishSetup(startLevel: Int, lowerMastery: Int?, reminderMinute: Int?, now: Long) {
+        if (reminderMinute != null) saveReminder(Reminder(enabled = true, minuteOfDay = reminderMinute))
         setStartLevel(startLevel)
         if (lowerMastery != null && lowerMastery > 0) {
             val words = dictionary.wordsBelow(startLevel)
@@ -603,15 +607,14 @@ class Repository(context: Context) {
 
     fun reminder(): Reminder = Reminder(
         enabled = store.getValue("reminder_enabled") == "1",
-        minuteOfDay = store.getValue("reminder_minute")?.toIntOrNull()?.coerceIn(0, 24 * 60 - 1) ?: DEFAULT_REMINDER,
+        minuteOfDay = store.getValue("reminder_minute")?.toIntOrNull()?.coerceIn(0, 24 * 60 - 1),
     )
 
     fun saveReminder(r: Reminder) {
         store.setValues(
             mapOf(
                 "reminder_enabled" to if (r.enabled) "1" else "0",
-                "reminder_minute" to r.minuteOfDay.toString(),
-            ),
+            ) + (r.minuteOfDay?.let { mapOf("reminder_minute" to it.toString()) } ?: emptyMap()),
         )
     }
 
@@ -710,7 +713,6 @@ class Repository(context: Context) {
         private const val PRODUCTION_FIRST = 10_000_000_000L
         private const val FORECAST_DAYS = 30
         private const val HISTORY_DAYS = 30
-        private const val DEFAULT_REMINDER = 19 * 60
         private const val LEARN_NEXT_FIRST = 20_000_000_000L
         private const val PRACTICE_POOL = 20
         private const val PRACTICE = 8

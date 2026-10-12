@@ -35,8 +35,8 @@ object DailyReminder {
         val alarms = context.getSystemService(AlarmManager::class.java)
         val pending = alarmIntent(context)
         alarms.cancel(pending)
-        if (!reminder.enabled) return
-        alarms.set(AlarmManager.RTC_WAKEUP, nextTime(reminder.minuteOfDay), pending)
+        val minuteOfDay = reminder.time ?: return
+        alarms.set(AlarmManager.RTC_WAKEUP, nextTime(minuteOfDay), pending)
     }
 
     /** The next time the clock reads [minuteOfDay], today or tomorrow. */
@@ -64,7 +64,7 @@ object DailyReminder {
         val repo = Repository(context)
         val reminder = repo.reminder()
         schedule(context, reminder)
-        if (!reminder.enabled || !canNotify(context)) return
+        if (reminder.time == null || !canNotify(context)) return
         val summary = repo.summary(System.currentTimeMillis())
         if (!summary.anythingDue) return
         val due = summary.newCards + summary.learning + summary.reviews

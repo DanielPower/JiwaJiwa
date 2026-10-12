@@ -75,8 +75,29 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
             )
         }
 
+        SectionLabel("Daily reminder", Modifier.padding(top = 8.dp))
+        val pickReminder = rememberReminderPicker { minute -> vm.editSetup { it.copy(reminderMinute = minute) } }
+        val reminder = state.reminderMinute
         Text(
-            "You can change the starting level later in Settings, and mark single words from the dictionary.",
+            if (reminder == null) {
+                "Get a notification when cards are waiting, at a time you choose."
+            } else {
+                "Every day at ${reminderTime(reminder)}, if cards are waiting."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SecondaryButton(onClick = { pickReminder(reminder) }) {
+                Text(if (reminder == null) "Choose a time" else "Change time")
+            }
+            if (reminder != null) {
+                SecondaryButton(onClick = { vm.editSetup { it.copy(reminderMinute = null) } }) { Text("No reminder") }
+            }
+        }
+
+        Text(
+            "You can change the starting level and the reminder later in Settings, and mark single words from the dictionary.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),
