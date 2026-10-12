@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
+import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.ReviewLog
 import ca.danielpower.jstudy.core.WordProgress
 
@@ -45,6 +46,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 reps INTEGER NOT NULL,
                 lapses INTEGER NOT NULL,
                 introduced_day INTEGER,
+                -- Unused since mastery is derived from stability (version 4).
                 last_mastery_day INTEGER,
                 sort_key INTEGER NOT NULL,
                 suspended INTEGER NOT NULL DEFAULT 0,
@@ -90,6 +92,25 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) db.execSQL("ALTER TABLE card ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0")
         if (oldVersion < 3) createStories(db)
+        if (oldVersion < 4) deriveMastery(db)
+    }
+
+    /** Replace the old points-based mastery with the value from each word's own card. */
+    private fun deriveMastery(db: SQLiteDatabase) {
+        db.rawQuery(
+            "SELECT word_id, stability FROM card WHERE direction != ?",
+            arrayOf(Direction.PRODUCTION.value.toString()),
+        ).use { c ->
+            while (c.moveToNext()) {
+                val stability = if (c.isNull(1)) null else c.getDouble(1)
+                db.update(
+                    "word_progress",
+                    ContentValues().apply { put("mastery", MasteryRules.fromStability(stability)) },
+                    "word_id = ?",
+                    arrayOf(c.getLong(0).toString()),
+                )
+            }
+        }
     }
 
     private fun createStories(db: SQLiteDatabase) {
@@ -191,7 +212,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             put("reps", card.reps)
             put("lapses", card.lapses)
             putNullable("introduced_day", card.introducedDay)
-            putNullable("last_mastery_day", card.lastMasteryDay)
         }
         db.update("card", values, "id = ?", arrayOf(card.id.toString()))
     }
@@ -436,7 +456,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         reps = c.getInt(9),
         lapses = c.getInt(10),
         introducedDay = if (c.isNull(11)) null else c.getLong(11),
-        lastMasteryDay = if (c.isNull(12)) null else c.getLong(12),
     )
 
     private fun ContentValues.putNullable(key: String, value: Any?) {
@@ -451,8 +470,8 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 3
+        const val VERSION = 4
         private const val CARD_COLUMNS =
-            "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, last_mastery_day"
+            "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day"
     }
 }

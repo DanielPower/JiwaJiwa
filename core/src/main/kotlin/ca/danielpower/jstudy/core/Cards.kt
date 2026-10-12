@@ -47,12 +47,14 @@ data class Card(
     val lapses: Int = 0,
     /** Study day of the first answer. */
     val introducedDay: Long? = null,
-    /** Study day mastery last changed because of this card. */
-    val lastMasteryDay: Long? = null,
 )
 
 data class WordProgress(
     val wordId: Long,
+    /**
+     * Derived from the recognition card's stability by [MasteryRules.fromStability]
+     * and kept here so lists can sort and filter by it.
+     */
     val mastery: Int = 0,
     val productionUnlocked: Boolean = false,
 )
@@ -117,10 +119,13 @@ class Reviewer(
             FsrsState.RELEARNING -> CardState.RELEARNING
         }
 
-        // Only the first answer of the day moves mastery, so a miss followed
-        // by quick relearning steps still counts as a miss.
-        val countsForMastery = card.lastMasteryDay != today
-        val newMastery = if (countsForMastery) mastery.after(progress.mastery, correct) else progress.mastery
+        // Mastery follows the card you see the word itself on. Production
+        // reviews schedule their own card but leave it alone.
+        val newMastery = if (card.direction == Direction.PRODUCTION) {
+            progress.mastery
+        } else {
+            MasteryRules.fromStability(result.memory.stability)
+        }
         val unlock = card.direction == Direction.RECOGNITION &&
             !progress.productionUnlocked &&
             newMastery >= mastery.productionAt
@@ -135,7 +140,6 @@ class Reviewer(
             reps = card.reps + 1,
             lapses = card.lapses + if (card.state == CardState.REVIEW && !correct) 1 else 0,
             introducedDay = card.introducedDay ?: today,
-            lastMasteryDay = if (countsForMastery) today else card.lastMasteryDay,
         )
         return Answer(
             card = updated,
@@ -188,7 +192,7 @@ class Reviewer(
     fun markKnown(card: Card, progress: WordProgress, mastery: Int, now: Long, random: Random): Known {
         require(card.wordId == progress.wordId)
         val newMastery = mastery.coerceIn(0, MasteryRules.MAX)
-        val days = knownIntervalDays(newMastery)
+        val days = MasteryRules.stabilityDays(newMastery)
         val today = clock.dayOf(now)
         val firstDue = 1 + random.nextInt(days)
         val unlock = card.direction == Direction.RECOGNITION &&
@@ -203,24 +207,11 @@ class Reviewer(
                 difficulty = fsrs.startingDifficulty(Rating.GOOD),
                 dueAt = clock.startOf(today + firstDue),
                 lastReviewAt = now,
-                lastMasteryDay = today,
             ),
             progress = progress.copy(mastery = newMastery, productionUnlocked = progress.productionUnlocked || unlock),
             unlockedProduction = unlock,
             intervalDays = days,
         )
-    }
-
-    companion object {
-        private val KNOWN_POINTS = listOf(0 to 1.0, 40 to 7.0, 70 to 30.0, 100 to 90.0)
-
-        /** Review interval for a known word: about a week at 40, a month at 70, three months at 100. */
-        fun knownIntervalDays(mastery: Int): Int {
-            val m = mastery.coerceIn(0, MasteryRules.MAX)
-            val (lo, hi) = KNOWN_POINTS.zipWithNext().first { (_, b) -> m <= b.first }
-            val t = (m - lo.first).toDouble() / (hi.first - lo.first)
-            return kotlin.math.round(lo.second + t * (hi.second - lo.second)).toInt().coerceAtLeast(1)
-        }
     }
 }
 

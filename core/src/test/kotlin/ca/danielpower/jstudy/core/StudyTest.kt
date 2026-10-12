@@ -30,9 +30,17 @@ class StudyTest {
         assertEquals(FuriganaMode.HIDDEN, rules.furigana(40))
         assertEquals(FuriganaMode.HIDDEN, rules.furigana(69))
         assertEquals(FuriganaMode.OFF, rules.furigana(70))
-        assertEquals(40, rules.after(70, correct = false))
-        assertEquals(0, rules.after(20, correct = false))
-        assertEquals(100, rules.after(95, correct = true))
+    }
+
+    @Test
+    fun `mastery follows stability`() {
+        assertEquals(0, MasteryRules.fromStability(null))
+        assertEquals(0, MasteryRules.fromStability(0.5))
+        assertEquals(40, MasteryRules.fromStability(7.0))
+        assertEquals(55, MasteryRules.fromStability(18.5))
+        assertEquals(70, MasteryRules.fromStability(30.0))
+        assertEquals(100, MasteryRules.fromStability(400.0))
+        for (m in listOf(0, 40, 70, 100)) assertEquals(m, MasteryRules.fromStability(MasteryRules.stabilityDays(m).toDouble()))
     }
 
     @Test
@@ -41,11 +49,12 @@ class StudyTest {
         val first = reviewer.answer(card, WordProgress(7), correct = true, now = at("2026-10-10T20:00"))
         assertEquals(CardState.LEARNING, first.card.state)
         assertEquals(at("2026-10-10T20:10"), first.card.dueAt)
-        assertEquals(10, first.progress.mastery)
+        assertEquals(MasteryRules.fromStability(first.card.stability), first.progress.mastery)
+        assertTrue(first.progress.mastery in 1..39)
 
         val second = reviewer.answer(first.card, first.progress, correct = true, now = at("2026-10-10T20:11"))
         assertEquals(CardState.REVIEW, second.card.state)
-        assertEquals(10, second.progress.mastery, "only the first answer of the day counts")
+        assertEquals(MasteryRules.fromStability(second.card.stability), second.progress.mastery)
         // Review cards fall due at the start of a study day.
         val dueDay = clock.dayOf(second.card.dueAt)
         assertEquals(clock.startOf(dueDay), second.card.dueAt)
@@ -53,19 +62,31 @@ class StudyTest {
     }
 
     @Test
-    fun `miss then relearn the same day still nets the loss`() {
+    fun `a miss drops mastery with stability`() {
         val card = Card(
             id = 1, wordId = 7, direction = Direction.RECOGNITION, state = CardState.REVIEW,
             stability = 10.0, difficulty = 5.0, dueAt = at("2026-10-10T04:00"), lastReviewAt = at("2026-10-01T09:00"),
         )
         val miss = reviewer.answer(card, WordProgress(7, mastery = 50), correct = false, now = at("2026-10-10T09:00"))
         assertEquals(CardState.RELEARNING, miss.card.state)
-        assertEquals(20, miss.progress.mastery)
+        assertEquals(MasteryRules.fromStability(miss.card.stability), miss.progress.mastery)
+        assertTrue(miss.progress.mastery < MasteryRules.fromStability(10.0))
         assertEquals(1, miss.card.lapses)
         assertEquals(9, miss.log.elapsedDays)
         val relearned = reviewer.answer(miss.card, miss.progress, correct = true, now = at("2026-10-10T09:11"))
         assertEquals(CardState.REVIEW, relearned.card.state)
-        assertEquals(20, relearned.progress.mastery)
+        assertEquals(MasteryRules.fromStability(relearned.card.stability), relearned.progress.mastery)
+    }
+
+    @Test
+    fun `production reviews leave mastery alone`() {
+        val card = Card(
+            id = 2, wordId = 7, direction = Direction.PRODUCTION, state = CardState.REVIEW,
+            stability = 10.0, difficulty = 5.0, lastReviewAt = at("2026-10-01T09:00"),
+        )
+        val progress = WordProgress(7, mastery = 50, productionUnlocked = true)
+        assertEquals(50, reviewer.answer(card, progress, correct = false, now = at("2026-10-10T09:00")).progress.mastery)
+        assertEquals(50, reviewer.answer(card, progress, correct = true, now = at("2026-10-10T09:00")).progress.mastery)
     }
 
     @Test
@@ -162,10 +183,10 @@ class StudyTest {
 
     @Test
     fun `marking a word known schedules it from its mastery`() {
-        assertEquals(1, Reviewer.knownIntervalDays(0))
-        assertEquals(7, Reviewer.knownIntervalDays(40))
-        assertEquals(30, Reviewer.knownIntervalDays(70))
-        assertEquals(90, Reviewer.knownIntervalDays(100))
+        assertEquals(1, MasteryRules.stabilityDays(0))
+        assertEquals(7, MasteryRules.stabilityDays(40))
+        assertEquals(30, MasteryRules.stabilityDays(70))
+        assertEquals(90, MasteryRules.stabilityDays(100))
 
         val now = at("2026-10-10T20:00")
         val today = clock.dayOf(now)
@@ -184,7 +205,7 @@ class StudyTest {
         val known = reviewer.markKnown(card, WordProgress(7), 70, now, kotlin.random.Random(1))
         val next = reviewer.answer(known.card, known.progress, true, known.card.dueAt + 3_600_000)
         assertEquals(CardState.REVIEW, next.card.state)
-        assertEquals(80, next.progress.mastery)
+        assertTrue(next.progress.mastery > 70)
     }
 
     @Test
@@ -201,7 +222,7 @@ class StudyTest {
         val first = reviewer.answer(intro, WordProgress(7), correct = true, now = now + 90_000)
         assertNull(first.log.elapsedDays)
         assertEquals(Fsrs().review(FsrsMemory.NEW, Rating.GOOD, null).memory, FsrsMemory(FsrsState.LEARNING, first.card.step, first.card.stability, first.card.difficulty))
-        assertEquals(10, first.progress.mastery)
+        assertEquals(MasteryRules.fromStability(first.card.stability), first.progress.mastery)
     }
 }
 
