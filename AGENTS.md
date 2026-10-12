@@ -131,9 +131,10 @@ Other features (all shipped):
 - AI graded-reader stories: the user enters their own Claude API key in
   Settings. Short/Medium/Long, Easy/Normal/Hard sets the share of known
   words; unknown words beyond the budget trigger a rewrite. Tapping a word
-  shows its meaning (and conjugation, when conjugated). Unknown words met in
-  a story go to the front of the new-word queue. Optional vertical (tategaki)
-  text.
+  shows its meaning (and conjugation, when conjugated), plus any grammar
+  point it's part of (`core/Grammar.kt`); particles and endings are tappable
+  for their grammar alone. Unknown words met in a story go to the front of
+  the new-word queue. Optional vertical (tategaki) text.
 - Visual design is "Washi" (paper, ink, vermilion seal) with light, dark and
   auto themes. See `app/AGENTS.md`.
 

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FuriganaMode
+import ca.danielpower.jstudy.core.GrammarPoint
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
@@ -204,6 +206,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     // The word shown in the sheet, as (paragraph, index).
     var open by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val openWord = open?.let { (p, i) -> reading.paragraphs.getOrNull(p)?.getOrNull(i) }
+    // The rest of any grammar pattern the open word is part of, shaded along with it.
+    val lit = open?.let { (p, _) -> openWord?.grammar.orEmpty().flatMap { use -> (use.first..use.last).map { p to it } }.toSet() }.orEmpty()
     // In vertical text a word low on the page would sit under the sheet, so it moves to the top.
     var sheetAtTop by remember { mutableStateOf(false) }
 
@@ -240,6 +244,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 VerticalStory(
                     reading = reading,
                     selected = open,
+                    lit = lit,
                     onOpen = { p, i, low ->
                         if (open == (p to i)) {
                             open = null
@@ -263,6 +268,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                                 word = word,
                                 reading = reading,
                                 selected = open == (p to i),
+                                lit = (p to i) in lit,
                                 onOpen = {
                                     open = if (open == (p to i)) null else (p to i)
                                     sheetAtTop = false
@@ -332,20 +338,20 @@ internal fun StoryReading.showsRuby(word: ReadingWord): Boolean {
     return isUnknown(word) || word.kind == WordKind.NAME || rules.furigana(mastery) == FuriganaMode.SHOWN
 }
 
-internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME
+internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME || grammar.isNotEmpty()
 
 internal const val TEXT_SIZE = 22
 internal const val RUBY_SIZE = 10
 
 @Composable
-private fun StoryWord(word: ReadingWord, reading: StoryReading, selected: Boolean, onOpen: () -> Unit) {
+private fun StoryWord(word: ReadingWord, reading: StoryReading, selected: Boolean, lit: Boolean, onOpen: () -> Unit) {
     val tappable = word.tappable()
     val unknown = reading.isUnknown(word)
     val showRuby = reading.showsRuby(word)
     val color = if (unknown || selected) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
     var modifier: Modifier = Modifier
-    if (selected) modifier = modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), WashiShape)
+    if (selected || lit) modifier = modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), WashiShape)
     if (tappable) modifier = modifier.clickable(onClick = onOpen)
     Row(modifier = modifier, verticalAlignment = Alignment.Bottom) {
         for (piece in word.ruby) {
@@ -385,6 +391,8 @@ private fun WordSheet(
     modifier: Modifier = Modifier,
 ) {
     val entry = word.wordId?.let { reading.words[it] }
+    // A particle or ending on its own: the sheet explains its grammar and has no dictionary entry.
+    val grammarOnly = word.kind == WordKind.GRAMMAR
     val noRipple = remember { MutableInteractionSource() }
     Column(
         modifier
@@ -399,15 +407,19 @@ private fun WordSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(entry?.display ?: word.lemma, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 30.sp)
+                val title = if (grammarOnly) word.surface else entry?.display ?: word.lemma
+                Text(title, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 30.sp)
                 val kana = entry?.kana ?: word.reading
-                if (kana != (entry?.display ?: word.lemma)) {
+                if (!grammarOnly && kana != title) {
                     Text(kana, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.weight(1f))
                 WashiIconButton(WashiIcons.Close, "Close", onClose)
             }
-            Column(Modifier.padding(end = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()).padding(end = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 if (word.conjugated) {
                     Text(
                         "${word.surface}: ${word.conjugation.joinToString(", ")}",
@@ -416,7 +428,7 @@ private fun WordSheet(
                     )
                 }
                 if (entry == null) {
-                    Text(
+                    if (!grammarOnly) Text(
                         if (word.kind == WordKind.NAME) "A name or number" else "Not in the dictionary",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -444,8 +456,29 @@ private fun WordSheet(
                         ) { Text("I know this") }
                     }
                 }
+                for (use in word.grammar.distinctBy { it.point.id }) GrammarNote(use.point)
             }
         }
         if (atTop) HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+/** One grammar point in the word sheet: the pattern, what it means, and an example. */
+@Composable
+private fun GrammarNote(point: GrammarPoint) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
+            Text(point.pattern, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text(
+                "Grammar  ·  " + levelLabel(point.level),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(point.meaning, fontSize = 19.sp, lineHeight = 26.sp)
+        Text(point.note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(point.example, fontFamily = Mincho, fontSize = 17.sp, modifier = Modifier.padding(top = 2.dp))
+        Text(point.exampleMeaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

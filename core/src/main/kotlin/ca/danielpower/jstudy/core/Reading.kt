@@ -45,6 +45,8 @@ data class ReadingWord(
     /** What the conjugation does, e.g. ["causative", "passive", "past"]. Empty when not conjugated. */
     val conjugation: List<String>,
     val ruby: List<Ruby>,
+    /** Grammar points this word is part of, in the order they appear. */
+    val grammar: List<GrammarUse> = emptyList(),
 ) {
     val conjugated get() = conjugation.isNotEmpty()
 
@@ -62,8 +64,11 @@ class Reader(private val lexicon: Lexicon) {
     fun words(paragraph: String): List<ReadingWord> {
         val tokens = tokenizer.tokenize(paragraph).map(::Morpheme)
         val out = ArrayList<ReadingWord>()
+        // The tokens each word was made from, for placing grammar points.
+        val spans = ArrayList<IntRange>()
         var i = 0
         while (i < tokens.size) {
+            val from = i
             val t = tokens[i]
             val compound = compound(tokens, i)
             when {
@@ -103,8 +108,20 @@ class Reader(private val lexicon: Lexicon) {
                     i++
                 }
             }
+            spans += from until i
         }
-        return out
+        return withGrammar(out, spans, tokens)
+    }
+
+    private fun withGrammar(words: List<ReadingWord>, spans: List<IntRange>, tokens: List<Morpheme>): List<ReadingWord> {
+        val wordOf = IntArray(tokens.size)
+        spans.forEachIndexed { w, span -> for (k in span) wordOf[k] = w }
+        val uses = Grammar.find(tokens).map { GrammarUse(it.point, wordOf[it.start], wordOf[it.end - 1]) }
+        if (uses.isEmpty()) return words
+        return words.mapIndexed { w, word ->
+            val mine = uses.filter { w in it.first..it.last }
+            if (mine.isEmpty()) word else word.copy(grammar = mine)
+        }
     }
 
     /** A run of nouns the dictionary knows as one word (図書館員, 魔導士), longest first. */

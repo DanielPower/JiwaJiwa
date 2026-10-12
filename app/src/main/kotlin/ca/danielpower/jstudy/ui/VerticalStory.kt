@@ -120,6 +120,7 @@ private fun place(pieces: List<Piece>, rows: Int): List<Spot> {
 fun VerticalStory(
     reading: StoryReading,
     selected: Pair<Int, Int>?,
+    lit: Set<Pair<Int, Int>>,
     onOpen: (p: Int, i: Int, low: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -155,7 +156,7 @@ fun VerticalStory(
                             rubyCell = rubyDp,
                             color = if (unknown || isSelected) seal else ink,
                             sideline = unknown,
-                            background = if (isSelected) highlight else Color.Transparent,
+                            background = if (isSelected || (piece.p to piece.i) in lit) highlight else Color.Transparent,
                             onClick = if (word.tappable()) {
                                 { onOpen(piece.p, piece.i, spots[k].row > rows / 2) }
                             } else {
