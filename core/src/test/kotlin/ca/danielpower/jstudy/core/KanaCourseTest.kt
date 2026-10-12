@@ -19,7 +19,7 @@ class KanaCourseTest {
     fun `has every unit once with a unique negative id`() {
         val units = KanaCourse.units
         assertEquals(105, units.count { it.script == Script.HIRAGANA })
-        assertEquals(122, units.count { it.script == Script.KATAKANA })
+        assertEquals(121, units.count { it.script == Script.KATAKANA })
         assertEquals(units.size, units.map { it.id }.toSet().size)
         assertEquals(units.size, units.map { it.text }.toSet().size)
         assertTrue(units.all { it.id < 0 && KanaCourse.unit(it.id) == it })
@@ -54,7 +54,7 @@ class KanaCourseTest {
 
     @Test
     fun `teaches only the scripts you don't know`() {
-        assertEquals(227, KanaCourse.toTeach(KanaKnown.NONE).size)
+        assertEquals(226, KanaCourse.toTeach(KanaKnown.NONE).size)
         assertTrue(KanaCourse.toTeach(KanaKnown.HIRAGANA).all { it.script == Script.KATAKANA })
         assertTrue(KanaCourse.toTeach(KanaKnown.BOTH).isEmpty())
     }
