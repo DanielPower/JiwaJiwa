@@ -38,8 +38,8 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 ## Design: Washi
 
 Paper `#F4EFE4`, ink `#1F1A16`, seal red `#B8381E`; dark mode ink `#171412`
-with red `#E0644A`. No dynamic colour. Fonts are bundled: Shippori Mincho for
-Japanese and headings, Zen Kaku Gothic New for UI. Use the shared components
+with red `#E0644A`. No dynamic colour. One font is bundled, Zen Kaku Gothic New
+(sans serif), for Japanese, headings and UI. Use the shared components
 in `ui/Washi.kt` (`PrimaryButton`, `SealButton`, `SecondaryButton`,
 `WashiChip`, `LevelSeal`, bottom nav, line icons) for new screens rather than
 stock Material ones. New/learning/review counts use 新/習/復.

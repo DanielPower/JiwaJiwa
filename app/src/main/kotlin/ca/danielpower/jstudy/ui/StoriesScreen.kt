@@ -179,7 +179,7 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
             Text(
                 story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
-                fontFamily = Mincho,
+                fontFamily = Gothic,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -229,7 +229,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     modifier = Modifier.size(40.dp).semantics { contentDescription = switchTo },
                     contentPadding = PaddingValues(0.dp),
                 ) {
-                    Text(if (state.vertical) "横" else "縦", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    Text(if (state.vertical) "横" else "縦", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 }
                 WashiIconButton(WashiIcons.Delete, "Delete story", { confirmDelete = true })
             }
@@ -370,7 +370,7 @@ private fun StoryWord(word: ReadingWord, reading: StoryReading, selected: Boolea
                     text = piece.base,
                     fontSize = TEXT_SIZE.sp,
                     lineHeight = (TEXT_SIZE * 1.5).sp,
-                    fontFamily = Mincho,
+                    fontFamily = Gothic,
                     softWrap = false,
                     color = color,
                     textDecoration = if (unknown) TextDecoration.Underline else null,
@@ -408,7 +408,7 @@ private fun WordSheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 val title = if (grammarOnly) word.surface else entry?.display ?: word.lemma
-                Text(title, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 30.sp)
+                Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 30.sp)
                 val kana = entry?.kana ?: word.reading
                 if (!grammarOnly && kana != title) {
                     Text(kana, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -469,7 +469,7 @@ private fun GrammarNote(point: GrammarPoint) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
-            Text(point.pattern, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Text(
                 "Grammar  ·  " + levelLabel(point.level),
                 style = MaterialTheme.typography.labelMedium,
@@ -478,7 +478,7 @@ private fun GrammarNote(point: GrammarPoint) {
         }
         Text(point.meaning, fontSize = 19.sp, lineHeight = 26.sp)
         Text(point.note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(point.example, fontFamily = Mincho, fontSize = 17.sp, modifier = Modifier.padding(top = 2.dp))
+        Text(point.example, fontFamily = Gothic, fontSize = 17.sp, modifier = Modifier.padding(top = 2.dp))
         Text(point.exampleMeaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

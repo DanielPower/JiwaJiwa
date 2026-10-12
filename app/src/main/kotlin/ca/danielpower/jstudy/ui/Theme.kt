@@ -19,13 +19,7 @@ import ca.danielpower.jstudy.R
 // "Washi": paper and sumi ink, with one vermilion seal colour. New, learning
 // and review counts use primary, tertiary and secondary.
 
-/** Shippori Mincho, for Japanese words and headings. */
-val Mincho = FontFamily(
-    Font(R.font.shippori_mincho_regular, FontWeight.Normal),
-    Font(R.font.shippori_mincho_bold, FontWeight.Bold),
-)
-
-/** Zen Kaku Gothic New, for everything else. */
+/** Zen Kaku Gothic New, a clean sans serif, for Japanese and UI text alike. */
 val Gothic = FontFamily(
     Font(R.font.zen_kaku_gothic_new_regular, FontWeight.Normal),
     Font(R.font.zen_kaku_gothic_new_bold, FontWeight.Bold),
@@ -116,16 +110,16 @@ private val Dark = darkColorScheme(
 )
 
 private fun Typography.withFonts(): Typography {
-    fun TextStyle.mincho() = copy(fontFamily = Mincho, fontWeight = FontWeight.Bold)
+    fun TextStyle.heading() = copy(fontFamily = Gothic, fontWeight = FontWeight.Bold)
     fun TextStyle.gothic() = copy(fontFamily = Gothic)
     return copy(
-        displayLarge = displayLarge.mincho(),
-        displayMedium = displayMedium.mincho(),
-        displaySmall = displaySmall.mincho(),
-        headlineLarge = headlineLarge.mincho(),
-        headlineMedium = headlineMedium.mincho(),
-        headlineSmall = headlineSmall.mincho(),
-        titleLarge = titleLarge.mincho(),
+        displayLarge = displayLarge.heading(),
+        displayMedium = displayMedium.heading(),
+        displaySmall = displaySmall.heading(),
+        headlineLarge = headlineLarge.heading(),
+        headlineMedium = headlineMedium.heading(),
+        headlineSmall = headlineSmall.heading(),
+        titleLarge = titleLarge.heading(),
         titleMedium = titleMedium.gothic().copy(fontWeight = FontWeight.Bold),
         titleSmall = titleSmall.gothic().copy(fontWeight = FontWeight.Bold),
         bodyLarge = bodyLarge.gothic(),

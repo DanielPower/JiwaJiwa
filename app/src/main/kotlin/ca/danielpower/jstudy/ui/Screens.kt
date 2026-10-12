@@ -140,9 +140,9 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
                 Modifier.size(36.dp).background(MaterialTheme.colorScheme.primary, WashiShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("学", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onPrimary)
+                Text("学", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onPrimary)
             }
-            Text("jstudy", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
+            Text("jstudy", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
             val day = LocalDate.ofEpochDay(summary.today)
             Text(
                 day.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale.JAPANESE) + " · " +
@@ -160,7 +160,7 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
                     1 -> "1 card"
                     else -> "$due cards"
                 },
-                fontFamily = Mincho,
+                fontFamily = Gothic,
                 fontWeight = FontWeight.Bold,
                 fontSize = 44.sp,
                 lineHeight = 48.sp,
@@ -244,7 +244,7 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
 @Composable
 private fun Count(kanji: String, label: String, value: Int, color: Color, modifier: Modifier) {
     Column(modifier.padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("$value", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 30.sp, color = color)
+        Text("$value", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 30.sp, color = color)
         Text("$kanji $label", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -423,7 +423,7 @@ private fun IntroActions(cardId: Long, knownAt: Int, masteredAt: Int, vm: AppVie
 @Composable
 private fun KanaFace(kana: KanaUnit, revealed: Boolean) {
     Box(Modifier.fillMaxWidth().heightIn(min = 200.dp), contentAlignment = Alignment.Center) {
-        Text(kana.text, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 96.sp, lineHeight = 112.sp)
+        Text(kana.text, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 96.sp, lineHeight = 112.sp)
     }
     if (revealed) {
         HorizontalDivider(Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurface)
@@ -437,7 +437,7 @@ private fun KanaFace(kana: KanaUnit, revealed: Boolean) {
             if (twin != null) {
                 Text(
                     (if (kana.script == Script.HIRAGANA) "Katakana " else "Hiragana ") + twin,
-                    fontFamily = Mincho,
+                    fontFamily = Gothic,
                     fontSize = 22.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -458,7 +458,7 @@ private fun KanaFace(kana: KanaUnit, revealed: Boolean) {
 @Composable
 private fun GradeLabel(mark: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(mark, fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 28.sp)
+        Text(mark, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 28.sp)
         Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
@@ -485,7 +485,7 @@ internal fun WordFace(word: Word, showFurigana: Boolean) {
             // Keep the same height as a word with a reading row.
             val ruby = size * RUBY_SCALE
             Text(" ", fontSize = ruby, lineHeight = ruby * 1.15f)
-            Text(word.kana, fontSize = size, lineHeight = size * 1.2f, fontFamily = Mincho, fontWeight = FontWeight.Bold)
+            Text(word.kana, fontSize = size, lineHeight = size * 1.2f, fontFamily = Gothic, fontWeight = FontWeight.Bold)
             if (word.usuallyKana && word.kanji != null) {
                 // Usually written in kana, but the kanji spelling turns up too.
                 Text(
@@ -537,7 +537,7 @@ internal fun MeaningLine(numeral: String?, text: String, info: String? = null) {
         if (numeral != null) {
             Text(
                 numeral,
-                fontFamily = Mincho,
+                fontFamily = Gothic,
                 fontWeight = FontWeight.Bold,
                 fontSize = 19.sp,
                 color = MaterialTheme.colorScheme.primary,
@@ -586,7 +586,7 @@ private fun DoneScreen(summary: Summary, onStudyMore: () -> Unit, onHome: () -> 
             Modifier.size(88.dp).border(3.dp, MaterialTheme.colorScheme.primary, WashiShape),
             contentAlignment = Alignment.Center,
         ) {
-            Text("済", fontFamily = Mincho, fontWeight = FontWeight.Bold, fontSize = 52.sp, color = MaterialTheme.colorScheme.primary)
+            Text("済", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 52.sp, color = MaterialTheme.colorScheme.primary)
         }
         Text("Done for today", style = MaterialTheme.typography.headlineMedium)
         if (summary.reviewedToday > 0) {

@@ -273,7 +273,7 @@ fun SettingsScreen(
         Section("About")
         Text(
             "Word list and dictionary data:\n" + state.attribution.split("; ").joinToString("\n") { "• $it" } +
-                "\n\nFonts: Shippori Mincho and Zen Kaku Gothic New, under the SIL Open Font License.",
+                "\n\nFont: Zen Kaku Gothic New, under the SIL Open Font License.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -297,7 +297,7 @@ private fun Stepper(label: String, value: String, onStep: (Int) -> Unit) {
             value,
             modifier = Modifier.widthIn(min = 64.dp),
             textAlign = TextAlign.Center,
-            fontFamily = Mincho,
+            fontFamily = Gothic,
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
         )

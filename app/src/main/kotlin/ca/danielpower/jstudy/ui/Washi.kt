@@ -174,7 +174,7 @@ fun LevelSeal(label: String, modifier: Modifier = Modifier, tilted: Boolean = fa
     ) {
         Text(
             label,
-            fontFamily = Mincho,
+            fontFamily = Gothic,
             fontWeight = FontWeight.Bold,
             fontSize = if (label.length > 2) 11.sp else 14.sp,
             color = color,

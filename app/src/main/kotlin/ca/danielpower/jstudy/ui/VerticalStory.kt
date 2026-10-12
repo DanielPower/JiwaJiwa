@@ -208,7 +208,7 @@ private fun PieceView(
                         c,
                         fontSize = TEXT_SIZE.sp,
                         lineHeight = TEXT_SIZE.sp,
-                        fontFamily = Mincho,
+                        fontFamily = Gothic,
                         style = Vertical,
                         color = color,
                         textAlign = TextAlign.Center,
