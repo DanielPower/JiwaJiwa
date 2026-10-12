@@ -112,6 +112,31 @@ class SessionTest {
         assertEquals(listOf("n1", "r1", "n2", "n3"), StudySession.interleave(listOf("r1"), listOf("n1", "n2", "n3")))
     }
 
+    private fun order(session: StudySession): List<Long> = buildList {
+        while (true) {
+            val card = session.next(at("2026-10-10T20:00")) ?: break
+            add(card.id)
+            session.answered(card.copy(state = CardState.REVIEW), 0)
+        }
+    }
+
+    @Test
+    fun `a shuffled sitting mixes up reviews and new words but keeps new kana in order`() {
+        val kana = (101L..104L).map { Card(id = it, wordId = -it, direction = Direction.KANA) }
+        val reviews = (1L..20L).map(::review)
+        val words = (21L..30L).map(::newCard)
+        val orders = (1..5).map { seed ->
+            order(StudySession(reviews, kana + words, emptyList(), random = kotlin.random.Random(seed)))
+        }
+        for (o in orders) {
+            assertEquals((reviews + kana + words).map { it.id }.toSet(), o.toSet())
+            assertEquals(kana.map { it.id }, o.filter { it > 100 })
+        }
+        assertTrue(orders.any { o -> o.filter { it <= 20 } != reviews.map { it.id } })
+        assertTrue(orders.any { o -> o.filter { it in 21..30 } != words.map { it.id } })
+        assertTrue(orders.distinct().size > 1)
+    }
+
     @Test
     fun `counts what's left in the sitting`() {
         val now = at("2026-10-10T20:00")
