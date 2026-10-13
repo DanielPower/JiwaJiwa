@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.UiLabel
 
 // ------------------------------------------------------------------ buttons
@@ -77,12 +79,7 @@ fun GradeButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val dark = colors.background.luminance() < 0.5f
-    val container = when {
-        !right -> colors.error
-        dark -> Color(0xFF97C485)
-        else -> Color(0xFF3D6936)
-    }
+    val container = if (right) rightGreen() else colors.error
     Button(
         onClick = onClick,
         modifier = modifier,
@@ -185,14 +182,39 @@ fun LevelSeal(label: String, modifier: Modifier = Modifier, tilted: Boolean = fa
 
 /** A thin bar for mastery, 0 to 100. */
 @Composable
-fun MasteryBar(mastery: Int, modifier: Modifier = Modifier) {
+fun MasteryBar(mastery: Int, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurface) {
     Box(modifier.height(4.dp).background(MaterialTheme.colorScheme.surfaceVariant)) {
         Box(
             Modifier
                 .fillMaxWidth((mastery / 100f).coerceIn(0f, 1f))
                 .height(4.dp)
-                .background(MaterialTheme.colorScheme.onSurface),
+                .background(color),
         )
+    }
+}
+
+/** The "Right" green, which Material's scheme has no slot for. */
+@Composable
+fun rightGreen(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF97C485) else Color(0xFF3D6936)
+
+/**
+ * Mastery's colour follows the furigana stages: gold while furigana shows,
+ * indigo while it's tap to show, green once it's off.
+ */
+@Composable
+fun masteryColor(mastery: Int): Color = when {
+    mastery >= MasteryRules.OFF_AT -> rightGreen()
+    mastery >= MasteryRules.HIDE_AT -> MaterialTheme.colorScheme.secondary
+    else -> MaterialTheme.colorScheme.tertiary
+}
+
+/** A short mastery bar with its number, for lists. */
+@Composable
+fun MasteryMeter(mastery: Int, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        MasteryBar(mastery, Modifier.width(44.dp), masteryColor(mastery))
+        Text("$mastery", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
     }
 }
 

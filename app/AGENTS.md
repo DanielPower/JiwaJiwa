@@ -46,6 +46,12 @@ in `ui/Washi.kt` (`PrimaryButton`, `SealButton`, `SecondaryButton`,
 `WashiChip`, `LevelSeal`, bottom nav, line icons) for new screens rather than
 stock Material ones. New/learning/review counts use 新/習/復.
 
+Colour cues (Daniel, 2026-10-13): review cards have a topper, indigo for
+Japanese → English and vermilion for English → Japanese, with the card's
+新/習/復 stage. Mastery outside the review page is coloured by furigana stage
+(`masteryColor`: gold below 40, indigo to 69, green from 70), with no extra
+labels or legend. The review page's mastery bar stays ink.
+
 ## UI text
 
 Write UI labels through `ui("English", "日本語")` (`ui/Labels.kt`), or a

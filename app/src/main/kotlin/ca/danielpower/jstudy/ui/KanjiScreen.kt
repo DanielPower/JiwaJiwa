@@ -207,9 +207,7 @@ private fun KanjiWordItem(entry: Entry, kanji: String, mine: KanjiWordRow?, onCl
         Spacer(Modifier.width(12.dp))
         Column(horizontalAlignment = Alignment.End) {
             Text(levelLabel(entry.jlpt), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (mine != null) {
-                Text("Mastery ${mine.mastery}", style = MaterialTheme.typography.labelMedium, color = red)
-            }
+            if (mine != null) MasteryMeter(mine.mastery, Modifier.padding(top = 4.dp))
         }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
