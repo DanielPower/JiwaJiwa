@@ -704,7 +704,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val id = withContext(Dispatchers.IO) {
                     val req = lock.withLock { repo.sequelRequest(story) }
-                    repo.writeStory(req, now(), { storyStatus(it, null) }, sequelTo = story)
+                    repo.writeStory(req, now(), sequelTo = story) { storyStatus(it, null) }
                 }
                 storyStatus(null, null)
                 sequelOf = null

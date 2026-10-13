@@ -653,7 +653,7 @@ class Repository(context: Context) {
      * Have Claude write a story and save it. Its new words aren't queued;
      * the reader adds the ones the learner picks. Returns the story's id.
      */
-    fun writeStory(request: StoryRequest, now: Long, progress: (String) -> Unit, sequelTo: SavedStory? = null): Long {
+    fun writeStory(request: StoryRequest, now: Long, sequelTo: SavedStory? = null, progress: (String) -> Unit): Long {
         val key = claudeKey()
         check(key.isNotEmpty()) { "Add a Claude API key in Settings first." }
         val writer = StoryWriter(ClaudeConversation(key), reader)
