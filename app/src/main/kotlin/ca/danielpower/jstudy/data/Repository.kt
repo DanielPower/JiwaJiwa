@@ -88,7 +88,6 @@ data class StoryReading(
     val words: Map<Long, Word>,
     val statuses: Map<Long, WordStatus>,
     val coverage: Coverage,
-    val rules: MasteryRules,
 )
 
 /** Numbers for the stats screen. */
@@ -138,20 +137,13 @@ class Repository(context: Context) {
 
     fun settings(): StudySettings {
         val d = StudySettings()
-        val m = d.mastery
         fun int(key: String, default: Int) = store.getValue(key)?.toIntOrNull() ?: default
         return runCatching {
             StudySettings(
                 newPerDay = int("new_per_day", d.newPerDay),
                 newKanaPerDay = int("new_kana_per_day", d.newKanaPerDay),
                 reviewCap = int("review_cap", d.reviewCap),
-                desiredRetention = store.getValue("retention")?.toDoubleOrNull() ?: d.desiredRetention,
                 rolloverHour = int("rollover_hour", d.rolloverHour),
-                mastery = MasteryRules(
-                    hideAt = int("mastery_hide_at", m.hideAt),
-                    offAt = int("mastery_off_at", m.offAt),
-                    productionAt = int("production_at", m.productionAt),
-                ),
             )
         }.getOrDefault(d)
     }
@@ -162,11 +154,7 @@ class Repository(context: Context) {
                 "new_per_day" to s.newPerDay.toString(),
                 "new_kana_per_day" to s.newKanaPerDay.toString(),
                 "review_cap" to s.reviewCap.toString(),
-                "retention" to s.desiredRetention.toString(),
                 "rollover_hour" to s.rolloverHour.toString(),
-                "mastery_hide_at" to s.mastery.hideAt.toString(),
-                "mastery_off_at" to s.mastery.offAt.toString(),
-                "production_at" to s.mastery.productionAt.toString(),
             ),
         )
     }
@@ -296,7 +284,7 @@ class Repository(context: Context) {
 
     fun answer(card: Card, correct: Boolean, now: Long): Pair<Answer, Undo> {
         val settings = settings()
-        val reviewer = Reviewer(Fsrs(desiredRetention = settings.desiredRetention), settings.mastery, clock(settings))
+        val reviewer = Reviewer(Fsrs(), clock(settings))
         val before = store.progress(card.wordId)
         val answer = reviewer.answer(card, before, correct, now, Random.Default)
         return store.transaction { db ->
@@ -317,7 +305,7 @@ class Repository(context: Context) {
     /** First sight of a word you don't know yet: start learning it, ungraded. */
     fun introduce(card: Card, now: Long): Pair<Card, Undo> {
         val settings = settings()
-        val reviewer = Reviewer(Fsrs(desiredRetention = settings.desiredRetention), settings.mastery, clock(settings))
+        val reviewer = Reviewer(Fsrs(), clock(settings))
         val before = store.progress(card.wordId)
         val introduced = reviewer.introduce(card, now)
         store.transaction { db -> store.updateCard(db, introduced) }
@@ -327,7 +315,7 @@ class Repository(context: Context) {
     /** Mark a word you already know at [mastery]. Returns the review interval in days. */
     fun markKnown(card: Card, mastery: Int, now: Long): Pair<Int, Undo> {
         val settings = settings()
-        val reviewer = Reviewer(Fsrs(desiredRetention = settings.desiredRetention), settings.mastery, clock(settings))
+        val reviewer = Reviewer(Fsrs(), clock(settings))
         val before = store.progress(card.wordId)
         val known = reviewer.markKnown(card, before, mastery, now, Random.Default)
         return store.transaction { db ->
@@ -448,7 +436,7 @@ class Repository(context: Context) {
      */
     fun importMastery(updates: Map<Long, Int>, now: Long, unlockProduction: Boolean = true) {
         val settings = settings()
-        val reviewer = Reviewer(Fsrs(desiredRetention = settings.desiredRetention), settings.mastery, clock(settings))
+        val reviewer = Reviewer(Fsrs(), clock(settings))
         store.transaction { db ->
             for ((wordId, mastery) in updates) {
                 // Kana from Renshuu go to kana cards, which stay set aside for a script you've said you read.
@@ -490,7 +478,7 @@ class Repository(context: Context) {
     }
 
     /** Words mastered well enough for the app to use them: the mastery where furigana turns off. */
-    fun masteredWords(): Set<Long> = store.wordsAtMastery(settings().mastery.offAt)
+    fun masteredWords(): Set<Long> = store.wordsAtMastery(MasteryRules.OFF_AT)
 
     // ------------------------------------------------------------ stories
 
@@ -524,8 +512,7 @@ class Repository(context: Context) {
         val statuses = store.wordStatuses()
         val started = statuses.filterValues { it.state != CardState.NEW }
         val known = dictionary.vocab(started.keys)
-        val rules = settings().mastery
-        val shaky = started.filterValues { !it.suspended && it.mastery < rules.hideAt }.entries
+        val shaky = started.filterValues { !it.suspended && it.mastery < MasteryRules.HIDE_AT }.entries
             .sortedBy { it.value.mastery }.take(PRACTICE_POOL).map { it.key }.shuffled().take(PRACTICE)
         val budget = newWordBudget(length, difficulty)
         val queued = store.cards(
@@ -583,7 +570,6 @@ class Repository(context: Context) {
             words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),
-            rules = settings().mastery,
         )
     }
 
@@ -773,8 +759,8 @@ class Repository(context: Context) {
                 label = "N$level",
                 total = counts[level] ?: 0,
                 started = mine.size,
-                known = mine.count { it.mastery >= settings.mastery.hideAt },
-                mastered = mine.count { it.mastery >= settings.mastery.offAt },
+                known = mine.count { it.mastery >= MasteryRules.HIDE_AT },
+                mastered = mine.count { it.mastery >= MasteryRules.OFF_AT },
             )
         }
         val kanaStatuses = store.kanaStatuses()
@@ -787,8 +773,8 @@ class Repository(context: Context) {
                 label = label,
                 total = units.size,
                 started = mine.size,
-                known = mine.count { it.mastery >= settings.mastery.hideAt },
-                mastered = mine.count { it.mastery >= settings.mastery.offAt },
+                known = mine.count { it.mastery >= MasteryRules.HIDE_AT },
+                mastered = mine.count { it.mastery >= MasteryRules.OFF_AT },
             )
         }
         return Stats(

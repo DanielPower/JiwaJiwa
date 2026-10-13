@@ -95,7 +95,6 @@ sealed interface Screen {
         val furiganaVisible: Boolean,
         val counts: ReviewCounts,
         val canUndo: Boolean,
-        val rules: MasteryRules,
     ) : Screen
 
     /** Only learning steps remain and none is due yet. */
@@ -121,7 +120,6 @@ sealed interface Screen {
         val lowerMastery: Int,
         /** The daily reminder's time, if you chose one. */
         val reminderMinute: Int?,
-        val rules: MasteryRules,
         /** Which kana you read already; null until you choose. */
         val kana: KanaKnown? = null,
         val page: SetupPage = SetupPage.WELCOME,
@@ -143,7 +141,7 @@ sealed interface Screen {
         val rows: List<DictionaryRow>,
     ) : Screen
 
-    data class WordPage(val detail: WordDetail, val rules: MasteryRules, val clock: StudyClock) : Screen
+    data class WordPage(val detail: WordDetail, val clock: StudyClock) : Screen
 
     data class RenshuuImport(val step: ImportStep) : Screen
 
@@ -226,7 +224,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             lookUpLabels()
             DailyReminder.schedule(getApplication(), repo.reminder())
             if (repo.needsSetup()) {
-                _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null, repo.settings().mastery)
+                _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null)
             } else {
                 showHome()
             }
@@ -311,7 +309,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             _screen.value = if (due != null) Screen.Waiting(due, counts) else Screen.Done(repo.summary(now()))
             return
         }
-        val rules = repo.settings().mastery
         if (card.direction == Direction.KANA) {
             val unit = KanaCourse.unit(card.wordId)
             if (unit == null) {
@@ -324,7 +321,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 furiganaVisible = false,
                 counts = counts,
                 canUndo = undo != null,
-                rules = rules,
             )
             return
         }
@@ -335,14 +331,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             return advance()
         }
         val mastery = repo.progress(card.wordId).mastery
-        val mode = rules.furigana(mastery)
+        val mode = MasteryRules.furigana(mastery)
         _screen.value = Screen.Review(
             current = ReviewCard(card, word, mode, mastery),
             revealed = false,
             furiganaVisible = mode == FuriganaMode.SHOWN,
             counts = counts,
             canUndo = undo != null,
-            rules = rules,
         )
     }
 
@@ -494,7 +489,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             _theme.value = ThemeMode.AUTO
             DailyReminder.schedule(getApplication(), repo.reminder())
             refreshLanguage()
-            _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null, repo.settings().mastery)
+            _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null)
         }
     }
 
@@ -665,7 +660,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun addStoryWord(wordId: Long) = storyWordAction { repo.learnNext(wordId, now()) }
 
     /** "I know this" on a word in a story: mark it known, as on a new card. */
-    fun knowStoryWord(wordId: Long) = storyWordAction { repo.markKnown(wordId, repo.settings().mastery.hideAt, now()) }
+    fun knowStoryWord(wordId: Long) = storyWordAction { repo.markKnown(wordId, MasteryRules.HIDE_AT, now()) }
 
     private fun storyWordAction(action: () -> Unit) = launchIo {
         val state = _screen.value as? Screen.StoryReader ?: return@launchIo
@@ -738,7 +733,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refreshLanguage()
         val detail = repo.wordDetail(wordId) ?: return
         val settings = repo.settings()
-        _screen.value = Screen.WordPage(detail, settings.mastery, repo.clock(settings))
+        _screen.value = Screen.WordPage(detail, repo.clock(settings))
     }
 
     fun closeWord() = launchIo {

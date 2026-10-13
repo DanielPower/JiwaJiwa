@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 class StudyTest {
     private val zone = ZoneId.of("America/St_Johns")
     private val clock = StudyClock(zone, rolloverHour = 4)
-    private val reviewer = Reviewer(Fsrs(), MasteryRules(), clock)
+    private val reviewer = Reviewer(Fsrs(), clock)
 
     private fun at(text: String) = LocalDateTime.parse(text).atZone(zone).toInstant().toEpochMilli()
 
@@ -25,11 +25,10 @@ class StudyTest {
 
     @Test
     fun `mastery thresholds pick the furigana mode`() {
-        val rules = MasteryRules()
-        assertEquals(FuriganaMode.SHOWN, rules.furigana(39))
-        assertEquals(FuriganaMode.HIDDEN, rules.furigana(40))
-        assertEquals(FuriganaMode.HIDDEN, rules.furigana(69))
-        assertEquals(FuriganaMode.OFF, rules.furigana(70))
+        assertEquals(FuriganaMode.SHOWN, MasteryRules.furigana(39))
+        assertEquals(FuriganaMode.HIDDEN, MasteryRules.furigana(40))
+        assertEquals(FuriganaMode.HIDDEN, MasteryRules.furigana(69))
+        assertEquals(FuriganaMode.OFF, MasteryRules.furigana(70))
     }
 
     @Test

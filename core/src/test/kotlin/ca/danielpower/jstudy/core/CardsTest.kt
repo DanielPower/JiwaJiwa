@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class CardsTest {
     private val zone = ZoneId.of("America/St_Johns")
     private val clock = StudyClock(zone, rolloverHour = 4)
-    private val reviewer = Reviewer(Fsrs(), MasteryRules(), clock)
+    private val reviewer = Reviewer(Fsrs(), clock)
 
     private fun at(text: String) = LocalDateTime.parse(text).atZone(zone).toInstant().toEpochMilli()
 
@@ -44,17 +44,6 @@ class CardsTest {
         }
         assertEquals(MasteryRules.stabilityDays(0), MasteryRules.stabilityDays(-5))
         assertEquals(MasteryRules.stabilityDays(100), MasteryRules.stabilityDays(105))
-    }
-
-    @Test
-    fun `mastery rules must be in order`() {
-        assertFailsWith<IllegalArgumentException> { MasteryRules(hideAt = 80, offAt = 70) }
-        assertFailsWith<IllegalArgumentException> { MasteryRules(productionAt = 101) }
-        assertFailsWith<IllegalArgumentException> { MasteryRules(hideAt = -1) }
-        val custom = MasteryRules(hideAt = 10, offAt = 20)
-        assertEquals(FuriganaMode.SHOWN, custom.furigana(9))
-        assertEquals(FuriganaMode.HIDDEN, custom.furigana(10))
-        assertEquals(FuriganaMode.OFF, custom.furigana(20))
     }
 
     @Test

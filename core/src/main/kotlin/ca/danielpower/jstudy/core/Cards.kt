@@ -86,7 +86,6 @@ data class Answer(
 /** Applies one Wrong or Right answer: FSRS scheduling plus mastery. */
 class Reviewer(
     private val fsrs: Fsrs,
-    private val mastery: MasteryRules,
     private val clock: StudyClock,
 ) {
     fun answer(card: Card, progress: WordProgress, correct: Boolean, now: Long, fuzz: Random? = null): Answer {
@@ -128,7 +127,7 @@ class Reviewer(
         }
         val unlock = card.direction == Direction.RECOGNITION &&
             !progress.productionUnlocked &&
-            newMastery >= mastery.productionAt
+            newMastery >= MasteryRules.PRODUCTION_AT
 
         val updated = card.copy(
             state = state,
@@ -197,7 +196,7 @@ class Reviewer(
         val firstDue = 1 + random.nextInt(days)
         val unlock = card.direction == Direction.RECOGNITION &&
             !progress.productionUnlocked &&
-            newMastery >= this.mastery.productionAt
+            newMastery >= MasteryRules.PRODUCTION_AT
         return Known(
             card = card.copy(
                 state = CardState.REVIEW,

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.KanaKnown
+import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.UiLabel
 
 /** First run, a page at a time: welcome, kana, starting level (if you read kana), reminder. */
@@ -171,8 +172,8 @@ private fun ColumnScope.LevelPage(state: Screen.Setup, vm: AppViewModel) {
         SectionLabel("The $belowCount words in $belowNames", Modifier.padding(top = 8.dp))
         val options = listOf(
             Triple(0, "Learn later", "They come after the harder levels, as new words."),
-            Triple(state.rules.hideAt, "Known", "Reviewed over the next week, furigana hidden but tappable."),
-            Triple(state.rules.offAt, "Mastered", "Reviewed over the next month, no furigana."),
+            Triple(MasteryRules.HIDE_AT, "Known", "Reviewed over the next week, furigana hidden but tappable."),
+            Triple(MasteryRules.OFF_AT, "Mastered", "Reviewed over the next month, no furigana."),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for ((mastery, label, _) in options) {

@@ -97,6 +97,9 @@ Study and scheduling:
 - Recognition (Japanese → English) comes first. The production card
   (English → Japanese) unlocks when mastery reaches 40. Production reviews
   schedule their own card but don't change mastery.
+- Target retention and the mastery thresholds (furigana and production)
+  are fixed constants (`MasteryRules`), not settings, so users aren't
+  overwhelmed with choices. Don't add them back unless Daniel asks.
 - New words go N5 → N1, by frequency within a level. Within a sitting,
   reviews and the day's new words are shuffled; new kana keep their order. A new word's first
   showing offers Continue (main action) or a quiet "I know this".
@@ -147,7 +150,7 @@ Other features (all shipped):
   quieter "I know this". Optional vertical (tategaki) text.
 - The app's own text turns Japanese as you learn: each label shows in
   English until every word in its Japanese is mastered (the furigana-off
-  mastery, 70 by default), then in Japanese. Labels are written as
+  mastery, 70), then in Japanese. Labels are written as
   `ui("English", "日本語")`; the words are found by reading the Japanese with
   the story reader, so there's no word list to maintain. Explanations and
   text with numbers in it stay English for now.

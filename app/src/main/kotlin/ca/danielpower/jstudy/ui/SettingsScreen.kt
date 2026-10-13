@@ -40,7 +40,6 @@ import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
 import java.time.LocalDate
 import java.util.Locale
-import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
@@ -54,7 +53,6 @@ fun SettingsScreen(
     vm: AppViewModel,
 ) {
     val s = state.settings
-    val m = s.mastery
     fun update(block: () -> StudySettings) {
         runCatching(block).onSuccess(onChange)
     }
@@ -125,8 +123,8 @@ fun SettingsScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("What about the words in $easier you haven't started yet? Words you've started keep their progress.")
                         TextButton(onClick = { choose(0) }) { Text("Learn them later, after the harder levels") }
-                        TextButton(onClick = { choose(m.hideAt) }) { Text("Known: review over the next week") }
-                        TextButton(onClick = { choose(m.offAt) }) { Text("Mastered: review over the next month") }
+                        TextButton(onClick = { choose(MasteryRules.HIDE_AT) }) { Text("Known: review over the next week") }
+                        TextButton(onClick = { choose(MasteryRules.OFF_AT) }) { Text("Mastered: review over the next month") }
                     }
                 },
                 confirmButton = {},
@@ -144,27 +142,8 @@ fun SettingsScreen(
         Stepper("Review limit per day", "${s.reviewCap}") { d ->
             update { s.copy(reviewCap = (s.reviewCap + d * 50).coerceIn(50, 2000)) }
         }
-        Stepper("Target retention", "${(s.desiredRetention * 100).roundToInt()}%") { d ->
-            update { s.copy(desiredRetention = ((s.desiredRetention * 100).roundToInt() + d).coerceIn(80, 95) / 100.0) }
-        }
         Stepper("New day starts at", String.format(Locale.ROOT, "%02d:00", s.rolloverHour)) { d ->
             update { s.copy(rolloverHour = (s.rolloverHour + d + 24) % 24) }
-        }
-
-        Section(ui("Mastery", "習熟度"))
-        Text(
-            "Mastery comes from how long you're expected to remember a word: 40 is about a week, 70 a month and 100 three months.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Stepper("Hide furigana from", masteryLabel(m.hideAt)) { d ->
-            update { s.copy(mastery = m.copy(hideAt = (m.hideAt + d * 5).coerceIn(0, m.offAt))) }
-        }
-        Stepper("Turn furigana off from", masteryLabel(m.offAt)) { d ->
-            update { s.copy(mastery = m.copy(offAt = (m.offAt + d * 5).coerceIn(m.hideAt, 100))) }
-        }
-        Stepper("English to Japanese cards from", masteryLabel(m.productionAt)) { d ->
-            update { s.copy(mastery = m.copy(productionAt = (m.productionAt + d * 5).coerceIn(0, 100))) }
         }
 
         Section(ui("Reminder", "通知"))
@@ -339,6 +318,3 @@ private fun Stepper(label: String, value: String, onStep: (Int) -> Unit) {
         }
     }
 }
-
-/** A mastery threshold with the stability it stands for, like "40 · 7 days". */
-private fun masteryLabel(mastery: Int) = "$mastery · ${MasteryRules.stabilityDays(mastery)} days"
