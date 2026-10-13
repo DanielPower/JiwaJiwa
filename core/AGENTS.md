@@ -17,9 +17,10 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 | `Reading.kt` | Kuromoji tokens grouped into words, matched to the dictionary, with conjugation labels. |
 | `Grammar.kt` | About 100 hand-written grammar points (particles and N5–N3 patterns), each with token patterns over Kuromoji output. `Reader` attaches them to words; a match inside a longer match is dropped. `GrammarTest` checks every point's own example sentence finds it, so add an example that does. |
 | `Stories.kt` | Graded-reader story requests, budgets of new words, prompts, and the rewrite loop. |
-| `Claude.kt` | A minimal Messages API client over `HttpURLConnection`. The Anthropic Java SDK was too heavy for the APK. Model `claude-opus-5-5`, effort high, server-side fallbacks on. The `send` parameter is the seam for tests. |
+| `Claude.kt` | A minimal Messages API client over `HttpURLConnection`. The Anthropic Java SDK was too heavy for the APK. Model `claude-sonnet-5-5` (Daniel chose it over Opus for speed and cost, 2026-10-13), effort high for stories and low for translations, server-side fallbacks on. The `send` parameter is the seam for tests. |
 | `UiLabels.kt` | `UiLabel` (English, Japanese, optional word spellings), the words a label needs (read with `Reader`), and `UiLanguage`, which picks the language each label shows in. |
 | `VerticalText.kt` | Line breaking for the vertical story reader: which column each run of characters goes in, with Japanese line-break rules (hanging 、。, closing brackets never start a column, opening ones never end one). |
+| `Translation.kt` | Splits story paragraphs into sentences (a quote stays with the words around it) and asks Claude for one English line per sentence. |
 | `RenshuuImport.kt` | Plans a Renshuu mastery import (take the higher). |
 
 ## Things that are easy to get wrong

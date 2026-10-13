@@ -91,7 +91,7 @@ class StoriesTest {
         assertEquals("一", claude.start("sys", "hello"))
         assertEquals("二", claude.reply("again"))
         val second = Json.parseToJsonElement(bodies[1]).jsonObject
-        assertEquals("claude-opus-5-5", second["model"]!!.jsonPrimitive.content)
+        assertEquals(ClaudeConversation.MODEL, second["model"]!!.jsonPrimitive.content)
         assertEquals("sys", second["system"]!!.jsonPrimitive.content)
         assertEquals("default", second["fallbacks"]!!.jsonPrimitive.content)
         val messages = second["messages"]!!.jsonArray

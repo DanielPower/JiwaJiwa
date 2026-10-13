@@ -190,9 +190,10 @@ class ProgressStoreTest {
     @Test
     fun storiesAreListedNewestFirst() {
         val old = store.insertStory(SavedStory(0, 100, "古い", "本文", "", "SHORT", "EASY"))
-        val new = store.insertStory(SavedStory(0, 200, "新しい", "本文", "cats", "LONG", "HARD"))
+        val new = store.insertStory(SavedStory(0, 200, "新しい", "本文", "cats", "LONG", "HARD", listOf("New", "Text")))
         assertEquals(listOf(new, old), store.stories().map { it.id })
-        assertEquals(SavedStory(new, 200, "新しい", "本文", "cats", "LONG", "HARD"), store.story(new))
+        assertEquals(SavedStory(new, 200, "新しい", "本文", "cats", "LONG", "HARD", listOf("New", "Text")), store.story(new))
+        assertEquals(emptyList<String>(), store.story(old)!!.translations)
         store.deleteStory(new)
         assertNull(store.story(new))
         assertEquals(listOf(old), store.stories().map { it.id })

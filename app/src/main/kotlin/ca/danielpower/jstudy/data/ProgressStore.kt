@@ -25,6 +25,8 @@ data class SavedStory(
     val prompt: String,
     val length: String,
     val difficulty: String,
+    /** English for each sentence of the title and body, in order; empty if there are none. */
+    val translations: List<String> = emptyList(),
 )
 
 /** Your cards, mastery and review history. This is what a backup saves. */
@@ -93,7 +95,15 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         if (oldVersion < 2) db.execSQL("ALTER TABLE card ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0")
         if (oldVersion < 3) createStories(db)
         if (oldVersion < 4) deriveMastery(db)
+        if (oldVersion < 5 && !hasColumn(db, "story", "translations")) {
+            db.execSQL("ALTER TABLE story ADD COLUMN translations TEXT NOT NULL DEFAULT ''")
+        }
     }
+
+    private fun hasColumn(db: SQLiteDatabase, table: String, column: String): Boolean =
+        db.rawQuery("PRAGMA table_info($table)", null).use { c ->
+            generateSequence { if (c.moveToNext()) c.getString(1) else null }.any { it == column }
+        }
 
     /** Replace the old points-based mastery with the value from each word's own card. */
     private fun deriveMastery(db: SQLiteDatabase) {
@@ -123,7 +133,9 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 body TEXT NOT NULL,
                 prompt TEXT NOT NULL,
                 length TEXT NOT NULL,
-                difficulty TEXT NOT NULL
+                difficulty TEXT NOT NULL,
+                -- One line per sentence.
+                translations TEXT NOT NULL DEFAULT ''
             )
             """,
         )
@@ -139,6 +151,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             put("prompt", story.prompt)
             put("length", story.length)
             put("difficulty", story.difficulty)
+            put("translations", story.translations.joinToString("\n"))
         }
         return writableDatabase.insert("story", null, values)
     }
@@ -154,13 +167,14 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     private fun storyRows(where: String?, args: Array<String>?): List<SavedStory> =
         readableDatabase.rawQuery(
-            "SELECT id, created_at, title, body, prompt, length, difficulty FROM story" +
+            "SELECT id, created_at, title, body, prompt, length, difficulty, translations FROM story" +
                 (where?.let { " WHERE $it" } ?: "") + " ORDER BY created_at DESC",
             args,
         ).use { c ->
             buildList {
                 while (c.moveToNext()) {
-                    add(SavedStory(c.getLong(0), c.getLong(1), c.getString(2), c.getString(3), c.getString(4), c.getString(5), c.getString(6)))
+                    val translations = c.getString(7).takeIf { it.isNotEmpty() }?.split('\n').orEmpty()
+                    add(SavedStory(c.getLong(0), c.getLong(1), c.getString(2), c.getString(3), c.getString(4), c.getString(5), c.getString(6), translations))
                 }
             }
         }
@@ -477,7 +491,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 4
+        const val VERSION = 5
         private const val CARD_COLUMNS =
             "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day"
     }
