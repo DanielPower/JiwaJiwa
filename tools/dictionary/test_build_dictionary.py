@@ -51,6 +51,22 @@ MADOUSHI = entry(
 IRU = entry(1577980, [kanji("居る", common=False, tags=["rK"])], [kana("いる")], [sense("to be")])
 
 
+def character(literal, meanings, on=(), kun=(), strokes=1, grade=None, frequency=None):
+    readings = [{"type": "ja_on", "value": r} for r in on] + [{"type": "ja_kun", "value": r} for r in kun]
+    readings.append({"type": "pinyin", "value": "x"})
+    return {
+        "literal": literal,
+        "misc": {"grade": grade, "strokeCounts": [strokes], "frequency": frequency},
+        "readingMeaning": {
+            "groups": [{"readings": readings, "meanings": [{"lang": "en", "value": m} for m in meanings]}]
+        },
+    }
+
+
+HA = character("歯", ["tooth"], on=["シ"], kun=["よわい", "は"], strokes=12, grade=3, frequency=1000)
+MIGAKU = character("磨", ["grind", "polish"], on=["マ"], kun=["みが.く", "す.る"], strokes=16, grade=8)
+
+
 class SelectWordTest(unittest.TestCase):
     def test_curated_spelling_replaces_rare_list_spelling(self):
         rows = [bd.JlptRow("1601040", "はみがき", "歯磨", 2)]
@@ -126,6 +142,9 @@ class BuildTest(unittest.TestCase):
             "frequency": "term\treading\tfrequency\tkana_frequency\nいる\tいる\t18\t\n歯磨き\tはみがき\t27099\t\n",
             "jlpt": {5: n5, 1: n1},
             "spellings": [["歯磨き", "freq", {"reading": "はみがき", "frequency": {"displayValue": "N5"}}]],
+            "kanjidic": {"databaseVersion": "1", "dictDate": "2026-01-01", "characters": [MIGAKU, HA]},
+            "kanji_jlpt": {"歯": {"jlpt_new": 3}, "磨": {"jlpt_new": None}},
+            "strokes": {"歯": ["M1,1", "M2,2"]},
         }
 
     def test_build_orders_collapses_and_writes(self):
@@ -162,6 +181,32 @@ class BuildTest(unittest.TestCase):
             row = con.execute("SELECT kanji, kana, jlpt, study_order FROM word WHERE id = 2000001").fetchone()
             con.close()
         self.assertEqual(row, ("魔導士", "まどうし", 0, None))
+
+
+class KanjiTest(unittest.TestCase):
+    def test_kanji_get_readings_meanings_level_and_strokes(self):
+        result = bd.build(BuildTest().source(), {})
+        self.assertEqual([k.literal for k in result.kanji], ["歯", "磨"])
+        ha, migaku = result.kanji
+        self.assertEqual((ha.meanings, ha.onyomi, ha.kunyomi), (["tooth"], ["シ"], ["よわい", "は"]))
+        self.assertEqual((ha.strokes, ha.grade, ha.jlpt, ha.freq_rank), (12, 3, 3, 1000))
+        self.assertEqual(ha.stroke_paths, ["M1,1", "M2,2"])
+        self.assertEqual((migaku.jlpt, migaku.stroke_paths), (0, None))
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "d.db"
+            bd.write_db(result, db)
+            con = sqlite3.connect(db)
+            row = con.execute("SELECT kunyomi, jlpt, stroke_paths FROM kanji WHERE literal = '歯'").fetchone()
+            con.close()
+        self.assertEqual(row, ('["よわい", "は"]', 3, '["M1,1", "M2,2"]'))
+
+    def test_kanjivg_strokes_come_from_the_main_file_in_order(self):
+        svg = '<svg><g><path id="s1" kvg:type="㇐" d="M10,20c1,2"/><path id="s2" d="M30,40"/></g></svg>'
+        strokes = bd.parse_kanjivg({
+            "kanji/06b6f.svg": svg,
+            "kanji/06b6f-Kaisho.svg": '<svg><path d="M0,0"/></svg>',
+        })
+        self.assertEqual(strokes, {"歯": ["M10,20c1,2", "M30,40"]})
 
 
 class SelectOtherTest(unittest.TestCase):

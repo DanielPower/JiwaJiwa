@@ -69,5 +69,27 @@
         "sha256": "a169779f5b8e4dbf4aaa86c367e2b0e24721b5d247c8e0c5b37b18189bc1be83"
       }
     ]
+  },
+  "kanjidic": {
+    "description": "KANJIDIC2 (English), via jmdict-simplified",
+    "license": "CC BY-SA 4.0, Electronic Dictionary Research and Development Group",
+    "homepage": "https://github.com/scriptin/jmdict-simplified",
+    "url": "https://github.com/scriptin/jmdict-simplified/releases/download/3.6.2%2B20261005200550/kanjidic2-en-3.6.2%2B20261005200550.json.zip",
+    "sha256": "d8c20908cb12030f7053d8a78825de5ac4697869d17d0edfecc92e17ce1b540a",
+    "zip_member": "kanjidic2-en-3.6.2.json"
+  },
+  "kanji_jlpt": {
+    "description": "JLPT kanji levels (N5 to N1, from Jonathan Waller's lists), via kanji-data",
+    "license": "MIT, David Gouveia; levels CC BY, Jonathan Waller",
+    "homepage": "https://github.com/davidluzgouveia/kanji-data",
+    "url": "https://raw.githubusercontent.com/davidluzgouveia/kanji-data/00fd7079c3890f430759536f91aa5e854ec0ca4f/kanji.json",
+    "sha256": "561b72ea9df703c58fae0c68585812e172aaa7611d2fcee6719d55fd2dfd4fa4"
+  },
+  "kanjivg": {
+    "description": "KanjiVG stroke order",
+    "license": "CC BY-SA 3.0, Ulrich Apel",
+    "homepage": "https://kanjivg.tagaini.net",
+    "url": "https://github.com/KanjiVG/kanjivg/releases/download/r20250816/kanjivg-20250816-main.zip",
+    "sha256": "69a2944ec1183086fdee5ba9c1f48bc306b867480a95b2f337f3203bf50689a3"
   }
 }

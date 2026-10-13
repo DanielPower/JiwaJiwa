@@ -45,8 +45,8 @@ python3 tools/dictionary/build_dictionary.py --check   # confirm the build match
 python3 -m unittest discover tools/dictionary
 ```
 
-The database holds every JMdict entry (about 218,000, 75 MB). The JLPT words
-have a level and a place in the study order; the rest have level 0 and are
+The database holds every JMdict entry (about 218,000) and every KANJIDIC2
+kanji, about 85 MB in all. The JLPT words have a level and a place in the study order; the rest have level 0 and are
 there for looking up words in stories, and can be studied on request. Because
 of its size the database is built in CI rather than committed;
 `build_report.md` records its content digest.
@@ -57,8 +57,10 @@ every spelling the build changed and anything it could not resolve.
 
 Data comes from JMdict (EDRDG, CC BY-SA 4.0) via jmdict-simplified,
 JmdictFurigana (CC BY-SA 4.0), Jonathan Waller's JLPT lists (CC BY) as linked
-to JMdict by Stephen Kraus's yomitan-jlpt-vocab (CC BY-SA 4.0), and the JPDB
-frequency list compiled by Kuuuube.
+to JMdict by Stephen Kraus's yomitan-jlpt-vocab (CC BY-SA 4.0), the JPDB
+frequency list compiled by Kuuuube, KANJIDIC2 (EDRDG, CC BY-SA 4.0), JLPT
+kanji levels via David Gouveia's kanji-data (MIT), and KanjiVG stroke order
+(Ulrich Apel, CC BY-SA 3.0).
 
 ## Release signing
 

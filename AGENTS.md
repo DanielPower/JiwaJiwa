@@ -25,7 +25,7 @@ Guiding rules from Daniel:
 
 | Path | What it is |
 | --- | --- |
-| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kana course, romaji, story budgets, Kuromoji word splitting, the Claude API client, Renshuu import planning. No Android imports. |
+| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kana course, kanji readings, romaji, story budgets, Kuromoji word splitting, the Claude API client, Renshuu import planning. No Android imports. |
 | `app/` | The Android app: Jetpack Compose UI, SQLite storage, reminder, backup. |
 | `tools/dictionary/` | Python (stdlib only) build of the bundled dictionary DB from pinned sources. |
 | `tools/fsrs/` | Generates `core/src/test/resources/fsrs_vectors.tsv` from py-fsrs. |
@@ -121,6 +121,12 @@ Kana:
 Other features (all shipped):
 
 - Dictionary search and word pages; non-JLPT words show as "Other".
+- Kanji pages, not kanji cards (Daniel, 2026-10-13): meanings, on and kun
+  readings (the ones your words use in red), animated stroke order
+  (KanjiVG), JLPT level, your words written with it and more words to
+  learn. Linked from the word page, the card's answer side and dictionary
+  search. Kanji have no mastery or stats of their own; Daniel saw no use
+  for them without kanji cards.
 - First-run setup: start level, kana known, optional reminder time. Both
   can change later in Settings: marking a script known sets its started
   kana cards aside (suspended) until you change it back, and moving the
