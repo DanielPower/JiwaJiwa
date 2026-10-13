@@ -416,8 +416,8 @@ internal val PAGE_PADDING = 16.dp
 private val PAGE_PADDING_H = 24.dp
 internal val PAGE_LABEL_HEIGHT = 28.dp
 private val PARAGRAPH_GAP = 16.dp
-/** Tall enough for a word's first meanings and its buttons; the rest scrolls. */
-private val PANE_HEIGHT = 210.dp
+/** Tall enough for a word's first meaning or two and its buttons; the rest scrolls. */
+private val PANE_HEIGHT = 160.dp
 
 /** What the reader's pane shows: word [i] of paragraph [p], or with [sentence], the sentence around it. */
 private data class Opened(val p: Int, val i: Int, val sentence: Boolean) {
@@ -522,10 +522,10 @@ private fun StoryWord(
 private fun SentenceCard(translation: String?) {
     Text(
         translation ?: "There's no translation saved for this story.",
-        fontSize = 19.sp,
-        lineHeight = 26.sp,
+        fontSize = 17.sp,
+        lineHeight = 23.sp,
         color = if (translation == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 10.dp),
     )
 }
 
@@ -541,20 +541,20 @@ private fun WordCard(
     // A particle or ending on its own: the card explains its grammar and has no dictionary entry.
     val grammarOnly = word.kind == WordKind.GRAMMAR
     Column(
-        Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 12.dp, bottom = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val title = if (grammarOnly) word.surface else entry?.display ?: word.lemma
-            Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 28.sp, modifier = Modifier.weight(1f, fill = false))
+            Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f, fill = false))
             val kana = entry?.kana ?: word.reading
             if (!grammarOnly && kana != title) {
-                Text(kana, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(kana, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (word.conjugated) {
                 Text(
@@ -572,7 +572,7 @@ private fun WordCard(
             } else {
                 val senses = entry.senses.take(3)
                 senses.forEachIndexed { i, sense ->
-                    MeaningLine(if (senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "))
+                    MeaningLine(if (senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "), compact = true)
                 }
                 val status = reading.statuses[entry.id]
                 Text(
@@ -596,7 +596,7 @@ private fun WordCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (reading.statuses[entry.id] == null) {
-                    PrimaryButton(onClick = { onAdd(entry.id) }, modifier = Modifier.weight(1f).height(44.dp)) {
+                    PrimaryButton(onClick = { onAdd(entry.id) }, modifier = Modifier.weight(1f).height(40.dp)) {
                         Text(ui("Add to reviews", "復習に追加"))
                     }
                 } else {
@@ -613,19 +613,19 @@ private fun WordCard(
 /** One grammar point in the word card: the pattern, what it means, and an example. */
 @Composable
 private fun GrammarNote(point: GrammarPoint) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 2.dp)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
-            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Text(
                 ui("Grammar", "文法") + "  ·  " + levelLabel(point.level),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Text(point.meaning, fontSize = 19.sp, lineHeight = 26.sp)
+        Text(point.meaning, fontSize = 16.sp, lineHeight = 21.sp)
         Text(point.note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(point.example, fontFamily = Gothic, fontSize = 17.sp, modifier = Modifier.padding(top = 2.dp))
+        Text(point.example, fontFamily = Gothic, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
         Text(point.exampleMeaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
