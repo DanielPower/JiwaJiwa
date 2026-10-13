@@ -1,7 +1,11 @@
 package ca.danielpower.jstudy.core
 
-/** A word you've studied on Renshuu. Renshuu gives each word its JMdict entry number, which is jstudy's word id. */
-data class RenshuuTerm(val jmdictId: Long?, val mastery: Int)
+/**
+ * A word you've studied on Renshuu. Renshuu gives each word its JMdict entry
+ * number, which is jstudy's word id. Kana have no entry number; they're
+ * matched to jstudy's kana cards by their [text].
+ */
+data class RenshuuTerm(val jmdictId: Long?, val mastery: Int, val text: String? = null)
 
 /** A word's standing in jstudy before an import. */
 data class LocalWord(val mastery: Int, val started: Boolean, val suspended: Boolean)
@@ -11,7 +15,7 @@ data class ImportPlan(
     val updates: Map<Long, Int>,
     /** Words Renshuu returned. */
     val renshuuWords: Int,
-    /** Of those, words that aren't in jstudy's dictionary (any JMdict word counts, JLPT or not). */
+    /** Of those, words that aren't in jstudy's dictionary (any JMdict word counts, JLPT or not) or its kana. */
     val notInJstudy: Int,
     /** Updates for words jstudy hasn't started. */
     val newWords: Int,
@@ -26,14 +30,16 @@ data class ImportPlan(
 object RenshuuImport {
     /**
      * Each word jstudy has takes the higher of the two masteries. A word
-     * Renshuu lists more than once counts at its highest mastery.
+     * Renshuu lists more than once counts at its highest mastery. Kana
+     * Renshuu tracks as words go to jstudy's kana cards, keyed by kana unit id.
      */
     fun plan(terms: List<RenshuuTerm>, inJstudy: (Long) -> Boolean, local: Map<Long, LocalWord>): ImportPlan {
         val best = mutableMapOf<Long, Int>()
         var notInJstudy = 0
         for (term in terms) {
-            val id = term.jmdictId
-            if (id == null || !inJstudy(id)) {
+            val jmdictId = term.jmdictId
+            val id = if (jmdictId != null) jmdictId.takeIf(inJstudy) else term.text?.trim()?.let(KanaCourse::unitFor)?.id
+            if (id == null) {
                 notInJstudy++
                 continue
             }

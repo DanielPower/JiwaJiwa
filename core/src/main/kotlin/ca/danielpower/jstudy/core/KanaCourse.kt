@@ -133,6 +133,9 @@ object KanaCourse {
 
     fun unit(id: Long): KanaUnit? = byId[id]
 
+    /** The unit written exactly [text], such as か or キャ. */
+    fun unitFor(text: String): KanaUnit? = byText[text]
+
     /**
      * The units it takes to read [text], longest match first, so きょう needs
      * きょ and う. Kanji and anything not taught (small ぁ on its own, ゐ, ・)
