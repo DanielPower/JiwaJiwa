@@ -101,7 +101,6 @@ fun App(vm: AppViewModel, screen: Screen) {
                         vm::saveSettings,
                         vm::saveClaudeKey,
                         vm::openImport,
-                        vm::setStoryVertical,
                         vm::setTheme,
                         vm,
                     )

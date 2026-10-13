@@ -48,7 +48,6 @@ fun SettingsScreen(
     onChange: (StudySettings) -> Unit,
     onSaveClaudeKey: (String) -> Unit,
     onImport: () -> Unit,
-    onStoryVertical: (Boolean) -> Unit,
     onTheme: (ThemeMode) -> Unit,
     vm: AppViewModel,
 ) {
@@ -193,18 +192,6 @@ fun SettingsScreen(
             Text(ui("Saved", "保存しました"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         }
 
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(ui("Vertical text", "縦書き", "縦", "書く"), style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    "縦書き: top to bottom, right to left, like a Japanese book.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(checked = state.storyVertical, onCheckedChange = onStoryVertical)
-        }
-
         Section(ui("Import", "インポート"))
         Text(
             "Bring in the mastery of words you've studied on Renshuu.",
@@ -285,7 +272,7 @@ fun SettingsScreen(
         Section(ui("About", "このアプリについて", "この", "アプリ"))
         Text(
             "Word list and dictionary data:\n" + state.attribution.split("; ").joinToString("\n") { "• $it" } +
-                "\n\nFont: Zen Kaku Gothic New, under the SIL Open Font License.",
+                "\n\nFonts: Zen Kaku Gothic New, Zen Old Mincho and Zen Maru Gothic, under the SIL Open Font License.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

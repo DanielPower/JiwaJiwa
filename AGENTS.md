@@ -157,7 +157,11 @@ Other features (all shipped):
   "Add to reviews" (front of the new-word queue) as the main action and a
   quieter "I know this". Stories show a page at a time, swiping between
   pages (no scrolling); horizontal pages are top-aligned, vertical pages
-  are centred and turn right to left. Optional vertical (tategaki) text.
+  are centred and turn right to left. A gear at the top right of the
+  reader opens its settings in the pane: text size (four steps), font (Zen
+  Kaku Gothic New by default, Zen Old Mincho serif, Zen Maru Gothic rounded)
+  and horizontal or vertical (tategaki) text. They live only there, not in
+  Settings, and fit the pane without scrolling.
   Both layouts follow Japanese line-break rules (`core/Kinsoku.kt`,
   `VerticalText.kt`, `HorizontalText.kt`).
 - The app's own text turns Japanese as you learn: each label shows in

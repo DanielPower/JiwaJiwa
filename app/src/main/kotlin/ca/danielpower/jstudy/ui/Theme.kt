@@ -26,6 +26,18 @@ val Gothic = FontFamily(
     Font(R.font.zen_kaku_gothic_new_bold, FontWeight.Bold),
 )
 
+/** Zen Old Mincho, a serif, offered only for stories. */
+val Mincho = FontFamily(
+    Font(R.font.zen_old_mincho_regular, FontWeight.Normal),
+    Font(R.font.zen_old_mincho_bold, FontWeight.Bold),
+)
+
+/** Zen Maru Gothic, a rounded sans serif, offered only for stories. */
+val Maru = FontFamily(
+    Font(R.font.zen_maru_gothic_regular, FontWeight.Normal),
+    Font(R.font.zen_maru_gothic_bold, FontWeight.Bold),
+)
+
 private val Paper = Color(0xFFF6ECDA)
 private val PaperRaised = Color(0xFFFCF6EA)
 private val Ink = Color(0xFF2A1F17)
