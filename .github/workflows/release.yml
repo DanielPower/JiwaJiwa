@@ -52,7 +52,7 @@ jobs:
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-        run: ./gradlew :core:test :app:testReleaseUnitTest :app:assembleRelease
+        run: ./gradlew :core:test :app:testReleaseUnitTest :app:assembleRelease :app:bundleRelease
 
       - name: Publish the release
         env:

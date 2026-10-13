@@ -40,7 +40,7 @@ jobs:
       # The release build runs the same checks as a real release. The debug
       # build has its own app id, so it installs next to the release app.
       - name: Build
-        run: ./gradlew :app:assembleRelease :app:assembleDebug
+        run: ./gradlew :app:assembleRelease :app:bundleRelease :app:assembleDebug
 
       - uses: actions/upload-artifact@v4
         with:
