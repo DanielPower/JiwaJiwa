@@ -50,7 +50,6 @@ import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudyClock
-import ca.danielpower.jstudy.data.WordStatus
 import ca.danielpower.jstudy.data.levelLabel
 import java.time.Instant
 import java.time.LocalDate
@@ -181,18 +180,15 @@ private fun DictionaryRowItem(row: DictionaryRow, onClick: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(horizontalAlignment = Alignment.End) {
             Text(levelLabel(e.jlpt), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            statusLabel(row.status)?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            val status = row.status
+            when {
+                status == null -> {}
+                status.suspended -> Text(ui("Suspended", "保留中"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                status.state == CardState.NEW -> {}
+                else -> MasteryMeter(status.mastery, Modifier.padding(top = 4.dp))
             }
         }
     }
-}
-
-private fun statusLabel(status: WordStatus?): String? = when {
-    status == null -> null
-    status.suspended -> "Suspended"
-    status.state == CardState.NEW -> null
-    else -> "Mastery ${status.mastery}"
 }
 
 // ------------------------------------------------------------------ word page
@@ -259,7 +255,7 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     if (started && !detail.suspended) {
                         Box(
-                            Modifier.size(64.dp).border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape),
+                            Modifier.size(64.dp).border(2.dp, masteryColor(detail.mastery), CircleShape),
                             contentAlignment = Alignment.Center,
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {

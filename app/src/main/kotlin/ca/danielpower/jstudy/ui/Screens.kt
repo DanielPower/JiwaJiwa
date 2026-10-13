@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -277,89 +278,94 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             WashiIconButton(WashiIcons.Undo, "Undo", vm::undoLast, enabled = state.canUndo)
         }
 
+        val cardShape = MaterialTheme.shapes.large
         Column(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 12.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
+                .clip(cardShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, cardShape)
                 .clickable(interactionSource = noRipple, indication = null) {
                     if (!revealed) vm.reveal()
-                }
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                },
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (intro) {
-                    Text(
-                        if (kana != null) ui("新 New kana", "新しいかな", "新しい", "仮名") else ui("新 New word", "新しい単語"),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
+            CardTopper(
+                when {
+                    intro && kana != null -> ui("新 New kana", "新しいかな", "新しい", "仮名")
+                    intro -> ui("新 New word", "新しい単語")
+                    else -> stageMark(state.current.card.state) + " " + when {
+                        kana != null -> ui("Kana → reading", "仮名 → 読み方", "仮名", "読み方")
+                        production -> ui("English → Japanese", "英語 → 日本語", "英語", "日本語")
+                        else -> ui("Japanese → English", "日本語 → 英語", "日本語", "英語")
+                    }
+                },
+                production,
+            )
+            Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Spacer(Modifier.weight(1f))
+                    if (word != null) LevelSeal(levelLabel(word.jlpt), tilted = true)
+                    if (kana != null) LevelSeal(if (kana.script == Script.HIRAGANA) "ひら" else "カナ", tilted = true)
                 }
-                if (word != null) LevelSeal(levelLabel(word.jlpt), tilted = true)
-                if (kana != null) LevelSeal(if (kana.script == Script.HIRAGANA) "ひら" else "カナ", tilted = true)
-            }
 
-            if (kana != null) {
-                KanaFace(kana, revealed)
-            } else if (word != null && production) {
-                Box(Modifier.fillMaxWidth().heightIn(min = 160.dp), contentAlignment = Alignment.Center) {
-                    Meanings(word.senses, limit = 3, large = true)
-                }
-                if (state.revealed) {
-                    HorizontalDivider(Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurface)
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        WordFace(word, showFurigana = true)
+                if (kana != null) {
+                    KanaFace(kana, revealed)
+                } else if (word != null && production) {
+                    Box(Modifier.fillMaxWidth().heightIn(min = 160.dp), contentAlignment = Alignment.Center) {
+                        Meanings(word.senses, limit = 3, large = true)
                     }
-                }
-            } else if (word != null) {
-                Column(
-                    Modifier.fillMaxWidth().heightIn(min = 200.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Box(
-                        modifier = Modifier.clickable(
-                            interactionSource = noRipple,
-                            indication = null,
-                            enabled = word.showsKanji && state.current.furigana != FuriganaMode.OFF,
-                        ) { vm.toggleFurigana() },
+                    if (state.revealed) {
+                        HorizontalDivider(Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurface)
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            WordFace(word, showFurigana = true)
+                        }
+                    }
+                } else if (word != null) {
+                    Column(
+                        Modifier.fillMaxWidth().heightIn(min = 200.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
                     ) {
-                        WordFace(word, showFurigana = revealed || state.furiganaVisible)
+                        Box(
+                            modifier = Modifier.clickable(
+                                interactionSource = noRipple,
+                                indication = null,
+                                enabled = word.showsKanji && state.current.furigana != FuriganaMode.OFF,
+                            ) { vm.toggleFurigana() },
+                        ) {
+                            WordFace(word, showFurigana = revealed || state.furiganaVisible)
+                        }
+                        if (!revealed && word.showsKanji && state.current.furigana == FuriganaMode.HIDDEN) {
+                            Text(
+                                ui("Tap the word for its reading", "押して読み方を見る", "押す", "読む", "見る"),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
                     }
-                    if (!revealed && word.showsKanji && state.current.furigana == FuriganaMode.HIDDEN) {
-                        Text(
-                            ui("Tap the word for its reading", "押して読み方を見る", "押す", "読む", "見る"),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
+                    if (revealed) {
+                        HorizontalDivider(Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurface)
+                        Meanings(word.senses, limit = 3, large = false)
+                        if (state.current.kanji.isNotEmpty()) {
+                            Spacer(Modifier.height(20.dp))
+                            KanjiLinks(state.current.kanji, vm::openKanji, compact = true)
+                        }
                     }
                 }
-                if (revealed) {
-                    HorizontalDivider(Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurface)
-                    Meanings(word.senses, limit = 3, large = false)
-                    if (state.current.kanji.isNotEmpty()) {
-                        Spacer(Modifier.height(20.dp))
-                        KanjiLinks(state.current.kanji, vm::openKanji, compact = true)
-                    }
-                }
-            }
 
-            if (!intro && state.revealed) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Text(ui("Mastery", "習熟度"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    MasteryBar(state.current.mastery, Modifier.weight(1f))
-                    Text("${state.current.mastery}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                if (!intro && state.revealed) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text(ui("Mastery", "習熟度"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        MasteryBar(state.current.mastery, Modifier.weight(1f))
+                        Text("${state.current.mastery}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -467,6 +473,28 @@ private fun GradeLabel(mark: String, label: String) {
         Text(mark, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 28.sp)
         Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
+}
+
+/** The band across the top of a review card: indigo when you answer in English, vermilion when you answer in Japanese. */
+@Composable
+private fun CardTopper(label: String, production: Boolean) {
+    val colors = MaterialTheme.colorScheme
+    Text(
+        label,
+        style = MaterialTheme.typography.labelLarge,
+        color = if (production) colors.onPrimary else colors.onSecondary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (production) colors.primary else colors.secondary)
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+    )
+}
+
+/** The 新, 習 or 復 a card shares with the queue counts. */
+private fun stageMark(state: CardState): String = when (state) {
+    CardState.NEW -> "新"
+    CardState.LEARNING, CardState.RELEARNING -> "習"
+    CardState.REVIEW -> "復"
 }
 
 @Composable
