@@ -200,6 +200,50 @@ class ProgressStoreTest {
     }
 
     @Test
+    fun aSequelNumbersBothPartsAndLinksBack() {
+        val first = store.insertStory(SavedStory(0, 100, "猫", "一", "", "SHORT", "EASY"))
+        val second = store.insertSequel(store.story(first)!!, SavedStory(0, 200, "猫", "二", "", "SHORT", "EASY"))
+        val third = store.insertSequel(store.story(second)!!, SavedStory(0, 300, "猫", "三", "", "SHORT", "EASY"))
+        assertEquals(1, store.story(first)!!.part)
+        assertEquals(2, store.story(second)!!.part)
+        assertEquals(3, store.story(third)!!.part)
+        assertEquals(second, store.story(third)!!.previousId)
+        assertEquals(second, store.nextPart(first))
+        assertNull(store.nextPart(third))
+    }
+
+    @Test
+    fun finishingAStoryMarksItRead() {
+        val id = store.insertStory(SavedStory(0, 100, "猫", "一", "", "SHORT", "EASY"))
+        assertNull(store.story(id)!!.readAt)
+        store.markStoryRead(id, 500, 120_000)
+        assertEquals(500L, store.story(id)!!.readAt)
+        assertEquals(120_000L, store.story(id)!!.readMillis)
+    }
+
+    @Test
+    fun upgradingFromVersion5KeepsStories() {
+        store.close()
+        context.deleteDatabase(ProgressStore.NAME)
+        val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(path, null).use { db ->
+            db.execSQL("CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+            db.execSQL(
+                "CREATE TABLE story (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at INTEGER NOT NULL, title TEXT NOT NULL, " +
+                    "body TEXT NOT NULL, prompt TEXT NOT NULL, length TEXT NOT NULL, difficulty TEXT NOT NULL, translations TEXT NOT NULL DEFAULT '')",
+            )
+            db.execSQL("INSERT INTO story (created_at, title, body, prompt, length, difficulty) VALUES (1, '猫', '一', '', 'SHORT', 'EASY')")
+            db.version = 5
+        }
+        store = ProgressStore(context)
+        val story = store.stories().single()
+        assertEquals("猫", story.title)
+        assertNull(story.part)
+        store.markStoryRead(story.id, 2, 3)
+        assertEquals(2L, store.story(story.id)!!.readAt)
+    }
+
+    @Test
     fun aFailedTransactionWritesNothing() {
         runCatching {
             store.transaction {

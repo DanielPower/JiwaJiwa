@@ -165,6 +165,10 @@ sealed interface Screen {
     data class StoryReader(
         val reading: StoryReading,
         val style: ReaderStyle,
+        val hasClaudeKey: Boolean,
+        /** What the sequel writer is doing, while it writes this story's sequel. */
+        val writing: String? = null,
+        val error: String? = null,
     ) : Screen
 }
 
@@ -222,6 +226,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var storyJob: Job? = null
     private var storyProgress: String? = null
     private var storyError: String? = null
+    // The story whose sequel is being written, so its reader shows the progress.
+    private var sequelOf: Long? = null
+    // When the open story was opened, to time the reading, and whether its end has been reached.
+    private var readingSince = 0L
+    private var readingFinished = false
 
     init {
         launchIo {
@@ -622,13 +631,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun storyStatus(progress: String?, error: String?) {
         storyProgress = progress
         storyError = error
-        _screen.update { if (it is Screen.Stories) it.copy(writing = progress, error = error) else it }
+        _screen.update {
+            when {
+                it is Screen.Stories -> it.copy(writing = progress, error = error)
+                it is Screen.StoryReader && it.reading.story.id == sequelOf -> it.copy(writing = progress, error = error)
+                else -> it
+            }
+        }
     }
 
     /** Write a story from the draft. It keeps going if you leave the screen, and opens when done if you're still here. */
     fun writeStory() {
         if (storyJob?.isActive == true) return
         val request = draft
+        sequelOf = null
         storyStatus("Getting your words ready", null)
         // Not under the lock: writing takes a while and shouldn't block the rest of the app.
         storyJob = viewModelScope.launch {
@@ -657,7 +673,50 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun showStory(id: Long) {
         val reading = repo.readStory(id) ?: return showStories()
-        _screen.value = Screen.StoryReader(reading, repo.readerStyle())
+        readingSince = now()
+        readingFinished = false
+        val writing = if (sequelOf == id) storyProgress else null
+        val error = if (sequelOf == id) storyError else null
+        _screen.value = Screen.StoryReader(reading, repo.readerStyle(), repo.claudeKey().isNotEmpty(), writing, error)
+    }
+
+    /** Reaching the end page marks the story read, timed from when it was opened. */
+    fun finishStory() = launchIo {
+        val state = _screen.value as? Screen.StoryReader ?: return@launchIo
+        if (readingFinished) return@launchIo
+        readingFinished = true
+        val at = now()
+        repo.markStoryRead(state.reading.story.id, at, at - readingSince)
+        refreshStory()
+    }
+
+    /**
+     * Write the next part of the open story, from every part so far. The
+     * story becomes Part 1 once its sequel is saved, and the sequel opens if
+     * you're still reading.
+     */
+    fun writeSequel() {
+        if (storyJob?.isActive == true) return
+        val story = (_screen.value as? Screen.StoryReader)?.reading?.story ?: return
+        sequelOf = story.id
+        storyStatus("Getting your words ready", null)
+        storyJob = viewModelScope.launch {
+            try {
+                val id = withContext(Dispatchers.IO) {
+                    val req = lock.withLock { repo.sequelRequest(story) }
+                    repo.writeStory(req, now(), sequelTo = story) { storyStatus(it, null) }
+                }
+                storyStatus(null, null)
+                sequelOf = null
+                if ((_screen.value as? Screen.StoryReader)?.reading?.story?.id == story.id) {
+                    lock.withLock { withContext(Dispatchers.IO) { showStory(id) } }
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                storyStatus(null, e.message ?: "Something went wrong writing the sequel.")
+            }
+        }
     }
 
     fun deleteStory(id: Long) = launchIo {
@@ -671,10 +730,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** "I know this" on a word in a story: mark it known, as on a new card. */
     fun knowStoryWord(wordId: Long) = storyWordAction { repo.markKnown(wordId, MasteryRules.HIDE_AT, now()) }
 
+    /** "Add all to reviews" on the end page, in the order the words came up. */
+    fun addStoryWords(wordIds: List<Long>) = storyWordAction {
+        val now = now()
+        for (id in wordIds) repo.learnNext(id, now)
+    }
+
     private fun storyWordAction(action: () -> Unit) = launchIo {
-        val state = _screen.value as? Screen.StoryReader ?: return@launchIo
+        if (_screen.value !is Screen.StoryReader) return@launchIo
         action()
-        val reading = repo.readStory(state.reading.story.id) ?: return@launchIo
+        refreshStory()
+    }
+
+    private fun refreshStory() {
+        val state = _screen.value as? Screen.StoryReader ?: return
+        val reading = repo.readStory(state.reading.story.id) ?: return
         _screen.update { if (it is Screen.StoryReader) it.copy(reading = reading) else it }
     }
 
