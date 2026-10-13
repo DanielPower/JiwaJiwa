@@ -38,8 +38,9 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 
 ## Design: Washi
 
-Paper `#F4EFE4`, ink `#1F1A16`, seal red `#B8381E`; dark mode ink `#171412`
-with red `#E0644A`. No dynamic colour. One font is bundled, Zen Kaku Gothic New
+Warm unbleached paper `#F6ECDA`, brown-black ink `#2A1F17`, seal red
+`#B5381C`; dark mode is a tea-brown `#1E1711` with cream text `#F1E5CF` and
+red `#E8704F`. Keep every text colour at 4.5:1 or better on its background. No dynamic colour. One font is bundled, Zen Kaku Gothic New
 (sans serif), for Japanese, headings and UI. Use the shared components
 in `ui/Washi.kt` (`PrimaryButton`, `SealButton`, `SecondaryButton`,
 `WashiChip`, `LevelSeal`, bottom nav, line icons) for new screens rather than

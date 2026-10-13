@@ -80,8 +80,8 @@ fun GradeButton(
     val dark = colors.background.luminance() < 0.5f
     val container = when {
         !right -> colors.error
-        dark -> Color(0xFF8DBF7E)
-        else -> Color(0xFF3F6B3A)
+        dark -> Color(0xFF97C485)
+        else -> Color(0xFF3D6936)
     }
     Button(
         onClick = onClick,
