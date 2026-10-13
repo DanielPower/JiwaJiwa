@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -675,16 +676,22 @@ private fun RowScope.MenuOption(selected: Boolean, onClick: () -> Unit, content:
     }
 }
 
-/** A sentence's English, or why there isn't any. */
+/** A sentence's English, or why there isn't any. Centred in the pane when it fits, from the top when it scrolls. */
 @Composable
 private fun SentenceCard(translation: String?) {
-    Text(
-        translation ?: "There's no translation saved for this story.",
-        fontSize = 17.sp,
-        lineHeight = 23.sp,
-        color = if (translation == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 10.dp),
-    )
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                translation ?: "There's no translation saved for this story.",
+                fontSize = 17.sp,
+                lineHeight = 23.sp,
+                color = if (translation == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
+            )
+        }
+    }
 }
 
 /** The open word's card: its meanings, conjugation and grammar, and what to do with it. */
@@ -698,9 +705,10 @@ private fun WordCard(
     val entry = word.wordId?.let { reading.words[it] }
     // A particle or ending on its own: the card explains its grammar and has no dictionary entry.
     val grammarOnly = word.kind == WordKind.GRAMMAR
+    // Centred when it all fits. When the meanings scroll they take the spare room, so the card fills the pane from the top.
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val title = if (grammarOnly) word.surface else entry?.display ?: word.lemma
