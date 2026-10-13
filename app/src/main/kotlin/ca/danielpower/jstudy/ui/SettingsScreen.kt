@@ -35,12 +35,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.KanaKnown
-import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
 import java.time.LocalDate
 import java.util.Locale
-import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
@@ -144,27 +142,8 @@ fun SettingsScreen(
         Stepper("Review limit per day", "${s.reviewCap}") { d ->
             update { s.copy(reviewCap = (s.reviewCap + d * 50).coerceIn(50, 2000)) }
         }
-        Stepper("Target retention", "${(s.desiredRetention * 100).roundToInt()}%") { d ->
-            update { s.copy(desiredRetention = ((s.desiredRetention * 100).roundToInt() + d).coerceIn(80, 95) / 100.0) }
-        }
         Stepper("New day starts at", String.format(Locale.ROOT, "%02d:00", s.rolloverHour)) { d ->
             update { s.copy(rolloverHour = (s.rolloverHour + d + 24) % 24) }
-        }
-
-        Section(ui("Mastery", "習熟度"))
-        Text(
-            "Mastery comes from how long you're expected to remember a word: 40 is about a week, 70 a month and 100 three months.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Stepper("Hide furigana from", masteryLabel(m.hideAt)) { d ->
-            update { s.copy(mastery = m.copy(hideAt = (m.hideAt + d * 5).coerceIn(0, m.offAt))) }
-        }
-        Stepper("Turn furigana off from", masteryLabel(m.offAt)) { d ->
-            update { s.copy(mastery = m.copy(offAt = (m.offAt + d * 5).coerceIn(m.hideAt, 100))) }
-        }
-        Stepper("English to Japanese cards from", masteryLabel(m.productionAt)) { d ->
-            update { s.copy(mastery = m.copy(productionAt = (m.productionAt + d * 5).coerceIn(0, 100))) }
         }
 
         Section(ui("Reminder", "通知"))
@@ -339,6 +318,3 @@ private fun Stepper(label: String, value: String, onStep: (Int) -> Unit) {
         }
     }
 }
-
-/** A mastery threshold with the stability it stands for, like "40 · 7 days". */
-private fun masteryLabel(mastery: Int) = "$mastery · ${MasteryRules.stabilityDays(mastery)} days"
