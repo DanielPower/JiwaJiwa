@@ -11,7 +11,7 @@ data class ImportPlan(
     val updates: Map<Long, Int>,
     /** Words Renshuu returned. */
     val renshuuWords: Int,
-    /** Of those, words that aren't in jstudy's word list. */
+    /** Of those, words that aren't in jstudy's dictionary (any JMdict word counts, JLPT or not). */
     val notInJstudy: Int,
     /** Updates for words jstudy hasn't started. */
     val newWords: Int,
