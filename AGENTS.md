@@ -60,7 +60,7 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | Workflow | When | What |
 | --- | --- | --- |
 | `test.yml` (Tests) | every PR, every push to main | core tests, app unit tests, dictionary tests, as separate checks |
-| `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `ca.danielpower.jstudy.debug`, installs next to the real app) |
+| `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app) |
 | `build.yml` | pushes to branches other than main | test and build without releasing |
 | `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
@@ -134,7 +134,7 @@ Other features (all shipped):
   wait or are marked Known or Mastered.
 - Daily reminder has **no default time**; the user picks one. Don't request
   notification permission until they turn it on.
-- Manual backup/restore only (`jstudy-<date>.jstudy`, a copy of the progress
+- Manual backup/restore only (`jiwajiwa-<date>.jstudy`, a copy of the progress
   DB). No automatic backups. The Claude API key isn't included.
 - Settings has a reset button that erases all user data.
 - Stats page (heatmap, recall, forecast, per-level progress) is a link on the
@@ -180,5 +180,11 @@ Other features (all shipped):
 - Visual design is "Washi" (paper, ink, vermilion seal) with light, dark and
   auto themes. See `app/AGENTS.md`.
 
-Not decided or not built yet: Play Store publishing (open item: the JPDB
-frequency list licence), example sentences, audio.
+The app is named **Jiwa Jiwa** (app id `com.crispyumbrella.jiwajiwa`);
+"jstudy" survives only in the repo, code packages and backup file extension.
+Google Play holds the app signing key and the CI key is the upload key; see
+`PRIVACY.md` and "Google Play" in the README. The first Play release goes to internal
+testing.
+
+Not decided or not built yet: the JPDB frequency list licence (must be settled
+before a closed or public Play release), example sentences, audio.

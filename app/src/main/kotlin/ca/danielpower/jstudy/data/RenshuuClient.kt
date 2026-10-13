@@ -66,7 +66,7 @@ class RenshuuClient(private val apiKey: String) {
             return try {
                 JSONObject(body)
             } catch (e: JSONException) {
-                throw RenshuuException("Renshuu sent a reply jstudy couldn't read.")
+                throw RenshuuException("Renshuu sent a reply Jiwa Jiwa couldn't read.")
             }
         } catch (e: IOException) {
             throw RenshuuException("The connection to Renshuu was interrupted. Try again.")

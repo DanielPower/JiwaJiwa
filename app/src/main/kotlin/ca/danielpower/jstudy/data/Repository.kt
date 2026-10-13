@@ -825,17 +825,17 @@ class Repository(context: Context) {
         val db = try {
             SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY)
         } catch (e: Exception) {
-            throw BackupException("That file isn't a jstudy backup.")
+            throw BackupException("That file isn't a Jiwa Jiwa backup.")
         }
         db.use {
             val tables = it.rawQuery("SELECT name FROM sqlite_master WHERE type = 'table'", null).use { c ->
                 buildSet { while (c.moveToNext()) add(c.getString(0)) }
             }
             if (!tables.containsAll(listOf("card", "word_progress", "review_log", "kv"))) {
-                throw BackupException("That file isn't a jstudy backup.")
+                throw BackupException("That file isn't a Jiwa Jiwa backup.")
             }
             if (it.version > ProgressStore.VERSION) {
-                throw BackupException("That backup is from a newer version of jstudy. Update the app first.")
+                throw BackupException("That backup is from a newer version of Jiwa Jiwa. Update the app first.")
             }
         }
     }

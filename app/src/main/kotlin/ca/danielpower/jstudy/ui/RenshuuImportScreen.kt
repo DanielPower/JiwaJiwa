@@ -77,7 +77,7 @@ fun RenshuuImportScreen(step: ImportStep, vm: AppViewModel) {
 private fun EnterKey(error: String?, onSubmit: (String) -> Unit) {
     var key by rememberSaveable { mutableStateOf("") }
     Text(
-        "Paste your API key from Renshuu's settings. jstudy uses it once to read the words you've studied " +
+        "Paste your API key from Renshuu's settings. Jiwa Jiwa uses it once to read the words you've studied " +
             "and their mastery, and doesn't keep it.",
         style = MaterialTheme.typography.bodyMedium,
     )
@@ -105,15 +105,15 @@ private fun EnterKey(error: String?, onSubmit: (String) -> Unit) {
 private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit) {
     val matched = plan.renshuuWords - plan.notInJstudy
     Text(
-        "Renshuu has ${plan.renshuuWords} words you've studied. $matched of them are in jstudy's dictionary.",
+        "Renshuu has ${plan.renshuuWords} words you've studied. $matched of them are in Jiwa Jiwa's dictionary.",
         style = MaterialTheme.typography.bodyLarge,
     )
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Line("New to jstudy, will start at Renshuu's mastery", plan.newWords)
+        Line("New to Jiwa Jiwa, will start at Renshuu's mastery", plan.newWords)
         Line("Already started, mastery will go up", plan.raised)
-        Line("Left as is: jstudy's mastery is as high, or Renshuu's is 0", plan.unchanged)
-        Line("Left as is: suspended in jstudy", plan.suspended)
-        Line("Not in jstudy's dictionary", plan.notInJstudy)
+        Line("Left as is: Jiwa Jiwa's mastery is as high, or Renshuu's is 0", plan.unchanged)
+        Line("Left as is: suspended in Jiwa Jiwa", plan.suspended)
+        Line("Not in Jiwa Jiwa's dictionary", plan.notInJstudy)
     }
     if (plan.updates.isEmpty()) {
         Text("There's nothing to import.", style = MaterialTheme.typography.bodyLarge)
