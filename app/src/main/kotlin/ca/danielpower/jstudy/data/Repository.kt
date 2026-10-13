@@ -575,7 +575,7 @@ class Repository(context: Context) {
         val sentences = sentenceTexts(listOf(reader.read(written.story.title).flatten()) + reader.read(written.story.body))
         // The story is worth keeping without its translations if they fail.
         val translations = try {
-            StoryTranslator(ClaudeConversation(key)).translate(sentences)
+            StoryTranslator(ClaudeConversation(key, effort = "low")).translate(sentences)
         } catch (e: IOException) {
             null
         }

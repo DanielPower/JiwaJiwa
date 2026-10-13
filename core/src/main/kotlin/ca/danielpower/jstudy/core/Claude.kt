@@ -80,7 +80,7 @@ class ClaudeConversation(
     private val JsonElement.type get() = jsonObject["type"]?.jsonPrimitive?.contentOrNull
 
     companion object {
-        const val MODEL = "claude-opus-5-5"
+        const val MODEL = "claude-sonnet-5-5"
         private const val URL_MESSAGES = "https://api.anthropic.com/v1/messages"
         private val RETRY_DELAYS = longArrayOf(2_000, 6_000)
 
