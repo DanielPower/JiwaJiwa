@@ -106,7 +106,8 @@ fun VerticalStory(
         val rubySize = size * RUBY_RATIO
         val cell = with(density) { (size * 1.15f).sp.toPx() }
         val rubyCell = with(density) { (rubySize * 1.15f).sp.toPx() }
-        val gap = cell * 0.75f
+        // The space past each column's furigana: about as tight as a paperback, fitting an extra column.
+        val gap = cell * 0.45f
         val colWidth = cell + rubyCell
         val pad = with(density) { PAGE_PADDING.toPx() }
         val width = constraints.maxWidth - 2 * pad
