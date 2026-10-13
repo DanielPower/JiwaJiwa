@@ -60,15 +60,15 @@ jobs:
           SIGNED: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' }}
         run: |
           version="0.1.${GITHUB_RUN_NUMBER}"
-          apk="jstudy-${version}.apk"
+          apk="jiwajiwa-${version}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
           # The bundle is what Google Play takes; the APK is for installing directly.
-          cp app/build/outputs/bundle/release/app-release.aab "jstudy-${version}.aab"
+          cp app/build/outputs/bundle/release/app-release.aab "jiwajiwa-${version}.aab"
           notes="$(git log -1 --pretty=%B)"
           if [ "$SIGNED" != "true" ]; then
             notes="${notes}"$'\n\n'"Signed with a temporary debug key. Add the signing secrets (see Release signing in the README) so updates install over each other."
           fi
-          gh release create "v${version}" "$apk" "jstudy-${version}.aab" --title "jstudy ${version}" --notes "$notes" --target "$GITHUB_SHA"
+          gh release create "v${version}" "$apk" "jiwajiwa-${version}.aab" --title "Jiwa Jiwa ${version}" --notes "$notes" --target "$GITHUB_SHA"
 
       # Sends each release to Google Play's internal testing track, once the
       # PLAY_SERVICE_ACCOUNT_JSON secret is set (see "Google Play" in the README).
@@ -84,7 +84,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: ca.danielpower.jstudy
+          packageName: com.crispyumbrella.jiwajiwa
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: internal
           status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}

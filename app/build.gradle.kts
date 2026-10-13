@@ -23,7 +23,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "ca.danielpower.jstudy"
+        applicationId = "com.crispyumbrella.jiwajiwa"
         minSdk = 26
         targetSdk = 36
         versionCode = buildNumber

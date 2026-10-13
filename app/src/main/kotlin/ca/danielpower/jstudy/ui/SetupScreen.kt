@@ -104,7 +104,7 @@ private fun Example(japanese: String, name: String, description: String) {
 private fun ColumnScope.WelcomePage() {
     Title(ui("Welcome", "ようこそ"))
     Body(
-        "jstudy teaches Japanese words with flashcards. Each day brings a few new words, and reviews of " +
+        "Jiwa Jiwa teaches Japanese words with flashcards. Each day brings a few new words, and reviews of " +
             "earlier ones timed for just before you'd forget them.",
     )
     Body("A couple of questions first, so it starts at the right place for you.")

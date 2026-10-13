@@ -1,8 +1,8 @@
-# jstudy privacy policy
+# Jiwa Jiwa privacy policy
 
 Last updated: 2026-10-13
 
-jstudy is a Japanese vocabulary app made by Daniel Power. It has no accounts,
+Jiwa Jiwa is a Japanese vocabulary app made by Daniel Power. It has no accounts,
 no ads and no analytics, and the developer receives none of your data.
 
 ## What stays on your device
@@ -14,13 +14,13 @@ saved where you choose.
 
 ## What leaves your device, and only when you ask
 
-- **Stories.** When you ask for a story, a sequel or a rewrite, jstudy sends a
+- **Stories.** When you ask for a story, a sequel or a rewrite, Jiwa Jiwa sends a
   request to Anthropic's Claude API (api.anthropic.com) using the API key you
   entered. The request contains your story prompt and settings, your level, a
   list of words you know or are learning, and the story so far for sequels.
   Anthropic handles it under its own privacy policy:
   https://www.anthropic.com/legal/privacy
-- **Renshuu import.** When you import from Renshuu, jstudy sends the Renshuu
+- **Renshuu import.** When you import from Renshuu, Jiwa Jiwa sends the Renshuu
   API key you enter to api.renshuu.org and downloads your studied vocabulary.
   The key isn't saved. Renshuu's own privacy policy applies.
 
@@ -44,7 +44,7 @@ The optional daily reminder is a local notification scheduled on your device.
 
 ## Children
 
-jstudy isn't directed at children under 13.
+Jiwa Jiwa isn't directed at children under 13.
 
 ## Contact
 

@@ -1,4 +1,4 @@
-# jstudy
+# Jiwa Jiwa
 
 An Android app for learning Japanese vocabulary. It ships with every word on
 the JLPT N5 to N1 lists, reviews them Anki-style (you grade yourself Wrong or
@@ -79,7 +79,7 @@ update needs a reinstall.
 
 ## Google Play
 
-Every release also builds `jstudy-<version>.aab`, the bundle Google Play takes,
+Every release also builds `jiwajiwa-<version>.aab`, the bundle Google Play takes,
 and attaches it to the GitHub release. The first bundle has to be uploaded by
 hand in Play Console. After that, setting the `PLAY_SERVICE_ACCOUNT_JSON`
 repository secret (a Google Cloud service account key with release access in

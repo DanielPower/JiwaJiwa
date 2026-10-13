@@ -215,7 +215,7 @@ fun SettingsScreen(
             if (uri != null) vm.importBackup(uri)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SecondaryButton(onClick = { export.launch("jstudy-${LocalDate.now()}.jstudy") }, modifier = Modifier.weight(1f)) {
+            SecondaryButton(onClick = { export.launch("jiwajiwa-${LocalDate.now()}.jstudy") }, modifier = Modifier.weight(1f)) {
                 Text(ui("Save backup", "バックアップを保存"))
             }
             SecondaryButton(onClick = { restoring = true }, modifier = Modifier.weight(1f)) { Text(ui("Restore", "戻す")) }

@@ -885,7 +885,7 @@ private fun reportStory(context: Context, story: SavedStory) {
         "Length: ${story.length}, difficulty: ${story.difficulty}\n\n${story.body}"
     val uri = Uri.parse(
         "mailto:${context.getString(R.string.report_email)}" +
-            "?subject=${Uri.encode("jstudy story report")}&body=${Uri.encode(body)}",
+            "?subject=${Uri.encode("Jiwa Jiwa story report")}&body=${Uri.encode(body)}",
     )
     try {
         context.startActivity(Intent(Intent.ACTION_SENDTO, uri))
