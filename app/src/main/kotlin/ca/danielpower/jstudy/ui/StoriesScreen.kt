@@ -1,27 +1,22 @@
 package ca.danielpower.jstudy.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -33,30 +28,22 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,6 +69,8 @@ private const val FEW_WORDS = 300
 
 @Composable
 fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
+    // The story waiting on "Delete this story?".
+    var deleting by remember { mutableStateOf<SavedStory?>(null) }
     val draft = state.draft
     val writing = state.writing != null
     Column(
@@ -176,19 +165,38 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         if (state.stories.isNotEmpty()) {
             HorizontalDivider(Modifier.padding(top = 12.dp), color = MaterialTheme.colorScheme.onSurface)
             SectionLabel(ui("Your stories", "あなたの物語"))
-            for (story in state.stories) StoryRow(story) { vm.openStory(story.id) }
+            Text("Hold a story to delete it.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            for (story in state.stories) StoryRow(story, onClick = { vm.openStory(story.id) }, onHold = { deleting = story })
         }
+    }
+
+    deleting?.let { story ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text("Delete this story?") },
+            text = { Text(story.title.ifBlank { ui("Untitled", "無題", "題") }, fontFamily = Gothic) },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleting = null
+                    vm.deleteStory(story.id)
+                }) { Text(ui("Delete", "削除"), color = MaterialTheme.colorScheme.primary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleting = null }) { Text(ui("Cancel", "やめる"), color = MaterialTheme.colorScheme.onSurface) }
+            },
+        )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
+private fun StoryRow(story: SavedStory, onClick: () -> Unit, onHold: () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
-            .clickable(onClick = onClick),
+            .combinedClickable(onLongClick = onHold, onClick = onClick),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(story.title.ifBlank { ui("Untitled", "無題", "題") }, style = MaterialTheme.typography.titleLarge)
@@ -218,7 +226,6 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
 @Composable
 fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val reading = state.reading
-    var confirmDelete by remember { mutableStateOf(false) }
     // What the pane shows: a word, or the sentence around it. The title is paragraph TITLE.
     var open by remember { mutableStateOf<Opened?>(null) }
     val openWord = open?.let { reading.word(it.p, it.i) }
@@ -233,136 +240,74 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         indices.map { o.p to it }.toSet()
     }.orEmpty()
     val selected = open?.takeIf { !it.sentence }?.key
-    val focus = open?.key
-    // Where the open word is on screen, so the pane can stay clear of it.
-    var focusBounds by remember { mutableStateOf<Rect?>(null) }
     val close = { open = null }
     val tap = { key: Pair<Int, Int> -> open = if (selected == key) null else Opened(key.first, key.second, sentence = false) }
     val hold = { key: Pair<Int, Int> -> open = Opened(key.first, key.second, sentence = true) }
-    val onFocus = { bounds: Rect -> focusBounds = bounds }
     BackHandler(enabled = open != null) { open = null }
 
-    // A tap anywhere that isn't a word or a button closes the pane.
-    val tapToClose = if (open != null) Modifier.pointerInput(Unit) { detectTapGestures { open = null } } else Modifier
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val paneMaxHeight = maxHeight * 0.45f
-        var top by remember { mutableFloatStateOf(0f) }
-        var paneHeight by remember { mutableIntStateOf(0) }
-        Column(Modifier.fillMaxSize().onGloballyPositioned { top = it.boundsInRoot().top }.then(tapToClose)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                WashiIconButton(WashiIcons.Back, "Back", vm::openStories)
-                val cov = reading.coverage
-                val n = cov.newWords.size
-                Text(
-                    "${(cov.knownShare * 100).roundToInt()}% known  ·  " + if (n == 1) "1 new word" else "$n new words",
+    // A tap in the story that isn't on a word clears the pane.
+    val tapToClear = if (open != null) Modifier.pointerInput(Unit) { detectTapGestures { open = null } } else Modifier
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            WashiIconButton(WashiIcons.Back, "Back", vm::openStories)
+            Box(Modifier.weight(1f)) {
+                StoryTitle(reading, MaterialTheme.typography.headlineSmall, selected, lit, tap, hold, close)
+            }
+        }
+        // Always there, with the story below it, so it never covers the text and nothing moves when it fills.
+        Box(Modifier.fillMaxWidth().height(PANE_HEIGHT).background(MaterialTheme.colorScheme.surfaceContainerLow)) {
+            val o = open
+            when {
+                o == null -> Text(
+                    "Tap a word to see what it means. Hold one to read its sentence in English.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
                 )
-                // Names the layout it switches to.
-                SecondaryButton(
-                    onClick = { vm.setStoryVertical(!state.vertical) },
-                    modifier = Modifier.height(40.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp),
-                ) {
-                    Text(if (state.vertical) ui("Horizontal", "横書き", "横", "書く") else ui("Vertical", "縦書き", "縦", "書く"), fontSize = 14.sp)
-                }
-                WashiIconButton(WashiIcons.Delete, "Delete story", { confirmDelete = true })
-            }
-            val title: @Composable (TextStyle) -> Unit = { style ->
-                StoryTitle(reading, style, selected, lit, focus, tap, hold, close, onFocus)
-            }
-            if (state.vertical) {
-                Column(
-                    Modifier.padding(horizontal = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    title(MaterialTheme.typography.headlineSmall)
-                }
-                VerticalStory(
+                o.sentence -> SentenceCard(openSentence?.translation)
+                openWord != null -> WordCard(
+                    word = openWord,
                     reading = reading,
-                    selected = selected,
-                    lit = lit,
-                    focus = focus,
-                    onTap = { p, i -> tap(p to i) },
-                    onHold = { p, i -> hold(p to i) },
-                    onBlank = close,
-                    onFocus = onFocus,
-                    modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+                    onAdd = vm::addStoryWord,
+                    onKnow = { id ->
+                        open = null
+                        vm.knowStoryWord(id)
+                    },
                 )
-            } else Column(
-                modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                title(MaterialTheme.typography.headlineMedium)
-                reading.paragraphs.forEachIndexed { p, words ->
-                    FlowRow(modifier = Modifier.fillMaxWidth()) {
-                        words.forEachIndexed { i, word ->
-                            StoryWord(
-                                word = word,
-                                reading = reading,
-                                selected = selected == (p to i),
-                                lit = (p to i) in lit,
-                                onTap = { if (word.tappable()) tap(p to i) else close() },
-                                onHold = { hold(p to i) },
-                                onFocus = if (focus == (p to i)) onFocus else null,
-                            )
-                        }
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        if (state.vertical) {
+            VerticalStory(
+                reading = reading,
+                selected = selected,
+                lit = lit,
+                onTap = { p, i -> tap(p to i) },
+                onHold = { p, i -> hold(p to i) },
+                onBlank = close,
+                modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear).padding(16.dp),
+            )
+        } else Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear).verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, top = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            reading.paragraphs.forEachIndexed { p, words ->
+                FlowRow(modifier = Modifier.fillMaxWidth()) {
+                    words.forEachIndexed { i, word ->
+                        StoryWord(
+                            word = word,
+                            reading = reading,
+                            selected = selected == (p to i),
+                            lit = (p to i) in lit,
+                            onTap = { if (word.tappable()) tap(p to i) else close() },
+                            onHold = { hold(p to i) },
+                        )
                     }
                 }
-                Spacer(Modifier.height(24.dp))
             }
+            Spacer(Modifier.height(24.dp))
         }
-
-        val o = open
-        if (o != null) {
-            // The pane sits at the top, like a header, unless the open word is under it there.
-            val margin = with(LocalDensity.current) { PANE_MARGIN.toPx() }
-            val covered = focusBounds?.let { it.top < top + margin + paneHeight } == true
-            Surface(
-                modifier = Modifier
-                    .align(if (covered) Alignment.BottomCenter else Alignment.TopCenter)
-                    .padding(PANE_MARGIN)
-                    .fillMaxWidth()
-                    .onSizeChanged { paneHeight = it.height },
-                shape = WashiShape,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.onSurface),
-                shadowElevation = 6.dp,
-            ) {
-                if (o.sentence) {
-                    SentenceCard(openSentence?.translation, paneMaxHeight, onClose = close)
-                } else if (openWord != null) {
-                    WordCard(
-                        word = openWord,
-                        reading = reading,
-                        maxHeight = paneMaxHeight,
-                        onAdd = vm::addStoryWord,
-                        onKnow = { id ->
-                            open = null
-                            vm.knowStoryWord(id)
-                        },
-                        onClose = close,
-                    )
-                }
-            }
-        }
-    }
-
-    if (confirmDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete this story?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDelete = false
-                    vm.deleteStory(reading.story.id)
-                }) { Text(ui("Delete", "削除"), color = MaterialTheme.colorScheme.primary) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) { Text(ui("Cancel", "やめる"), color = MaterialTheme.colorScheme.onSurface) }
-            },
-        )
     }
 }
 
@@ -383,7 +328,8 @@ internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.
 
 internal const val TEXT_SIZE = 22
 internal const val RUBY_SIZE = 10
-private val PANE_MARGIN = 8.dp
+/** Tall enough for a word's first meanings and its buttons; the rest scrolls. */
+private val PANE_HEIGHT = 210.dp
 
 /** What the reader's pane shows: word [i] of paragraph [p], or with [sentence], the sentence around it. */
 private data class Opened(val p: Int, val i: Int, val sentence: Boolean) {
@@ -398,11 +344,9 @@ private fun StoryTitle(
     style: TextStyle,
     selected: Pair<Int, Int>?,
     lit: Set<Pair<Int, Int>>,
-    focus: Pair<Int, Int>?,
     onTap: (Pair<Int, Int>) -> Unit,
     onHold: (Pair<Int, Int>) -> Unit,
     onBlank: () -> Unit,
-    onFocus: (Rect) -> Unit,
 ) {
     if (reading.title.isEmpty()) {
         Text(ui("Untitled", "無題", "題"), style = style)
@@ -418,7 +362,6 @@ private fun StoryTitle(
                 lit = key in lit,
                 onTap = { if (word.tappable()) onTap(key) else onBlank() },
                 onHold = { onHold(key) },
-                onFocus = if (focus == key) onFocus else null,
                 size = style.fontSize,
                 weight = style.fontWeight,
             )
@@ -446,8 +389,6 @@ private fun StoryWord(
     lit: Boolean,
     onTap: () -> Unit,
     onHold: () -> Unit,
-    /** Set on the open word, to report where it is. */
-    onFocus: ((Rect) -> Unit)?,
     size: TextUnit = TEXT_SIZE.sp,
     weight: FontWeight? = null,
 ) {
@@ -458,7 +399,6 @@ private fun StoryWord(
     var modifier: Modifier = Modifier
     if (selected || lit) modifier = modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), WashiShape)
     modifier = modifier.storyWordGestures(word.tappable(), onTap, onHold)
-    if (onFocus != null) modifier = modifier.onGloballyPositioned { onFocus(it.boundsInRoot()) }
     Box(modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             for (piece in word.ruby) {
@@ -491,20 +431,14 @@ private fun StoryWord(
 
 /** A sentence's English, or why there isn't any. */
 @Composable
-private fun SentenceCard(translation: String?, maxHeight: Dp, onClose: () -> Unit) {
-    Row(
-        Modifier.heightIn(max = maxHeight).padding(start = 20.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(
-            translation ?: "There's no translation saved for this story.",
-            fontSize = 19.sp,
-            lineHeight = 26.sp,
-            color = if (translation == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
-            modifier = Modifier.weight(1f).padding(vertical = 12.dp).verticalScroll(rememberScrollState()),
-        )
-        WashiIconButton(WashiIcons.Close, "Close", onClose)
-    }
+private fun SentenceCard(translation: String?) {
+    Text(
+        translation ?: "There's no translation saved for this story.",
+        fontSize = 19.sp,
+        lineHeight = 26.sp,
+        color = if (translation == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
+    )
 }
 
 /** The open word's card: its meanings, conjugation and grammar, and what to do with it. */
@@ -512,16 +446,14 @@ private fun SentenceCard(translation: String?, maxHeight: Dp, onClose: () -> Uni
 private fun WordCard(
     word: ReadingWord,
     reading: StoryReading,
-    maxHeight: Dp,
     onAdd: (Long) -> Unit,
     onKnow: (Long) -> Unit,
-    onClose: () -> Unit,
 ) {
     val entry = word.wordId?.let { reading.words[it] }
     // A particle or ending on its own: the card explains its grammar and has no dictionary entry.
     val grammarOnly = word.kind == WordKind.GRAMMAR
     Column(
-        Modifier.heightIn(max = maxHeight).padding(start = 20.dp, end = 4.dp, top = 4.dp, bottom = 16.dp),
+        Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 12.dp, bottom = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -531,8 +463,6 @@ private fun WordCard(
             if (!grammarOnly && kana != title) {
                 Text(kana, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Spacer(Modifier.weight(1f))
-            WashiIconButton(WashiIcons.Close, "Close", onClose)
         }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
