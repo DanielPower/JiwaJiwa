@@ -4,7 +4,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,6 +69,8 @@ private const val FEW_WORDS = 300
 
 @Composable
 fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
+    // The story waiting on "Delete this story?".
+    var deleting by remember { mutableStateOf<SavedStory?>(null) }
     val draft = state.draft
     val writing = state.writing != null
     Column(
@@ -165,19 +165,38 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         if (state.stories.isNotEmpty()) {
             HorizontalDivider(Modifier.padding(top = 12.dp), color = MaterialTheme.colorScheme.onSurface)
             SectionLabel(ui("Your stories", "あなたの物語"))
-            for (story in state.stories) StoryRow(story) { vm.openStory(story.id) }
+            Text("Hold a story to delete it.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            for (story in state.stories) StoryRow(story, onClick = { vm.openStory(story.id) }, onHold = { deleting = story })
         }
+    }
+
+    deleting?.let { story ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text("Delete this story?") },
+            text = { Text(story.title.ifBlank { ui("Untitled", "無題", "題") }, fontFamily = Gothic) },
+            confirmButton = {
+                TextButton(onClick = {
+                    deleting = null
+                    vm.deleteStory(story.id)
+                }) { Text(ui("Delete", "削除"), color = MaterialTheme.colorScheme.primary) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleting = null }) { Text(ui("Cancel", "やめる"), color = MaterialTheme.colorScheme.onSurface) }
+            },
+        )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
+private fun StoryRow(story: SavedStory, onClick: () -> Unit, onHold: () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
-            .clickable(onClick = onClick),
+            .combinedClickable(onLongClick = onHold, onClick = onClick),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(story.title.ifBlank { ui("Untitled", "無題", "題") }, style = MaterialTheme.typography.titleLarge)
@@ -207,7 +226,6 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
 @Composable
 fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val reading = state.reading
-    var confirmDelete by remember { mutableStateOf(false) }
     // What the pane shows: a word, or the sentence around it. The title is paragraph TITLE.
     var open by remember { mutableStateOf<Opened?>(null) }
     val openWord = open?.let { reading.word(it.p, it.i) }
@@ -230,25 +248,11 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     // A tap in the story that isn't on a word clears the pane.
     val tapToClear = if (open != null) Modifier.pointerInput(Unit) { detectTapGestures { open = null } } else Modifier
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::openStories)
-            val cov = reading.coverage
-            val n = cov.newWords.size
-            Text(
-                "${(cov.knownShare * 100).roundToInt()}% known  ·  " + if (n == 1) "1 new word" else "$n new words",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            // Names the layout it switches to.
-            SecondaryButton(
-                onClick = { vm.setStoryVertical(!state.vertical) },
-                modifier = Modifier.height(40.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp),
-            ) {
-                Text(if (state.vertical) ui("Horizontal", "横書き", "横", "書く") else ui("Vertical", "縦書き", "縦", "書く"), fontSize = 14.sp)
+            Box(Modifier.weight(1f)) {
+                StoryTitle(reading, MaterialTheme.typography.headlineSmall, selected, lit, tap, hold, close)
             }
-            WashiIconButton(WashiIcons.Delete, "Delete story", { confirmDelete = true })
         }
         // Always there, with the story below it, so it never covers the text and nothing moves when it fills.
         Box(Modifier.fillMaxWidth().height(PANE_HEIGHT).background(MaterialTheme.colorScheme.surfaceContainerLow)) {
@@ -274,16 +278,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        val title: @Composable (TextStyle) -> Unit = { style ->
-            StoryTitle(reading, style, selected, lit, tap, hold, close)
-        }
-        if (state.vertical) Column(Modifier.weight(1f).fillMaxWidth().then(tapToClear)) {
-            Column(
-                Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                title(MaterialTheme.typography.headlineSmall)
-            }
+        if (state.vertical) {
             VerticalStory(
                 reading = reading,
                 selected = selected,
@@ -291,13 +286,12 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 onTap = { p, i -> tap(p to i) },
                 onHold = { p, i -> hold(p to i) },
                 onBlank = close,
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear).padding(16.dp),
             )
         } else Column(
             modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear).verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, top = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            title(MaterialTheme.typography.headlineMedium)
             reading.paragraphs.forEachIndexed { p, words ->
                 FlowRow(modifier = Modifier.fillMaxWidth()) {
                     words.forEachIndexed { i, word ->
@@ -314,22 +308,6 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             }
             Spacer(Modifier.height(24.dp))
         }
-    }
-
-    if (confirmDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete this story?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDelete = false
-                    vm.deleteStory(reading.story.id)
-                }) { Text(ui("Delete", "削除"), color = MaterialTheme.colorScheme.primary) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDelete = false }) { Text(ui("Cancel", "やめる"), color = MaterialTheme.colorScheme.onSurface) }
-            },
-        )
     }
 }
 
