@@ -15,11 +15,11 @@
     "sha256": "2a8e206f0b171fa5acdce89e5f5798621b227175e5bfa2db6bd92fef63dd962e"
   },
   "frequency": {
-    "description": "JPDB v2.2 frequency list (rank by occurrence in a large corpus of Japanese media)",
-    "license": "Data from jpdb.io, list compiled by Kuuuube; no explicit license (personal use)",
-    "homepage": "https://github.com/Kuuuube/yomitan-dictionaries",
-    "url": "https://raw.githubusercontent.com/Kuuuube/yomitan-dictionaries/main/data/jpdb_v2.2_freq_list_2024-10-13.csv",
-    "sha256": "5cf103c1538a2189cda2fe0d462ebfe08eb09f211a48b727f533d387b371c5eb"
+    "description": "Jiten global frequency list (rank by occurrence across anime, film, drama, novels, visual novels, manga and games), snapshot of 2026-10-13",
+    "license": "CC BY-SA 4.0, Jiten",
+    "homepage": "https://jiten.moe/frequency-dictionaries",
+    "path": "data/jiten_frequency_global_2026-10-13.csv.xz",
+    "sha256": "eccaff3433598317f8756878e8ad4cca434b672c4ea95d8cc2d5c271b565ee30"
   },
   "jlpt": {
     "description": "Jonathan Waller's JLPT vocabulary lists, linked to JMdict entries and with spellings curated by Stephen Kraus",

@@ -1,0 +1,65 @@
+name: Update dictionary
+
+# The EDRDG licence requires the bundled JMdict and KANJIDIC data to be kept
+# up to date. Once a month this pins the newest upstream releases, rebuilds
+# the report and opens a pull request if anything changed.
+#
+# Needs "Allow GitHub Actions to create and approve pull requests" in the
+# repository's Actions settings. Pull requests opened with GITHUB_TOKEN don't
+# start other workflows, so close and reopen the PR to run its checks.
+on:
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pin the newest releases
+        id: pin
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 tools/dictionary/update_sources.py | tee changes.txt
+          if git diff --quiet tools/dictionary/sources.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Rebuild the report
+        if: steps.pin.outputs.changed == 'true'
+        run: |
+          python3 -m unittest discover tools/dictionary
+          python3 tools/dictionary/build_dictionary.py
+      - name: Open a pull request
+        if: steps.pin.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="dictionary-update-$(date -u +%Y-%m)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add tools/dictionary/sources.json tools/dictionary/build_report.md
+          git commit -m "Update JMdict, KANJIDIC2 and JmdictFurigana"
+          git push --force origin "$branch"
+          {
+            echo "Monthly dictionary data update (required by the EDRDG licence)."
+            echo
+            echo '```'
+            cat changes.txt
+            echo '```'
+            echo
+            echo "Check the build_report.md diff for words whose spelling or level changed."
+          } > body.md
+          gh pr create --head "$branch" --title "Update dictionary data ($(date -u +%Y-%m))" --body-file body.md \
+            || echo "A pull request for $branch already exists"

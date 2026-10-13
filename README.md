@@ -57,10 +57,13 @@ every spelling the build changed and anything it could not resolve.
 
 Data comes from JMdict (EDRDG, CC BY-SA 4.0) via jmdict-simplified,
 JmdictFurigana (CC BY-SA 4.0), Jonathan Waller's JLPT lists (CC BY) as linked
-to JMdict by Stephen Kraus's yomitan-jlpt-vocab (CC BY-SA 4.0), the JPDB
-frequency list compiled by Kuuuube, KANJIDIC2 (EDRDG, CC BY-SA 4.0), JLPT
+to JMdict by Stephen Kraus's yomitan-jlpt-vocab (CC BY-SA 4.0), Jiten's
+frequency list (jiten.moe, CC BY-SA 4.0), KANJIDIC2 (EDRDG, CC BY-SA 4.0), JLPT
 kanji levels via David Gouveia's kanji-data (MIT), and KanjiVG stroke order
-(Ulrich Apel, CC BY-SA 3.0).
+(Ulrich Apel, CC BY-SA 3.0). The built dictionary database is an adaptation
+of these and is licensed under CC BY-SA 4.0. A monthly workflow
+(`update-dictionary.yml`) opens a PR pinning the newest JMdict, KANJIDIC2 and
+JmdictFurigana releases, as the EDRDG licence requires regular updates.
 
 ## Release signing
 

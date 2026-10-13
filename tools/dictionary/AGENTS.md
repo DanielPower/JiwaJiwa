@@ -20,9 +20,15 @@ python3 -m unittest discover tools/dictionary
   app's queries in `app/.../data/Dictionary.kt` updated to match.
 - Sources: JMdict and KANJIDIC2 via jmdict-simplified, JmdictFurigana,
   Jonathan Waller's JLPT lists as linked to JMdict by yomitan-jlpt-vocab,
-  JLPT kanji levels from kanji-data, KanjiVG stroke paths, and the JPDB
-  frequency list (used instead of BCCWJ, whose site is unreachable from CI
-  containers). English glosses only. Every JMdict entry is included; non-JLPT
+  JLPT kanji levels from kanji-data, KanjiVG stroke paths, and Jiten's global
+  frequency list. Jiten's download isn't versioned, so a snapshot is committed
+  in `data/` (xz-compressed CSV, `path` instead of `url` in sources.json).
+  Its readings are compared in hiragana, because Jiten writes some in
+  katakana. English glosses only. Every JMdict entry is included; non-JLPT
   words get level 0 and no study order.
-- Quality wins over licensing convenience here. The JPDB list's licence is an
-  open question for a Play Store release.
+- Every source must allow redistribution in the Play Store app, and the
+  database is CC BY-SA 4.0, so new sources need a compatible licence. The app
+  shows each source's `description`, `license` and `homepage` in Settings.
+  The EDRDG licence requires regular JMdict updates: `update_sources.py` pins
+  the newest JMdict, KANJIDIC2 and JmdictFurigana releases, and
+  `.github/workflows/update-dictionary.yml` runs it monthly and opens a PR.

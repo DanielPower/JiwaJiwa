@@ -272,7 +272,16 @@ fun SettingsScreen(
         Section(ui("About", "このアプリについて", "この", "アプリ"))
         Text(
             "Word list and dictionary data:\n" + state.attribution.split("; ").joinToString("\n") { "• $it" } +
-                "\n\nFonts: Zen Kaku Gothic New, Zen Old Mincho and Zen Maru Gothic, under the SIL Open Font License.",
+                "\n\nThis app uses the JMdict/EDICT and KANJIDIC dictionary files. These files are the property of " +
+                "the Electronic Dictionary Research and Development Group, and are used in conformance with the " +
+                "Group's licence (https://www.edrdg.org/edrdg/licence.html). See " +
+                "https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project and " +
+                "https://www.edrdg.org/wiki/index.php/KANJIDIC_Project." +
+                "\n\nThe app's dictionary database is adapted from the sources above (entries are merged, " +
+                "filtered and ranked) and is licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)." +
+                "\n\nFonts: Zen Kaku Gothic New, Zen Old Mincho and Zen Maru Gothic, under the SIL Open Font License." +
+                "\n\nSoftware: Kuromoji (Atilika) with the IPADIC dictionary (NAIST), AndroidX, Jetpack Compose, Kotlin and " +
+                "kotlinx.serialization, under the Apache License 2.0.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
