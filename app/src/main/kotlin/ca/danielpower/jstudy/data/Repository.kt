@@ -375,10 +375,13 @@ class Repository(context: Context) {
         )
     }
 
-    private fun recognitionCard(wordId: Long): Card? =
+    private fun recognitionCard(wordId: Long): Card? = mainCard(wordId, Direction.RECOGNITION)
+
+    /** The card mastery follows: recognition for a word, the kana card for a kana. */
+    private fun mainCard(wordId: Long, direction: Direction): Card? =
         store.cards(
             "word_id = ? AND direction = ?",
-            arrayOf(wordId.toString(), Direction.RECOGNITION.value.toString()),
+            arrayOf(wordId.toString(), direction.value.toString()),
             "id",
         ).firstOrNull()
 
@@ -431,7 +434,7 @@ class Repository(context: Context) {
     /** What importing [terms] would change. */
     fun renshuuPlan(terms: List<RenshuuTerm>): ImportPlan {
         val ids = dictionary.wordIds()
-        val local = store.wordStatuses().mapValues { (_, s) ->
+        val local = (store.wordStatuses() + store.kanaStatuses()).mapValues { (_, s) ->
             LocalWord(s.mastery, started = s.state != CardState.NEW, suspended = s.suspended)
         }
         return RenshuuImport.plan(terms, { it in ids }, local)
@@ -448,10 +451,14 @@ class Repository(context: Context) {
         val reviewer = Reviewer(Fsrs(desiredRetention = settings.desiredRetention), settings.mastery, clock(settings))
         store.transaction { db ->
             for ((wordId, mastery) in updates) {
-                if (recognitionCard(wordId) == null) {
-                    store.insertNewCard(db, wordId, Direction.RECOGNITION, now / 1000 - LEARN_NEXT_FIRST)
+                // Kana from Renshuu go to kana cards, which stay set aside for a script you've said you read.
+                val kana = KanaCourse.unit(wordId)
+                val direction = if (kana != null) Direction.KANA else Direction.RECOGNITION
+                if (mainCard(wordId, direction) == null) {
+                    store.insertNewCard(db, wordId, direction, now / 1000 - LEARN_NEXT_FIRST)
+                    if (kana != null && kanaKnown().covers(kana.script)) store.setSuspended(db, wordId, true)
                 }
-                val card = recognitionCard(wordId) ?: continue
+                val card = mainCard(wordId, direction) ?: continue
                 val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default)
                 store.updateCard(db, known.card)
                 store.saveProgress(db, if (unlockProduction) known.progress else known.progress.copy(productionUnlocked = false))
@@ -588,12 +595,19 @@ class Repository(context: Context) {
     /**
      * Change which kana you read already. Kana and words queued but not yet
      * shown are dropped, so both queues are rebuilt for what you can read.
+     * Kana cards you've started for a script you now read are set aside, so
+     * they stop coming up for review, and come back if you change your mind.
      */
     fun setKanaKnown(known: KanaKnown) {
         store.setValues(mapOf("kana_known" to known.value))
+        val started = store.wordIdsWithCards(Direction.KANA)
         store.transaction { db ->
             store.deleteUnstartedKana(db)
             store.deleteQueuedNewCards(db)
+            for (id in started) {
+                val unit = KanaCourse.unit(id) ?: continue
+                store.setSuspended(db, id, known.covers(unit.script))
+            }
         }
     }
 
@@ -617,6 +631,16 @@ class Repository(context: Context) {
     fun setStartLevel(level: Int) {
         store.setValues(mapOf("start_level" to level.coerceIn(1, 5).toString()))
         store.transaction { db -> store.deleteQueuedNewCards(db) }
+    }
+
+    /**
+     * Mark the words in levels easier than [level] that you haven't started
+     * as known at [mastery], as first-run setup does. Words you've started keep their mastery.
+     */
+    fun markEasierLevelsKnown(level: Int, mastery: Int, now: Long) {
+        val started = store.wordStatuses().filterValues { it.state != CardState.NEW || it.suspended }.keys
+        val words = dictionary.wordsBelow(level).filter { it !in started }
+        importMastery(words.associateWith { mastery }, now, unlockProduction = false)
     }
 
     /** True on a fresh install, before you've picked a starting level. Existing progress counts as set up. */

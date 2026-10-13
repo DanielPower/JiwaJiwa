@@ -95,10 +95,43 @@ fun SettingsScreen(
 
         Section(ui("Daily study", "毎日の勉強"))
         Text("Start new words from", style = MaterialTheme.typography.bodyLarge)
+        // Moving past N5 asks what to do with the easier words, as first-run setup does.
+        var pendingLevel by remember { mutableStateOf<Int?>(null) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (level in 5 downTo 1) {
-                WashiChip(selected = state.startLevel == level, onClick = { vm.setStartLevel(level) }, label = "N$level")
+                WashiChip(
+                    selected = state.startLevel == level,
+                    onClick = {
+                        when {
+                            level == state.startLevel -> {}
+                            level < 5 -> pendingLevel = level
+                            else -> vm.setStartLevel(level)
+                        }
+                    },
+                    label = "N$level",
+                )
             }
+        }
+        pendingLevel?.let { level ->
+            val easier = (5 downTo level + 1).joinToString(" and ") { "N$it" }
+            val choose = { mastery: Int ->
+                pendingLevel = null
+                vm.setStartLevel(level, mastery)
+            }
+            AlertDialog(
+                onDismissRequest = { pendingLevel = null },
+                title = { Text("Start from N$level") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("What about the words in $easier you haven't started yet? Words you've started keep their progress.")
+                        TextButton(onClick = { choose(0) }) { Text("Learn them later, after the harder levels") }
+                        TextButton(onClick = { choose(m.hideAt) }) { Text("Known: review over the next week") }
+                        TextButton(onClick = { choose(m.offAt) }) { Text("Mastered: review over the next month") }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = { TextButton(onClick = { pendingLevel = null }) { Text(ui("Cancel", "やめる")) } },
+            )
         }
         Text(
             "New words come from this level first, then the harder ones, then any easier ones.",

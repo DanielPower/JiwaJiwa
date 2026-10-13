@@ -118,7 +118,11 @@ Kana:
 Other features (all shipped):
 
 - Dictionary search and word pages; non-JLPT words show as "Other".
-- First-run setup: start level, kana known, optional reminder time.
+- First-run setup: start level, kana known, optional reminder time. Both
+  can change later in Settings: marking a script known sets its started
+  kana cards aside (suspended) until you change it back, and moving the
+  start level past N5 asks, as setup does, whether unstarted easier words
+  wait or are marked Known or Mastered.
 - Daily reminder has **no default time**; the user picks one. Don't request
   notification permission until they turn it on.
 - Manual backup/restore only (`jstudy-<date>.jstudy`, a copy of the progress
@@ -128,7 +132,9 @@ Other features (all shipped):
   home screen, not a tab.
 - Renshuu import: takes the higher of the two masteries per word, skips
   suspended words, never stores the Renshuu key. Renshuu's `edict_ent` is
-  the JMdict id, which is jstudy's word id.
+  the JMdict id, which is jstudy's word id. Renshuu's kana entries have no
+  `edict_ent`; they're matched by text to kana cards. Its other entries
+  without one (する verbs, phrases, names) are skipped on purpose.
 - AI graded-reader stories: the user enters their own Claude API key in
   Settings. Short/Medium/Long, Easy/Normal/Hard sets the share of known
   words; unknown words beyond the budget trigger a rewrite. Tapping a word

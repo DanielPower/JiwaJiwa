@@ -421,8 +421,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    fun setStartLevel(level: Int) = launchIo {
+    /** Start new words from [level]; a non-zero [easierMastery] marks the unstarted words below it known. */
+    fun setStartLevel(level: Int, easierMastery: Int = 0) = launchIo {
         repo.setStartLevel(level)
+        if (easierMastery > 0) repo.markEasierLevelsKnown(level, easierMastery, now())
         _screen.update { if (it is Screen.Settings) it.copy(startLevel = repo.startLevel()) else it }
     }
 
