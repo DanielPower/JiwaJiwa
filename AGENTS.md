@@ -149,8 +149,11 @@ Other features (all shipped):
   written by Claude with the story (one extra request per story). Story
   words are never queued automatically: an unknown word's card offers
   "Add to reviews" (front of the new-word queue) as the main action and a
-  quieter "I know this". Optional vertical (tategaki) text, with Japanese
-  line-break rules (`core/VerticalText.kt`).
+  quieter "I know this". Stories show a page at a time, swiping between
+  pages (no scrolling); horizontal pages are top-aligned, vertical pages
+  are centred and turn right to left. Optional vertical (tategaki) text.
+  Both layouts follow Japanese line-break rules (`core/Kinsoku.kt`,
+  `VerticalText.kt`, `HorizontalText.kt`).
 - The app's own text turns Japanese as you learn: each label shows in
   English until every word in its Japanese is mastered (the furigana-off
   mastery, 70), then in Japanese. Labels are written as

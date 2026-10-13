@@ -11,15 +11,6 @@ data class VerticalSpot(val col: Int, val row: Int)
 
 /** Line breaking for vertical text, following the usual Japanese rules (kinsoku shori). */
 object VerticalText {
-    /** May hang in the spare cell below the end of a column (burasage). */
-    private val HANGING = setOf("、", "。", "，", "．")
-
-    /** Never start a column: closing brackets and punctuation belong with the word before them. */
-    private val CLOSING = setOf("、", "。", "，", "．", "」", "』", "）", "】", "〕", "！", "？", "!", "?", "…", "‥")
-
-    /** Never end a column. */
-    private val OPENING = setOf("「", "『", "（", "【", "〔")
-
     /**
      * Where each run goes, given how many cells fit down a column. One more
      * cell below that is kept for a hanging 、 or 。.
@@ -35,7 +26,7 @@ object VerticalText {
                 row = 1
             }
             val n = run.chars.size
-            val hangs = n == 1 && run.chars[0] in HANGING && row == rows
+            val hangs = n == 1 && run.chars[0] in Kinsoku.HANGING && row == rows
             if (row + n > rows && !hangs && row > 0) {
                 // Rather than start a column with closing punctuation or end
                 // one with an opening bracket, carry the runs before the break
@@ -43,7 +34,7 @@ object VerticalText {
                 var start = k
                 while (
                     start > 0 && spots[start - 1].col == col &&
-                    (runs[start].chars.first() in CLOSING || runs[start - 1].chars.last() in OPENING)
+                    (runs[start].chars.first() in Kinsoku.CLOSING || runs[start - 1].chars.last() in Kinsoku.OPENING)
                 ) {
                     start--
                 }
