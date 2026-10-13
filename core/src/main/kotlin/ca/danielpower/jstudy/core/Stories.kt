@@ -1,5 +1,7 @@
 package ca.danielpower.jstudy.core
 
+import kotlin.math.roundToInt
+
 enum class StoryLength(val label: UiLabel, val characters: Int) {
     SHORT(UiLabel("Short", "短い"), 300),
     MEDIUM(UiLabel("Medium", "普通"), 800),
@@ -54,6 +56,8 @@ data class StoryRequest(
     val practice: List<VocabWord>,
     /** The next new words to learn; the story should introduce them. */
     val introduce: List<VocabWord>,
+    /** For a sequel, the parts so far, first to last; the story continues from the last. */
+    val previous: List<Story> = emptyList(),
 ) {
     val budget get() = newWordBudget(length, difficulty)
 }
@@ -89,6 +93,30 @@ fun coverage(paragraphs: List<List<ReadingWord>>, isKnown: (Long) -> Boolean): C
 
 data class Story(val title: String, val body: String)
 
+/** A part of a series is titled "Title: Part n"; a story on its own keeps its title. */
+fun partTitle(title: String, part: Int?): String = if (part == null) title else "$title: Part $part"
+
+/** How a finished read went. [millis] is how long the reading took, if it was timed. */
+data class ReadStats(val characters: Int, val words: Int, val knownWords: Int, val millis: Long?) {
+    val knownShare get() = if (words == 0) 1.0 else knownWords.toDouble() / words
+
+    /** Reading speed, left out for a read too short to say much. */
+    val charactersPerMinute: Int?
+        get() = millis?.takeIf { it >= MIN_TIMED }?.let { (characters * 60_000.0 / it).roundToInt() }
+
+    companion object {
+        const val MIN_TIMED = 15_000L
+    }
+}
+
+/** Characters count letters, digits, kana and kanji, not punctuation or spaces, as reading speeds usually do. */
+fun readStats(paragraphs: List<List<ReadingWord>>, coverage: Coverage, millis: Long?) = ReadStats(
+    characters = paragraphs.flatten().sumOf { w -> w.surface.count { it.isLetterOrDigit() } },
+    words = coverage.words,
+    knownWords = coverage.knownWords,
+    millis = millis,
+)
+
 /** The first line is the title; the rest, with blank lines between paragraphs, is the story. */
 fun parseStory(text: String): Story {
     val lines = text.trim().lines()
@@ -120,7 +148,15 @@ object StoryPrompts {
     """.trimIndent()
 
     fun request(r: StoryRequest): String = buildString {
-        appendLine("Write a story of about ${r.length.characters} Japanese characters.")
+        if (r.previous.isEmpty()) {
+            appendLine("Write a story of about ${r.length.characters} Japanese characters.")
+        } else {
+            appendLine("Write the next part of the story below, about ${r.length.characters} Japanese characters long.")
+            appendLine(
+                "Carry on from where the last part ends, with the same characters and setting. Don't retell " +
+                    "what happened; the reader has just read it. Give this part its own beginning, middle and end.",
+            )
+        }
         if (r.prompt.isNotBlank()) appendLine("What it should be about: ${r.prompt.trim()}")
         appendLine("Grammar: JLPT N${r.grammarLevel} or easier.")
         val others = (r.budget - r.introduce.size).coerceAtLeast(0)
@@ -129,6 +165,16 @@ object StoryPrompts {
         appendLine("Introduce: " + r.introduce.joinToString("、") { it.label }.ifEmpty { "(none)" })
         appendLine("Practice: " + r.practice.joinToString("、") { it.label }.ifEmpty { "(none)" })
         appendLine("Known words: " + r.known.joinToString("、") { it.written }.ifEmpty { "(none yet)" })
+        if (r.previous.isNotEmpty()) {
+            appendLine()
+            appendLine("The story so far:")
+            r.previous.forEachIndexed { i, part ->
+                appendLine()
+                appendLine("Part ${i + 1}: ${part.title}")
+                appendLine()
+                appendLine(part.body)
+            }
+        }
     }
 
     fun rewrite(extra: List<ReadingWord>, allowed: Int): String = buildString {

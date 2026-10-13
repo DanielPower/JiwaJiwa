@@ -79,6 +79,32 @@ class StoriesTest {
     }
 
     @Test
+    fun aSequelRequestCarriesTheStorySoFar() {
+        val parts = listOf(Story("猫の本", "猫は本が好き。"), Story("猫の本", "猫は本を読む。"))
+        val text = StoryPrompts.request(request().copy(previous = parts))
+        assertTrue(text.contains("next part"))
+        assertTrue(text.indexOf("Part 1: 猫の本\n\n猫は本が好き。") < text.indexOf("Part 2: 猫の本\n\n猫は本を読む。"))
+        assertTrue(!StoryPrompts.request(request()).contains("story so far"))
+    }
+
+    @Test
+    fun partsAreTitledWithTheirNumber() {
+        assertEquals("猫の本: Part 2", partTitle("猫の本", 2))
+        assertEquals("猫の本", partTitle("猫の本", null))
+    }
+
+    @Test
+    fun readStatsCountCharactersButNotPunctuation() {
+        val paragraphs = reader.read("猫は本が好き。「犬だ」")
+        val stats = readStats(paragraphs, coverage(paragraphs, known::contains), millis = 60_000)
+        assertEquals(8, stats.characters)
+        assertEquals(8, stats.charactersPerMinute)
+        assertEquals(3, stats.knownWords)
+        assertEquals(4, stats.words)
+        assertEquals(null, readStats(paragraphs, coverage(paragraphs, known::contains), millis = 5_000).charactersPerMinute)
+    }
+
+    @Test
     fun claudeConversationSendsHistoryBack() {
         val bodies = ArrayList<String>()
         val replies = ArrayDeque(

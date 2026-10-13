@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -38,7 +39,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -70,10 +73,13 @@ import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
 import ca.danielpower.jstudy.core.WordKind
+import ca.danielpower.jstudy.core.partTitle
+import ca.danielpower.jstudy.core.readStats
 import ca.danielpower.jstudy.data.ReaderFont
 import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.SavedStory
 import ca.danielpower.jstudy.data.StoryReading
+import ca.danielpower.jstudy.data.Word
 import ca.danielpower.jstudy.data.levelLabel
 import java.text.DateFormat
 import java.util.Date
@@ -191,7 +197,7 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         AlertDialog(
             onDismissRequest = { deleting = null },
             title = { Text("Delete this story?") },
-            text = { Text(story.title.ifBlank { ui("Untitled", "無題", "題") }, fontFamily = Gothic) },
+            text = { Text(storyTitle(story), fontFamily = Gothic) },
             confirmButton = {
                 TextButton(onClick = {
                     deleting = null
@@ -216,7 +222,7 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit, onHold: () -> Unit)
             .combinedClickable(onLongClick = onHold, onClick = onClick),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(story.title.ifBlank { ui("Untitled", "無題", "題") }, style = MaterialTheme.typography.titleLarge)
+            Text(storyTitle(story), style = MaterialTheme.typography.titleLarge)
             Text(
                 story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
@@ -229,6 +235,7 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit, onHold: () -> Unit)
                     DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(story.createdAt)),
                     StoryLength.entries.firstOrNull { it.name == story.length }?.let { ui(it.label) },
                     StoryDifficulty.entries.firstOrNull { it.name == story.difficulty }?.let { ui(it.label) },
+                    story.readAt?.let { ui("Read", "読んだ", "読む") },
                 ).joinToString("  ·  "),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -236,6 +243,9 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit, onHold: () -> Unit)
         }
     }
 }
+
+@Composable
+private fun storyTitle(story: SavedStory) = partTitle(story.title.ifBlank { ui("Untitled", "無題", "題") }, story.part)
 
 // ------------------------------------------------------------------ reader
 
@@ -247,7 +257,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     // The settings menu shares the pane with words and sentences; opening one closes the other.
     var menu by remember { mutableStateOf(false) }
     // What the pane shows: a word, or the sentence around it. The title is paragraph TITLE.
-    var open by remember { mutableStateOf<Opened?>(null) }
+    var open by remember(reading.story.id) { mutableStateOf<Opened?>(null) }
     val openWord = open?.let { reading.word(it.p, it.i) }
     val openSentence = open?.takeIf { it.sentence }?.let { reading.sentence(it.p, it.i) }
     // Shaded along with the open word: the rest of its grammar patterns, or the whole sentence.
@@ -314,30 +324,38 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        if (style.vertical) {
-            VerticalStory(
-                reading = reading,
-                size = style.size.toFloat(),
-                family = style.font.family,
-                selected = selected,
-                lit = lit,
-                onTap = { p, i -> tap(p to i) },
-                onHold = { p, i -> hold(p to i) },
-                onBlank = close,
-                modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
-            )
-        } else {
-            HorizontalStory(
-                reading = reading,
-                size = style.size.toFloat(),
-                family = style.font.family,
-                selected = selected,
-                lit = lit,
-                onTap = { p, i -> tap(p to i) },
-                onHold = { p, i -> hold(p to i) },
-                onBlank = close,
-                modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
-            )
+        val end = @Composable { StoryEnd(state, vm, onWord = tap) }
+        // A sequel opens in this same screen; it starts on its first page.
+        key(reading.story.id) {
+            if (style.vertical) {
+                VerticalStory(
+                    reading = reading,
+                    size = style.size.toFloat(),
+                    family = style.font.family,
+                    selected = selected,
+                    lit = lit,
+                    onTap = { p, i -> tap(p to i) },
+                    onHold = { p, i -> hold(p to i) },
+                    onBlank = close,
+                    end = end,
+                    onEnd = vm::finishStory,
+                    modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
+                )
+            } else {
+                HorizontalStory(
+                    reading = reading,
+                    size = style.size.toFloat(),
+                    family = style.font.family,
+                    selected = selected,
+                    lit = lit,
+                    onTap = { p, i -> tap(p to i) },
+                    onHold = { p, i -> hold(p to i) },
+                    onBlank = close,
+                    end = end,
+                    onEnd = vm::finishStory,
+                    modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
+                )
+            }
         }
     }
 }
@@ -356,6 +374,8 @@ private fun HorizontalStory(
     onTap: (p: Int, i: Int) -> Unit,
     onHold: (p: Int, i: Int) -> Unit,
     onBlank: () -> Unit,
+    end: @Composable () -> Unit,
+    onEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -387,7 +407,7 @@ private fun HorizontalStory(
             HorizontalText.pages(flows.map { HorizontalText.lines(it, width) }, lineHeight, gap, height)
         }
         val lineDp = with(density) { lineHeight.toDp() }
-        StoryPager(pages.size, reverse = false) { page ->
+        StoryPager(pages.size, reverse = false, end, onEnd) { page ->
             Column(Modifier.fillMaxSize().padding(horizontal = PAGE_PADDING_H, vertical = PAGE_PADDING)) {
                 pages[page].forEachIndexed { n, line ->
                     if (n > 0 && line.words.first == 0) Spacer(Modifier.height(PARAGRAPH_GAP))
@@ -414,16 +434,28 @@ private fun HorizontalStory(
     }
 }
 
-/** Pages to swipe between, with the page number under them. [reverse] puts the next page on the left. */
+/**
+ * [count] pages to swipe between, with the page number under them, then the
+ * [end] page, which calls [onEnd] when it's reached. [reverse] puts the next
+ * page on the left.
+ */
 @Composable
-internal fun StoryPager(count: Int, reverse: Boolean, page: @Composable (Int) -> Unit) {
-    val state = rememberPagerState { count }
+internal fun StoryPager(
+    count: Int,
+    reverse: Boolean,
+    end: @Composable () -> Unit,
+    onEnd: () -> Unit,
+    page: @Composable (Int) -> Unit,
+) {
+    val state = rememberPagerState { count + 1 }
+    val atEnd = state.settledPage == count
+    LaunchedEffect(atEnd) { if (atEnd) onEnd() }
     Column(Modifier.fillMaxSize()) {
         HorizontalPager(state, Modifier.weight(1f).fillMaxWidth(), reverseLayout = reverse, verticalAlignment = Alignment.Top) {
-            page(it)
+            if (it < count) page(it) else end()
         }
         Box(Modifier.fillMaxWidth().height(PAGE_LABEL_HEIGHT), contentAlignment = Alignment.Center) {
-            if (count > 1) {
+            if (count > 1 && state.currentPage < count) {
                 Text(
                     "${state.currentPage + 1} / $count",
                     style = MaterialTheme.typography.labelMedium,
@@ -477,7 +509,7 @@ private fun StoryTitle(
     onBlank: () -> Unit,
 ) {
     if (reading.title.isEmpty()) {
-        Text(ui("Untitled", "無題", "題"), style = style, fontFamily = family)
+        Text(partTitle(ui("Untitled", "無題", "題"), reading.story.part), style = style, fontFamily = family)
         return
     }
     FlowRow(modifier = Modifier.fillMaxWidth()) {
@@ -495,6 +527,9 @@ private fun StoryTitle(
                 family = family,
                 weight = style.fontWeight,
             )
+        }
+        reading.story.part?.let { part ->
+            Text(partTitle("", part), style = style, fontFamily = family, modifier = Modifier.align(Alignment.Bottom))
         }
     }
 }
@@ -750,5 +785,121 @@ private fun GrammarNote(point: GrammarPoint) {
         Text(point.note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(point.example, fontFamily = Gothic, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
         Text(point.exampleMeaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+// ------------------------------------------------------------------ end page
+
+/**
+ * After the last page: how the read went, the new words in it to add to your
+ * reviews, and the next part. Tapping a word opens it in the pane, as in the story.
+ */
+@Composable
+private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel, onWord: (Pair<Int, Int>) -> Unit) {
+    val reading = state.reading
+    val stats = readStats(reading.paragraphs, reading.coverage, reading.story.readMillis)
+    val newWords = reading.newWords
+    val unadded = newWords.map { it.second.id }.filter { reading.statuses[it] == null }
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(ui("The end", "終わり"), style = MaterialTheme.typography.headlineSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            EndStat(stats.characters.toString(), ui("Characters", "文字"))
+            EndStat("${(stats.knownShare * 100).roundToInt()}%", ui("Known", "知っている"))
+            EndStat(stats.millis?.let(::duration) ?: "–", ui("Time", "時間"))
+            EndStat(stats.charactersPerMinute?.let { "$it/min" } ?: "–", ui("Speed", "速さ"))
+        }
+
+        SectionLabel(ui("New words", "新しい言葉"), Modifier.padding(top = 8.dp))
+        if (newWords.isEmpty()) {
+            Text("You knew every word in this one.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            Text("Tap a word for more.", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            for ((at, word) in newWords) NewWordRow(word, reading, onClick = { onWord(at) }, onAdd = { vm.addStoryWord(word.id) })
+            if (unadded.size > 1) {
+                SecondaryButton(onClick = { vm.addStoryWords(unadded) }, modifier = Modifier.fillMaxWidth()) {
+                    Text(ui("Add all to reviews", "全部復習に追加", "全部", "復習", "追加"))
+                }
+            }
+        }
+
+        HorizontalDivider(Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        val next = reading.next
+        when {
+            next != null -> PrimaryButton(onClick = { vm.openStory(next) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                Text(ui("Read the next part", "続きを読む", "続き", "読む"))
+            }
+            !state.hasClaudeKey -> {}
+            state.writing != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp, color = MaterialTheme.colorScheme.primary)
+                Text(state.writing + "…", style = MaterialTheme.typography.bodyLarge)
+            }
+            else -> {
+                PrimaryButton(onClick = vm::writeSequel, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Text(ui("Write a sequel", "続きを書く", "続き", "書く"))
+                }
+                Text(
+                    "Claude writes the next part from the story so far, with the same length and difficulty.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        state.error?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+@Composable
+private fun RowScope.EndStat(value: String, label: String) {
+    Column(
+        Modifier
+            .weight(1f)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(value, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+    }
+}
+
+/** 45s, or 4:05 for minutes and seconds. */
+private fun duration(millis: Long): String {
+    val seconds = millis / 1000
+    return if (seconds < 60) "${seconds}s" else "%d:%02d".format(seconds / 60, seconds % 60)
+}
+
+/** A new word on the end page: what it is, and a button to add it if it isn't queued yet. */
+@Composable
+private fun NewWordRow(word: Word, reading: StoryReading, onClick: () -> Unit, onAdd: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(WashiShape).clickable(onClick = onClick).padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(word.display, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                if (word.kana != word.display) {
+                    Text(word.kana, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Text(
+                word.senses.firstOrNull()?.glosses?.joinToString("; ").orEmpty(),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (reading.statuses[word.id] == null) {
+            PrimaryButton(onClick = onAdd, modifier = Modifier.height(40.dp)) { Text(ui("Add", "追加")) }
+        } else {
+            Text(ui("In reviews", "復習中", "復習"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

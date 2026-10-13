@@ -157,7 +157,14 @@ Other features (all shipped):
   "Add to reviews" (front of the new-word queue) as the main action and a
   quieter "I know this". Stories show a page at a time, swiping between
   pages (no scrolling); horizontal pages are top-aligned, vertical pages
-  are centred and turn right to left. A gear at the top right of the
+  are centred and turn right to left. After the last page comes an end page:
+  reaching it marks the story read (timed from opening it), shows the
+  read's stats (characters, share of words known, time, characters a
+  minute) and lists its new words with Add and "Add all to reviews". It
+  also offers "Write a sequel": Claude gets every part so far and the same
+  length and difficulty, the sequel keeps the first part's title, and parts
+  show as "Title: Part n" (the first becomes Part 1 when its sequel is
+  saved). Once a sequel exists the button reads "Read the next part". A gear at the top right of the
   reader opens its settings in the pane: text size (four steps), font (Zen
   Kaku Gothic New by default, Zen Old Mincho serif, Zen Maru Gothic rounded)
   and horizontal or vertical (tategaki) text. They live only there, not in

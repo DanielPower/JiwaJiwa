@@ -32,6 +32,7 @@ import ca.danielpower.jstudy.core.ClaudeConversation
 import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.Reader
 import ca.danielpower.jstudy.core.ReadingWord
+import ca.danielpower.jstudy.core.Story
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
 import ca.danielpower.jstudy.core.StoryRequest
@@ -112,7 +113,18 @@ data class StoryReading(
     val words: Map<Long, Word>,
     val statuses: Map<Long, WordStatus>,
     val coverage: Coverage,
+    /** The sequel, once one is written. */
+    val next: Long?,
 ) {
+    /** New words with a dictionary entry, in the order they first appear, with where: the end page lists these. */
+    val newWords: List<Pair<Pair<Int, Int>, Word>> by lazy {
+        coverage.newWords.mapNotNull { w ->
+            val entry = w.wordId?.let { words[it] } ?: return@mapNotNull null
+            val p = paragraphs.indexOfFirst { para -> para.any { it.key == w.key } }
+            (p to paragraphs[p].indexOfFirst { it.key == w.key }) to entry
+        }
+    }
+
     /** The word at [i] in paragraph [p], where paragraph [TITLE] is the title. */
     fun word(p: Int, i: Int): ReadingWord? = (if (p == TITLE) title else paragraphs.getOrNull(p))?.getOrNull(i)
 
@@ -641,13 +653,15 @@ class Repository(context: Context) {
      * Have Claude write a story and save it. Its new words aren't queued;
      * the reader adds the ones the learner picks. Returns the story's id.
      */
-    fun writeStory(request: StoryRequest, now: Long, progress: (String) -> Unit): Long {
+    fun writeStory(request: StoryRequest, now: Long, progress: (String) -> Unit, sequelTo: SavedStory? = null): Long {
         val key = claudeKey()
         check(key.isNotEmpty()) { "Add a Claude API key in Settings first." }
         val writer = StoryWriter(ClaudeConversation(key), reader)
         val written = writer.write(request, known(store.wordStatuses()), progress)
+        // Every part of a series keeps the first part's title.
+        val title = sequelTo?.title ?: written.story.title
         progress("Translating")
-        val sentences = sentenceTexts(listOf(reader.read(written.story.title).flatten()) + reader.read(written.story.body))
+        val sentences = sentenceTexts(listOf(reader.read(title).flatten()) + reader.read(written.story.body))
         // The story is worth keeping without its translations if they fail.
         val translations = try {
             StoryTranslator(ClaudeConversation(key, effort = "low")).translate(sentences)
@@ -655,20 +669,30 @@ class Repository(context: Context) {
             null
         }
         progress("Saving")
-        val id = store.insertStory(
-            SavedStory(
-                id = 0,
-                createdAt = now,
-                title = written.story.title,
-                body = written.story.body,
-                prompt = request.prompt.trim(),
-                length = request.length.name,
-                difficulty = request.difficulty.name,
-                translations = translations.orEmpty(),
-            ),
+        val story = SavedStory(
+            id = 0,
+            createdAt = now,
+            title = title,
+            body = written.story.body,
+            prompt = request.prompt.trim(),
+            length = request.length.name,
+            difficulty = request.difficulty.name,
+            translations = translations.orEmpty(),
         )
-        return id
+        return if (sequelTo == null) store.insertStory(story) else store.insertSequel(sequelTo, story)
     }
+
+    /** What to ask for in a sequel to [story]: the same settings as it, and every part so far. */
+    fun sequelRequest(story: SavedStory): StoryRequest {
+        val parts = generateSequence(story) { s -> s.previousId?.let { store.story(it) } }.toList().asReversed()
+        return storyRequest(
+            story.prompt,
+            StoryLength.entries.firstOrNull { it.name == story.length } ?: StoryLength.SHORT,
+            StoryDifficulty.entries.firstOrNull { it.name == story.difficulty } ?: StoryDifficulty.NORMAL,
+        ).copy(previous = parts.map { Story(it.title, it.body) })
+    }
+
+    fun markStoryRead(id: Long, now: Long, millis: Long) = store.markStoryRead(id, now, millis)
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
@@ -683,6 +707,7 @@ class Repository(context: Context) {
             words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),
+            next = store.nextPart(id),
         )
     }
 
