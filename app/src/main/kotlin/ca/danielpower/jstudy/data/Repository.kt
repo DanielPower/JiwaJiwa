@@ -133,6 +133,21 @@ data class StoryReading(
 }
 
 /** A sentence of a story: its words in their paragraph, and its English if the story has translations. */
+/** The story reader's typefaces: two sans serifs and a serif, all bundled under the OFL. */
+enum class ReaderFont { SANS, SERIF, ROUNDED }
+
+/** How stories are set: text size in sp, typeface, and whether columns run top to bottom. */
+data class ReaderStyle(
+    val size: Int = 22,
+    val font: ReaderFont = ReaderFont.SANS,
+    /** Set top to bottom, right to left, as Japanese books are. */
+    val vertical: Boolean = false,
+) {
+    companion object {
+        val SIZES = listOf(18, 22, 26, 30)
+    }
+}
+
 data class StorySentence(val words: IntRange, val translation: String?)
 
 /** Numbers for the stats screen. */
@@ -556,11 +571,24 @@ class Repository(context: Context) {
 
     // ------------------------------------------------------------ stories
 
-    /** Whether stories are set vertically, top to bottom and right to left. */
-    fun storyVertical(): Boolean = store.getValue("story_vertical") == "1"
+    /** How the story reader sets text, chosen in its own settings menu. */
+    fun readerStyle(): ReaderStyle {
+        val default = ReaderStyle()
+        return ReaderStyle(
+            size = store.getValue("story_text_size")?.toIntOrNull()?.takeIf { it in ReaderStyle.SIZES } ?: default.size,
+            font = ReaderFont.entries.firstOrNull { it.name == store.getValue("story_font") } ?: default.font,
+            vertical = store.getValue("story_vertical") == "1",
+        )
+    }
 
-    fun setStoryVertical(vertical: Boolean) {
-        store.setValues(mapOf("story_vertical" to if (vertical) "1" else "0"))
+    fun setReaderStyle(style: ReaderStyle) {
+        store.setValues(
+            mapOf(
+                "story_text_size" to style.size.toString(),
+                "story_font" to style.font.name,
+                "story_vertical" to if (style.vertical) "1" else "0",
+            ),
+        )
     }
 
     fun claudeKey(): String = secrets.getString("claude_api_key", null).orEmpty()

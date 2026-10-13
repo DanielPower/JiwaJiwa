@@ -10,23 +10,22 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.rememberTextMeasurer
-import ca.danielpower.jstudy.core.FlowWord
-import ca.danielpower.jstudy.core.HorizontalText
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,6 +37,7 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,9 +45,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,13 +61,17 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.CardState
+import ca.danielpower.jstudy.core.FlowWord
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.GrammarPoint
+import ca.danielpower.jstudy.core.HorizontalText
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
 import ca.danielpower.jstudy.core.WordKind
+import ca.danielpower.jstudy.data.ReaderFont
+import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.SavedStory
 import ca.danielpower.jstudy.data.StoryReading
 import ca.danielpower.jstudy.data.levelLabel
@@ -233,6 +243,9 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit, onHold: () -> Unit)
 @Composable
 fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val reading = state.reading
+    val style = state.style
+    // The settings menu shares the pane with words and sentences; opening one closes the other.
+    var menu by remember { mutableStateOf(false) }
     // What the pane shows: a word, or the sentence around it. The title is paragraph TITLE.
     var open by remember { mutableStateOf<Opened?>(null) }
     val openWord = open?.let { reading.word(it.p, it.i) }
@@ -247,24 +260,40 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         indices.map { o.p to it }.toSet()
     }.orEmpty()
     val selected = open?.takeIf { !it.sentence }?.key
-    val close = { open = null }
-    val tap = { key: Pair<Int, Int> -> open = if (selected == key) null else Opened(key.first, key.second, sentence = false) }
-    val hold = { key: Pair<Int, Int> -> open = Opened(key.first, key.second, sentence = true) }
-    BackHandler(enabled = open != null) { open = null }
+    val close = {
+        open = null
+        menu = false
+    }
+    val tap = { key: Pair<Int, Int> ->
+        menu = false
+        open = if (selected == key) null else Opened(key.first, key.second, sentence = false)
+    }
+    val hold = { key: Pair<Int, Int> ->
+        menu = false
+        open = Opened(key.first, key.second, sentence = true)
+    }
+    BackHandler(enabled = open != null || menu, onBack = close)
 
     // A tap in the story that isn't on a word clears the pane.
-    val tapToClear = if (open != null) Modifier.pointerInput(Unit) { detectTapGestures { open = null } } else Modifier
+    val tapToClear = if (open != null || menu) Modifier.pointerInput(Unit) { detectTapGestures { close() } } else Modifier
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(start = 8.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::openStories)
             Box(Modifier.weight(1f)) {
-                StoryTitle(reading, MaterialTheme.typography.headlineSmall, selected, lit, tap, hold, close)
+                StoryTitle(reading, MaterialTheme.typography.headlineSmall, style.font.family, selected, lit, tap, hold, close)
+            }
+            CompositionLocalProvider(LocalContentColor provides if (menu) MaterialTheme.colorScheme.primary else LocalContentColor.current) {
+                WashiIconButton(WashiIcons.Settings, "Reader settings", {
+                    open = null
+                    menu = !menu
+                })
             }
         }
         // Always there, with the story below it, so it never covers the text and nothing moves when it fills.
         Box(Modifier.fillMaxWidth().height(PANE_HEIGHT).background(MaterialTheme.colorScheme.surfaceContainerLow)) {
             val o = open
             when {
+                menu -> ReaderMenu(style, vm::setReaderStyle)
                 o == null -> Text(
                     "Tap a word to see what it means. Hold one to read its sentence in English.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -285,9 +314,11 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        if (state.vertical) {
+        if (style.vertical) {
             VerticalStory(
                 reading = reading,
+                size = style.size.toFloat(),
+                family = style.font.family,
                 selected = selected,
                 lit = lit,
                 onTap = { p, i -> tap(p to i) },
@@ -298,6 +329,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         } else {
             HorizontalStory(
                 reading = reading,
+                size = style.size.toFloat(),
+                family = style.font.family,
                 selected = selected,
                 lit = lit,
                 onTap = { p, i -> tap(p to i) },
@@ -316,6 +349,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
 @Composable
 private fun HorizontalStory(
     reading: StoryReading,
+    size: Float,
+    family: FontFamily,
     selected: Pair<Int, Int>?,
     lit: Set<Pair<Int, Int>>,
     onTap: (p: Int, i: Int) -> Unit,
@@ -326,9 +361,10 @@ private fun HorizontalStory(
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     // Words measured as StoryWord draws them: each piece as wide as its text or its furigana, shown or not.
-    val flows = remember(reading, density) {
-        val base = TextStyle(fontSize = TEXT_SIZE.sp, fontFamily = Gothic)
-        val ruby = TextStyle(fontSize = RUBY_SIZE.sp, fontFamily = Gothic)
+    val rubySize = size * RUBY_RATIO
+    val flows = remember(reading, density, size, family) {
+        val base = TextStyle(fontSize = size.sp, fontFamily = family)
+        val ruby = TextStyle(fontSize = rubySize.sp, fontFamily = family)
         reading.paragraphs.map { words ->
             words.map { word ->
                 val width = word.ruby.sumOf { piece ->
@@ -342,7 +378,7 @@ private fun HorizontalStory(
         }
     }
     BoxWithConstraints(modifier) {
-        val lineHeight = with(density) { (RUBY_SIZE * 1.2f).sp.toPx() + (TEXT_SIZE * 1.5f).sp.toPx() }
+        val lineHeight = with(density) { (rubySize * 1.2f).sp.toPx() + (size * 1.5f).sp.toPx() }
         val gap = with(density) { PARAGRAPH_GAP.toPx() }
         // A pixel or two spare, so rounding never pushes a word past the edge.
         val width = constraints.maxWidth - with(density) { (PAGE_PADDING_H * 2 + 2.dp).toPx() }
@@ -366,6 +402,9 @@ private fun HorizontalStory(
                                 lit = (p to i) in lit,
                                 onTap = { if (word.tappable()) onTap(p, i) else onBlank() },
                                 onHold = { onHold(p, i) },
+                                size = size.sp,
+                                rubySize = rubySize.sp,
+                                family = family,
                             )
                         }
                     }
@@ -410,8 +449,8 @@ internal fun StoryReading.showsRuby(word: ReadingWord): Boolean {
 
 internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME || grammar.isNotEmpty()
 
-internal const val TEXT_SIZE = 22
-internal const val RUBY_SIZE = 10
+/** Furigana's size against the text it sits on. */
+internal const val RUBY_RATIO = 10f / 22f
 internal val PAGE_PADDING = 16.dp
 private val PAGE_PADDING_H = 24.dp
 internal val PAGE_LABEL_HEIGHT = 28.dp
@@ -430,6 +469,7 @@ private data class Opened(val p: Int, val i: Int, val sentence: Boolean) {
 private fun StoryTitle(
     reading: StoryReading,
     style: TextStyle,
+    family: FontFamily,
     selected: Pair<Int, Int>?,
     lit: Set<Pair<Int, Int>>,
     onTap: (Pair<Int, Int>) -> Unit,
@@ -437,7 +477,7 @@ private fun StoryTitle(
     onBlank: () -> Unit,
 ) {
     if (reading.title.isEmpty()) {
-        Text(ui("Untitled", "無題", "題"), style = style)
+        Text(ui("Untitled", "無題", "題"), style = style, fontFamily = family)
         return
     }
     FlowRow(modifier = Modifier.fillMaxWidth()) {
@@ -451,6 +491,8 @@ private fun StoryTitle(
                 onTap = { if (word.tappable()) onTap(key) else onBlank() },
                 onHold = { onHold(key) },
                 size = style.fontSize,
+                rubySize = 10.sp,
+                family = family,
                 weight = style.fontWeight,
             )
         }
@@ -475,7 +517,9 @@ private fun StoryWord(
     lit: Boolean,
     onTap: () -> Unit,
     onHold: () -> Unit,
-    size: TextUnit = TEXT_SIZE.sp,
+    size: TextUnit,
+    rubySize: TextUnit,
+    family: FontFamily,
     weight: FontWeight? = null,
 ) {
     val unknown = reading.isUnknown(word)
@@ -491,9 +535,9 @@ private fun StoryWord(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = piece.ruby ?: " ",
-                        fontSize = RUBY_SIZE.sp,
-                        lineHeight = (RUBY_SIZE * 1.2).sp,
-                        fontFamily = Gothic,
+                        fontSize = rubySize,
+                        lineHeight = rubySize * 1.2f,
+                        fontFamily = family,
                         maxLines = 1,
                         softWrap = false,
                         color = color.copy(alpha = 0.75f),
@@ -503,7 +547,7 @@ private fun StoryWord(
                         text = piece.base,
                         fontSize = size,
                         lineHeight = size * 1.5f,
-                        fontFamily = Gothic,
+                        fontFamily = family,
                         fontWeight = weight,
                         softWrap = false,
                         color = color,
@@ -511,6 +555,87 @@ private fun StoryWord(
                     )
                 }
             }
+        }
+    }
+}
+
+internal val ReaderFont.family: FontFamily
+    get() = when (this) {
+        ReaderFont.SANS -> Gothic
+        ReaderFont.SERIF -> Mincho
+        ReaderFont.ROUNDED -> Maru
+    }
+
+private val ReaderFont.label: String
+    get() = when (this) {
+        ReaderFont.SANS -> "Sans"
+        ReaderFont.SERIF -> "Serif"
+        ReaderFont.ROUNDED -> "Rounded"
+    }
+
+/** The reader's settings, laid out to fit the pane without scrolling. Changes apply as you tap. */
+@Composable
+private fun ReaderMenu(style: ReaderStyle, onChange: (ReaderStyle) -> Unit) {
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        MenuRow(ui("Size", "大きさ")) {
+            ReaderStyle.SIZES.forEachIndexed { i, size ->
+                MenuOption(style.size == size, { onChange(style.copy(size = size)) }) {
+                    // Each step a little bigger, as a sample; the real sizes wouldn't fit the buttons.
+                    Text("あ", fontFamily = style.font.family, fontSize = (13 + 3 * i).sp)
+                }
+            }
+        }
+        MenuRow(ui("Font", "文字")) {
+            for (font in ReaderFont.entries) {
+                MenuOption(style.font == font, { onChange(style.copy(font = font)) }) {
+                    Text(font.label, fontFamily = font.family, fontSize = 15.sp, maxLines = 1)
+                }
+            }
+        }
+        MenuRow(ui("Direction", "向き")) {
+            MenuOption(!style.vertical, { onChange(style.copy(vertical = false)) }) {
+                Text(ui("Horizontal", "横書き", "横", "書く"), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            }
+            MenuOption(style.vertical, { onChange(style.copy(vertical = true)) }) {
+                Text(ui("Vertical", "縦書き", "縦", "書く"), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MenuRow(label: String, options: @Composable RowScope.() -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            modifier = Modifier.width(72.dp),
+        )
+        options()
+    }
+}
+
+/** One choice in a menu row: ink when chosen, an ink outline when not, like a chip. */
+@Composable
+private fun RowScope.MenuOption(selected: Boolean, onClick: () -> Unit, content: @Composable () -> Unit) {
+    val ink = MaterialTheme.colorScheme.onSurface
+    Box(
+        Modifier
+            .weight(1f)
+            .height(38.dp)
+            .clip(WashiShape)
+            .background(if (selected) ink else Color.Transparent)
+            .border(1.dp, ink, WashiShape)
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
+        contentAlignment = Alignment.Center,
+    ) {
+        CompositionLocalProvider(LocalContentColor provides if (selected) MaterialTheme.colorScheme.surface else ink) {
+            content()
         }
     }
 }

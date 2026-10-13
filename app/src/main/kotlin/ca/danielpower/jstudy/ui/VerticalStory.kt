@@ -23,10 +23,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.VerticalRun
@@ -89,6 +91,8 @@ private fun pieces(reading: StoryReading): List<Piece> = buildList {
 @Composable
 fun VerticalStory(
     reading: StoryReading,
+    size: Float,
+    family: FontFamily,
     selected: Pair<Int, Int>?,
     lit: Set<Pair<Int, Int>>,
     onTap: (p: Int, i: Int) -> Unit,
@@ -99,8 +103,9 @@ fun VerticalStory(
     val pieces = remember(reading) { pieces(reading) }
     BoxWithConstraints(modifier) {
         val density = LocalDensity.current
-        val cell = with(density) { (TEXT_SIZE * 1.15f).sp.toPx() }
-        val rubyCell = with(density) { (RUBY_SIZE * 1.15f).sp.toPx() }
+        val rubySize = size * RUBY_RATIO
+        val cell = with(density) { (size * 1.15f).sp.toPx() }
+        val rubyCell = with(density) { (rubySize * 1.15f).sp.toPx() }
         val gap = cell * 0.75f
         val colWidth = cell + rubyCell
         val pad = with(density) { PAGE_PADDING.toPx() }
@@ -137,6 +142,9 @@ fun VerticalStory(
                         val unknown = reading.isUnknown(word)
                         PieceView(
                             piece = piece,
+                            size = size.sp,
+                            rubySize = rubySize.sp,
+                            family = family,
                             cell = cellDp,
                             rubyCell = rubyDp,
                             color = if (unknown || isSelected) seal else ink,
@@ -177,6 +185,9 @@ fun VerticalStory(
 @Composable
 private fun PieceView(
     piece: Piece,
+    size: TextUnit,
+    rubySize: TextUnit,
+    family: FontFamily,
     cell: Dp,
     rubyCell: Dp,
     color: Color,
@@ -195,7 +206,7 @@ private fun PieceView(
     Box(modifier) {
         Column(Modifier.width(cell)) {
             for (c in piece.chars) {
-                Glyph(c, TEXT_SIZE, cell, color)
+                Glyph(c, size, family, cell, color)
             }
         }
         val ruby = piece.ruby
@@ -208,7 +219,7 @@ private fun PieceView(
                     .requiredHeight(rubyCell * ruby.size),
             ) {
                 for (c in ruby) {
-                    Glyph(c, RUBY_SIZE, rubyCell, color.copy(alpha = 0.75f))
+                    Glyph(c, rubySize, family, rubyCell, color.copy(alpha = 0.75f))
                 }
             }
         }
@@ -221,13 +232,13 @@ private fun PieceView(
  * it: squeezing the line to the cell clipped the feet of some kanji.
  */
 @Composable
-private fun Glyph(c: String, size: Int, cell: Dp, color: Color) {
+private fun Glyph(c: String, size: TextUnit, family: FontFamily, cell: Dp, color: Color) {
     Box(Modifier.size(cell), contentAlignment = Alignment.Center) {
         Text(
             c,
             modifier = Modifier.wrapContentHeight(unbounded = true),
-            fontSize = size.sp,
-            fontFamily = Gothic,
+            fontSize = size,
+            fontFamily = family,
             style = Vertical,
             color = color,
             textAlign = TextAlign.Center,

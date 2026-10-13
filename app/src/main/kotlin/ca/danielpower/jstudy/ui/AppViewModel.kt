@@ -25,6 +25,7 @@ import ca.danielpower.jstudy.core.UiLanguage
 import ca.danielpower.jstudy.data.BackupException
 import ca.danielpower.jstudy.data.Entry
 import ca.danielpower.jstudy.data.KanjiDetail
+import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.Reminder
 import ca.danielpower.jstudy.data.Stats
 import ca.danielpower.jstudy.reminder.DailyReminder
@@ -108,7 +109,6 @@ sealed interface Screen {
         val settings: StudySettings,
         val attribution: String,
         val claudeKey: String,
-        val storyVertical: Boolean,
         val startLevel: Int,
         val reminder: Reminder,
         val kanaKnown: KanaKnown,
@@ -164,8 +164,7 @@ sealed interface Screen {
 
     data class StoryReader(
         val reading: StoryReading,
-        /** Set top to bottom, right to left, as Japanese books are. */
-        val vertical: Boolean,
+        val style: ReaderStyle,
     ) : Screen
 }
 
@@ -422,7 +421,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             settings = repo.settings(),
             attribution = attribution,
             claudeKey = repo.claudeKey(),
-            storyVertical = repo.storyVertical(),
             startLevel = repo.startLevel(),
             reminder = repo.reminder(),
             kanaKnown = repo.kanaKnown(),
@@ -546,15 +544,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _theme.value = mode
     }
 
-    fun setStoryVertical(vertical: Boolean) = launchIo {
-        repo.setStoryVertical(vertical)
-        _screen.update {
-            when (it) {
-                is Screen.StoryReader -> it.copy(vertical = vertical)
-                is Screen.Settings -> it.copy(storyVertical = vertical)
-                else -> it
-            }
-        }
+    fun setReaderStyle(style: ReaderStyle) {
+        _screen.update { if (it is Screen.StoryReader) it.copy(style = style) else it }
+        launchIo { repo.setReaderStyle(style) }
     }
 
     // ------------------------------------------------------------ renshuu import
@@ -665,7 +657,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun showStory(id: Long) {
         val reading = repo.readStory(id) ?: return showStories()
-        _screen.value = Screen.StoryReader(reading, repo.storyVertical())
+        _screen.value = Screen.StoryReader(reading, repo.readerStyle())
     }
 
     fun deleteStory(id: Long) = launchIo {
