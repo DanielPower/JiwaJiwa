@@ -345,8 +345,8 @@ private fun HorizontalStory(
         val lineHeight = with(density) { (RUBY_SIZE * 1.2f).sp.toPx() + (TEXT_SIZE * 1.5f).sp.toPx() }
         val gap = with(density) { PARAGRAPH_GAP.toPx() }
         // A pixel or two spare, so rounding never pushes a word past the edge.
-        val width = constraints.maxWidth - with(density) { (2 * PAGE_PADDING_H + 2.dp).toPx() }
-        val height = constraints.maxHeight - with(density) { (2 * PAGE_PADDING + PAGE_LABEL_HEIGHT).toPx() }
+        val width = constraints.maxWidth - with(density) { (PAGE_PADDING_H * 2 + 2.dp).toPx() }
+        val height = constraints.maxHeight - with(density) { (PAGE_PADDING * 2 + PAGE_LABEL_HEIGHT).toPx() }
         val pages = remember(flows, width, height, lineHeight, gap) {
             HorizontalText.pages(flows.map { HorizontalText.lines(it, width) }, lineHeight, gap, height)
         }
