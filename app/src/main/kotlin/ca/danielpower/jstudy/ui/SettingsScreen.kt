@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.KanaKnown
+import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
 import java.time.LocalDate
@@ -52,7 +53,6 @@ fun SettingsScreen(
     vm: AppViewModel,
 ) {
     val s = state.settings
-    val m = s.mastery
     fun update(block: () -> StudySettings) {
         runCatching(block).onSuccess(onChange)
     }
@@ -123,8 +123,8 @@ fun SettingsScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("What about the words in $easier you haven't started yet? Words you've started keep their progress.")
                         TextButton(onClick = { choose(0) }) { Text("Learn them later, after the harder levels") }
-                        TextButton(onClick = { choose(m.hideAt) }) { Text("Known: review over the next week") }
-                        TextButton(onClick = { choose(m.offAt) }) { Text("Mastered: review over the next month") }
+                        TextButton(onClick = { choose(MasteryRules.HIDE_AT) }) { Text("Known: review over the next week") }
+                        TextButton(onClick = { choose(MasteryRules.OFF_AT) }) { Text("Mastered: review over the next month") }
                     }
                 },
                 confirmButton = {},

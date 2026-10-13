@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
+import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.data.WordStatus
 import ca.danielpower.jstudy.data.levelLabel
@@ -263,10 +264,10 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                     PrimaryButton(onClick = vm::learnNext, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(ui("Learn next", "次に覚える", "次", "覚える")) }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SecondaryButton(onClick = { vm.markKnown(state.rules.hideAt) }, modifier = Modifier.weight(1f).height(48.dp)) {
+                    SecondaryButton(onClick = { vm.markKnown(MasteryRules.HIDE_AT) }, modifier = Modifier.weight(1f).height(48.dp)) {
                         Text(if (started) ui("Set as known", "知っている") else ui("Mark known", "知っている"))
                     }
-                    SecondaryButton(onClick = { vm.markKnown(state.rules.offAt) }, modifier = Modifier.weight(1f).height(48.dp)) {
+                    SecondaryButton(onClick = { vm.markKnown(MasteryRules.OFF_AT) }, modifier = Modifier.weight(1f).height(48.dp)) {
                         Text(if (started) ui("Set as mastered", "覚えた") else ui("Mark mastered", "覚えた"))
                     }
                 }

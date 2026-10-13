@@ -59,10 +59,8 @@ class SessionTest {
         assertFailsWith<IllegalArgumentException> { StudySettings(newPerDay = -1) }
         assertFailsWith<IllegalArgumentException> { StudySettings(newKanaPerDay = -1) }
         assertFailsWith<IllegalArgumentException> { StudySettings(reviewCap = -1) }
-        assertFailsWith<IllegalArgumentException> { StudySettings(desiredRetention = 0.5) }
-        assertFailsWith<IllegalArgumentException> { StudySettings(desiredRetention = 0.99) }
         assertFailsWith<IllegalArgumentException> { StudySettings(rolloverHour = -1) }
-        StudySettings(newPerDay = 0, newKanaPerDay = 0, reviewCap = 0, desiredRetention = 0.7, rolloverHour = 0)
+        StudySettings(newPerDay = 0, newKanaPerDay = 0, reviewCap = 0, rolloverHour = 0)
     }
 
     // ------------------------------------------------------------ daily limits

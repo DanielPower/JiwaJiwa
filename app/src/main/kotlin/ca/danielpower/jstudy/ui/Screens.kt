@@ -52,6 +52,7 @@ import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.KanaUnit
+import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.Script
 import ca.danielpower.jstudy.data.Sense
 import ca.danielpower.jstudy.data.Summary
@@ -359,7 +360,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
         }
 
         if (intro) {
-            IntroActions(state.current.card.id, state.rules.hideAt, state.rules.offAt, vm)
+            IntroActions(state.current.card.id, MasteryRules.HIDE_AT, MasteryRules.OFF_AT, vm)
             return@Column
         }
 

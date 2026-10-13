@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.GrammarPoint
+import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
@@ -328,7 +329,7 @@ internal fun StoryReading.isUnknown(word: ReadingWord) = word.kind == WordKind.W
 /** Furigana follows each word's mastery, as on cards; new words and names always have it. */
 internal fun StoryReading.showsRuby(word: ReadingWord): Boolean {
     val mastery = word.wordId?.let { statuses[it]?.mastery } ?: 0
-    return isUnknown(word) || word.kind == WordKind.NAME || rules.furigana(mastery) == FuriganaMode.SHOWN
+    return isUnknown(word) || word.kind == WordKind.NAME || MasteryRules.furigana(mastery) == FuriganaMode.SHOWN
 }
 
 internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME || grammar.isNotEmpty()

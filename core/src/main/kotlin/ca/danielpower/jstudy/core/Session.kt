@@ -7,13 +7,10 @@ data class StudySettings(
     /** New kana cards a day, while there are kana to learn. Both scripts of a sound count separately. */
     val newKanaPerDay: Int = 10,
     val reviewCap: Int = 200,
-    val desiredRetention: Double = 0.9,
     val rolloverHour: Int = 4,
-    val mastery: MasteryRules = MasteryRules(),
 ) {
     init {
         require(newPerDay >= 0 && newKanaPerDay >= 0 && reviewCap >= 0)
-        require(desiredRetention in 0.7..0.97)
         require(rolloverHour in 0..23)
     }
 }
