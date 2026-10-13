@@ -142,7 +142,7 @@ fun VerticalStory(
                         val unknown = reading.isUnknown(word)
                         PieceView(
                             piece = piece,
-                            size = size.sp,
+                            textSize = size.sp,
                             rubySize = rubySize.sp,
                             family = family,
                             cell = cellDp,
@@ -185,7 +185,7 @@ fun VerticalStory(
 @Composable
 private fun PieceView(
     piece: Piece,
-    size: TextUnit,
+    textSize: TextUnit,
     rubySize: TextUnit,
     family: FontFamily,
     cell: Dp,
@@ -206,7 +206,7 @@ private fun PieceView(
     Box(modifier) {
         Column(Modifier.width(cell)) {
             for (c in piece.chars) {
-                Glyph(c, size, family, cell, color)
+                Glyph(c, textSize, family, cell, color)
             }
         }
         val ruby = piece.ruby
