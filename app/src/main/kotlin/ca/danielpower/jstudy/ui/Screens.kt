@@ -533,20 +533,22 @@ internal fun Meanings(senses: List<Sense>, limit: Int, large: Boolean) {
 }
 
 @Composable
-internal fun MeaningLine(numeral: String?, text: String, info: String? = null) {
+internal fun MeaningLine(numeral: String?, text: String, info: String? = null, compact: Boolean = false) {
+    // Compact for the story reader's pane, where space is short.
+    val size = if (compact) 16.sp else 19.sp
     Row {
         if (numeral != null) {
             Text(
                 numeral,
                 fontFamily = Gothic,
                 fontWeight = FontWeight.Bold,
-                fontSize = 19.sp,
+                fontSize = size,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.width(30.dp),
+                modifier = Modifier.width(if (compact) 24.dp else 30.dp),
             )
         }
         Column(Modifier.weight(1f)) {
-            Text(text, fontSize = 19.sp, lineHeight = 26.sp)
+            Text(text, fontSize = size, lineHeight = if (compact) 21.sp else 26.sp)
             if (info != null) {
                 Text(info, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

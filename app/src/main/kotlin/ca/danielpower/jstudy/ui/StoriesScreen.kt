@@ -9,6 +9,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
+import ca.danielpower.jstudy.core.FlowWord
+import ca.danielpower.jstudy.core.HorizontalText
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -286,27 +293,104 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 onTap = { p, i -> tap(p to i) },
                 onHold = { p, i -> hold(p to i) },
                 onBlank = close,
-                modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear).padding(16.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
             )
-        } else Column(
-            modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear).verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, top = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            reading.paragraphs.forEachIndexed { p, words ->
-                FlowRow(modifier = Modifier.fillMaxWidth()) {
-                    words.forEachIndexed { i, word ->
-                        StoryWord(
-                            word = word,
-                            reading = reading,
-                            selected = selected == (p to i),
-                            lit = (p to i) in lit,
-                            onTap = { if (word.tappable()) tap(p to i) else close() },
-                            onHold = { hold(p to i) },
-                        )
+        } else {
+            HorizontalStory(
+                reading = reading,
+                selected = selected,
+                lit = lit,
+                onTap = { p, i -> tap(p to i) },
+                onHold = { p, i -> hold(p to i) },
+                onBlank = close,
+                modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
+            )
+        }
+    }
+}
+
+/**
+ * The story set across the page, a page at a time. Words are measured here so
+ * lines and pages can be broken in core, with the same rules as vertical text.
+ */
+@Composable
+private fun HorizontalStory(
+    reading: StoryReading,
+    selected: Pair<Int, Int>?,
+    lit: Set<Pair<Int, Int>>,
+    onTap: (p: Int, i: Int) -> Unit,
+    onHold: (p: Int, i: Int) -> Unit,
+    onBlank: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    // Words measured as StoryWord draws them: each piece as wide as its text or its furigana, shown or not.
+    val flows = remember(reading, density) {
+        val base = TextStyle(fontSize = TEXT_SIZE.sp, fontFamily = Gothic)
+        val ruby = TextStyle(fontSize = RUBY_SIZE.sp, fontFamily = Gothic)
+        reading.paragraphs.map { words ->
+            words.map { word ->
+                val width = word.ruby.sumOf { piece ->
+                    maxOf(
+                        measurer.measure(piece.base, base, softWrap = false).size.width,
+                        measurer.measure(piece.ruby ?: " ", ruby, softWrap = false).size.width,
+                    )
+                }
+                FlowWord(word.surface, width.toFloat())
+            }
+        }
+    }
+    BoxWithConstraints(modifier) {
+        val lineHeight = with(density) { (RUBY_SIZE * 1.2f).sp.toPx() + (TEXT_SIZE * 1.5f).sp.toPx() }
+        val gap = with(density) { PARAGRAPH_GAP.toPx() }
+        // A pixel or two spare, so rounding never pushes a word past the edge.
+        val width = constraints.maxWidth - with(density) { (PAGE_PADDING_H * 2 + 2.dp).toPx() }
+        val height = constraints.maxHeight - with(density) { (PAGE_PADDING * 2 + PAGE_LABEL_HEIGHT).toPx() }
+        val pages = remember(flows, width, height, lineHeight, gap) {
+            HorizontalText.pages(flows.map { HorizontalText.lines(it, width) }, lineHeight, gap, height)
+        }
+        val lineDp = with(density) { lineHeight.toDp() }
+        StoryPager(pages.size, reverse = false) { page ->
+            Column(Modifier.fillMaxSize().padding(horizontal = PAGE_PADDING_H, vertical = PAGE_PADDING)) {
+                pages[page].forEachIndexed { n, line ->
+                    if (n > 0 && line.words.first == 0) Spacer(Modifier.height(PARAGRAPH_GAP))
+                    Row(Modifier.height(lineDp), verticalAlignment = Alignment.Bottom) {
+                        for (i in line.words) {
+                            val p = line.paragraph
+                            val word = reading.paragraphs[p][i]
+                            StoryWord(
+                                word = word,
+                                reading = reading,
+                                selected = selected == (p to i),
+                                lit = (p to i) in lit,
+                                onTap = { if (word.tappable()) onTap(p, i) else onBlank() },
+                                onHold = { onHold(p, i) },
+                            )
+                        }
                     }
                 }
             }
-            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+/** Pages to swipe between, with the page number under them. [reverse] puts the next page on the left. */
+@Composable
+internal fun StoryPager(count: Int, reverse: Boolean, page: @Composable (Int) -> Unit) {
+    val state = rememberPagerState { count }
+    Column(Modifier.fillMaxSize()) {
+        HorizontalPager(state, Modifier.weight(1f).fillMaxWidth(), reverseLayout = reverse, verticalAlignment = Alignment.Top) {
+            page(it)
+        }
+        Box(Modifier.fillMaxWidth().height(PAGE_LABEL_HEIGHT), contentAlignment = Alignment.Center) {
+            if (count > 1) {
+                Text(
+                    "${state.currentPage + 1} / $count",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -328,8 +412,12 @@ internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.
 
 internal const val TEXT_SIZE = 22
 internal const val RUBY_SIZE = 10
-/** Tall enough for a word's first meanings and its buttons; the rest scrolls. */
-private val PANE_HEIGHT = 210.dp
+internal val PAGE_PADDING = 16.dp
+private val PAGE_PADDING_H = 24.dp
+internal val PAGE_LABEL_HEIGHT = 28.dp
+private val PARAGRAPH_GAP = 16.dp
+/** Tall enough for a word's first meaning or two and its buttons; the rest scrolls. */
+private val PANE_HEIGHT = 160.dp
 
 /** What the reader's pane shows: word [i] of paragraph [p], or with [sentence], the sentence around it. */
 private data class Opened(val p: Int, val i: Int, val sentence: Boolean) {
@@ -434,10 +522,10 @@ private fun StoryWord(
 private fun SentenceCard(translation: String?) {
     Text(
         translation ?: "There's no translation saved for this story.",
-        fontSize = 19.sp,
-        lineHeight = 26.sp,
+        fontSize = 17.sp,
+        lineHeight = 23.sp,
         color = if (translation == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 10.dp),
     )
 }
 
@@ -453,20 +541,20 @@ private fun WordCard(
     // A particle or ending on its own: the card explains its grammar and has no dictionary entry.
     val grammarOnly = word.kind == WordKind.GRAMMAR
     Column(
-        Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 12.dp, bottom = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             val title = if (grammarOnly) word.surface else entry?.display ?: word.lemma
-            Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 28.sp, modifier = Modifier.weight(1f, fill = false))
+            Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f, fill = false))
             val kana = entry?.kana ?: word.reading
             if (!grammarOnly && kana != title) {
-                Text(kana, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(kana, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (word.conjugated) {
                 Text(
@@ -484,7 +572,7 @@ private fun WordCard(
             } else {
                 val senses = entry.senses.take(3)
                 senses.forEachIndexed { i, sense ->
-                    MeaningLine(if (senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "))
+                    MeaningLine(if (senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "), compact = true)
                 }
                 val status = reading.statuses[entry.id]
                 Text(
@@ -508,7 +596,7 @@ private fun WordCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (reading.statuses[entry.id] == null) {
-                    PrimaryButton(onClick = { onAdd(entry.id) }, modifier = Modifier.weight(1f).height(44.dp)) {
+                    PrimaryButton(onClick = { onAdd(entry.id) }, modifier = Modifier.weight(1f).height(40.dp)) {
                         Text(ui("Add to reviews", "復習に追加"))
                     }
                 } else {
@@ -525,19 +613,19 @@ private fun WordCard(
 /** One grammar point in the word card: the pattern, what it means, and an example. */
 @Composable
 private fun GrammarNote(point: GrammarPoint) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 2.dp)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
-            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Text(
                 ui("Grammar", "文法") + "  ·  " + levelLabel(point.level),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Text(point.meaning, fontSize = 19.sp, lineHeight = 26.sp)
+        Text(point.meaning, fontSize = 16.sp, lineHeight = 21.sp)
         Text(point.note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(point.example, fontFamily = Gothic, fontSize = 17.sp, modifier = Modifier.padding(top = 2.dp))
+        Text(point.example, fontFamily = Gothic, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
         Text(point.exampleMeaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

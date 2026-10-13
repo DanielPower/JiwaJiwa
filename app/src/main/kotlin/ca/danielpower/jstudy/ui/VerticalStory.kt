@@ -1,16 +1,15 @@
 package ca.danielpower.jstudy.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -83,8 +82,9 @@ private fun pieces(reading: StoryReading): List<Piece> = buildList {
 }
 
 /**
- * The story set vertically. It opens at the right, where reading starts, and
- * scrolls sideways.
+ * The story set vertically, a page at a time. The first page is at the right,
+ * where reading starts, and the next page comes in from the left, as in a
+ * Japanese book. Each page's columns are centred across it.
  */
 @Composable
 fun VerticalStory(
@@ -103,11 +103,21 @@ fun VerticalStory(
         val rubyCell = with(density) { (RUBY_SIZE * 1.15f).sp.toPx() }
         val gap = cell * 0.75f
         val colWidth = cell + rubyCell
+        val pad = with(density) { PAGE_PADDING.toPx() }
+        val width = constraints.maxWidth - 2 * pad
+        val height = constraints.maxHeight - 2 * pad - with(density) { PAGE_LABEL_HEIGHT.toPx() }
         // Keep one cell spare at the foot for hanging punctuation.
-        val rows = ((constraints.maxHeight / cell).toInt() - 1).coerceAtLeast(4)
+        val rows = ((height / cell).toInt() - 1).coerceAtLeast(4)
+        val perPage = ((width + gap) / (colWidth + gap)).toInt().coerceAtLeast(1)
         val spots = remember(pieces, rows) { VerticalText.place(pieces.map { VerticalRun(it.chars, it.paragraphStart) }, rows) }
-        val cols = (spots.maxOfOrNull { it.col } ?: 0) + 1
-        val width = cols * colWidth + (cols - 1) * gap
+        // The pieces on each page, by index.
+        val pages = remember(spots, perPage) {
+            val count = (spots.maxOfOrNull { it.col } ?: 0) / perPage + 1
+            List(count) { page -> spots.indices.filter { spots[it].col / perPage == page } }
+        }
+        // Every page's columns sit where a full page's would, so they don't shift as you turn pages.
+        val fullWidth = perPage * colWidth + (perPage - 1) * gap
+        val right = (width + fullWidth) / 2
 
         val cellDp = with(density) { cell.toDp() }
         val rubyDp = with(density) { rubyCell.toDp() }
@@ -115,10 +125,13 @@ fun VerticalStory(
         val seal = MaterialTheme.colorScheme.primary
         val highlight = seal.copy(alpha = 0.14f)
 
-        Box(Modifier.fillMaxHeight().horizontalScroll(rememberScrollState(), reverseScrolling = true)) {
+        StoryPager(pages.size, reverse = true) { page ->
+            val onPage = pages[page]
             Layout(
+                modifier = Modifier.fillMaxSize().padding(PAGE_PADDING),
                 content = {
-                    pieces.forEach { piece ->
+                    onPage.forEach { k ->
+                        val piece = pieces[k]
                         val word = reading.paragraphs[piece.p][piece.i]
                         val isSelected = selected == (piece.p to piece.i)
                         val unknown = reading.isUnknown(word)
@@ -138,13 +151,16 @@ fun VerticalStory(
                     }
                 },
             ) { measurables, constraints ->
-                fun left(spot: VerticalSpot) = width - (spot.col + 1) * colWidth - spot.col * gap
-                val placeables = measurables.mapIndexed { k, m ->
-                    m.measure(Constraints.fixed(colWidth.roundToInt(), (pieces[k].chars.size * cell).roundToInt()))
+                fun left(spot: VerticalSpot): Float {
+                    val col = spot.col % perPage
+                    return right - (col + 1) * colWidth - col * gap
                 }
-                layout(width.roundToInt(), constraints.maxHeight) {
-                    placeables.forEachIndexed { k, placeable ->
-                        val spot = spots[k]
+                val placeables = measurables.mapIndexed { n, m ->
+                    m.measure(Constraints.fixed(colWidth.roundToInt(), (pieces[onPage[n]].chars.size * cell).roundToInt()))
+                }
+                layout(constraints.maxWidth, constraints.maxHeight) {
+                    placeables.forEachIndexed { n, placeable ->
+                        val spot = spots[onPage[n]]
                         placeable.place(left(spot).roundToInt(), (spot.row * cell).roundToInt())
                     }
                 }
