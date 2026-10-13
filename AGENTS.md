@@ -186,5 +186,10 @@ Google Play holds the app signing key and the CI key is the upload key; see
 `PRIVACY.md` and "Google Play" in the README. The first Play release goes to internal
 testing.
 
-Not decided or not built yet: the JPDB frequency list licence (must be settled
-before a closed or public Play release), example sentences, audio.
+Every bundled data source allows redistribution: word frequency comes from
+Jiten (CC BY-SA 4.0), not JPDB, which has no licence. The dictionary database
+is CC BY-SA 4.0, and the EDRDG licence requires regular JMdict updates
+(`.github/workflows/update-dictionary.yml`). New data sources must have a
+licence that allows this.
+
+Not decided or not built yet: example sentences, audio.

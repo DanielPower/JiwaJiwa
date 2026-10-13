@@ -18,6 +18,7 @@ import argparse
 import csv
 import hashlib
 import json
+import lzma
 import re
 import sqlite3
 import sys
@@ -124,6 +125,15 @@ def fetch(url: str, sha256: str, cache: Path) -> Path:
     return target
 
 
+def local(path: str, sha256: str) -> Path:
+    """A snapshot committed next to this script, checked like a download."""
+    target = HERE / path
+    digest = hashlib.sha256(target.read_bytes()).hexdigest()
+    if digest != sha256:
+        raise SystemExit(f"checksum mismatch for {path}: got {digest}")
+    return target
+
+
 def load_sources(cache: Path) -> dict:
     spec = json.loads(SOURCES.read_text(encoding="utf-8"))
     jm = spec["jmdict"]
@@ -132,7 +142,7 @@ def load_sources(cache: Path) -> dict:
     fu = spec["furigana"]
     furigana = json.loads(fetch(fu["url"], fu["sha256"], cache).read_text(encoding="utf-8-sig"))
     fr = spec["frequency"]
-    frequency = fetch(fr["url"], fr["sha256"], cache).read_text(encoding="utf-8")
+    frequency = lzma.decompress(local(fr["path"], fr["sha256"]).read_bytes()).decode("utf-8")
     jlpt = {
         int(level): fetch(s["url"], s["sha256"], cache).read_text(encoding="utf-8")
         for level, s in spec["jlpt"]["levels"].items()
@@ -182,15 +192,23 @@ def parse_jlpt(texts: dict[int, str]) -> tuple[list[JlptRow], list[JlptRow]]:
     return linked, unlinked
 
 
+def hiragana(text: str) -> str:
+    return "".join(chr(ord(c) - 0x60) if "ァ" <= c <= "ヶ" else c for c in text)
+
+
 def parse_frequency(text: str) -> dict[tuple[str, str], int]:
-    """(term, reading) -> best (lowest) JPDB rank."""
+    """(term, reading in hiragana) -> best (lowest) Jiten rank.
+
+    Jiten sometimes gives a reading in katakana (眼鏡 as メガネ), so readings
+    are compared in hiragana.
+    """
     ranks: dict[tuple[str, str], int] = {}
-    for r in csv.DictReader(text.splitlines(), delimiter="\t"):
+    for r in csv.DictReader(text.splitlines()):
         try:
-            rank = int(r["frequency"])
+            rank = int(r["Rank"])
         except (TypeError, ValueError):
             continue
-        key = (r["term"], r["reading"])
+        key = (r["Word"], hiragana(r["Form"]))
         if rank < ranks.get(key, UNRANKED):
             ranks[key] = rank
     return ranks
@@ -363,7 +381,7 @@ def select_word(
         kana = other or kanas[0]
 
     def rank(text: str) -> int:
-        return ranks.get((text, kana), UNRANKED)
+        return ranks.get((text, hiragana(kana)), UNRANKED)
 
     usable = [k for k in kanji_forms if has_kanji(k) and kana in readings_for(entry, k)]
     waller = first.kanji
@@ -466,7 +484,7 @@ def select_other(entry: dict, ranks: dict[tuple[str, str], int]) -> Word:
     for item in shown + [(k["text"], False) for k in entry["kanji"]] + [(k["text"], True) for k in entry["kana"]]:
         if item[0] and item not in forms:
             forms.append(item)
-    rank = min([ranks.get((t, kana), UNRANKED) for t, _ in forms] or [UNRANKED])
+    rank = min([ranks.get((t, hiragana(kana)), UNRANKED) for t, _ in forms] or [UNRANKED])
     return Word(
         id=int(entry["id"]),
         kanji=kanji_text,

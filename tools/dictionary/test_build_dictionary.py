@@ -118,6 +118,13 @@ class SelectWordTest(unittest.TestCase):
         w = bd.select_word(ha, rows, {}, {("は", "は"): 2, ("歯", "は"): 900})
         self.assertEqual(w.freq_rank, 900)
 
+    def test_frequency_readings_compared_in_hiragana(self):
+        ranks = bd.parse_frequency("Word,Form,Rank\n眼鏡,メガネ,4876\nめがね,めがね,46385\nドア,ドア,1481\n眼鏡,めがね,9000\n")
+        self.assertEqual(ranks[("眼鏡", "めがね")], 4876)
+        door = entry(1, [], [kana("ドア")], [sense("door")])
+        w = bd.select_word(door, [bd.JlptRow("1", "ドア", "", 5)], {}, ranks)
+        self.assertEqual(w.freq_rank, 1481)
+
     def test_senses_filtered_by_spelling(self):
         e = entry(
             1,
@@ -139,7 +146,7 @@ class BuildTest(unittest.TestCase):
             "furigana": [
                 {"text": "歯磨き", "reading": "はみがき", "furigana": [{"ruby": "歯", "rt": "は"}, {"ruby": "磨", "rt": "みが"}, {"ruby": "き"}]}
             ],
-            "frequency": "term\treading\tfrequency\tkana_frequency\nいる\tいる\t18\t\n歯磨き\tはみがき\t27099\t\n",
+            "frequency": "Word,Form,Rank\nいる,いる,18\n歯磨き,ハミガキ,27099\n",
             "jlpt": {5: n5, 1: n1},
             "spellings": [["歯磨き", "freq", {"reading": "はみがき", "frequency": {"displayValue": "N5"}}]],
             "kanjidic": {"databaseVersion": "1", "dictDate": "2026-01-01", "characters": [MIGAKU, HA]},
