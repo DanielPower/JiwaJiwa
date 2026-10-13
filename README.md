@@ -87,7 +87,8 @@ Play Console) makes each release go to the internal testing track, with the
 commit message as its release notes. Set the `PLAY_RELEASE_STATUS` repository
 variable to `draft` while the app is still a draft in Play Console.
 
-Play App Signing uses the same key as the GitHub releases, so builds from
-either place update each other.
+When setting up Play App Signing, upload the key from the signing secrets
+rather than letting Google make one, so Play builds and GitHub builds update
+each other.
 
 The privacy policy is [PRIVACY.md](PRIVACY.md).
