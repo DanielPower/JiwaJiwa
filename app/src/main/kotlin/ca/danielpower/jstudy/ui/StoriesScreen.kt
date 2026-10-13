@@ -41,10 +41,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.CardState
@@ -206,9 +208,9 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit) {
 fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val reading = state.reading
     var confirmDelete by remember { mutableStateOf(false) }
-    // The word whose popover is open, as (paragraph, index).
+    // The word whose popover is open, as (paragraph, index); the title is paragraph TITLE.
     var open by remember { mutableStateOf<Pair<Int, Int>?>(null) }
-    val openWord = open?.let { (p, i) -> reading.paragraphs.getOrNull(p)?.getOrNull(i) }
+    val openWord = open?.let { (p, i) -> reading.word(p, i) }
     // The rest of any grammar pattern the open word is part of, shaded along with it.
     val lit = open?.let { (p, _) -> openWord?.grammar.orEmpty().flatMap { use -> (use.first..use.last).map { p to it } }.toSet() }.orEmpty()
     // A tap outside the popover closes it before the tap lands, so a tap on the open word itself
@@ -266,7 +268,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     Modifier.padding(horizontal = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(reading.story.title.ifBlank { ui("Untitled", "無題", "題") }, style = MaterialTheme.typography.headlineSmall)
+                    StoryTitle(reading, MaterialTheme.typography.headlineSmall, open, lit, toggle, popover, close)
                 }
                 VerticalStory(
                     reading = reading,
@@ -281,7 +283,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(reading.story.title.ifBlank { ui("Untitled", "無題", "題") }, style = MaterialTheme.typography.headlineMedium)
+                StoryTitle(reading, MaterialTheme.typography.headlineMedium, open, lit, toggle, popover, close)
                 reading.paragraphs.forEachIndexed { p, words ->
                     FlowRow(modifier = Modifier.fillMaxWidth()) {
                         words.forEachIndexed { i, word ->
@@ -337,6 +339,40 @@ internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.
 internal const val TEXT_SIZE = 22
 internal const val RUBY_SIZE = 10
 
+/** The title, its words tappable like the story's, in [style]'s size and weight. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StoryTitle(
+    reading: StoryReading,
+    style: TextStyle,
+    open: Pair<Int, Int>?,
+    lit: Set<Pair<Int, Int>>,
+    onOpen: (Pair<Int, Int>) -> Unit,
+    popover: @Composable (Dp) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (reading.title.isEmpty()) {
+        Text(ui("Untitled", "無題", "題"), style = style)
+        return
+    }
+    FlowRow(modifier = Modifier.fillMaxWidth()) {
+        reading.title.forEachIndexed { i, word ->
+            val key = StoryReading.TITLE to i
+            StoryWord(
+                word = word,
+                reading = reading,
+                selected = open == key,
+                lit = key in lit,
+                onOpen = { onOpen(key) },
+                popover = popover,
+                onDismiss = onDismiss,
+                size = style.fontSize,
+                weight = style.fontWeight,
+            )
+        }
+    }
+}
+
 @Composable
 private fun StoryWord(
     word: ReadingWord,
@@ -346,6 +382,8 @@ private fun StoryWord(
     onOpen: () -> Unit,
     popover: @Composable (Dp) -> Unit,
     onDismiss: () -> Unit,
+    size: TextUnit = TEXT_SIZE.sp,
+    weight: FontWeight? = null,
 ) {
     val tappable = word.tappable()
     val unknown = reading.isUnknown(word)
@@ -371,9 +409,10 @@ private fun StoryWord(
                     )
                     Text(
                         text = piece.base,
-                        fontSize = TEXT_SIZE.sp,
-                        lineHeight = (TEXT_SIZE * 1.5).sp,
+                        fontSize = size,
+                        lineHeight = size * 1.5f,
                         fontFamily = Gothic,
+                        fontWeight = weight,
                         softWrap = false,
                         color = color,
                         textDecoration = if (unknown) TextDecoration.Underline else null,

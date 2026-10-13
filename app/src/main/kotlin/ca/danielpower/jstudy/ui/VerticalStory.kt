@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -25,10 +26,14 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ca.danielpower.jstudy.core.VerticalRun
+import ca.danielpower.jstudy.core.VerticalSpot
+import ca.danielpower.jstudy.core.VerticalText
 import ca.danielpower.jstudy.data.StoryReading
 import kotlin.math.roundToInt
 
@@ -43,16 +48,8 @@ import kotlin.math.roundToInt
  */
 private class Piece(val chars: List<String>, val ruby: List<String>?, val p: Int, val i: Int, val paragraphStart: Boolean)
 
-private class Spot(val col: Int, val row: Int)
-
 /** Vertical forms of punctuation, brackets and the long vowel mark. */
 private val Vertical = TextStyle(fontFeatureSettings = "vert")
-
-/** May hang below the end of a column rather than start the next one. */
-private val HANGING = setOf("、", "。", "，", "．", "」", "』", "）", "】", "〕", "！", "？", "!", "?")
-
-/** Never end a column. */
-private val OPENING = setOf("「", "『", "（", "【", "〔")
 
 private fun String.characters(): List<String> = buildList {
     var k = 0
@@ -86,34 +83,10 @@ private fun pieces(reading: StoryReading): List<Piece> = buildList {
     }
 }
 
-/** Where each piece goes, given how many cells fit down a column. */
-private fun place(pieces: List<Piece>, rows: Int): List<Spot> {
-    var col = 0
-    var row = 0
-    var first = true
-    return pieces.map { piece ->
-        if (piece.paragraphStart) {
-            if (!first) col++
-            // Paragraphs start one cell down, as in print.
-            row = 1
-        }
-        first = false
-        val n = piece.chars.size
-        val hangs = n == 1 && piece.chars[0] in HANGING && row == rows
-        if (row + n > rows && !hangs && row > 0) {
-            col++
-            row = 0
-        } else if (n == 1 && piece.chars[0] in OPENING && row == rows - 1) {
-            col++
-            row = 0
-        }
-        Spot(col, row).also { row += n }
-    }
-}
-
 /**
  * The story set vertically. It opens at the right, where reading starts, and
- * scrolls sideways. The open word's [popover] hangs off its first piece.
+ * scrolls sideways. The open word's [popover] sits beside the whole word, so
+ * it doesn't cover the rest of the word down the column.
  */
 @Composable
 fun VerticalStory(
@@ -126,7 +99,7 @@ fun VerticalStory(
     modifier: Modifier = Modifier,
 ) {
     val pieces = remember(reading) { pieces(reading) }
-    val firstPiece = pieces.indexOfFirst { (it.p to it.i) == selected }
+    val selectedPieces = pieces.indices.filter { (pieces[it].p to pieces[it].i) == selected }
     BoxWithConstraints(modifier) {
         val density = LocalDensity.current
         val cell = with(density) { (TEXT_SIZE * 1.15f).sp.toPx() }
@@ -135,7 +108,7 @@ fun VerticalStory(
         val colWidth = cell + rubyCell
         // Keep one cell spare at the foot for hanging punctuation.
         val rows = ((constraints.maxHeight / cell).toInt() - 1).coerceAtLeast(4)
-        val spots = remember(pieces, rows) { place(pieces, rows) }
+        val spots = remember(pieces, rows) { VerticalText.place(pieces.map { VerticalRun(it.chars, it.paragraphStart) }, rows) }
         val cols = (spots.maxOfOrNull { it.col } ?: 0) + 1
         val width = cols * colWidth + (cols - 1) * gap
 
@@ -148,7 +121,7 @@ fun VerticalStory(
         Box(Modifier.fillMaxHeight().horizontalScroll(rememberScrollState(), reverseScrolling = true)) {
             Layout(
                 content = {
-                    pieces.forEachIndexed { k, piece ->
+                    pieces.forEach { piece ->
                         val word = reading.paragraphs[piece.p][piece.i]
                         val isSelected = selected == (piece.p to piece.i)
                         val unknown = reading.isUnknown(word)
@@ -164,21 +137,33 @@ fun VerticalStory(
                             } else {
                                 null
                             },
-                            popover = if (k == firstPiece) popover else null,
-                            onDismiss = onDismiss,
                         )
                     }
+                    // Spans the open word, to anchor its popover.
+                    if (selectedPieces.isNotEmpty()) Box { WordPopover(onDismiss, popover) }
                 },
             ) { measurables, constraints ->
-                val placeables = measurables.mapIndexed { k, m ->
-                    m.measure(Constraints.fixed(colWidth.roundToInt(), (pieces[k].chars.size * cell).roundToInt()))
+                fun left(spot: VerticalSpot) = width - (spot.col + 1) * colWidth - spot.col * gap
+                val placeables = pieces.indices.map { k ->
+                    measurables[k].measure(Constraints.fixed(colWidth.roundToInt(), (pieces[k].chars.size * cell).roundToInt()))
+                }
+                // A word split across columns spans both of them.
+                val anchor = if (selectedPieces.isEmpty()) {
+                    null
+                } else {
+                    val x0 = selectedPieces.minOf { left(spots[it]) }
+                    val x1 = selectedPieces.maxOf { left(spots[it]) + colWidth }
+                    val y0 = selectedPieces.minOf { spots[it].row * cell }
+                    val y1 = selectedPieces.maxOf { (spots[it].row + pieces[it].chars.size) * cell }
+                    val size = Constraints.fixed((x1 - x0).roundToInt(), (y1 - y0).roundToInt())
+                    Triple(measurables[pieces.size].measure(size), x0, y0)
                 }
                 layout(width.roundToInt(), constraints.maxHeight) {
                     placeables.forEachIndexed { k, placeable ->
                         val spot = spots[k]
-                        val x = width - (spot.col + 1) * colWidth - spot.col * gap
-                        placeable.place(x.roundToInt(), (spot.row * cell).roundToInt())
+                        placeable.place(left(spot).roundToInt(), (spot.row * cell).roundToInt())
                     }
+                    anchor?.let { (placeable, x, y) -> placeable.place(x.roundToInt(), y.roundToInt()) }
                 }
             }
         }
@@ -194,8 +179,6 @@ private fun PieceView(
     sideline: Boolean,
     background: Color,
     onClick: (() -> Unit)?,
-    popover: (@Composable (Dp) -> Unit)?,
-    onDismiss: () -> Unit,
 ) {
     var modifier = Modifier.background(background)
     if (onClick != null) modifier = modifier.clickable(onClick = onClick)
@@ -209,17 +192,7 @@ private fun PieceView(
     Box(modifier) {
         Column(Modifier.width(cell)) {
             for (c in piece.chars) {
-                Box(Modifier.size(cell), contentAlignment = Alignment.Center) {
-                    Text(
-                        c,
-                        fontSize = TEXT_SIZE.sp,
-                        lineHeight = TEXT_SIZE.sp,
-                        fontFamily = Gothic,
-                        style = Vertical,
-                        color = color,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                Glyph(c, TEXT_SIZE, cell, color)
             }
         }
         val ruby = piece.ruby
@@ -232,20 +205,31 @@ private fun PieceView(
                     .requiredHeight(rubyCell * ruby.size),
             ) {
                 for (c in ruby) {
-                    Box(Modifier.size(rubyCell), contentAlignment = Alignment.Center) {
-                        Text(
-                            c,
-                            fontSize = RUBY_SIZE.sp,
-                            lineHeight = RUBY_SIZE.sp,
-                            fontFamily = Gothic,
-                            style = Vertical,
-                            color = color.copy(alpha = 0.75f),
-                            textAlign = TextAlign.Center,
-                        )
-                    }
+                    Glyph(c, RUBY_SIZE, rubyCell, color.copy(alpha = 0.75f))
                 }
             }
         }
-        if (popover != null) WordPopover(onDismiss, popover)
+    }
+}
+
+/**
+ * One character centred in its square cell. The text keeps the font's own
+ * line height, which is taller than the cell, and is left free to overflow
+ * it: squeezing the line to the cell clipped the feet of some kanji.
+ */
+@Composable
+private fun Glyph(c: String, size: Int, cell: Dp, color: Color) {
+    Box(Modifier.size(cell), contentAlignment = Alignment.Center) {
+        Text(
+            c,
+            modifier = Modifier.wrapContentHeight(unbounded = true),
+            fontSize = size.sp,
+            fontFamily = Gothic,
+            style = Vertical,
+            color = color,
+            textAlign = TextAlign.Center,
+            overflow = TextOverflow.Visible,
+            softWrap = false,
+        )
     }
 }

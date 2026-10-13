@@ -83,12 +83,21 @@ data class Undo(
 /** A saved story split into words, with what's needed to show each one. */
 data class StoryReading(
     val story: SavedStory,
+    /** The title's words, tappable like the story's. */
+    val title: List<ReadingWord>,
     val paragraphs: List<List<ReadingWord>>,
     /** Dictionary entries for the story's words. */
     val words: Map<Long, Word>,
     val statuses: Map<Long, WordStatus>,
     val coverage: Coverage,
-)
+) {
+    /** The word at [i] in paragraph [p], where paragraph [TITLE] is the title. */
+    fun word(p: Int, i: Int): ReadingWord? = (if (p == TITLE) title else paragraphs.getOrNull(p))?.getOrNull(i)
+
+    companion object {
+        const val TITLE = -1
+    }
+}
 
 /** Numbers for the stats screen. */
 data class Stats(
@@ -561,11 +570,13 @@ class Repository(context: Context) {
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
+        val title = reader.read(story.title).flatten()
         val paragraphs = reader.read(story.body)
-        val ids = paragraphs.flatten().mapNotNull { it.wordId }.toSet()
+        val ids = (title + paragraphs.flatten()).mapNotNull { it.wordId }.toSet()
         val statuses = store.wordStatuses()
         return StoryReading(
             story = story,
+            title = title,
             paragraphs = paragraphs,
             words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
             statuses = statuses,

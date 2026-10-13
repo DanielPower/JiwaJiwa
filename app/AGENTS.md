@@ -12,7 +12,7 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 | `ui/AppViewModel.kt` | The single view model. Navigation is a `Screen` sealed interface held in state, not a nav library. |
 | `ui/*Screen.kt`, `ui/Screens.kt` | Compose screens: home, review, done, dictionary and word page, settings, setup, stats, stories, Renshuu import. |
 | `ui/Washi.kt`, `ui/Theme.kt` | The Washi design system (see below). |
-| `ui/VerticalStory.kt` | Custom vertical (tategaki) layout; Compose has no vertical writing mode. |
+| `ui/VerticalStory.kt` | Custom vertical (tategaki) layout; Compose has no vertical writing mode. Line breaking lives in core `VerticalText`. |
 | `ui/WordPopover.kt` | The story reader's word popover, placed beside the tapped word in either layout. |
 | `data/Repository.kt` | Everything the UI asks for. Owns settings, sessions, undo, backup, reset, stories, stats. |
 | `data/ProgressStore.kt` | The user's SQLite DB (`progress.db`): cards, word progress, review log, a `kv` settings table, stories. |
