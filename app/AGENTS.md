@@ -79,5 +79,5 @@ cloud containers).
 
 ## Debug builds
 
-The debug build type has app id `ca.danielpower.jstudy.debug`, so a PR's APK
+The debug build type has app id `com.crispyumbrella.jiwajiwa.debug`, so a PR's APK
 installs next to the real app without touching its progress.
