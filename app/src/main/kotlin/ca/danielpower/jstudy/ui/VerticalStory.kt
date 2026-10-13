@@ -143,7 +143,6 @@ fun VerticalStory(
                             sideline = unknown,
                             background = if (isSelected || (piece.p to piece.i) in lit) highlight else Color.Transparent,
                             gestures = Modifier.storyWordGestures(
-                                word.tappable(),
                                 onTap = { if (word.tappable()) onTap(piece.p, piece.i) else onBlank() },
                                 onHold = { onHold(piece.p, piece.i) },
                             ),
