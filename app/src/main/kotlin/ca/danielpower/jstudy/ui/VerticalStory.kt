@@ -154,13 +154,19 @@ fun VerticalStory(
                     val col = spot.col % perPage
                     return right - (col + 1) * colWidth - col * gap
                 }
+                // Round each piece's top and foot, not its height, so a word's
+                // pieces meet exactly: rounding the height on its own left
+                // highlighted words with a pixel of overlap or gap between them.
+                fun top(row: Int) = (row * cell).roundToInt()
                 val placeables = measurables.mapIndexed { n, m ->
-                    m.measure(Constraints.fixed(colWidth.roundToInt(), (pieces[onPage[n]].chars.size * cell).roundToInt()))
+                    val row = spots[onPage[n]].row
+                    val height = top(row + pieces[onPage[n]].chars.size) - top(row)
+                    m.measure(Constraints.fixed(colWidth.roundToInt(), height))
                 }
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeables.forEachIndexed { n, placeable ->
                         val spot = spots[onPage[n]]
-                        placeable.place(left(spot).roundToInt(), (spot.row * cell).roundToInt())
+                        placeable.place(left(spot).roundToInt(), top(spot.row))
                     }
                 }
             }
