@@ -459,15 +459,13 @@ private fun StoryTitle(
 
 /**
  * A tap opens a word in the pane, or closes the pane on a word with nothing
- * to show; a long press opens the word's sentence.
+ * to show; a long press opens the word's sentence. No ripple: vertical text
+ * lays words out a character at a time, so it flashed on one character, and
+ * the red selection already shows the tap.
  */
 @OptIn(ExperimentalFoundationApi::class)
-internal fun Modifier.storyWordGestures(tappable: Boolean, onTap: () -> Unit, onHold: () -> Unit): Modifier =
-    if (tappable) {
-        combinedClickable(onLongClick = onHold, onClick = onTap)
-    } else {
-        combinedClickable(interactionSource = null, indication = null, onLongClick = onHold, onClick = onTap)
-    }
+internal fun Modifier.storyWordGestures(onTap: () -> Unit, onHold: () -> Unit): Modifier =
+    combinedClickable(interactionSource = null, indication = null, onLongClick = onHold, onClick = onTap)
 
 @Composable
 private fun StoryWord(
@@ -486,7 +484,7 @@ private fun StoryWord(
 
     var modifier: Modifier = Modifier
     if (selected || lit) modifier = modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), WashiShape)
-    modifier = modifier.storyWordGestures(word.tappable(), onTap, onHold)
+    modifier = modifier.storyWordGestures(onTap, onHold)
     Box(modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             for (piece in word.ruby) {
