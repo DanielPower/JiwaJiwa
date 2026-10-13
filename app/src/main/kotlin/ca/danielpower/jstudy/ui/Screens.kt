@@ -108,6 +108,7 @@ fun App(vm: AppViewModel, screen: Screen) {
                     is Screen.StatsPage -> StatsScreen(screen, vm)
                     is Screen.Dictionary -> DictionaryScreen(screen, vm, dictionaryList)
                     is Screen.WordPage -> WordScreen(screen, vm)
+                    is Screen.KanjiPage -> KanjiScreen(screen, vm)
                     is Screen.RenshuuImport -> RenshuuImportScreen(screen.step, vm)
                     is Screen.Stories -> StoriesScreen(screen, vm)
                     is Screen.StoryReader -> StoryReaderScreen(screen, vm)
@@ -343,6 +344,10 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                 if (revealed) {
                     HorizontalDivider(Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurface)
                     Meanings(word.senses, limit = 3, large = false)
+                    if (state.current.kanji.isNotEmpty()) {
+                        Spacer(Modifier.height(20.dp))
+                        KanjiLinks(state.current.kanji, vm::openKanji, compact = true)
+                    }
                 }
             }
 

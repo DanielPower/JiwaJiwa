@@ -13,6 +13,7 @@ import ca.danielpower.jstudy.core.ImportPlan
 import ca.danielpower.jstudy.core.KanaCourse
 import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.KanaUnit
+import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
@@ -23,6 +24,7 @@ import ca.danielpower.jstudy.core.UiLabel
 import ca.danielpower.jstudy.core.UiLanguage
 import ca.danielpower.jstudy.data.BackupException
 import ca.danielpower.jstudy.data.Entry
+import ca.danielpower.jstudy.data.KanjiDetail
 import ca.danielpower.jstudy.data.Reminder
 import ca.danielpower.jstudy.data.Stats
 import ca.danielpower.jstudy.reminder.DailyReminder
@@ -60,6 +62,8 @@ data class ReviewCard(
     val mastery: Int,
     /** The kana on a kana card. */
     val kana: KanaUnit? = null,
+    /** The kanji in the word's spelling, linked from the answer side. */
+    val kanji: List<Kanji> = emptyList(),
 )
 
 data class ReviewCounts(val new: Int, val learning: Int, val review: Int)
@@ -143,6 +147,8 @@ sealed interface Screen {
 
     data class WordPage(val detail: WordDetail, val clock: StudyClock) : Screen
 
+    data class KanjiPage(val detail: KanjiDetail) : Screen
+
     data class RenshuuImport(val step: ImportStep) : Screen
 
     data class Stories(
@@ -207,6 +213,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var entryIds: Set<Long> = emptySet()
     private var statuses: Map<Long, WordStatus> = emptyMap()
     private var lastDictionary: Screen.Dictionary? = null
+
+    /** Where Back goes from kanji pages and the words opened from them, most recent last. */
+    private val trail = ArrayDeque<Screen>()
     private var searchJob: Job? = null
     private var importJob: Job? = null
 
@@ -267,6 +276,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun showHome() {
         refreshLanguage()
+        trail.clear()
         session = null
         undo = null
         _screen.value = Screen.Home(repo.summary(now()))
@@ -278,6 +288,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun back() {
         when (_screen.value) {
             is Screen.WordPage -> closeWord()
+            is Screen.KanjiPage -> goBack()
             is Screen.RenshuuImport -> closeImport()
             is Screen.StoryReader -> openStories()
             is Screen.Setup -> setupBack()
@@ -333,7 +344,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val mastery = repo.progress(card.wordId).mastery
         val mode = MasteryRules.furigana(mastery)
         _screen.value = Screen.Review(
-            current = ReviewCard(card, word, mode, mastery),
+            current = ReviewCard(card, word, mode, mastery, kanji = repo.kanjiIn(word)),
             revealed = false,
             furiganaVisible = mode == FuriganaMode.SHOWN,
             counts = counts,
@@ -399,7 +410,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Re-check the queue, e.g. when a learning step falls due. */
     fun refresh() = launchIo { if (session != null) advance() }
 
-    fun openSettings() = launchIo { showSettings(null) }
+    fun openSettings() = launchIo {
+        trail.clear()
+        showSettings(null)
+    }
 
     private fun showSettings(backupMessage: String?) {
         refreshLanguage()
@@ -592,7 +606,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------ stories
 
-    fun openStories() = launchIo { showStories() }
+    fun openStories() = launchIo {
+        trail.clear()
+        showStories()
+    }
 
     private fun showStories() {
         _screen.value = Screen.Stories(
@@ -672,6 +689,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ------------------------------------------------------------ dictionary
 
     fun openDictionary() = launchIo {
+        trail.clear()
         if (entries == null) {
             entries = repo.dictionary.entries()
             entryIds = entries!!.mapTo(HashSet()) { it.id }
@@ -725,7 +743,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setStatusFilter(status: StatusFilter) = filterDictionary(0) { it.copy(status = status) }
 
     fun openWord(wordId: Long) = launchIo {
-        (_screen.value as? Screen.Dictionary)?.let { lastDictionary = it }
+        when (val current = _screen.value) {
+            is Screen.Dictionary -> lastDictionary = current
+            is Screen.KanjiPage -> trail.addLast(current)
+            else -> {}
+        }
         showWord(wordId)
     }
 
@@ -737,6 +759,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun closeWord() = launchIo {
+        trail.removeLastOrNull()?.let { return@launchIo returnTo(it) }
         val state = lastDictionary
         if (state == null) {
             showHome()
@@ -751,6 +774,28 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val wordId = page.detail.word.id
         action(wordId)
         showWord(wordId)
+    }
+
+    // ------------------------------------------------------------ kanji
+
+    /** Open a kanji's page; Back returns to the screen it was opened from. */
+    fun openKanji(literal: String) = launchIo {
+        val detail = repo.kanjiDetail(literal) ?: return@launchIo
+        trail.addLast(_screen.value)
+        _screen.value = Screen.KanjiPage(detail)
+    }
+
+    fun goBack() = launchIo { returnTo(trail.removeLastOrNull()) }
+
+    /** Show a screen from the trail again, reloading the ones whose progress may have changed meanwhile. */
+    private fun returnTo(screen: Screen?) {
+        when (screen) {
+            null, is Screen.Home -> showHome()
+            is Screen.WordPage -> showWord(screen.detail.word.id)
+            is Screen.KanjiPage -> repo.kanjiDetail(screen.detail.kanji.literal)?.let { _screen.value = Screen.KanjiPage(it) }
+            is Screen.StatsPage -> _screen.value = Screen.StatsPage(repo.stats(now()))
+            else -> _screen.value = screen
+        }
     }
 
     fun learnNext() = wordAction { repo.learnNext(it, now()) }

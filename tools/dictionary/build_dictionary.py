@@ -5,7 +5,7 @@ Usage:
     python3 tools/dictionary/build_dictionary.py            # download (cached), build, write report
     python3 tools/dictionary/build_dictionary.py --check    # rebuild and compare with the digest in the report
 
-The database holds every JMdict entry, about 70 MB, so it is built in CI and
+The database holds every JMdict entry and kanji, about 85 MB, so it is built in CI and
 not committed. build_report.md records its content digest instead.
 
 Sources and their checksums are pinned in sources.json. Hand corrections go in
@@ -18,6 +18,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 import sqlite3
 import sys
 import tempfile
@@ -36,7 +37,7 @@ OUTPUT = REPO / "app" / "src" / "main" / "assets" / "databases" / "dictionary.db
 CACHE = HERE / ".cache"
 
 # Bump when the table layout changes; the app's queries must match.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # Kanji and kana forms that are rare, outdated, irregular or search-only.
 BAD_KANJI_TAGS = {"rK", "sK", "oK", "iK"}
@@ -76,6 +77,19 @@ CREATE TABLE sense (
     info TEXT,
     PRIMARY KEY (word_id, ord)
 );
+
+CREATE TABLE kanji (
+    literal TEXT NOT NULL PRIMARY KEY,
+    meanings TEXT NOT NULL,
+    onyomi TEXT NOT NULL,
+    kunyomi TEXT NOT NULL,
+    strokes INTEGER NOT NULL,
+    grade INTEGER,
+    jlpt INTEGER NOT NULL,
+    freq_rank INTEGER,
+    stroke_paths TEXT
+);
+CREATE INDEX index_kanji_jlpt ON kanji (jlpt);
 
 CREATE TABLE tag (
     code TEXT NOT NULL PRIMARY KEY,
@@ -126,8 +140,19 @@ def load_sources(cache: Path) -> dict:
     spellings = []
     for s in spec["jlpt"]["spellings"]:
         spellings += json.loads(fetch(s["url"], s["sha256"], cache).read_text(encoding="utf-8"))
+    kd = spec["kanjidic"]
+    with zipfile.ZipFile(fetch(kd["url"], kd["sha256"], cache)) as z:
+        kanjidic = json.loads(z.read(kd["zip_member"]).decode("utf-8"))
+    kj = spec["kanji_jlpt"]
+    kanji_jlpt = json.loads(fetch(kj["url"], kj["sha256"], cache).read_text(encoding="utf-8"))
+    kv = spec["kanjivg"]
+    with zipfile.ZipFile(fetch(kv["url"], kv["sha256"], cache)) as z:
+        strokes = parse_kanjivg({name: z.read(name).decode("utf-8") for name in z.namelist() if name.endswith(".svg")})
     return {
         "spec": spec,
+        "kanjidic": kanjidic,
+        "kanji_jlpt": kanji_jlpt,
+        "strokes": strokes,
         "jmdict": jmdict,
         "furigana": furigana,
         "frequency": frequency,
@@ -195,6 +220,62 @@ def parse_overrides(path: Path) -> dict[str, dict[str, str]]:
     with open(path, encoding="utf-8") as f:
         for r in csv.DictReader(line for line in f if not line.startswith("#")):
             out[r["jmdict_seq"].strip()][r["field"].strip()] = r["value"].strip()
+    return out
+
+
+# The main file for each character is named by its code point alone; the
+# others (kanji/04e00-Kaisho.svg) are variant forms.
+KANJIVG_MAIN = re.compile(r"kanji/([0-9a-f]{5})\.svg")
+KANJIVG_PATH = re.compile(r'<path\b[^>]*?\sd="([^"]+)"')
+
+
+def parse_kanjivg(files: dict[str, str]) -> dict[str, list[str]]:
+    """character -> SVG path data for each stroke, in stroke order, on a 109 x 109 grid."""
+    out = {}
+    for name, svg in files.items():
+        m = KANJIVG_MAIN.fullmatch(name)
+        if m:
+            out[chr(int(m.group(1), 16))] = KANJIVG_PATH.findall(svg)
+    return out
+
+
+@dataclass
+class Kanji:
+    literal: str
+    meanings: list[str]
+    onyomi: list[str]
+    kunyomi: list[str]
+    strokes: int
+    grade: int | None
+    jlpt: int
+    freq_rank: int | None
+    stroke_paths: list[str] | None
+
+
+def parse_kanji(kanjidic: dict, levels: dict[str, dict], strokes: dict[str, list[str]]) -> list[Kanji]:
+    """Every KANJIDIC2 character, with its JLPT level (0 when it isn't on the lists) and strokes."""
+    out = []
+    for c in kanjidic["characters"]:
+        literal = c["literal"]
+        rm = c.get("readingMeaning") or {"groups": []}
+        readings = [r for g in rm["groups"] for r in g["readings"]]
+        meanings = [m["value"] for g in rm["groups"] for m in g["meanings"] if m["lang"] == "en"]
+        level = (levels.get(literal) or {}).get("jlpt_new")
+        paths = strokes.get(literal)
+        out.append(
+            Kanji(
+                literal=literal,
+                meanings=meanings,
+                onyomi=[r["value"] for r in readings if r["type"] == "ja_on"],
+                kunyomi=[r["value"] for r in readings if r["type"] == "ja_kun"],
+                strokes=c["misc"]["strokeCounts"][0],
+                grade=c["misc"].get("grade"),
+                jlpt=int(level) if level else 0,
+                freq_rank=c["misc"].get("frequency"),
+                stroke_paths=paths or None,
+            )
+        )
+    out.sort(key=lambda k: k.literal)
     return out
 
 
@@ -422,6 +503,7 @@ class Build:
     collapsed: dict[int, list[JlptRow]]
     tags: dict[str, str]
     meta: dict[str, str]
+    kanji: list[Kanji] = field(default_factory=list)
 
 
 def build(src: dict, overrides: dict[str, dict[str, str]]) -> Build:
@@ -466,10 +548,13 @@ def build(src: dict, overrides: dict[str, dict[str, str]]) -> Build:
     for w in others:
         seg_by_id[w.id] = segments(w, furigana)[0]
 
+    kanji = parse_kanji(src["kanjidic"], src["kanji_jlpt"], src["strokes"])
+
     spec = src["spec"]
     meta = {
         "schema_version": str(SCHEMA_VERSION),
         "jmdict_version": f"{jmdict['version']} ({jmdict['dictDate']})",
+        "kanjidic_version": f"{src['kanjidic']['databaseVersion']} ({src['kanjidic']['dictDate']})",
         "attribution": "; ".join(
             f"{s['description']} ({s['license']}, {s['homepage']})" for s in spec.values()
         ),
@@ -483,6 +568,7 @@ def build(src: dict, overrides: dict[str, dict[str, str]]) -> Build:
         collapsed={int(seq): rows for seq, rows in by_seq.items() if len(rows) > 1},
         tags=jmdict["tags"],
         meta=meta,
+        kanji=kanji,
     )
 
 
@@ -526,6 +612,21 @@ def write_db(result: Build, path: Path) -> None:
                         "; ".join(s["info"]) or None,
                     ),
                 )
+        for k in result.kanji:
+            db.execute(
+                "INSERT INTO kanji VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    k.literal,
+                    json.dumps(k.meanings, ensure_ascii=False),
+                    json.dumps(k.onyomi, ensure_ascii=False),
+                    json.dumps(k.kunyomi, ensure_ascii=False),
+                    k.strokes,
+                    k.grade,
+                    k.jlpt,
+                    k.freq_rank,
+                    json.dumps(k.stroke_paths) if k.stroke_paths else None,
+                ),
+            )
         for code in sorted(used_tags):
             db.execute("INSERT INTO tag VALUES (?, ?)", (code, result.tags.get(code, code)))
         for key, value in sorted(result.meta.items()):
@@ -594,6 +695,19 @@ def write_report(result: Build, digest: str, path: Path) -> None:
         f"Other JMdict words, for lookups while reading: {len(others)}"
         f" ({other_kanji} shown in kanji, {sum(1 for w in others if w.freq_rank is not None)} with a frequency rank).",
     ]
+
+    kanji_levels = Counter(k.jlpt for k in result.kanji)
+    lines += [
+        "",
+        f"Kanji: {len(result.kanji)} from KANJIDIC2, {sum(1 for k in result.kanji if k.stroke_paths)} with KanjiVG strokes.",
+        "",
+        "| Level | Kanji | Without strokes |",
+        "| --- | --- | --- |",
+    ]
+    for level in (5, 4, 3, 2, 1):
+        ks = [k for k in result.kanji if k.jlpt == level]
+        missing = [k.literal for k in ks if not k.stroke_paths]
+        lines.append(f"| N{level} | {kanji_levels[level]} | {', '.join(missing) or 'None'} |")
 
     def word_label(w: Word) -> str:
         return f"{w.kanji}【{w.kana}】" if w.kanji else w.kana

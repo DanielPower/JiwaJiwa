@@ -12,6 +12,7 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 | `ui/AppViewModel.kt` | The single view model. Navigation is a `Screen` sealed interface held in state, not a nav library. |
 | `ui/*Screen.kt`, `ui/Screens.kt` | Compose screens: home, review, done, dictionary and word page, settings, setup, stats, stories, Renshuu import. |
 | `ui/Washi.kt`, `ui/Theme.kt` | The Washi design system (see below). |
+| `ui/KanjiScreen.kt` | The kanji page, stroke order drawn from KanjiVG paths, and the kanji links used on word pages and cards. |
 | `ui/VerticalStory.kt` | Custom vertical (tategaki) layout; Compose has no vertical writing mode. Line breaking lives in core `VerticalText`. |
 | `data/Repository.kt` | Everything the UI asks for. Owns settings, sessions, undo, backup, reset, stories, stats. |
 | `data/ProgressStore.kt` | The user's SQLite DB (`progress.db`): cards, word progress, review log, a `kv` settings table, stories. |
@@ -30,7 +31,7 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 - SharedPreferences hold only what must not go in a backup or must load
   before the DB: `secrets` (the Claude API key), `display` (theme, read on
   the first frame), `dictionary` (asset copy bookkeeping).
-- The dictionary DB (`assets/databases/dictionary.db`, about 75 MB, all of
+- The dictionary DB (`assets/databases/dictionary.db`, about 85 MB, all of
   JMdict) is built by `tools/dictionary` and isn't committed. JLPT words
   have level 1–5 and a `study_order`; others have level 0 and no order.
   `levelLabel` shows them as "Other".

@@ -13,6 +13,7 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 | `StudyClock.kt` | Study days with a rollover hour, in a time zone. Review cards fall due at the start of a study day. |
 | `Session.kt` | `StudySettings`, `StudyAhead` ("study more"), `DailyLimits`, and `StudySession`, the order cards are shown in during one sitting. |
 | `Kana.kt` | Romaji → kana for search, hiragana/katakana variants. |
+| `Kanji.kt` | `Kanji` entries, the kanji in a word from its furigana, and which dictionary reading a word uses (allowing for rendaku, small っ and verb stems in compounds). |
 | `KanaCourse.kt` | The kana units (negative ids, so they never clash with JMdict word ids), teaching order, and the "kana known" setting. |
 | `Reading.kt` | Kuromoji tokens grouped into words, matched to the dictionary, with conjugation labels. |
 | `Grammar.kt` | About 100 hand-written grammar points (particles and N5–N3 patterns), each with token patterns over Kuromoji output. `Reader` attaches them to words; a match inside a longer match is dropped. `GrammarTest` checks every point's own example sentence finds it, so add an example that does. |

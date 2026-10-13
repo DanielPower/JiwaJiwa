@@ -15,6 +15,8 @@ import ca.danielpower.jstudy.core.Fsrs
 import ca.danielpower.jstudy.core.ImportPlan
 import ca.danielpower.jstudy.core.KanaCourse
 import ca.danielpower.jstudy.core.KanaKnown
+import ca.danielpower.jstudy.core.Kanji
+import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.LocalWord
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.RenshuuImport
@@ -72,7 +74,23 @@ data class WordDetail(
     val mastery: Int,
     val suspended: Boolean,
     val history: List<Pair<Direction, ReviewEntry>>,
+    /** The kanji in the word's spelling, in order. */
+    val kanji: List<Kanji>,
 )
+
+/** A kanji's page: its entry and the words written with it. */
+data class KanjiDetail(
+    val kanji: Kanji,
+    /** Words you've started that are written with it, best known first. */
+    val yourWords: List<KanjiWordRow>,
+    /** Other common words written with it, in study order. */
+    val moreWords: List<Entry>,
+    /** The dictionary readings your words use. */
+    val readingsMet: Set<String>,
+)
+
+/** One of your words on a kanji's page, with the kanji's reading in it (its dictionary form when it has one). */
+data class KanjiWordRow(val entry: Entry, val mastery: Int, val reading: String?)
 
 /** Everything needed to take back the last answer. */
 data class Undo(
@@ -387,6 +405,7 @@ class Repository(context: Context) {
             mastery = store.progress(wordId).mastery,
             suspended = store.isSuspended(wordId),
             history = store.logs(wordId),
+            kanji = kanjiIn(word),
         )
     }
 
@@ -442,6 +461,34 @@ class Repository(context: Context) {
                 if (card != null && card.state == CardState.NEW && card.reps == 0) store.deleteCard(db, card.id)
             }
         }
+    }
+
+    // ------------------------------------------------------------ kanji
+
+    /** The kanji in a word's spelling, in order; none for a word shown in kana. */
+    fun kanjiIn(word: Word): List<Kanji> =
+        if (word.showsKanji) dictionary.kanji(Kanjis.inText(word.display)) else emptyList()
+
+    fun kanjiDetail(literal: String): KanjiDetail? {
+        val kanji = dictionary.kanji(literal) ?: return null
+        // Words you've started and not set aside that are written with it.
+        val started = store.wordStatuses().filter { (_, st) -> st.state != CardState.NEW && !st.suspended }
+        val mine = dictionary.kanjiSpellings(started.keys).mapNotNull { (id, segments) ->
+            Kanjis.inWord(segments).firstOrNull { it.kanji == literal }?.let { id to it }
+        }
+        val entries = dictionary.entries(mine.map { it.first }).associateBy { it.id }
+        val yourWords = mine.mapNotNull { (id, use) ->
+            val entry = entries[id] ?: return@mapNotNull null
+            val reading = use.reading?.let { Kanjis.dictionaryReading(kanji, it, use.after) ?: it }
+            KanjiWordRow(entry, started.getValue(id).mastery, reading)
+        }.sortedByDescending { it.mastery }
+        val yours = yourWords.mapTo(HashSet()) { it.entry.id }
+        return KanjiDetail(
+            kanji = kanji,
+            yourWords = yourWords,
+            moreWords = dictionary.wordsWithKanji(literal, MORE_WORDS + yours.size).filter { it.id !in yours }.take(MORE_WORDS),
+            readingsMet = yourWords.mapNotNullTo(HashSet()) { it.reading },
+        )
     }
 
     // ------------------------------------------------------------ renshuu
@@ -897,6 +944,9 @@ class Repository(context: Context) {
         private const val PRODUCTION_FIRST = 10_000_000_000L
         private const val FORECAST_DAYS = 30
         private const val HISTORY_DAYS = 30
+
+        /** Words you haven't started to list on a kanji's page. */
+        private const val MORE_WORDS = 12
         private const val LEARN_NEXT_FIRST = 20_000_000_000L
         private const val PRACTICE_POOL = 20
         private const val PRACTICE = 8

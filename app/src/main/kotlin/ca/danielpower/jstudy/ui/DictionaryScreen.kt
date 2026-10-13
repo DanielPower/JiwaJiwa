@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
+import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.data.WordStatus
@@ -111,6 +112,28 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
                     onClick = { vm.setStatusFilter(filter) },
                     label = ui(filter.label),
                 )
+            }
+        }
+        val kanji = Kanjis.inText(state.query)
+        if (kanji.isNotEmpty()) {
+            // Searching with kanji: their own pages, ahead of the words.
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(ui("Kanji", "漢字"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                for (k in kanji) {
+                    Box(
+                        Modifier.size(40.dp).border(1.dp, MaterialTheme.colorScheme.outline, WashiShape).clickable {
+                            keyboard?.hide()
+                            vm.openKanji(k)
+                        },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(k, fontFamily = Gothic, fontSize = 22.sp, lineHeight = 26.sp)
+                    }
+                }
             }
         }
         Text(
@@ -221,6 +244,13 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                         )
                     }
                     MeaningLine(if (word.senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "), sense.info)
+                }
+            }
+
+            if (detail.kanji.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SectionLabel(ui("Kanji", "漢字"))
+                    KanjiLinks(detail.kanji, vm::openKanji)
                 }
             }
 

@@ -3,6 +3,7 @@ package ca.danielpower.jstudy.data
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import ca.danielpower.jstudy.core.Kana
+import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.Lexicon
 import ca.danielpower.jstudy.core.LexiconMatch
 import ca.danielpower.jstudy.core.VocabWord
@@ -311,6 +312,70 @@ class Dictionary(context: Context) : Lexicon {
                 }
             }
         }
+
+    /** A kanji's entry, or null for a character KANJIDIC2 doesn't have. */
+    fun kanji(literal: String): Kanji? = kanjiRows("literal = ?", arrayOf(literal)).firstOrNull()
+
+    /** Entries for several kanji, in the order asked for. */
+    fun kanji(literals: List<String>): List<Kanji> {
+        if (literals.isEmpty()) return emptyList()
+        val found = kanjiRows("literal IN (${literals.joinToString(",") { "?" }})", literals.toTypedArray())
+            .associateBy { it.literal }
+        return literals.mapNotNull { found[it] }
+    }
+
+    private fun kanjiRows(where: String, args: Array<String>): List<Kanji> =
+        db.rawQuery(
+            "SELECT literal, meanings, onyomi, kunyomi, strokes, grade, jlpt, stroke_paths FROM kanji WHERE $where",
+            args,
+        ).use { c ->
+            buildList {
+                while (c.moveToNext()) {
+                    add(
+                        Kanji(
+                            literal = c.getString(0),
+                            meanings = strings(c.getString(1)),
+                            onyomi = strings(c.getString(2)),
+                            kunyomi = strings(c.getString(3)),
+                            strokeCount = c.getInt(4),
+                            grade = if (c.isNull(5)) null else c.getInt(5),
+                            jlpt = c.getInt(6),
+                            strokes = if (c.isNull(7)) emptyList() else strings(c.getString(7)),
+                        ),
+                    )
+                }
+            }
+        }
+
+    /** Furigana for the words among [ids] that are shown in kanji. */
+    fun kanjiSpellings(ids: Collection<Long>): Map<Long, List<Pair<String, String?>>> =
+        ids.chunked(500).flatMap { chunk ->
+            db.rawQuery(
+                "SELECT id, furigana FROM word WHERE id IN (${chunk.joinToString(",")}) AND usually_kana = 0 " +
+                    "AND kanji IS NOT NULL AND furigana IS NOT NULL",
+                null,
+            ).use { c ->
+                buildList { while (c.moveToNext()) add(c.getLong(0) to parseFurigana(c.getString(1)).map { it.base to it.ruby }) }
+            }
+        }.toMap()
+
+    /**
+     * Words shown with [kanji] in their spelling: JLPT words in study order,
+     * then the rest by frequency. It reads the whole word table, so call it
+     * for one page, not a list.
+     */
+    fun wordsWithKanji(kanji: String, limit: Int): List<Entry> {
+        val ids = db.rawQuery(
+            """
+            SELECT id FROM word
+            WHERE kanji LIKE ? ESCAPE '\' AND usually_kana = 0 AND furigana IS NOT NULL
+            ORDER BY study_order IS NULL, study_order, freq_rank IS NULL, freq_rank, id LIMIT ?
+            """,
+            arrayOf("%" + escapeLike(kanji) + "%", limit.toString()),
+        ).use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }
+        val rows = entries(ids).associateBy { it.id }
+        return ids.mapNotNull { rows[it] }
+    }
 
     fun level(id: Long): Int =
         db.rawQuery("SELECT jlpt FROM word WHERE id = ?", arrayOf(id.toString())).use { if (it.moveToFirst()) it.getInt(0) else 0 }
