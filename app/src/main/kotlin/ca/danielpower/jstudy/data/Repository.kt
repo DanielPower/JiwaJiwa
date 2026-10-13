@@ -3,6 +3,7 @@ package ca.danielpower.jstudy.data
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import ca.danielpower.jstudy.core.Answer
@@ -32,11 +33,14 @@ import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
 import ca.danielpower.jstudy.core.StoryRequest
+import ca.danielpower.jstudy.core.StoryTranslator
 import ca.danielpower.jstudy.core.StoryWriter
 import ca.danielpower.jstudy.core.UiLabel
 import ca.danielpower.jstudy.core.UiLabels
 import ca.danielpower.jstudy.core.coverage
 import ca.danielpower.jstudy.core.newWordBudget
+import ca.danielpower.jstudy.core.sentenceRanges
+import ca.danielpower.jstudy.core.sentenceTexts
 import kotlin.random.Random
 
 data class Summary(
@@ -94,10 +98,24 @@ data class StoryReading(
     /** The word at [i] in paragraph [p], where paragraph [TITLE] is the title. */
     fun word(p: Int, i: Int): ReadingWord? = (if (p == TITLE) title else paragraphs.getOrNull(p))?.getOrNull(i)
 
+    /** Each paragraph's sentences, the title's first; the translations follow this order. */
+    private val sentences = (listOf(title) + paragraphs).map(::sentenceRanges)
+
+    /** The sentence holding word [i] of paragraph [p]. */
+    fun sentence(p: Int, i: Int): StorySentence? {
+        val k = if (p == TITLE) 0 else p + 1
+        val j = sentences.getOrNull(k)?.indexOfFirst { i in it }?.takeIf { it >= 0 } ?: return null
+        val translations = story.translations.takeIf { it.size == sentences.sumOf { s -> s.size } }
+        return StorySentence(sentences[k][j], translations?.get(sentences.take(k).sumOf { it.size } + j))
+    }
+
     companion object {
         const val TITLE = -1
     }
 }
+
+/** A sentence of a story: its words in their paragraph, and its English if the story has translations. */
+data class StorySentence(val words: IntRange, val translation: String?)
 
 /** Numbers for the stats screen. */
 data class Stats(
@@ -553,6 +571,14 @@ class Repository(context: Context) {
         check(key.isNotEmpty()) { "Add a Claude API key in Settings first." }
         val writer = StoryWriter(ClaudeConversation(key), reader)
         val written = writer.write(request, known(store.wordStatuses()), progress)
+        progress("Translating")
+        val sentences = sentenceTexts(listOf(reader.read(written.story.title).flatten()) + reader.read(written.story.body))
+        // The story is worth keeping without its translations if they fail.
+        val translations = try {
+            StoryTranslator(ClaudeConversation(key)).translate(sentences)
+        } catch (e: IOException) {
+            null
+        }
         progress("Saving")
         val id = store.insertStory(
             SavedStory(
@@ -563,6 +589,7 @@ class Repository(context: Context) {
                 prompt = request.prompt.trim(),
                 length = request.length.name,
                 difficulty = request.difficulty.name,
+                translations = translations.orEmpty(),
             ),
         )
         return id

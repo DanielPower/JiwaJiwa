@@ -1,11 +1,11 @@
 package ca.danielpower.jstudy.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
@@ -21,8 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -85,21 +88,23 @@ private fun pieces(reading: StoryReading): List<Piece> = buildList {
 
 /**
  * The story set vertically. It opens at the right, where reading starts, and
- * scrolls sideways. The open word's [popover] sits beside the whole word, so
- * it doesn't cover the rest of the word down the column.
+ * scrolls sideways. [onFocus] gets where the [focus] word is on screen,
+ * across columns if it's split.
  */
 @Composable
 fun VerticalStory(
     reading: StoryReading,
     selected: Pair<Int, Int>?,
     lit: Set<Pair<Int, Int>>,
-    onOpen: (p: Int, i: Int) -> Unit,
-    popover: @Composable (Dp) -> Unit,
-    onDismiss: () -> Unit,
+    focus: Pair<Int, Int>?,
+    onTap: (p: Int, i: Int) -> Unit,
+    onHold: (p: Int, i: Int) -> Unit,
+    onBlank: () -> Unit,
+    onFocus: (Rect) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pieces = remember(reading) { pieces(reading) }
-    val selectedPieces = pieces.indices.filter { (pieces[it].p to pieces[it].i) == selected }
+    val focusPieces = pieces.indices.filter { (pieces[it].p to pieces[it].i) == focus }
     BoxWithConstraints(modifier) {
         val density = LocalDensity.current
         val cell = with(density) { (TEXT_SIZE * 1.15f).sp.toPx() }
@@ -132,15 +137,15 @@ fun VerticalStory(
                             color = if (unknown || isSelected) seal else ink,
                             sideline = unknown,
                             background = if (isSelected || (piece.p to piece.i) in lit) highlight else Color.Transparent,
-                            onClick = if (word.tappable()) {
-                                { onOpen(piece.p, piece.i) }
-                            } else {
-                                null
-                            },
+                            gestures = Modifier.storyWordGestures(
+                                word.tappable(),
+                                onTap = { if (word.tappable()) onTap(piece.p, piece.i) else onBlank() },
+                                onHold = { onHold(piece.p, piece.i) },
+                            ),
                         )
                     }
-                    // Spans the open word, to anchor its popover.
-                    if (selectedPieces.isNotEmpty()) Box { WordPopover(onDismiss, popover) }
+                    // Spans the focus word, to report where it is.
+                    if (focusPieces.isNotEmpty()) Spacer(Modifier.onGloballyPositioned { onFocus(it.boundsInRoot()) })
                 },
             ) { measurables, constraints ->
                 fun left(spot: VerticalSpot) = width - (spot.col + 1) * colWidth - spot.col * gap
@@ -148,13 +153,13 @@ fun VerticalStory(
                     measurables[k].measure(Constraints.fixed(colWidth.roundToInt(), (pieces[k].chars.size * cell).roundToInt()))
                 }
                 // A word split across columns spans both of them.
-                val anchor = if (selectedPieces.isEmpty()) {
+                val anchor = if (focusPieces.isEmpty()) {
                     null
                 } else {
-                    val x0 = selectedPieces.minOf { left(spots[it]) }
-                    val x1 = selectedPieces.maxOf { left(spots[it]) + colWidth }
-                    val y0 = selectedPieces.minOf { spots[it].row * cell }
-                    val y1 = selectedPieces.maxOf { (spots[it].row + pieces[it].chars.size) * cell }
+                    val x0 = focusPieces.minOf { left(spots[it]) }
+                    val x1 = focusPieces.maxOf { left(spots[it]) + colWidth }
+                    val y0 = focusPieces.minOf { spots[it].row * cell }
+                    val y1 = focusPieces.maxOf { (spots[it].row + pieces[it].chars.size) * cell }
                     val size = Constraints.fixed((x1 - x0).roundToInt(), (y1 - y0).roundToInt())
                     Triple(measurables[pieces.size].measure(size), x0, y0)
                 }
@@ -178,10 +183,9 @@ private fun PieceView(
     color: Color,
     sideline: Boolean,
     background: Color,
-    onClick: (() -> Unit)?,
+    gestures: Modifier,
 ) {
-    var modifier = Modifier.background(background)
-    if (onClick != null) modifier = modifier.clickable(onClick = onClick)
+    var modifier = Modifier.background(background).then(gestures)
     if (sideline) {
         // New words get a line down their left side, where underlines go in vertical text.
         modifier = modifier.drawBehind {
