@@ -15,6 +15,8 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      PLAY_UPLOAD: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,8 +62,30 @@ jobs:
           version="0.1.${GITHUB_RUN_NUMBER}"
           apk="jstudy-${version}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
+          # The bundle is what Google Play takes; the APK is for installing directly.
+          cp app/build/outputs/bundle/release/app-release.aab "jstudy-${version}.aab"
           notes="$(git log -1 --pretty=%B)"
           if [ "$SIGNED" != "true" ]; then
             notes="${notes}"$'\n\n'"Signed with a temporary debug key. Add the signing secrets (see Release signing in the README) so updates install over each other."
           fi
-          gh release create "v${version}" "$apk" --title "jstudy ${version}" --notes "$notes" --target "$GITHUB_SHA"
+          gh release create "v${version}" "$apk" "jstudy-${version}.aab" --title "jstudy ${version}" --notes "$notes" --target "$GITHUB_SHA"
+
+      # Sends each release to Google Play's internal testing track, once the
+      # PLAY_SERVICE_ACCOUNT_JSON secret is set (see "Google Play" in the README).
+      # Play's "What's new" text is the commit message, cut to its 500-character limit.
+      - name: Write Play release notes
+        if: env.PLAY_UPLOAD == 'true'
+        run: |
+          mkdir -p whatsnew
+          git log -1 --pretty=%B | head -c 500 > whatsnew/whatsnew-en-US
+
+      - name: Upload to Google Play internal testing
+        if: env.PLAY_UPLOAD == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ca.danielpower.jstudy
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
+          whatsNewDirectory: whatsnew

@@ -1,5 +1,10 @@
 package ca.danielpower.jstudy.ui
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -52,6 +57,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -64,6 +70,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ca.danielpower.jstudy.R
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FlowWord
 import ca.danielpower.jstudy.core.FuriganaMode
@@ -858,6 +865,32 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel, onWord: (Pair<
         state.error?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
         }
+
+        // Google Play asks for a way to flag offensive AI-written content from inside the app.
+        val context = LocalContext.current
+        TextButton(onClick = { reportStory(context, reading.story) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text(
+                ui("Report this story", "この話を報告", "話", "報告"),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Opens an email to the developer with the story in it, for a story that's offensive or broken. */
+private fun reportStory(context: Context, story: SavedStory) {
+    val body = "What's wrong with this story?\n\n\n" +
+        "---\nTitle: ${story.title}\nPrompt: ${story.prompt}\n" +
+        "Length: ${story.length}, difficulty: ${story.difficulty}\n\n${story.body}"
+    val uri = Uri.parse(
+        "mailto:${context.getString(R.string.report_email)}" +
+            "?subject=${Uri.encode("jstudy story report")}&body=${Uri.encode(body)}",
+    )
+    try {
+        context.startActivity(Intent(Intent.ACTION_SENDTO, uri))
+    } catch (_: ActivityNotFoundException) {
+        Toast.makeText(context, "No email app to send the report with.", Toast.LENGTH_LONG).show()
     }
 }
 

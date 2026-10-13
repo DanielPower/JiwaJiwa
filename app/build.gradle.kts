@@ -20,12 +20,12 @@ val signingKeystore = System.getenv("SIGNING_KEYSTORE_BASE64")?.takeIf { it.isNo
 
 android {
     namespace = "ca.danielpower.jstudy"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ca.danielpower.jstudy"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = buildNumber
         versionName = "0.1.$buildNumber"
     }
