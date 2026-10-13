@@ -193,7 +193,7 @@ class ProgressStoreTest {
         val new = store.insertStory(SavedStory(0, 200, "新しい", "本文", "cats", "LONG", "HARD", listOf("New", "Text")))
         assertEquals(listOf(new, old), store.stories().map { it.id })
         assertEquals(SavedStory(new, 200, "新しい", "本文", "cats", "LONG", "HARD", listOf("New", "Text")), store.story(new))
-        assertEquals(emptyList(), store.story(old)!!.translations)
+        assertEquals(emptyList<String>(), store.story(old)!!.translations)
         store.deleteStory(new)
         assertNull(store.story(new))
         assertEquals(listOf(old), store.stories().map { it.id })
