@@ -317,6 +317,8 @@ private fun PathRow(entry: PathEntry, onClick: () -> Unit) {
         Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
+            // Clipped so a lesson's indigo bar follows the card's corners.
+            .clip(WashiShape)
             .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
             .clickable(onClick = onClick),
