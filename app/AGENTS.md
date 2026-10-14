@@ -80,4 +80,5 @@ cloud containers).
 ## Debug builds
 
 The debug build type has app id `com.crispyumbrella.jiwajiwa.debug`, so a PR's APK
-installs next to the real app without touching its progress.
+installs next to the real app without touching its progress. Its name is "Jiwa Jiwa
+Debug" (`app/src/debug/res/values/strings.xml`) so the two can be told apart.
