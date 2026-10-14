@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- So a debug build installed next to the real app can be told apart. -->
+    <string name="app_name">Jiwa Jiwa Debug</string>
+</resources>
