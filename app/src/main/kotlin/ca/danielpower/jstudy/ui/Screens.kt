@@ -99,7 +99,6 @@ fun App(vm: AppViewModel, screen: Screen) {
                         screen,
                         theme,
                         vm::saveSettings,
-                        vm::saveClaudeKey,
                         vm::openImport,
                         vm::setTheme,
                         vm,

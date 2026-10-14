@@ -1,0 +1,15 @@
+# Run with: docker compose up -d   (after copying .env.example to .env and filling it in)
+services:
+  story-server:
+    image: ghcr.io/danielpower/jiwajiwa-story-server:latest
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # Put it behind a reverse proxy that serves HTTPS; Android won't talk plain HTTP.
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - story-data:/data
+
+volumes:
+  story-data:

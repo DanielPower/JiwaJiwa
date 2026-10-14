@@ -1,0 +1,5 @@
+anthropic==1.13.0
+fastapi==0.143.0
+google-auth==2.62.0
+requests==2.34.2
+uvicorn==0.54.0

@@ -25,10 +25,11 @@ Guiding rules from Daniel:
 
 | Path | What it is |
 | --- | --- |
-| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kana course, kanji readings, romaji, story budgets, Kuromoji word splitting, the Claude API client, Renshuu import planning. No Android imports. |
+| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kana course, kanji readings, romaji, story budgets, Kuromoji word splitting, the story server client (Claude conversations, sign-in), Renshuu import planning. No Android imports. |
 | `app/` | The Android app: Jetpack Compose UI, SQLite storage, reminder, backup. |
 | `tools/dictionary/` | Python (stdlib only) build of the bundled dictionary DB from pinned sources. |
 | `tools/fsrs/` | Generates `core/src/test/resources/fsrs_vectors.tsv` from py-fsrs. |
+| `server/` | The story server (Python, FastAPI, SQLite, Docker Compose): Google sign-in, per-account rate limits, and the Claude API key, so the app never holds one. See `server/README.md`. |
 | `.github/workflows/` | CI (see below). |
 
 Put logic in `core` whenever it doesn't need Android, so it can be tested
@@ -63,6 +64,7 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app) |
 | `build.yml` | pushes to branches other than main | test and build without releasing |
 | `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
+| `server.yml` (Story server) | PRs and pushes to main touching `server/` | server tests and image build; on main, pushes `ghcr.io/danielpower/jiwajiwa-story-server` (`latest` and `sha-…`) |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
 
 Every push to main ships a release, so main must always be releasable.
@@ -135,7 +137,7 @@ Other features (all shipped):
 - Daily reminder has **no default time**; the user picks one. Don't request
   notification permission until they turn it on.
 - Manual backup/restore only (`jiwajiwa-<date>.jstudy`, a copy of the progress
-  DB). No automatic backups. The Claude API key isn't included.
+  DB). No automatic backups. The story sign-in isn't included.
 - Settings has a reset button that erases all user data.
 - Stats page (heatmap, recall, forecast, per-level progress) is a link on the
   home screen, not a tab.
@@ -144,8 +146,12 @@ Other features (all shipped):
   the JMdict id, which is jstudy's word id. Renshuu's kana entries have no
   `edict_ent`; they're matched by text to kana cards. Its other entries
   without one (する verbs, phrases, names) are skipped on purpose.
-- AI graded-reader stories: the user enters their own Claude API key in
-  Settings. Short/Medium/Long, Easy/Normal/Hard sets the share of known
+- AI graded-reader stories: the user signs in with Google (Credential
+  Manager) and the app sends its Claude conversations to the story server
+  (`server/`, https://api.jiwajiwa.app), which holds the API key, picks the
+  model and limits each account (Daniel, 2026-10-14). There's no API key
+  setting. The server URL and the Google web client ID are the
+  `storyServerUrl` and `googleWebClientId` Gradle properties. Short/Medium/Long, Easy/Normal/Hard sets the share of known
   words; unknown words beyond the budget trigger a rewrite. Tapping a word
   shows its meaning (and conjugation, when conjugated), plus any grammar
   point it's part of (`core/Grammar.kt`); particles and endings are tappable
