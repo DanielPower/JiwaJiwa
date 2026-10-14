@@ -747,3 +747,6 @@ internal object Grammar {
     /** Every point, for listing and tests. */
     val points: List<GrammarPoint> get() = rules.map { it.point }.distinctBy { it.id }
 }
+
+/** The grammar point with [id], such as "wa" for the particle は. */
+fun grammarPoint(id: String): GrammarPoint? = Grammar.points.firstOrNull { it.id == id }

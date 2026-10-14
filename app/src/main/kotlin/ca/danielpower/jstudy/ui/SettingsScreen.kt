@@ -80,11 +80,6 @@ fun SettingsScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (state.kanaKnown != KanaKnown.BOTH) {
-            Stepper("New kana per day", "${s.newKanaPerDay}") { d ->
-                update { s.copy(newKanaPerDay = (s.newKanaPerDay + d * 2).coerceIn(0, 60)) }
-            }
-        }
 
         Section(ui("Daily study", "毎日の勉強"))
         Text("Start new words from", style = MaterialTheme.typography.bodyLarge)

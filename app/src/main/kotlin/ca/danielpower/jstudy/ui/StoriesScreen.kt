@@ -19,9 +19,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -78,6 +80,7 @@ import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.GrammarPoint
 import ca.danielpower.jstudy.core.HorizontalText
 import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
@@ -112,14 +115,20 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
     ) {
         Text(ui("Stories", "物語"), style = MaterialTheme.typography.headlineMedium)
 
-        // The path: stories that come with the app, shown once they have only a few new words.
+        // The path: stories and lessons that come with the app, shown once they're within reach.
         val shown = state.path.filter { it.ready || it.story.readAt != null }
         SectionLabel(ui("Ready to read", "読める物語", "読める", "物語"))
         for (entry in shown) PathRow(entry) { vm.openStory(entry.story.id) }
-        val waiting = state.path.size - shown.size
-        if (waiting > 0) {
+        val waiting = (state.path - shown.toSet()).partition { !it.lesson }
+        val stories = waiting.first.size
+        val lessons = waiting.second.size
+        if (stories + lessons > 0) {
+            val parts = listOfNotNull(
+                stories.takeIf { it > 0 }?.let { if (it == 1) "1 more story" else "$it more stories" },
+                lessons.takeIf { it > 0 }?.let { if (it == 1) "1 lesson" else "$it lessons" },
+            )
             Text(
-                if (waiting == 1) "1 more story opens up as you learn words." else "$waiting more stories open up as you learn words.",
+                parts.joinToString(" and ") + (if (stories + lessons == 1) " opens" else " open") + " up as you learn.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -296,32 +305,47 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit, onHold: () -> Unit)
     }
 }
 
-/** A story on the path: its title, first line, and whether it's read or how many words are new. */
+/**
+ * A story or lesson on the path: its title, then a story's first line or a
+ * lesson's English name, and whether it's read or what's new in it.
+ */
 @Composable
 private fun PathRow(entry: PathEntry, onClick: () -> Unit) {
     val read = entry.story.readAt != null
-    Box(
+    val indigo = MaterialTheme.colorScheme.secondary
+    Row(
         Modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
             .clickable(onClick = onClick),
     ) {
+        if (entry.lesson) Box(Modifier.width(3.dp).fillMaxHeight().background(indigo))
         Column(Modifier.padding(16.dp).alpha(if (read) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (entry.lesson) LessonTag()
             Text(entry.story.title, style = MaterialTheme.typography.titleLarge, fontFamily = Gothic)
-            Text(
-                entry.story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontFamily = Gothic,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (entry.lesson) {
+                Text(entry.story.translations.firstOrNull().orEmpty(), style = MaterialTheme.typography.bodyMedium)
+            } else {
+                Text(
+                    entry.story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = Gothic,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            val words = entry.gap.words.size
+            val kana = entry.gap.kana.size
             Text(
                 when {
                     read -> ui("Read", "読んだ", "読む")
-                    entry.newWords == 0 -> ui("No new words", "新しい言葉なし", "新しい", "言葉")
-                    entry.newWords == 1 -> "1 new word"
-                    else -> "${entry.newWords} new words"
+                    words == 0 && kana == 0 -> ui("No new words", "新しい言葉なし", "新しい", "言葉")
+                    else -> listOfNotNull(
+                        words.takeIf { it > 0 }?.let { if (it == 1) "1 new word" else "$it new words" },
+                        kana.takeIf { it > 0 }?.let { "$it new kana" },
+                    ).joinToString(" · ")
                 },
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Medium,
@@ -331,7 +355,19 @@ private fun PathRow(entry: PathEntry, onClick: () -> Unit) {
     }
 }
 
-/** A path story's new words, to see as cards before reading it, or to mark known. */
+@Composable
+private fun LessonTag() {
+    Text(
+        ui("Lesson", "授業").uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.sp,
+        color = MaterialTheme.colorScheme.secondary,
+    )
+}
+
+/** A path story's or lesson's new kana and words, to see as cards before reading it, or to mark known. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BeforeReadingScreen(state: Screen.BeforeReading, vm: AppViewModel) {
     Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -339,32 +375,56 @@ fun BeforeReadingScreen(state: Screen.BeforeReading, vm: AppViewModel) {
             WashiIconButton(WashiIcons.Back, "Back", vm::openStories)
             Text(state.story.title, style = MaterialTheme.typography.headlineSmall, fontFamily = Gothic)
         }
-        val count = state.words.size
+        val count = state.words.size + state.kana.size
+        val what = when {
+            state.kana.isEmpty() -> if (state.words.size == 1) "the new word" else "the ${state.words.size} new words"
+            state.words.isEmpty() -> if (state.kana.size == 1) "the new kana" else "the ${state.kana.size} new kana"
+            else -> "the kana and words"
+        }
         Text(
-            if (count == 1) "Before you read, see the new word in this story." else "Before you read, see the $count new words in this story.",
+            if (state.lesson) "Before the lesson, learn $what its examples use." else "Before you read, learn $what in this story.",
             style = MaterialTheme.typography.bodyLarge,
         )
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            for (word in state.words) {
-                Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(word.display, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        if (word.kana != word.display) {
-                            Text(word.kana, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (state.kana.isNotEmpty()) {
+                SectionLabel(ui("Kana", "仮名"))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (unit in state.kana) {
+                        Column(
+                            Modifier
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(unit.text, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                            Text(unit.romaji, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Text(
-                        word.senses.firstOrNull()?.glosses?.take(2)?.joinToString("; ").orEmpty(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.End,
-                        modifier = Modifier.weight(1f),
-                    )
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+            if (state.words.isNotEmpty()) {
+                if (state.kana.isNotEmpty()) SectionLabel(ui("Words", "言葉"), Modifier.padding(top = 12.dp))
+                for (word in state.words) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(word.display, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                            if (word.kana != word.display) {
+                                Text(word.kana, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Text(
+                            word.senses.firstOrNull()?.glosses?.take(2)?.joinToString("; ").orEmpty(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
             }
         }
         PrimaryButton(onClick = vm::learnStoryWords, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-            Text(if (count == 1) "Learn this word" else "Learn these words", fontSize = 18.sp)
+            Text(if (count == 1) "Learn this" else "Learn these", fontSize = 18.sp)
         }
         TextButton(onClick = vm::knowStoryWords, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Text(
@@ -462,7 +522,22 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         val end = @Composable { StoryEnd(state, vm, onWord = tap) }
         // A sequel opens in this same screen; it starts on its first page.
         key(reading.story.id) {
-            if (style.vertical) {
+            val lesson = reading.lesson
+            if (lesson != null) {
+                LessonPage(
+                    state = state,
+                    lesson = lesson,
+                    size = style.size.toFloat(),
+                    family = style.font.family,
+                    selected = selected,
+                    lit = lit,
+                    onTap = tap,
+                    onHold = hold,
+                    onBlank = close,
+                    vm = vm,
+                    modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
+                )
+            } else if (style.vertical) {
                 VerticalStory(
                     reading = reading,
                     size = style.size.toFloat(),
@@ -565,6 +640,74 @@ private fun HorizontalStory(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * A lesson: its English with the Japanese examples between, read like a
+ * story, tapping words and holding for a sentence's English. It's one page
+ * that scrolls, always across, then its end page once it's done.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LessonPage(
+    state: Screen.StoryReader,
+    lesson: PathStory,
+    size: Float,
+    family: FontFamily,
+    selected: Pair<Int, Int>?,
+    lit: Set<Pair<Int, Int>>,
+    onTap: (Pair<Int, Int>) -> Unit,
+    onHold: (Pair<Int, Int>) -> Unit,
+    onBlank: () -> Unit,
+    vm: AppViewModel,
+    modifier: Modifier = Modifier,
+) {
+    if (state.impact != null) {
+        Box(modifier) { StoryEnd(state, vm, onWord = onTap) }
+        return
+    }
+    val reading = state.reading
+    val notes = lesson.notes.groupBy { it.before }
+    Column(
+        modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        LessonTag()
+        for (p in 0..reading.paragraphs.size) {
+            for (note in notes[p].orEmpty()) Text(note.text, style = MaterialTheme.typography.bodyLarge)
+            val words = reading.paragraphs.getOrNull(p) ?: continue
+            FlowRow(
+                Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+            ) {
+                words.forEachIndexed { i, word ->
+                    StoryWord(
+                        word = word,
+                        reading = reading,
+                        selected = selected == (p to i),
+                        lit = (p to i) in lit,
+                        onTap = { if (word.tappable()) onTap(p to i) else onBlank() },
+                        onHold = { onHold(p to i) },
+                        size = size.sp,
+                        rubySize = (size * RUBY_RATIO).sp,
+                        family = family,
+                    )
+                }
+            }
+        }
+        PrimaryButton(onClick = vm::finishStory, modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(56.dp)) {
+            Text(ui("Done", "終わり"), fontSize = 18.sp)
+        }
+        TextButton(onClick = vm::skipLesson, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text(
+                "I know this already",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -936,6 +1079,7 @@ private fun GrammarNote(point: GrammarPoint) {
  * After the last page: how the read went, the new words in it to add to your
  * reviews, and the next part. Tapping a word opens it in the pane, as in the story.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel, onWord: (Pair<Int, Int>) -> Unit) {
     val reading = state.reading
@@ -946,12 +1090,32 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel, onWord: (Pair<
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(ui("The end", "終わり"), style = MaterialTheme.typography.headlineSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            EndStat(stats.characters.toString(), ui("Characters", "文字"))
-            EndStat("${(stats.knownShare * 100).roundToInt()}%", ui("Seen", "見た", "見る"))
-            EndStat(stats.millis?.let(::duration) ?: "–", ui("Time", "時間"))
-            EndStat(stats.charactersPerMinute?.let { "$it/min" } ?: "–", ui("Speed", "速さ"))
+        val grammar = state.impact?.grammar.orEmpty()
+        if (reading.lesson != null) {
+            SectionLabel(ui("Lesson done", "授業終わり", "授業", "終わり"))
+            if (grammar.isNotEmpty()) {
+                Text("You can now read stories with:", style = MaterialTheme.typography.bodyLarge)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (point in grammar) {
+                        Column(
+                            Modifier
+                                .border(1.dp, MaterialTheme.colorScheme.secondary, WashiShape)
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.secondary)
+                            Text(point.meaning, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        } else {
+            Text(ui("The end", "終わり"), style = MaterialTheme.typography.headlineSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                EndStat(stats.characters.toString(), ui("Characters", "文字"))
+                EndStat("${(stats.knownShare * 100).roundToInt()}%", ui("Seen", "見た", "見る"))
+                EndStat(stats.millis?.let(::duration) ?: "–", ui("Time", "時間"))
+                EndStat(stats.charactersPerMinute?.let { "$it/min" } ?: "–", ui("Speed", "速さ"))
+            }
         }
 
         val onPath = reading.story.pathId != null
@@ -980,8 +1144,8 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel, onWord: (Pair<
         when {
             onPath -> {
                 if (nextOnPath != null) {
-                    PrimaryButton(onClick = { vm.openStory(nextOnPath.id) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                        Text("Next story: ${nextOnPath.title}", fontFamily = Gothic)
+                    PrimaryButton(onClick = { vm.openStory(nextOnPath.story.id) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                        Text((if (nextOnPath.lesson) "Next lesson: " else "Next story: ") + nextOnPath.story.title, fontFamily = Gothic)
                     }
                 }
                 SecondaryButton(onClick = vm::openStories, modifier = Modifier.fillMaxWidth()) {

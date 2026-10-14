@@ -76,7 +76,7 @@ class Reader(private val lexicon: Lexicon) {
                     out += compound.first
                     i = compound.second
                 }
-                t.pos == "記号" || t.surface.isBlank() -> {
+                t.pos == "記号" || t.surface.none(Char::isLetterOrDigit) -> {
                     out += plain(listOf(t), WordKind.PUNCTUATION, null)
                     i++
                 }

@@ -227,7 +227,6 @@ internal val KANA_CHOICES = listOf(
 
 internal fun kanaHelp(known: KanaKnown) = when (known) {
     KanaKnown.BOTH -> "Straight to vocabulary."
-    KanaKnown.HIRAGANA -> "Katakana cards come first, a few a day. Words in katakana join once you can read them."
-    KanaKnown.NONE -> "Hiragana and katakana are taught together, a sound at a time (か and カ). " +
-        "New words join as soon as you can read them."
+    KanaKnown.HIRAGANA -> "Stories teach katakana as they use them, a few at a time, before you read."
+    KanaKnown.NONE -> "Stories teach kana as they use them, a few at a time, before you read. Hiragana comes first."
 }

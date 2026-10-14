@@ -114,8 +114,8 @@ Study and scheduling:
 
 Kana:
 
-- Taught as flashcards, hiragana and katakana paired per sound (あ then ア).
-  No quiz or lesson screen.
+- Taught as flashcards, introduced by the story path as stories need them
+  (see Story path below). No quiz or lesson screen.
 - A new word only enters once every kana in its kana spelling has a kana card
   in review. There's no override.
 - No romaji on vocabulary cards.
@@ -200,24 +200,38 @@ licence that allows this.
 
 Story path (an experiment on its own branch, Daniel, 2026-10-14):
 
-- New words come from stories instead of reviews. Reviews and the home
-  count no longer introduce words; kana and unlocked production cards still
-  come through reviews.
-- About 45 stories come with the app (`app/src/main/assets/stories/path.json`),
-  from one sentence with one grammar point up to roughly 100 N5 words. They're
-  saved in the `story` table with a `path_id`, can't be deleted, and need no
-  sign-in. A story shows on the Stories tab once it has at most
-  `StoryPath.MAX_NEW` (3) words you haven't seen; reading in order always
-  works. `StoryPathTest` checks this against the built dictionary (it's
-  skipped when the dictionary isn't built), so rerun it after editing a story.
+- New words, kana and grammar come from the path instead of reviews.
+  Reviews and the home count no longer introduce words or kana; only
+  unlocked production cards are new there.
+- The path (`app/src/main/assets/stories/path.json`, written by
+  `tools/stories/path.py`) is
+  45 stories and 10 lessons, from one sentence up to roughly 100 N5 words.
+  They're saved in the `story` table with a `path_id`, can't be deleted, and
+  need no sign-in.
+- A step shows on the Stories tab once it's within reach (`StoryPath.gap`):
+  new words at most 3% of its running words, from 3 to 10; at most 6 new
+  kana (furigana counts, and kana you said you read never do); and no
+  grammar point you haven't seen. Hiragana and katakana are separate units.
+- Lessons are the only way grammar comes in. A lesson is a path entry with
+  `teaches` (grammar point ids) and English `notes` between its Japanese
+  lines. It opens in the reader as one scrolling page, with the same tap and
+  hold pane. "Done" or the quiet "I know this already" marks its points
+  seen (a list in the `grammar_seen` value, no cards). Stories have no
+  grammar allowance.
+- `StoryPathTest` checks the path against the built dictionary (skipped when
+  it isn't built): read in order every step is within reach, and
+  `StoryPath.solve` reaches every step from knowing nothing, kana included.
+  Readiness only grows as you learn, so that also means no reading order can
+  get stuck. Rerun it after editing a story or lesson.
 - Words: **seen** (has a card, mastery below 40), **known** (40, where
   furigana hides), **mastered** (70).
-- Opening a path story with new words lists them first; "Learn these words"
-  shows each as a new card once, then the story opens. "I know these already"
-  marks them known.
-- At the end of a path story, each word due for review that you read without
-  tapping counts as an FSRS Hard review (`Reviewer.read`): less than a Right
-  answer, since context helps. The end page shows how many words were seen,
-  moved to known and moved to mastered.
+- Opening a step with new kana or words lists them first; "Learn these"
+  shows each as a new card once (kana first), then it opens. "I know these
+  already" marks them known.
+- At the end of a path story or lesson, each word due for review that you
+  read without tapping counts as an FSRS Hard review (`Reviewer.read`): less
+  than a Right answer, since context helps. The end page shows how many
+  words were seen, moved to known and moved to mastered, and for a lesson,
+  the grammar it opened up.
 
 Not decided or not built yet: example sentences, audio.

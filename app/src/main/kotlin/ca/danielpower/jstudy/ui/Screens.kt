@@ -216,9 +216,9 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            // New words come from the story path, not from reviews.
+            // New words and kana come from the story path, not from reviews.
             Text(
-                "New words come from stories. Read the next story to learn more.",
+                "New words and kana come from stories. Read the next story to learn more.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

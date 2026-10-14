@@ -1,12 +1,67 @@
 {
  "stories": [
   {
+   "id": "lesson-01",
+   "title": "これは ～です",
+   "body": "これは猫です。",
+   "translations": [
+    "This is ~",
+    "This is a cat."
+   ],
+   "teaches": [
+    "wa"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "To say what something is, put the thing first, then は, then what it is, then です."
+    },
+    {
+     "before": 1,
+     "text": "は marks what you're talking about, the topic. It's written は, but when it does this job it's said \"wa\"."
+    },
+    {
+     "before": 1,
+     "text": "です is a polite \"is\". It always comes at the very end."
+    }
+   ]
+  },
+  {
    "id": "path-01",
    "title": "猫",
    "body": "これは猫です。",
    "translations": [
     "A cat",
     "This is a cat."
+   ]
+  },
+  {
+   "id": "lesson-02",
+   "title": "～ですか",
+   "body": "これは猫ですか。\nはい、猫です。\nいいえ、猫じゃないです。",
+   "translations": [
+    "Asking questions",
+    "Is this a cat?",
+    "Yes, it's a cat.",
+    "No, it isn't a cat."
+   ],
+   "teaches": [
+    "ka",
+    "janai"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "To make a question, add か to the end. No question mark is needed."
+    },
+    {
+     "before": 1,
+     "text": "Answer with はい for yes,"
+    },
+    {
+     "before": 2,
+     "text": "or いいえ for no. To say something isn't, use じゃないです in place of です."
+    }
    ]
   },
   {
@@ -30,6 +85,30 @@
    ]
   },
   {
+   "id": "lesson-03",
+   "title": "わたしの ～",
+   "body": "これはわたしの猫です。\nこれはわたしのです。",
+   "translations": [
+    "Whose: の",
+    "This is my cat.",
+    "This is mine."
+   ],
+   "teaches": [
+    "no",
+    "no-nominal"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "の joins two nouns, like 's or \"of\": the first owns or describes the second."
+    },
+    {
+     "before": 1,
+     "text": "When it's clear what you mean, the second noun can go. わたしの on its own means \"mine\"."
+    }
+   ]
+  },
+  {
    "id": "path-04",
    "title": "わたしの猫",
    "body": "これはわたしの猫です。猫の名前はタマです。",
@@ -37,6 +116,31 @@
     "My cat",
     "This is my cat.",
     "The cat's name is Tama."
+   ]
+  },
+  {
+   "id": "lesson-04",
+   "title": "～と～、～も",
+   "body": "わたしの猫と犬です。\nこれは猫です。\nそれも猫です。",
+   "translations": [
+    "And, too: と and も",
+    "They're my cat and dog.",
+    "This is a cat.",
+    "That's a cat too."
+   ],
+   "teaches": [
+    "to",
+    "mo"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "と joins nouns: \"A and B\"."
+    },
+    {
+     "before": 1,
+     "text": "も means \"too\" or \"also\". It takes the place of は."
+    }
    ]
   },
   {
@@ -113,6 +217,30 @@
    ]
   },
   {
+   "id": "lesson-05",
+   "title": "あります、います",
+   "body": "ここに本があります。\nあそこに猫がいます。",
+   "translations": [
+    "There is: が and に",
+    "There's a book here.",
+    "There's a cat over there."
+   ],
+   "teaches": [
+    "ga",
+    "ni"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "あります says a thing is there. います is for people and animals."
+    },
+    {
+     "before": 0,
+     "text": "が marks what there is, and に marks where it is."
+    }
+   ]
+  },
+  {
    "id": "path-12",
    "title": "本がたくさん",
    "body": "学校に本があります。たくさんあります。",
@@ -165,6 +293,33 @@
    ]
   },
   {
+   "id": "lesson-06",
+   "title": "～を ～ます",
+   "body": "わたしはりんごを食べます。\n犬はりんごを食べません。",
+   "translations": [
+    "Doing things: を",
+    "I eat apples.",
+    "The dog doesn't eat apples."
+   ],
+   "teaches": [
+    "wo"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "The verb comes at the end of the sentence. Polite verbs end in ます."
+    },
+    {
+     "before": 0,
+     "text": "を marks the thing the action is done to. It's written を and said \"o\"."
+    },
+    {
+     "before": 1,
+     "text": "To say you don't, change ます to ません."
+    }
+   ]
+  },
+  {
    "id": "path-17",
    "title": "食べます",
    "body": "タマは魚を食べます。わたしはパンを食べます。",
@@ -194,6 +349,30 @@
     "Tama doesn't eat apples either.",
     "Tama eats fish.",
     "Suzuki doesn't drink tea."
+   ]
+  },
+  {
+   "id": "lesson-07",
+   "title": "～へ、～で",
+   "body": "わたしは学校へ行きます。\n学校でパンを食べます。",
+   "translations": [
+    "Where: へ and で",
+    "I go to school.",
+    "I eat bread at school."
+   ],
+   "teaches": [
+    "e",
+    "de"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "へ marks where you're going. It's written へ, but said \"e\" here."
+    },
+    {
+     "before": 1,
+     "text": "で marks where something happens."
+    }
    ]
   },
   {
@@ -288,6 +467,30 @@
    ]
   },
   {
+   "id": "lesson-08",
+   "title": "～ませんか",
+   "body": "「一緒に公園へ行きませんか。」\n「いいですね。」",
+   "translations": [
+    "Inviting: ませんか and ね",
+    "\"Won't you come to the park with me?\"",
+    "\"That sounds good.\""
+   ],
+   "teaches": [
+    "masenka",
+    "ne"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "Asking with ～ませんか, \"won't you?\", is a polite way to invite someone."
+    },
+    {
+     "before": 1,
+     "text": "ね at the end asks the listener to agree, like \"isn't it?\" or \"right?\"."
+    }
+   ]
+  },
+  {
    "id": "path-29",
    "title": "行きませんか",
    "body": "「あした、一緒に公園へ行きませんか。」「いいですね。行きましょう。」",
@@ -328,6 +531,24 @@
    ]
   },
   {
+   "id": "lesson-09",
+   "title": "～ですから",
+   "body": "今日は休みですから、公園へ行きます。",
+   "translations": [
+    "Because: から",
+    "It's a day off today, so I'm going to the park."
+   ],
+   "teaches": [
+    "kara-because"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "から after a sentence gives a reason: \"because\". The reason comes first, then what happens."
+    }
+   ]
+  },
+  {
    "id": "path-33",
    "title": "寒いから",
    "body": "今日は寒いですから、家にいます。暑い日は公園へ行きます。",
@@ -335,6 +556,25 @@
     "Because it's cold",
     "It's cold today, so I'm staying home.",
     "On hot days I go to the park."
+   ]
+  },
+  {
+   "id": "lesson-10",
+   "title": "～ています",
+   "body": "タマは魚を食べています。\n鈴木さんは本を読んでいます。",
+   "translations": [
+    "Right now: ～ています",
+    "Tama is eating fish.",
+    "Suzuki is reading a book."
+   ],
+   "teaches": [
+    "te-iru"
+   ],
+   "notes": [
+    {
+     "before": 0,
+     "text": "A verb's て form plus います says something is going on right now."
+    }
    ]
   },
   {
