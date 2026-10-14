@@ -73,7 +73,7 @@ fun App(vm: AppViewModel, screen: Screen) {
     val tab = when (screen) {
         is Screen.Home -> Tab.HOME
         is Screen.Dictionary -> Tab.DICTIONARY
-        is Screen.Stories -> Tab.STORIES
+        is Screen.Stories, is Screen.BeforeReading -> Tab.STORIES
         is Screen.Settings -> Tab.SETTINGS
         else -> null
     }
@@ -111,6 +111,7 @@ fun App(vm: AppViewModel, screen: Screen) {
                     is Screen.RenshuuImport -> RenshuuImportScreen(screen.step, vm)
                     is Screen.Stories -> StoriesScreen(screen, vm)
                     is Screen.StoryReader -> StoryReaderScreen(screen, vm)
+                    is Screen.BeforeReading -> BeforeReadingScreen(screen, vm)
                 }
             }
             if (navTab != null) {
@@ -215,9 +216,15 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // New words come from the story path, not from reviews.
+            Text(
+                "New words come from stories. Read the next story to learn more.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             if (summary.kanaLearned < summary.kanaTotal) {
                 Text(
-                    "${summary.kanaLearned} of ${summary.kanaTotal} kana learned. New words join once you can read them.",
+                    "${summary.kanaLearned} of ${summary.kanaTotal} kana learned.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

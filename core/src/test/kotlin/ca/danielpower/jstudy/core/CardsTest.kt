@@ -47,6 +47,20 @@ class CardsTest {
     }
 
     @Test
+    fun `reading a due word in a story raises mastery less than a right answer`() {
+        val now = at("2026-10-14T12:00")
+        val card = Card(1, 7, Direction.RECOGNITION, CardState.REVIEW, stability = 10.0, difficulty = 5.0,
+            dueAt = now - 1, lastReviewAt = at("2026-10-04T12:00"), reps = 3)
+        val progress = WordProgress(7, MasteryRules.fromStability(10.0))
+        val read = reviewer.read(card, progress, now)
+        val right = reviewer.answer(card, progress, true, now)
+        assertTrue(read.log.correct)
+        assertTrue(read.progress.mastery > progress.mastery)
+        assertTrue(read.progress.mastery < right.progress.mastery)
+        assertTrue(read.card.dueAt < right.card.dueAt)
+    }
+
+    @Test
     fun `answers count reps and keep the first study day`() {
         val now = at("2026-10-10T20:00")
         val card = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)

@@ -33,7 +33,9 @@ import ca.danielpower.jstudy.core.ClaudeException
 import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.Reader
 import ca.danielpower.jstudy.core.ReadingWord
+import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.Story
+import ca.danielpower.jstudy.core.StoryPath
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
 import ca.danielpower.jstudy.core.StoryRequest
@@ -145,6 +147,11 @@ data class StoryReading(
     companion object {
         const val TITLE = -1
     }
+}
+
+/** A story on the path, and how many of its words you haven't learned. */
+data class PathEntry(val story: SavedStory, val newWords: Int) {
+    val ready get() = StoryPath.ready(newWords)
 }
 
 /** A sentence of a story: its words in their paragraph, and its English if the story has translations. */
@@ -283,26 +290,6 @@ class Repository(context: Context) {
         )
     }
 
-    /**
-     * Make sure at least [count] new word cards exist, taking the next words
-     * in study order that you can read.
-     */
-    private fun ensureNewCards(count: Int) {
-        val existing = newWordCards()
-        if (existing >= count) return
-        val started = store.wordIdsWithCards(Direction.RECOGNITION)
-        val words = dictionary.nextWords(started, count - existing, startLevel(), canRead())
-        store.transaction { db ->
-            for ((wordId, order) in words) store.insertNewCard(db, wordId, Direction.RECOGNITION, order.toLong())
-        }
-    }
-
-    private fun newWordCards() = store.count(
-        "SELECT COUNT(*) FROM card WHERE state = ? AND direction != ? AND suspended = 0",
-        CardState.NEW.value,
-        Direction.KANA.value,
-    )
-
     private fun newKanaCards() = store.count(
         "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ? AND suspended = 0",
         CardState.NEW.value,
@@ -324,7 +311,6 @@ class Repository(context: Context) {
         val settings = settings()
         val clock = clock(settings)
         val limits = limits(settings, clock, now)
-        ensureNewCards(limits.newCards)
         if (kanaKnown() != KanaKnown.BOTH) ensureNewKana(limits.newKana)
         val learning = store.cards(
             "state IN (?, ?) AND suspended = 0",
@@ -343,9 +329,10 @@ class Repository(context: Context) {
             "sort_key, id",
             limits.newKana,
         )
+        // New words come from the story path, not reviews; only unlocked production cards are new here.
         val newWords = store.cards(
-            "state = ? AND direction != ? AND suspended = 0",
-            arrayOf(CardState.NEW.value.toString(), Direction.KANA.value.toString()),
+            "state = ? AND direction = ? AND suspended = 0",
+            arrayOf(CardState.NEW.value.toString(), Direction.PRODUCTION.value.toString()),
             "sort_key, id",
             limits.newCards,
         )
@@ -365,8 +352,11 @@ class Repository(context: Context) {
         val settings = settings()
         val reviewer = Reviewer(Fsrs(), clock(settings))
         val before = store.progress(card.wordId)
-        val answer = reviewer.answer(card, before, correct, now, Random.Default)
-        return store.transaction { db ->
+        return save(card, before, reviewer.answer(card, before, correct, now, Random.Default), now)
+    }
+
+    private fun save(card: Card, before: WordProgress, answer: Answer, now: Long): Pair<Answer, Undo> =
+        store.transaction { db ->
             store.updateCard(db, answer.card)
             store.saveProgress(db, answer.progress)
             val logId = store.insertLog(db, answer.log)
@@ -379,7 +369,6 @@ class Repository(context: Context) {
             }
             answer to Undo(card, before, logId, production)
         }
-    }
 
     /** First sight of a word you don't know yet: start learning it, ungraded. */
     fun introduce(card: Card, now: Long): Pair<Card, Undo> {
@@ -647,6 +636,8 @@ class Repository(context: Context) {
 
     fun stories(): List<SavedStory> = store.stories()
 
+    fun story(id: Long): SavedStory? = store.story(id)
+
     fun deleteStory(id: Long) = store.deleteStory(id)
 
     /** Words you've started, or suspended to leave alone, count as known while reading. */
@@ -749,6 +740,63 @@ class Repository(context: Context) {
             coverage = coverage(paragraphs, known(statuses)),
             next = store.nextPart(id),
         )
+    }
+
+    // ------------------------------------------------------------ story path
+
+    /** The stories that come with the app, in path order, with the words each counts. */
+    private val path: List<Pair<PathStory, List<ReadingWord>>> by lazy {
+        val json = appContext.assets.open("stories/path.json").bufferedReader().use { it.readText() }
+        StoryPath.parse(json).map { it to StoryPath.words(reader, it) }
+    }
+    private var pathSynced = false
+
+    /** Every path story, in order, with how many of its words you haven't learned. Saves them on first use. */
+    fun storyPath(now: Long): List<PathEntry> {
+        if (!pathSynced) {
+            store.syncPathStories(
+                path.map { (p, _) -> SavedStory(0, now, p.title, p.body, "", "", "", p.translations, pathId = p.id) },
+            )
+            pathSynced = true
+        }
+        val saved = store.pathStories()
+        val isKnown = known(store.wordStatuses())
+        return path.mapNotNull { (p, words) ->
+            saved[p.id]?.let { PathEntry(it, StoryPath.newWords(words, isKnown).size) }
+        }
+    }
+
+    /** The words in a story you haven't learned yet, with dictionary entries, in the order they come up. */
+    fun storyNewWords(story: SavedStory): List<Word> {
+        val words = StoryPath.words(reader, PathStory("", story.title, story.body, emptyList()))
+        return StoryPath.newWords(words, known(store.wordStatuses())).mapNotNull { w -> w.wordId?.let { dictionary.word(it) } }
+    }
+
+    /**
+     * Finishing a path story: each word due for review that you read without
+     * looking it up counts as a lighter review than a Right answer ([Reviewer.read]).
+     */
+    fun readWords(story: SavedStory, lookedUp: Set<Long>, now: Long) {
+        val reviewer = Reviewer(Fsrs(), clock())
+        val ids = StoryPath.words(reader, PathStory("", story.title, story.body, emptyList())).mapNotNull { it.wordId }
+        for (id in ids.distinct() - lookedUp) {
+            val card = recognitionCard(id) ?: continue
+            if (card.state != CardState.REVIEW || card.dueAt > now || store.isSuspended(id)) continue
+            val before = store.progress(id)
+            save(card, before, reviewer.read(card, before, now, Random.Default), now)
+        }
+    }
+
+    /** Mastery of each of [ids] you've started. */
+    fun masteries(ids: Collection<Long>): Map<Long, Int> {
+        val statuses = store.wordStatuses()
+        return ids.mapNotNull { id -> statuses[id]?.takeIf { it.state != CardState.NEW }?.let { id to it.mastery } }.toMap()
+    }
+
+    /** Start [wordIds] as new cards, to learn before reading: their recognition cards, in order. */
+    fun cardsToLearn(wordIds: List<Long>, now: Long): List<Card> {
+        for (id in wordIds) learnNext(id, now)
+        return wordIds.mapNotNull { recognitionCard(it) }.filter { it.state == CardState.NEW }
     }
 
     // ------------------------------------------------------------ kana
@@ -984,23 +1032,13 @@ class Repository(context: Context) {
         )
         val started = store.count("SELECT COUNT(*) FROM card WHERE direction = ?", Direction.RECOGNITION.value)
         val total = dictionary.wordCount()
-        val unstarted = total - store.count(
-            "SELECT COUNT(*) FROM card WHERE direction = ? AND (state != ? OR suspended = 1)",
-            Direction.RECOGNITION.value,
-            CardState.NEW.value,
-        )
         val known = kanaKnown()
-        val newWaiting = if (known == KanaKnown.BOTH) {
-            store.count(
-                "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ? AND suspended = 0",
-                CardState.NEW.value,
-                Direction.PRODUCTION.value,
-            ) + unstarted
-        } else {
-            // Only words you can read are waiting, so queue them to count them.
-            ensureNewCards(limits.newCards)
-            newWordCards()
-        }
+        // New words come from the story path, so only unlocked production cards wait here.
+        val newWaiting = store.count(
+            "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ? AND suspended = 0",
+            CardState.NEW.value,
+            Direction.PRODUCTION.value,
+        )
         val kanaWaiting = if (known == KanaKnown.BOTH) {
             0
         } else {
