@@ -35,8 +35,8 @@ class StoryPathTest {
     fun `a step needs the kana of its words and furigana, and its grammar`() {
         val n = needs("犬です。", title = "猫")
         assertEquals(setOf("ね", "こ", "い", "ぬ", "で", "す"), n.kana.map { it.text }.toSet())
-        assertEquals(emptySet(), n.grammar)
-        assertEquals(setOf("wa"), needs("猫は犬です。").grammar)
+        assertEquals(setOf("desu"), n.grammar)
+        assertEquals(setOf("wa", "desu"), needs("猫は犬です。").grammar)
     }
 
     @Test
@@ -52,16 +52,16 @@ class StoryPathTest {
     fun `a story waits for its grammar to be taught, and a lesson teaches its own`() {
         val story = needs("猫は犬です。")
         val none = StoryPath.gap(story, { true }, { true }, emptySet())
-        assertEquals(listOf("wa"), none.grammar)
+        assertEquals(listOf("desu", "wa"), none.grammar)
         assertFalse(none.ready)
-        assertTrue(StoryPath.gap(story, { true }, { true }, setOf("wa")).ready)
-        assertTrue(StoryPath.gap(needs("猫は犬です。", teaches = listOf("wa")), { true }, { true }, emptySet()).ready)
+        assertTrue(StoryPath.gap(story, { true }, { true }, setOf("wa", "desu")).ready)
+        assertTrue(StoryPath.gap(needs("猫は犬です。", teaches = listOf("wa", "desu")), { true }, { true }, emptySet()).ready)
     }
 
     @Test
     fun `a step waits while it has more than 6 new kana`() {
         val story = needs("猫です。")
-        assertTrue(StoryPath.gap(story, { true }, { false }, emptySet()).ready)
+        assertTrue(StoryPath.gap(story, { true }, { false }, setOf("desu")).ready)
         val more = StoryPath.gap(needs("犬、魚です。", title = ""), { true }, { false }, emptySet())
         assertEquals(setOf("い", "ぬ", "さ", "か", "な", "で", "す"), more.kana.map { it.text }.toSet())
         assertFalse(more.ready)
@@ -69,7 +69,7 @@ class StoryPathTest {
 
     @Test
     fun `the solver reads whatever is open until nothing is, and finds what can't be reached`() {
-        val lesson = needs("猫は猫です。", teaches = listOf("wa"))
+        val lesson = needs("猫は猫です。", teaches = listOf("wa", "desu"))
         val story = needs("犬は魚です。")
         val far = needs("犬は魚と好きです。")
         assertEquals(listOf(1, 0), StoryPath.solve(listOf(story, lesson)))

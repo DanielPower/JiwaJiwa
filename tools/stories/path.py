@@ -57,7 +57,7 @@ S = [
 # Each lesson: (after story number, title, title English, grammar ids taught, parts);
 # a part is a string of English, or (Japanese sentence, English).
 L = [
-(0, "これは ～です", "This is ~", ["wa"], [
+(0, "これは ～です", "This is ~", ["wa", "desu"], [
   "To say what something is, put the thing first, then は, then what it is, then です.",
   ("これは猫です。", "This is a cat."),
   "は marks what you're talking about, the topic. It's written は, but when it does this job it's said \"wa\".",
