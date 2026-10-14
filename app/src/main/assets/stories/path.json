@@ -1,0 +1,467 @@
+{
+ "stories": [
+  {
+   "id": "path-01",
+   "title": "猫",
+   "body": "これは猫です。",
+   "translations": [
+    "A cat",
+    "This is a cat."
+   ]
+  },
+  {
+   "id": "path-02",
+   "title": "犬？",
+   "body": "それは犬ですか。はい、犬です。",
+   "translations": [
+    "A dog?",
+    "Is that a dog?",
+    "Yes, it's a dog."
+   ]
+  },
+  {
+   "id": "path-03",
+   "title": "本",
+   "body": "あれは本ですか。いいえ、本じゃないです。",
+   "translations": [
+    "A book",
+    "Is that a book over there?",
+    "No, it isn't a book."
+   ]
+  },
+  {
+   "id": "path-04",
+   "title": "わたしの猫",
+   "body": "これはわたしの猫です。猫の名前はタマです。",
+   "translations": [
+    "My cat",
+    "This is my cat.",
+    "The cat's name is Tama."
+   ]
+  },
+  {
+   "id": "path-05",
+   "title": "先生と学生",
+   "body": "わたしは田中です。学生です。\n\n山田さんは先生です。",
+   "translations": [
+    "Teacher and student",
+    "I'm Tanaka.",
+    "I'm a student.",
+    "Mr. Yamada is a teacher."
+   ]
+  },
+  {
+   "id": "path-06",
+   "title": "友達",
+   "body": "鈴木さんは学生です。わたしも学生です。鈴木さんはわたしの友達です。",
+   "translations": [
+    "A friend",
+    "Suzuki is a student.",
+    "I'm a student too.",
+    "Suzuki is my friend."
+   ]
+  },
+  {
+   "id": "path-07",
+   "title": "このかばん",
+   "body": "このかばんはわたしのです。そのかばんは鈴木さんのです。",
+   "translations": [
+    "This bag",
+    "This bag is mine.",
+    "That bag is Suzuki's."
+   ]
+  },
+  {
+   "id": "path-08",
+   "title": "だれの？",
+   "body": "あのかばんはだれのですか。山田先生のです。",
+   "translations": [
+    "Whose?",
+    "Whose is that bag over there?",
+    "It's Mr. Yamada's."
+   ]
+  },
+  {
+   "id": "path-09",
+   "title": "何？",
+   "body": "これは何ですか。それはりんごです。タマのりんごじゃないです。",
+   "translations": [
+    "What?",
+    "What is this?",
+    "That's an apple.",
+    "It isn't Tama's apple."
+   ]
+  },
+  {
+   "id": "path-10",
+   "title": "学校",
+   "body": "ここは学校です。わたしと鈴木さんの学校です。",
+   "translations": [
+    "School",
+    "This is a school.",
+    "It's my and Suzuki's school."
+   ]
+  },
+  {
+   "id": "path-11",
+   "title": "どこ？",
+   "body": "「トイレはどこですか。」「あそこです。」",
+   "translations": [
+    "Where?",
+    "\"Where is the toilet?\"",
+    "\"Over there.\""
+   ]
+  },
+  {
+   "id": "path-12",
+   "title": "本がたくさん",
+   "body": "学校に本があります。たくさんあります。",
+   "translations": [
+    "Lots of books",
+    "There are books at school.",
+    "There are lots of them."
+   ]
+  },
+  {
+   "id": "path-13",
+   "title": "家に猫がいます",
+   "body": "わたしの家に猫がいます。タマです。犬もいます。",
+   "translations": [
+    "There's a cat at home",
+    "There's a cat at my house.",
+    "It's Tama.",
+    "There's a dog too."
+   ]
+  },
+  {
+   "id": "path-14",
+   "title": "大きい犬",
+   "body": "犬は大きいです。タマは小さいです。",
+   "translations": [
+    "A big dog",
+    "The dog is big.",
+    "Tama is small."
+   ]
+  },
+  {
+   "id": "path-15",
+   "title": "鈴木さんの家",
+   "body": "鈴木さんの家は大きくないです。でも、きれいです。",
+   "translations": [
+    "Suzuki's house",
+    "Suzuki's house isn't big.",
+    "But it's pretty."
+   ]
+  },
+  {
+   "id": "path-16",
+   "title": "好き",
+   "body": "わたしは猫が好きです。犬も好きです。タマは魚が好きです。",
+   "translations": [
+    "I like it",
+    "I like cats.",
+    "I like dogs too.",
+    "Tama likes fish."
+   ]
+  },
+  {
+   "id": "path-17",
+   "title": "食べます",
+   "body": "タマは魚を食べます。わたしはパンを食べます。",
+   "translations": [
+    "Eating",
+    "Tama eats fish.",
+    "I eat bread."
+   ]
+  },
+  {
+   "id": "path-18",
+   "title": "飲みます",
+   "body": "わたしは水を飲みます。山田先生はコーヒーを飲みます。",
+   "translations": [
+    "Drinking",
+    "I drink water.",
+    "Mr. Yamada drinks coffee."
+   ]
+  },
+  {
+   "id": "path-19",
+   "title": "食べません",
+   "body": "タマはパンを食べません。りんごも食べません。魚を食べます。\n\n鈴木さんはお茶を飲みません。",
+   "translations": [
+    "Doesn't eat it",
+    "Tama doesn't eat bread.",
+    "Tama doesn't eat apples either.",
+    "Tama eats fish.",
+    "Suzuki doesn't drink tea."
+   ]
+  },
+  {
+   "id": "path-20",
+   "title": "学校へ行きます",
+   "body": "わたしは毎日学校へ行きます。鈴木さんも行きます。",
+   "translations": [
+    "Going to school",
+    "I go to school every day.",
+    "Suzuki goes too."
+   ]
+  },
+  {
+   "id": "path-21",
+   "title": "店で",
+   "body": "店でパンを買います。りんごも買います。",
+   "translations": [
+    "At the shop",
+    "I buy bread at the shop.",
+    "I buy apples too."
+   ]
+  },
+  {
+   "id": "path-22",
+   "title": "きのう",
+   "body": "きのう、店で魚を買いました。タマは魚を食べました。おいしかったです。",
+   "translations": [
+    "Yesterday",
+    "Yesterday I bought fish at the shop.",
+    "Tama ate the fish.",
+    "It was delicious."
+   ]
+  },
+  {
+   "id": "path-23",
+   "title": "行きませんでした",
+   "body": "きのう、鈴木さんは学校へ行きませんでした。家で寝ました。",
+   "translations": [
+    "Didn't go",
+    "Yesterday Suzuki didn't go to school.",
+    "Suzuki slept at home."
+   ]
+  },
+  {
+   "id": "path-24",
+   "title": "今日は休み",
+   "body": "今日は休みです。公園へ行きます。",
+   "translations": [
+    "A day off",
+    "Today is a day off.",
+    "I'm going to the park."
+   ]
+  },
+  {
+   "id": "path-25",
+   "title": "友達と",
+   "body": "鈴木さんと一緒に公園へ行きました。公園に犬がいました。",
+   "translations": [
+    "With a friend",
+    "I went to the park with Suzuki.",
+    "There was a dog in the park."
+   ]
+  },
+  {
+   "id": "path-26",
+   "title": "白い犬",
+   "body": "公園で大きい犬を見ました。白い犬でした。",
+   "translations": [
+    "A white dog",
+    "I saw a big dog at the park.",
+    "It was a white dog."
+   ]
+  },
+  {
+   "id": "path-27",
+   "title": "本を読みます",
+   "body": "家で本を読みます。おもしろい本です。",
+   "translations": [
+    "Reading a book",
+    "I read a book at home.",
+    "It's an interesting book."
+   ]
+  },
+  {
+   "id": "path-28",
+   "title": "朝",
+   "body": "朝、六時に起きます。パンを食べて、お茶を飲みます。",
+   "translations": [
+    "Morning",
+    "I get up at six in the morning.",
+    "I eat bread and drink tea."
+   ]
+  },
+  {
+   "id": "path-29",
+   "title": "行きませんか",
+   "body": "「あした、一緒に公園へ行きませんか。」「いいですね。行きましょう。」",
+   "translations": [
+    "Shall we go?",
+    "\"Do you want to go to the park together tomorrow?\"",
+    "\"Sounds good. Let's go.\""
+   ]
+  },
+  {
+   "id": "path-30",
+   "title": "食べたい",
+   "body": "今日は肉が食べたいです。でも、肉は高いです。",
+   "translations": [
+    "I want to eat",
+    "Today I want to eat meat.",
+    "But meat is expensive."
+   ]
+  },
+  {
+   "id": "path-31",
+   "title": "赤いりんご",
+   "body": "この店のりんごは安いです。赤いりんごを三つ買いました。",
+   "translations": [
+    "Red apples",
+    "The apples at this shop are cheap.",
+    "I bought three red apples."
+   ]
+  },
+  {
+   "id": "path-32",
+   "title": "ください",
+   "body": "「すみません、このりんごをください。」「はい、どうぞ。」",
+   "translations": [
+    "Please",
+    "\"Excuse me, these apples, please.\"",
+    "\"Here you are.\""
+   ]
+  },
+  {
+   "id": "path-33",
+   "title": "寒いから",
+   "body": "今日は寒いですから、家にいます。暑い日は公園へ行きます。",
+   "translations": [
+    "Because it's cold",
+    "It's cold today, so I'm staying home.",
+    "On hot days I go to the park."
+   ]
+  },
+  {
+   "id": "path-34",
+   "title": "今",
+   "body": "今、タマは寝ています。犬は外で遊んでいます。",
+   "translations": [
+    "Right now",
+    "Tama is sleeping right now.",
+    "The dog is playing outside."
+   ]
+  },
+  {
+   "id": "path-35",
+   "title": "いい天気",
+   "body": "今日はいい天気です。鈴木さんと外で遊びました。楽しかったです。",
+   "translations": [
+    "Nice weather",
+    "It's nice weather today.",
+    "I played outside with Suzuki.",
+    "It was fun."
+   ]
+  },
+  {
+   "id": "path-36",
+   "title": "雨",
+   "body": "今日は雨です。傘を持って、学校へ行きます。",
+   "translations": [
+    "Rain",
+    "It's raining today.",
+    "I take an umbrella and go to school."
+   ]
+  },
+  {
+   "id": "path-37",
+   "title": "電車",
+   "body": "駅で電車に乗ります。電車は大きいです。",
+   "translations": [
+    "The train",
+    "I get on the train at the station.",
+    "The train is big."
+   ]
+  },
+  {
+   "id": "path-38",
+   "title": "手紙",
+   "body": "友達に手紙を書きました。あした出します。",
+   "translations": [
+    "A letter",
+    "I wrote a letter to a friend.",
+    "I'll send it tomorrow."
+   ]
+  },
+  {
+   "id": "path-39",
+   "title": "母",
+   "body": "母は料理が上手です。母の料理はおいしいです。",
+   "translations": [
+    "My mother",
+    "My mother is good at cooking.",
+    "My mother's cooking is delicious."
+   ]
+  },
+  {
+   "id": "path-40",
+   "title": "父",
+   "body": "父は毎朝新聞を読みます。コーヒーも飲みます。",
+   "translations": [
+    "My father",
+    "My father reads the newspaper every morning.",
+    "He drinks coffee too."
+   ]
+  },
+  {
+   "id": "path-41",
+   "title": "わたしの部屋",
+   "body": "わたしの部屋は狭いです。でも、明るいです。",
+   "translations": [
+    "My room",
+    "My room is small.",
+    "But it's bright."
+   ]
+  },
+  {
+   "id": "path-42",
+   "title": "新しい時計",
+   "body": "きのう、新しい時計を買いました。高かったです。",
+   "translations": [
+    "A new watch",
+    "Yesterday I bought a new watch.",
+    "It was expensive."
+   ]
+  },
+  {
+   "id": "path-43",
+   "title": "誕生日",
+   "body": "今日は母の誕生日です。母に花をあげました。",
+   "translations": [
+    "Birthday",
+    "Today is my mother's birthday.",
+    "I gave my mother flowers."
+   ]
+  },
+  {
+   "id": "path-44",
+   "title": "映画",
+   "body": "夜、鈴木さんと映画を見ました。とてもおもしろかったです。",
+   "translations": [
+    "A movie",
+    "In the evening I watched a movie with Suzuki.",
+    "It was very interesting."
+   ]
+  },
+  {
+   "id": "path-45",
+   "title": "タマの一日",
+   "body": "タマはわたしの猫です。小さくて、白い猫です。\n\n朝、タマは魚を食べます。それから、外で遊びます。\n\n夜、タマは家に帰ります。わたしの部屋で寝ます。\n\nわたしはタマが大好きです。",
+   "translations": [
+    "Tama's day",
+    "Tama is my cat.",
+    "She's a small white cat.",
+    "In the morning Tama eats fish.",
+    "Then she plays outside.",
+    "At night Tama comes home.",
+    "She sleeps in my room.",
+    "I love Tama."
+   ]
+  }
+ ]
+}

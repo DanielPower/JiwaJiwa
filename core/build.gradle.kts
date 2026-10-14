@@ -23,6 +23,8 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
+    // Reads the built dictionary to check the bundled story path (StoryPathTest).
+    testImplementation("org.xerial:sqlite-jdbc:3.46.1.3")
 }
 
 tasks.test {
