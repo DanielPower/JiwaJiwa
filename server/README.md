@@ -73,7 +73,7 @@ In the [Google Cloud console](https://console.cloud.google.com/), in one project
    to production. Sign-in only asks for the basic `openid`, `email` and
    `profile` scopes, so Google doesn't need to verify the app.
 2. **Clients → Create client → Web application**, named "Story server". Its
-   client ID goes in `GOOGLE_CLIENT_IDS` and in the app. It needs no
+   client ID goes in `GOOGLE_CLIENT_IDS` and in `googleWebClientId` in the root `gradle.properties`. It needs no
    redirect URIs, and the server never uses its secret.
 3. **Clients → Create client → Android** for each signing key that will run
    the app, with package `com.crispyumbrella.jiwajiwa` and the key's SHA-1:

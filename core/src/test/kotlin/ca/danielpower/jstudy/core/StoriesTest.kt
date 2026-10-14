@@ -113,13 +113,11 @@ class StoriesTest {
                 """{"content":[{"type":"text","text":"二"}],"stop_reason":"end_turn"}""",
             ),
         )
-        val claude = ClaudeConversation("key", send = { body -> bodies += body; 200 to replies.removeFirst() })
+        val claude = ClaudeConversation(send = { body -> bodies += body; 200 to replies.removeFirst() })
         assertEquals("一", claude.start("sys", "hello"))
         assertEquals("二", claude.reply("again"))
         val second = Json.parseToJsonElement(bodies[1]).jsonObject
-        assertEquals(ClaudeConversation.MODEL, second["model"]!!.jsonPrimitive.content)
         assertEquals("sys", second["system"]!!.jsonPrimitive.content)
-        assertEquals("default", second["fallbacks"]!!.jsonPrimitive.content)
         val messages = second["messages"]!!.jsonArray
         assertEquals(listOf("user", "assistant", "user"), messages.map { it.jsonObject["role"]!!.jsonPrimitive.content })
         // The thinking block goes back unchanged.
@@ -128,10 +126,10 @@ class StoriesTest {
 
     @Test
     fun claudeErrorsAreReadable() {
-        val claude = ClaudeConversation("key", send = { 401 to """{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}""" })
+        val claude = ClaudeConversation(send = { 401 to """{"type":"error","error":{"type":"authentication_error","message":"Your sign-in has expired. Sign in again."}}""" })
         val e = assertFailsWith<ClaudeException> { claude.start("s", "m") }
-        assertTrue(e.message!!.contains("rejected"))
-        val refusing = ClaudeConversation("key", send = { 200 to """{"content":[],"stop_reason":"refusal"}""" })
+        assertTrue(e.message!!.contains("Sign in again"))
+        val refusing = ClaudeConversation(send = { 200 to """{"content":[],"stop_reason":"refusal"}""" })
         assertFailsWith<ClaudeException> { refusing.start("s", "m") }
     }
 }

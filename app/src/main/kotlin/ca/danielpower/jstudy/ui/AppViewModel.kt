@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
+import ca.danielpower.jstudy.core.ClaudeException
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.ImportPlan
@@ -108,7 +109,12 @@ sealed interface Screen {
     data class Settings(
         val settings: StudySettings,
         val attribution: String,
-        val claudeKey: String,
+        /** The Google account signed in to write stories, or null. */
+        val storyAccount: String?,
+        /** How much of today's story allowance is spent, 0 to 1, once fetched. */
+        val storyUsage: Double? = null,
+        /** Why signing in to stories failed. */
+        val storyError: String? = null,
         val startLevel: Int,
         val reminder: Reminder,
         val kanaKnown: KanaKnown,
@@ -154,7 +160,7 @@ sealed interface Screen {
     data class Stories(
         val stories: List<SavedStory>,
         val draft: StoryDraft,
-        val hasClaudeKey: Boolean,
+        val signedIn: Boolean,
         /** Words you've started, to warn when there are too few for a story. */
         val knownWords: Int,
         /** What the story writer is doing, while it works. */
@@ -165,7 +171,7 @@ sealed interface Screen {
     data class StoryReader(
         val reading: StoryReading,
         val style: ReaderStyle,
-        val hasClaudeKey: Boolean,
+        val signedIn: Boolean,
         /** What the sequel writer is doing, while it writes this story's sequel. */
         val writing: String? = null,
         val error: String? = null,
@@ -429,12 +435,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Settings(
             settings = repo.settings(),
             attribution = attribution,
-            claudeKey = repo.claudeKey(),
+            storyAccount = repo.storyAccount(),
             startLevel = repo.startLevel(),
             reminder = repo.reminder(),
             kanaKnown = repo.kanaKnown(),
             backupMessage = backupMessage,
         )
+        if (repo.storyAccount() != null) fetchStoryUsage()
     }
 
     /** Start new words from [level]; a non-zero [easierMastery] marks the unstarted words below it known. */
@@ -538,9 +545,60 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openStats() = launchIo { _screen.value = Screen.StatsPage(repo.stats(now())) }
 
-    fun saveClaudeKey(key: String) = launchIo {
-        repo.saveClaudeKey(key)
-        _screen.update { if (it is Screen.Settings) it.copy(claudeKey = repo.claudeKey()) else it }
+    // ------------------------------------------------------------ story sign-in
+
+    /**
+     * Sign in to stories with Google. [getToken] shows Android's account
+     * sheet and returns null if you back out.
+     */
+    fun signInToStories(getToken: suspend () -> String?) {
+        viewModelScope.launch {
+            try {
+                val token = getToken() ?: return@launch
+                withContext(Dispatchers.IO) { repo.signInToStories(token) }
+                storyError = null
+                refreshSignIn()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val message = e.message ?: "Google sign-in didn't work. Try again."
+                _screen.update {
+                    when (it) {
+                        is Screen.Settings -> it.copy(storyError = message)
+                        is Screen.Stories -> it.copy(error = message)
+                        else -> it
+                    }
+                }
+            }
+        }
+    }
+
+    fun signOutOfStories() = launchIo {
+        repo.signOutOfStories()
+        refreshSignIn()
+    }
+
+    /** Show the current sign-in on whichever screen cares. */
+    private suspend fun refreshSignIn() {
+        val account = withContext(Dispatchers.IO) { repo.storyAccount() }
+        _screen.update {
+            when (it) {
+                is Screen.Settings -> it.copy(storyAccount = account, storyUsage = null, storyError = null)
+                is Screen.Stories -> it.copy(signedIn = account != null, error = storyError)
+                is Screen.StoryReader -> it.copy(signedIn = account != null)
+                else -> it
+            }
+        }
+        if (account != null && _screen.value is Screen.Settings) fetchStoryUsage()
+    }
+
+    /** Fetched apart from the screen, since it needs the network. */
+    private fun fetchStoryUsage() {
+        viewModelScope.launch {
+            val usage = withContext(Dispatchers.IO) { repo.storyUsage() }
+            val account = withContext(Dispatchers.IO) { repo.storyAccount() }
+            _screen.update { if (it is Screen.Settings) it.copy(storyUsage = usage?.usedToday, storyAccount = account) else it }
+        }
     }
 
     fun saveSettings(settings: StudySettings) = launchIo {
@@ -616,7 +674,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Stories(
             stories = repo.stories(),
             draft = draft,
-            hasClaudeKey = repo.claudeKey().isNotEmpty(),
+            signedIn = repo.storyAccount() != null,
             knownWords = repo.knownWordCount(),
             writing = storyProgress,
             error = storyError,
@@ -662,6 +720,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 throw e
             } catch (e: Exception) {
                 storyStatus(null, e.message ?: "Something went wrong writing the story.")
+                if (e is ClaudeException && e.signInNeeded) refreshSignIn()
             }
         }
     }
@@ -677,7 +736,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         readingFinished = false
         val writing = if (sequelOf == id) storyProgress else null
         val error = if (sequelOf == id) storyError else null
-        _screen.value = Screen.StoryReader(reading, repo.readerStyle(), repo.claudeKey().isNotEmpty(), writing, error)
+        _screen.value = Screen.StoryReader(reading, repo.readerStyle(), repo.storyAccount() != null, writing, error)
     }
 
     /** Reaching the end page marks the story read, timed from when it was opened. */
@@ -715,6 +774,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 throw e
             } catch (e: Exception) {
                 storyStatus(null, e.message ?: "Something went wrong writing the sequel.")
+                if (e is ClaudeException && e.signInNeeded) refreshSignIn()
             }
         }
     }

@@ -28,7 +28,8 @@ import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.core.WordProgress
-import ca.danielpower.jstudy.core.ClaudeConversation
+import ca.danielpower.jstudy.BuildConfig
+import ca.danielpower.jstudy.core.ClaudeException
 import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.Reader
 import ca.danielpower.jstudy.core.ReadingWord
@@ -36,7 +37,9 @@ import ca.danielpower.jstudy.core.Story
 import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
 import ca.danielpower.jstudy.core.StoryRequest
+import ca.danielpower.jstudy.core.StoryServer
 import ca.danielpower.jstudy.core.StoryTranslator
+import ca.danielpower.jstudy.core.StoryUsage
 import ca.danielpower.jstudy.core.StoryWriter
 import ca.danielpower.jstudy.core.UiLabel
 import ca.danielpower.jstudy.core.UiLabels
@@ -195,8 +198,12 @@ class Repository(context: Context) {
     val dictionary = Dictionary(context)
     private val store = ProgressStore(context)
 
-    /** Kept out of the progress database so a backup doesn't carry it. */
-    private val secrets = context.getSharedPreferences("secrets", Context.MODE_PRIVATE)
+    /** The story server sign-in. Kept out of the progress database so a backup doesn't carry it. */
+    private val secrets = context.getSharedPreferences("secrets", Context.MODE_PRIVATE).also {
+        // Stories used to need your own Claude API key; don't leave one lying around.
+        it.edit().remove("claude_api_key").apply()
+    }
+    private val storyServer = StoryServer(BuildConfig.STORY_SERVER_URL)
     private val reader by lazy { Reader(dictionary) }
 
     /**
@@ -603,10 +610,39 @@ class Repository(context: Context) {
         )
     }
 
-    fun claudeKey(): String = secrets.getString("claude_api_key", null).orEmpty()
+    // ------------------------------------------------------------ story server sign-in
 
-    fun saveClaudeKey(key: String) {
-        secrets.edit().putString("claude_api_key", key.trim()).apply()
+    private fun storyToken(): String? = secrets.getString("story_token", null)
+
+    /** The Google account signed in to write stories, or null. */
+    fun storyAccount(): String? = storyToken()?.let { secrets.getString("story_email", null).orEmpty() }
+
+    /** Sign in to the story server with a Google ID token from Credential Manager. */
+    fun signInToStories(googleIdToken: String) {
+        val session = storyServer.signIn(googleIdToken)
+        secrets.edit().putString("story_token", session.token).putString("story_email", session.email).apply()
+    }
+
+    fun signOutOfStories() {
+        val token = storyToken() ?: return
+        secrets.edit().remove("story_token").remove("story_email").apply()
+        // Ending the session on the server is tidy, not essential; forgetting it here is what signs you out.
+        runCatching { storyServer.signOut(token) }
+    }
+
+    /** How much of today's story allowance is spent, or null if it can't be fetched. */
+    fun storyUsage(): StoryUsage? {
+        val token = storyToken() ?: return null
+        return try {
+            storyServer.usage(token)
+        } catch (e: ClaudeException) {
+            if (e.signInNeeded) forgetStorySession()
+            null
+        }
+    }
+
+    private fun forgetStorySession() {
+        secrets.edit().remove("story_token").remove("story_email").apply()
     }
 
     fun stories(): List<SavedStory> = store.stories()
@@ -654,17 +690,21 @@ class Repository(context: Context) {
      * the reader adds the ones the learner picks. Returns the story's id.
      */
     fun writeStory(request: StoryRequest, now: Long, sequelTo: SavedStory? = null, progress: (String) -> Unit): Long {
-        val key = claudeKey()
-        check(key.isNotEmpty()) { "Add a Claude API key in Settings first." }
-        val writer = StoryWriter(ClaudeConversation(key), reader)
-        val written = writer.write(request, known(store.wordStatuses()), progress)
+        val token = storyToken() ?: throw ClaudeException("Sign in with Google to write stories.", signInNeeded = true)
+        val writer = StoryWriter(storyServer.conversation(token), reader)
+        val written = try {
+            writer.write(request, known(store.wordStatuses()), progress)
+        } catch (e: ClaudeException) {
+            if (e.signInNeeded) forgetStorySession()
+            throw e
+        }
         // Every part of a series keeps the first part's title.
         val title = sequelTo?.title ?: written.story.title
         progress("Translating")
         val sentences = sentenceTexts(listOf(reader.read(title).flatten()) + reader.read(written.story.body))
         // The story is worth keeping without its translations if they fail.
         val translations = try {
-            StoryTranslator(ClaudeConversation(key, effort = "low")).translate(sentences)
+            StoryTranslator(storyServer.conversation(token, effort = "low")).translate(sentences)
         } catch (e: IOException) {
             null
         }
@@ -798,7 +838,7 @@ class Repository(context: Context) {
 
     // ------------------------------------------------------------ backup
 
-    /** Write a copy of all your progress, settings and stories. The Claude API key isn't included. */
+    /** Write a copy of all your progress, settings and stories. The story sign-in isn't included. */
     fun exportBackup(out: OutputStream) {
         store.checkpoint()
         appContext.getDatabasePath(ProgressStore.NAME).inputStream().use { it.copyTo(out) }
@@ -843,14 +883,15 @@ class Repository(context: Context) {
     // ------------------------------------------------------------ reset
 
     /**
-     * Erase everything you've done here: cards, mastery, history, settings,
-     * stories and the Claude API key. The next query recreates an empty
+     * Erase everything you've done here: cards, mastery, history, settings
+     * and stories, and sign out of stories. The next query recreates an empty
      * database, so the app starts again at first-run setup.
      */
     fun resetAll() {
         store.close()
         val target = appContext.getDatabasePath(ProgressStore.NAME)
         SQLiteDatabase.deleteDatabase(target)
+        signOutOfStories()
         secrets.edit().clear().commit()
         store.count("SELECT COUNT(*) FROM card")
     }

@@ -11,21 +11,19 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 
-class ClaudeException(message: String) : IOException(message)
+/** A story request failed. [signInNeeded] means the story server no longer accepts this sign-in. */
+class ClaudeException(message: String, val signInNeeded: Boolean = false) : IOException(message)
 
 /**
- * A conversation with Claude over the Messages API, sent as plain HTTPS
- * requests. Each reply's content blocks go back unchanged in the next
- * request, as the API requires for thinking blocks.
+ * A conversation with Claude, through the story server (see `server/`),
+ * which holds the API key and picks the model. Each reply's content blocks
+ * go back unchanged in the next request, as the API requires for thinking
+ * blocks.
  */
 class ClaudeConversation(
-    private val apiKey: String,
-    private val model: String = MODEL,
     private val effort: String = "high",
-    private val send: (body: String) -> Pair<Int, String> = { postMessages(apiKey, it) },
+    private val send: (body: String) -> Pair<Int, String>,
 ) : StoryModel {
     private var system = ""
     private val messages = ArrayList<JsonObject>()
@@ -42,21 +40,18 @@ class ClaudeConversation(
             put("content", message)
         }
         val body = buildJsonObject {
-            put("model", model)
-            put("max_tokens", 16000)
             put("system", system)
             put("messages", JsonArray(messages))
-            put("output_config", buildJsonObject { put("effort", effort) })
-            // If a safety classifier declines, the API retries on its recommended fallback model.
-            put("fallbacks", "default")
+            put("effort", effort)
         }.toString()
 
         var attempt = 0
         while (true) {
             val (status, text) = send(body)
             if (status == 200) return read(text)
-            val retryable = status == 429 || status == 529 || status >= 500
-            if (!retryable || attempt >= RETRY_DELAYS.size) throw ClaudeException(errorMessage(status, text))
+            // The server already retries Claude's own overloads; these cover it or its proxy being briefly away.
+            val retryable = status == 502 || status == 503 || status == 504
+            if (!retryable || attempt >= RETRY_DELAYS.size) throw ClaudeException(errorMessage(status, text), signInNeeded = status == 401)
             Thread.sleep(RETRY_DELAYS[attempt++])
         }
     }
@@ -80,46 +75,19 @@ class ClaudeConversation(
     private val JsonElement.type get() = jsonObject["type"]?.jsonPrimitive?.contentOrNull
 
     companion object {
-        const val MODEL = "claude-sonnet-5-5"
-        private const val URL_MESSAGES = "https://api.anthropic.com/v1/messages"
         private val RETRY_DELAYS = longArrayOf(2_000, 6_000)
 
+        /** The story server's own message, which is written to be shown as is, or a fallback. */
         fun errorMessage(status: Int, body: String): String {
-            val detail = runCatching {
+            val message = runCatching {
                 Json.parseToJsonElement(body).jsonObject["error"]!!.jsonObject["message"]!!.jsonPrimitive.content
-            }.getOrNull()
-            return when (status) {
-                401 -> "The Claude API key was rejected. Check it in Settings."
-                403 -> "This Claude API key isn't allowed to do that" + (detail?.let { ": $it" } ?: ".")
-                429 -> "Claude is rate limiting this key. Try again in a minute."
-                529 -> "Claude is overloaded right now. Try again in a minute."
-                else -> "Claude returned an error ($status)" + (detail?.let { ": $it" } ?: ".")
-            }
-        }
-
-        fun postMessages(apiKey: String, body: String): Pair<Int, String> {
-            val connection = URL(URL_MESSAGES).openConnection() as HttpURLConnection
-            try {
-                connection.requestMethod = "POST"
-                connection.connectTimeout = 30_000
-                // A long story with thinking can take a few minutes.
-                connection.readTimeout = 600_000
-                connection.doOutput = true
-                connection.setRequestProperty("content-type", "application/json")
-                connection.setRequestProperty("x-api-key", apiKey)
-                connection.setRequestProperty("anthropic-version", "2023-06-01")
-                connection.setRequestProperty("anthropic-beta", "server-side-fallback-2026-07-01")
-                connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-                val status = connection.responseCode
-                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-                val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-                return status to text
-            } catch (e: IOException) {
-                throw ClaudeException("Couldn't reach Claude: ${e.message ?: e.javaClass.simpleName}")
-            } finally {
-                connection.disconnect()
+            }.getOrNull()?.takeIf { it.isNotBlank() }
+            return message ?: when (status) {
+                401 -> "Your sign-in has expired. Sign in again."
+                429 -> "You've written a lot of stories lately. Try again later."
+                502, 503, 504 -> "The story server is busy right now. Try again in a minute."
+                else -> "The story server returned an error ($status)."
             }
         }
     }
 }
-

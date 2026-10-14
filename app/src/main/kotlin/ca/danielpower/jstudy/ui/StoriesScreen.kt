@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -110,12 +111,23 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
     ) {
         Text(ui("Stories", "物語"), style = MaterialTheme.typography.headlineMedium)
 
-        if (!state.hasClaudeKey) {
+        if (!state.signedIn) {
+            StorySeal()
             Text(
-                "Stories are written by Claude. Add your Claude API key in Settings to start.",
+                "Claude writes short stories using mostly words you know, with a few new ones to learn.",
                 style = MaterialTheme.typography.bodyLarge,
             )
-            SecondaryButton(onClick = vm::openSettings) { Text(ui("Settings", "設定")) }
+            Text("Sign in with Google to start.", style = MaterialTheme.typography.bodyLarge)
+            SignInWithGoogleButton(vm, Modifier.fillMaxWidth().height(52.dp))
+            Text(
+                "Your Google account is only used to keep each person to a fair number of stories a day. " +
+                    "Your progress stays on this phone.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            state.error?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            }
         } else {
             OutlinedTextField(
                 value = draft.prompt,
@@ -216,6 +228,22 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
                 TextButton(onClick = { deleting = null }) { Text(ui("Cancel", "やめる"), color = MaterialTheme.colorScheme.onSurface) }
             },
         )
+    }
+}
+
+/** 物語 stamped like a seal, over the sign-in prompt. */
+@Composable
+private fun StorySeal() {
+    val color = MaterialTheme.colorScheme.primary
+    Box(
+        Modifier
+            .padding(vertical = 12.dp)
+            .rotate(-4f)
+            .size(64.dp)
+            .border(2.dp, color, WashiShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("物\n語", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 20.sp, color = color, textAlign = TextAlign.Center)
     }
 }
 
@@ -846,7 +874,7 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel, onWord: (Pair<
             next != null -> PrimaryButton(onClick = { vm.openStory(next) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                 Text(ui("Read the next part", "続きを読む", "続き", "読む"))
             }
-            !state.hasClaudeKey -> {}
+            !state.signedIn -> {}
             state.writing != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp, color = MaterialTheme.colorScheme.primary)
                 Text(state.writing + "…", style = MaterialTheme.typography.bodyLarge)

@@ -12,13 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,8 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,13 +36,13 @@ import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
 import java.time.LocalDate
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
     state: Screen.Settings,
     theme: ThemeMode,
     onChange: (StudySettings) -> Unit,
-    onSaveClaudeKey: (String) -> Unit,
     onImport: () -> Unit,
     onTheme: (ThemeMode) -> Unit,
     vm: AppViewModel,
@@ -170,26 +166,34 @@ fun SettingsScreen(
         }
 
         Section(ui("Stories", "物語"))
-        Text(
-            "Stories are written by Claude using your own API key from console.anthropic.com, " +
-                "and billed to it.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        var key by remember(state.claudeKey) { mutableStateOf(state.claudeKey) }
-        OutlinedTextField(
-            value = key,
-            onValueChange = { key = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Claude API key") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        )
-        if (key.trim() != state.claudeKey) {
-            SecondaryButton(onClick = { onSaveClaudeKey(key) }) { Text(ui("Save key", "保存")) }
-        } else if (state.claudeKey.isNotEmpty()) {
-            Text(ui("Saved", "保存しました"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        val account = state.storyAccount
+        if (account == null) {
+            Text(
+                "Claude writes short stories using mostly words you know. Sign in with Google to start.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SignInWithGoogleButton(vm)
+        } else {
+            Text("Signed in as", style = MaterialTheme.typography.bodyLarge)
+            Text(account, style = MaterialTheme.typography.bodyMedium)
+            state.storyUsage?.let { used ->
+                val percent = (used * 100).roundToInt()
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Today's stories", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Text("$percent% used", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                MasteryBar(percent, Modifier.fillMaxWidth())
+            }
+            Text(
+                "Each account can write a limited number of stories a day.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SecondaryButton(onClick = vm::signOutOfStories) { Text("Sign out") }
+        }
+        state.storyError?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
         }
 
         Section(ui("Import", "インポート"))
@@ -202,8 +206,7 @@ fun SettingsScreen(
 
         Section(ui("Backup", "バックアップ"))
         Text(
-            "Save your progress, settings and stories to a file, or restore them from one. " +
-                "Your Claude API key isn't included.",
+            "Save your progress, settings and stories to a file, or restore them from one.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -240,7 +243,7 @@ fun SettingsScreen(
 
         Section(ui("Reset", "消す"))
         Text(
-            "Erase all your progress, settings, stories and your Claude API key, " +
+            "Erase all your progress, settings and stories, sign out, " +
                 "and start again from first-run setup.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -255,8 +258,8 @@ fun SettingsScreen(
                 title = { Text("Reset everything?") },
                 text = {
                     Text(
-                        "All your cards, mastery, review history, settings, stories and your Claude API key " +
-                            "will be deleted. This can't be undone. Save a backup first if you might want them back.",
+                        "All your cards, mastery, review history, settings and stories " +
+                            "will be deleted, and you'll be signed out. This can't be undone. Save a backup first if you might want them back.",
                     )
                 },
                 confirmButton = {
