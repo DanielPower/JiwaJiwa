@@ -88,8 +88,20 @@ class Reviewer(
     private val fsrs: Fsrs,
     private val clock: StudyClock,
 ) {
-    fun answer(card: Card, progress: WordProgress, correct: Boolean, now: Long, fuzz: Random? = null): Answer {
+    fun answer(card: Card, progress: WordProgress, correct: Boolean, now: Long, fuzz: Random? = null): Answer =
+        grade(card, progress, if (correct) Rating.GOOD else Rating.AGAIN, now, fuzz)
+
+    /**
+     * A due word read in a story without looking it up. It counts as a pass,
+     * but as FSRS's Hard rather than Good: context helps in a story, so it
+     * moves mastery less than getting the card right in a review.
+     */
+    fun read(card: Card, progress: WordProgress, now: Long, fuzz: Random? = null): Answer =
+        grade(card, progress, Rating.HARD, now, fuzz)
+
+    private fun grade(card: Card, progress: WordProgress, rating: Rating, now: Long, fuzz: Random?): Answer {
         require(card.wordId == progress.wordId)
+        val correct = rating != Rating.AGAIN
         val today = clock.dayOf(now)
         val memory = if (card.state == CardState.NEW) {
             FsrsMemory.NEW
@@ -106,7 +118,7 @@ class Reviewer(
             )
         }
         val elapsed = card.lastReviewAt?.let { (today - clock.dayOf(it)).toInt().coerceAtLeast(0) }
-        val result = fsrs.review(memory, if (correct) Rating.GOOD else Rating.AGAIN, elapsed, fuzz)
+        val result = fsrs.review(memory, rating, elapsed, fuzz)
 
         val dueAt = when (val interval = result.interval) {
             is FsrsInterval.Minutes -> now + (interval.minutes * 60_000).toLong()

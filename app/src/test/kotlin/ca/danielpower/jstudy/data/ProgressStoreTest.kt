@@ -222,6 +222,23 @@ class ProgressStoreTest {
     }
 
     @Test
+    fun pathStoriesAreSavedOnceUpdatedInPlaceAndKeptApart() {
+        fun path(body: String) = SavedStory(0, 100, "猫", body, "", "", "", listOf("Cat", "A cat."), pathId = "path-01")
+        val mine = store.insertStory(SavedStory(0, 50, "犬", "犬です。", "", "SHORT", "EASY"))
+        store.syncPathStories(listOf(path("猫です。")))
+        val saved = store.pathStories().getValue("path-01")
+        store.markStoryRead(saved.id, 500, 1_000)
+        store.syncPathStories(listOf(path("これは猫です。")))
+        val updated = store.pathStories().getValue("path-01")
+        assertEquals(saved.id, updated.id)
+        assertEquals("これは猫です。", updated.body)
+        assertEquals(500L, updated.readAt)
+        assertEquals(listOf(mine), store.stories().map { it.id })
+        store.deleteStory(updated.id)
+        assertEquals(1, store.pathStories().size)
+    }
+
+    @Test
     fun upgradingFromVersion5KeepsStories() {
         store.close()
         context.deleteDatabase(ProgressStore.NAME)

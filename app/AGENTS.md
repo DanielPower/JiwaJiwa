@@ -25,7 +25,7 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 - Plain `SQLiteOpenHelper`, not Room (avoids KSP and prepackaged-DB schema
   validation). Settings live in the progress DB's `kv` table, not DataStore,
   so a backup carries them.
-- `ProgressStore.VERSION` is 6. Schema changes need an `onUpgrade` step, and
+- `ProgressStore.VERSION` is 7. Schema changes need an `onUpgrade` step, and
   backups from older versions must still restore (they're upgraded when
   reopened). A backup from a newer version is refused.
 - SharedPreferences hold only what must not go in a backup or must load
@@ -80,4 +80,5 @@ cloud containers).
 ## Debug builds
 
 The debug build type has app id `com.crispyumbrella.jiwajiwa.debug`, so a PR's APK
-installs next to the real app without touching its progress.
+installs next to the real app without touching its progress. Its name is "Jiwa Jiwa
+Debug" (`app/src/debug/res/values/strings.xml`) so the two can be told apart.

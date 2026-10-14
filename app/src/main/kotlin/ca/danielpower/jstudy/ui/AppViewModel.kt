@@ -9,6 +9,7 @@ import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.ClaudeException
 import ca.danielpower.jstudy.core.FuriganaMode
+import ca.danielpower.jstudy.core.GrammarPoint
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.ImportPlan
 import ca.danielpower.jstudy.core.KanaCourse
@@ -23,9 +24,11 @@ import ca.danielpower.jstudy.core.StoryDifficulty
 import ca.danielpower.jstudy.core.StoryLength
 import ca.danielpower.jstudy.core.UiLabel
 import ca.danielpower.jstudy.core.UiLanguage
+import ca.danielpower.jstudy.core.grammarPoint
 import ca.danielpower.jstudy.data.BackupException
 import ca.danielpower.jstudy.data.Entry
 import ca.danielpower.jstudy.data.KanjiDetail
+import ca.danielpower.jstudy.data.PathEntry
 import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.Reminder
 import ca.danielpower.jstudy.data.Stats
@@ -158,6 +161,8 @@ sealed interface Screen {
     data class RenshuuImport(val step: ImportStep) : Screen
 
     data class Stories(
+        /** The stories that come with the app, in order, ready or not. */
+        val path: List<PathEntry>,
         val stories: List<SavedStory>,
         val draft: StoryDraft,
         val signedIn: Boolean,
@@ -168,15 +173,35 @@ sealed interface Screen {
         val error: String?,
     ) : Screen
 
+    /** A path story's or lesson's new kana and words, to learn before reading it. */
+    data class BeforeReading(val story: SavedStory, val lesson: Boolean, val kana: List<KanaUnit>, val words: List<Word>) : Screen
+
     data class StoryReader(
         val reading: StoryReading,
         val style: ReaderStyle,
         val signedIn: Boolean,
+        /** For a path story, the next story or lesson on the path that's ready and unread. */
+        val nextOnPath: PathEntry? = null,
+        /** For a path story, once read: what reading it did for your words. */
+        val impact: ReadImpact? = null,
         /** What the sequel writer is doing, while it writes this story's sequel. */
         val writing: String? = null,
         val error: String? = null,
     ) : Screen
 }
+
+/**
+ * What reading a path story did: the words you first saw for it, and the
+ * ones that crossed into known (mastery 40, where furigana hides) or
+ * mastered (70, where it's gone).
+ */
+data class ReadImpact(
+    val seen: List<Word>,
+    val known: List<Word>,
+    val mastered: List<Word>,
+    /** For a lesson, the grammar it taught, which stories can now use. */
+    val grammar: List<GrammarPoint> = emptyList(),
+)
 
 enum class SetupPage { WELCOME, KANA, LEVEL, REMINDER }
 
@@ -214,6 +239,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private lateinit var repo: Repository
     private var session: StudySession? = null
+    // The path story whose new words the session is teaching; it opens when they're done.
+    private var learningFor: Long? = null
     private var undo: Undo? = null
     private val lock = Mutex()
 
@@ -237,6 +264,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // When the open story was opened, to time the reading, and whether its end has been reached.
     private var readingSince = 0L
     private var readingFinished = false
+    // For the open path story: the words seen before reading it, your mastery
+    // when it opened, and the words you looked up, which reading doesn't credit.
+    private var seenForStory: List<Long> = emptyList()
+    private var masteryAtOpen: Map<Long, Int> = emptyMap()
+    // Tapped on the main thread, read when the story ends.
+    private val lookedUpWords: MutableSet<Long> = ConcurrentHashMap.newKeySet()
 
     init {
         launchIo {
@@ -292,6 +325,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refreshLanguage()
         trail.clear()
         session = null
+        learningFor = null
         undo = null
         _screen.value = Screen.Home(repo.summary(now()))
     }
@@ -304,7 +338,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             is Screen.WordPage -> closeWord()
             is Screen.KanjiPage -> goBack()
             is Screen.RenshuuImport -> closeImport()
-            is Screen.StoryReader -> openStories()
+            is Screen.StoryReader, is Screen.BeforeReading -> openStories()
             is Screen.Setup -> setupBack()
             else -> goHome()
         }
@@ -329,6 +363,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refreshLanguage()
         val counts = ReviewCounts(s.newRemaining, s.learningRemaining, s.reviewRemaining)
         val card = s.next(now())
+        if (card == null && learningFor != null) {
+            val story = learningFor!!
+            session = null
+            learningFor = null
+            undo = null
+            return showStory(story)
+        }
         if (card == null) {
             val due = s.nextLearningDue
             _screen.value = if (due != null) Screen.Waiting(due, counts) else Screen.Done(repo.summary(now()))
@@ -397,7 +438,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (state.current.card.state != CardState.NEW) return@launchIo
         val s = session ?: return@launchIo
         val now = now()
-        if (mastery <= 0) {
+        if (learningFor != null) {
+            // Learning a story's words: each is shown once, then the story opens.
+            val u = if (mastery <= 0) {
+                repo.introduce(state.current.card, now).second
+            } else {
+                repo.markKnown(state.current.card, mastery, now).second
+            }
+            s.answered(state.current.card.copy(state = CardState.REVIEW), 0)
+            undo = u
+        } else if (mastery <= 0) {
             val (card, u) = repo.introduce(state.current.card, now)
             s.answered(card, repo.endOfToday(now))
             undo = u
@@ -412,7 +462,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun undoLast() = launchIo {
         val u = undo ?: return@launchIo
         repo.undo(u)
-        if (u.logId == null) {
+        if (u.logId == null && learningFor == null) {
             // Undoing a first sight: the word is new again, so rebuild the queue around it.
             session = repo.session(now())
         }
@@ -672,6 +722,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun showStories() {
         _screen.value = Screen.Stories(
+            path = repo.storyPath(now()),
             stories = repo.stories(),
             draft = draft,
             signedIn = repo.storyAccount() != null,
@@ -725,18 +776,57 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Open a story. A path story with words you haven't learned lists them first. */
     fun openStory(id: Long) = launchIo {
         _screen.value = Screen.Loading
-        showStory(id)
+        seenForStory = emptyList()
+        val story = repo.story(id)
+        val learn = story?.let { repo.stepToLearn(it) }
+        if (story != null && learn != null && (learn.words.isNotEmpty() || learn.kana.isNotEmpty())) {
+            _screen.value = Screen.BeforeReading(story, learn.lesson, learn.kana, learn.words)
+        } else {
+            showStory(id)
+        }
+    }
+
+    /** "Learn these": show each of the story's new kana and words once, as new cards, then the story. */
+    fun learnStoryWords() = launchIo {
+        val state = _screen.value as? Screen.BeforeReading ?: return@launchIo
+        val cards = repo.cardsToLearn(state.words.map { it.id }, state.kana, now())
+        seenForStory = cards.map { it.wordId }.filter { !KanaCourse.isKanaId(it) }
+        session = StudySession(emptyList(), cards, emptyList())
+        learningFor = state.story.id
+        undo = null
+        advance()
+    }
+
+    /** "I know these": mark the story's new kana and words known, as on a new card, and read it. */
+    fun knowStoryWords() = launchIo {
+        val state = _screen.value as? Screen.BeforeReading ?: return@launchIo
+        val now = now()
+        for (unit in state.kana) repo.markKnown(unit.id, MasteryRules.HIDE_AT, now)
+        for (word in state.words) repo.markKnown(word.id, MasteryRules.HIDE_AT, now)
+        showStory(state.story.id)
     }
 
     private fun showStory(id: Long) {
         val reading = repo.readStory(id) ?: return showStories()
         readingSince = now()
         readingFinished = false
+        masteryAtOpen = repo.masteries(reading.words.keys)
+        lookedUpWords.clear()
         val writing = if (sequelOf == id) storyProgress else null
         val error = if (sequelOf == id) storyError else null
-        _screen.value = Screen.StoryReader(reading, repo.readerStyle(), repo.storyAccount() != null, writing, error)
+        _screen.value = Screen.StoryReader(
+            reading, repo.readerStyle(), repo.storyAccount() != null,
+            nextOnPath = nextOnPath(reading.story), writing = writing, error = error,
+        )
+    }
+
+    /** The first step on the path after [story] that's ready and unread, if [story] is on the path. */
+    private fun nextOnPath(story: SavedStory): PathEntry? {
+        if (story.pathId == null) return null
+        return repo.storyPath(now()).firstOrNull { it.ready && it.story.readAt == null && it.story.id != story.id }
     }
 
     /** Reaching the end page marks the story read, timed from when it was opened. */
@@ -745,8 +835,38 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (readingFinished) return@launchIo
         readingFinished = true
         val at = now()
-        repo.markStoryRead(state.reading.story.id, at, at - readingSince)
+        val story = state.reading.story
+        repo.markStoryRead(story.id, at, at - readingSince)
+        if (story.pathId != null) {
+            val teaches = state.reading.lesson?.teaches.orEmpty()
+            repo.markGrammarSeen(teaches)
+            repo.readWords(story, lookedUpWords.toSet(), at)
+            val after = repo.masteries(state.reading.words.keys)
+            fun crossed(line: Int) = after.filter { (id, m) -> (masteryAtOpen[id] ?: 0) < line && m >= line }.keys
+            val words = state.reading.words
+            val impact = ReadImpact(
+                seen = seenForStory.mapNotNull { words[it] },
+                known = crossed(MasteryRules.HIDE_AT).mapNotNull { words[it] },
+                mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
+                grammar = teaches.mapNotNull(::grammarPoint),
+            )
+            _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact) else it }
+        }
         refreshStory()
+    }
+
+    /** "I know this already" on a lesson: its grammar counts as seen, and it's done without reading it. */
+    fun skipLesson() = launchIo {
+        val state = _screen.value as? Screen.StoryReader ?: return@launchIo
+        val lesson = state.reading.lesson ?: return@launchIo
+        repo.markGrammarSeen(lesson.teaches)
+        repo.markStoryRead(state.reading.story.id, now(), 0)
+        showStories()
+    }
+
+    /** A word tapped in the open story: you looked it up, so reading it doesn't count as recalling it. */
+    fun lookedUp(wordId: Long) {
+        lookedUpWords += wordId
     }
 
     /**
@@ -805,7 +925,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun refreshStory() {
         val state = _screen.value as? Screen.StoryReader ?: return
         val reading = repo.readStory(state.reading.story.id) ?: return
-        _screen.update { if (it is Screen.StoryReader) it.copy(reading = reading) else it }
+        val next = nextOnPath(reading.story)
+        _screen.update { if (it is Screen.StoryReader) it.copy(reading = reading, nextOnPath = next) else it }
     }
 
     // ------------------------------------------------------------ dictionary

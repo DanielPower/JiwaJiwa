@@ -61,7 +61,7 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | Workflow | When | What |
 | --- | --- | --- |
 | `test.yml` (Tests) | every PR, every push to main | core tests, app unit tests, dictionary tests, as separate checks |
-| `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app) |
+| `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
 | `build.yml` | pushes to branches other than main | test and build without releasing |
 | `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
 | `server.yml` (Story server) | PRs and pushes to main touching `server/` | server tests and image build; on main, pushes `ghcr.io/danielpower/jiwajiwa-story-server` (`latest` and `sha-…`) |
@@ -114,8 +114,8 @@ Study and scheduling:
 
 Kana:
 
-- Taught as flashcards, hiragana and katakana paired per sound (あ then ア).
-  No quiz or lesson screen.
+- Taught as flashcards, introduced by the story path as stories need them
+  (see Story path below). No quiz or lesson screen.
 - A new word only enters once every kana in its kana spelling has a kana card
   in review. There's no override.
 - No romaji on vocabulary cards.
@@ -197,5 +197,42 @@ Jiten (CC BY-SA 4.0), not JPDB, which has no licence. The dictionary database
 is CC BY-SA 4.0, and the EDRDG licence requires regular JMdict updates
 (`.github/workflows/update-dictionary.yml`). New data sources must have a
 licence that allows this.
+
+Story path (an experiment on its own branch, Daniel, 2026-10-14):
+
+- New words, kana and grammar come from the path instead of reviews.
+  Reviews and the home count no longer introduce words or kana; only
+  unlocked production cards are new there.
+- The path (`app/src/main/assets/stories/path.json`, written by
+  `tools/stories/path.py`) is
+  44 stories and 10 lessons, from one sentence up to roughly 100 N5 words.
+  They're saved in the `story` table with a `path_id`, can't be deleted, and
+  need no sign-in. The list names a story by its English title and a lesson
+  by its Japanese one (the grammar it teaches).
+- A step shows on the Stories tab once it's within reach (`StoryPath.gap`):
+  new words at most 3% of its running words, from 3 to 10; at most 6 new
+  kana (furigana counts, and kana you said you read never do); and no
+  grammar point you haven't seen. Hiragana and katakana are separate units.
+- Lessons are the only way grammar comes in. A lesson is a path entry with
+  `teaches` (grammar point ids) and English `notes` between its Japanese
+  lines. It opens in the reader as one scrolling page, with the same tap and
+  hold pane. "Done" or the quiet "I know this already" marks its points
+  seen (a list in the `grammar_seen` value, no cards). Stories have no
+  grammar allowance.
+- `StoryPathTest` checks the path against the built dictionary (skipped when
+  it isn't built): read in order every step is within reach, and
+  `StoryPath.solve` reaches every step from knowing nothing, kana included.
+  Readiness only grows as you learn, so that also means no reading order can
+  get stuck. Rerun it after editing a story or lesson.
+- Words: **seen** (has a card, mastery below 40), **known** (40, where
+  furigana hides), **mastered** (70).
+- Opening a step with new kana or words lists them first; "Learn these"
+  shows each as a new card once (kana first), then it opens. "I know these
+  already" marks them known.
+- At the end of a path story or lesson, each word due for review that you
+  read without tapping counts as an FSRS Hard review (`Reviewer.read`): less
+  than a Right answer, since context helps. The end page shows how many
+  words were seen, moved to known and moved to mastered, and for a lesson,
+  the grammar it opened up.
 
 Not decided or not built yet: example sentences, audio.

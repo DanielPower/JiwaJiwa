@@ -368,6 +368,15 @@ internal object Grammar {
 
         // The copula and sentence endings.
         point(
+            "desu", "です / だ", 5, "is",
+            "Ends a sentence that says what something is: \"X is Y\". です is polite and だ is plain. After an i-adjective, です only adds politeness.",
+            "これは本です。", "This is a book.",
+            // Not なら (if) or the な after a na-adjective, which are other forms of だ.
+            listOf(Step(false) { it.pos == "助動詞" && it.type in setOf("特殊・デス", "特殊・ダ") && it.form !in setOf("仮定形", "体言接続") }),
+            // Not the でし in ～ませんでした, which is part of the verb's polite past.
+            before = { it.base != "ん" },
+        )
+        point(
             "janai", "～じゃない / ではない", 5, "is not",
             "The negative of だ and です after a noun or na-adjective. ではない and ではありません are more formal than じゃない.",
             "私は先生じゃないです。", "I'm not a teacher.",
@@ -747,3 +756,6 @@ internal object Grammar {
     /** Every point, for listing and tests. */
     val points: List<GrammarPoint> get() = rules.map { it.point }.distinctBy { it.id }
 }
+
+/** The grammar point with [id], such as "wa" for the particle は. */
+fun grammarPoint(id: String): GrammarPoint? = Grammar.points.firstOrNull { it.id == id }
