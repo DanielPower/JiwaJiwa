@@ -29,6 +29,7 @@ Guiding rules from Daniel:
 | `app/` | The Android app: Jetpack Compose UI, SQLite storage, reminder, backup. |
 | `tools/dictionary/` | Python (stdlib only) build of the bundled dictionary DB from pinned sources. |
 | `tools/fsrs/` | Generates `core/src/test/resources/fsrs_vectors.tsv` from py-fsrs. |
+| `server/` | The story server (Python, FastAPI, SQLite, Docker Compose): Google sign-in, per-account rate limits, and the Claude API key, so the app never holds one. See `server/README.md`. |
 | `.github/workflows/` | CI (see below). |
 
 Put logic in `core` whenever it doesn't need Android, so it can be tested
@@ -63,6 +64,7 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app) |
 | `build.yml` | pushes to branches other than main | test and build without releasing |
 | `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
+| `server.yml` (Story server) | PRs and pushes to main touching `server/` | server tests and image build; on main, pushes `ghcr.io/danielpower/jiwajiwa-story-server` (`latest` and `sha-…`) |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
 
 Every push to main ships a release, so main must always be releasable.
