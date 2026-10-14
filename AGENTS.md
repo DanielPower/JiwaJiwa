@@ -205,9 +205,10 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14):
   unlocked production cards are new there.
 - The path (`app/src/main/assets/stories/path.json`, written by
   `tools/stories/path.py`) is
-  45 stories and 10 lessons, from one sentence up to roughly 100 N5 words.
+  44 stories and 10 lessons, from one sentence up to roughly 100 N5 words.
   They're saved in the `story` table with a `path_id`, can't be deleted, and
-  need no sign-in.
+  need no sign-in. The list names a story by its English title and a lesson
+  by its Japanese one (the grammar it teaches).
 - A step shows on the Stories tab once it's within reach (`StoryPath.gap`):
   new words at most 3% of its running words, from 3 to 10; at most 6 new
   kana (furigana counts, and kana you said you read never do); and no

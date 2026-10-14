@@ -28,15 +28,6 @@
    ]
   },
   {
-   "id": "path-01",
-   "title": "猫",
-   "body": "これは猫です。",
-   "translations": [
-    "A cat",
-    "This is a cat."
-   ]
-  },
-  {
    "id": "lesson-02",
    "title": "～ですか",
    "body": "これは猫ですか。\nはい、猫です。\nいいえ、猫じゃないです。",

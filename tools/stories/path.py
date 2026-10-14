@@ -3,7 +3,8 @@
 # Each story: (title, title English, [paragraph, ...]); a paragraph is [(Japanese sentence, English), ...].
 import json, sys
 S = [
-("猫", "A cat", [[("これは猫です。", "This is a cat.")]]),
+# path-01 (これは猫です。) was lesson 1 word for word, so it went; numbers stay put so read stories stay read.
+None,
 ("犬？", "A dog?", [[("それは犬ですか。", "Is that a dog?"), ("はい、犬です。", "Yes, it's a dog.")]]),
 ("本", "A book", [[("あれは本ですか。", "Is that a book over there?"), ("いいえ、本じゃないです。", "No, it isn't a book.")]]),
 ("わたしの猫", "My cat", [[("これはわたしの猫です。", "This is my cat."), ("猫の名前はタマです。", "The cat's name is Tama.")]]),
@@ -134,7 +135,11 @@ lessons = {}
 for n, (after, *rest) in enumerate(L, 1):
     lessons.setdefault(after, []).append(lesson(n, *rest))
 out += lessons.get(0, [])
-for i, (title, title_en, paras) in enumerate(S, 1):
+for i, story in enumerate(S, 1):
+    if story is None:
+        out += lessons.get(i, [])
+        continue
+    title, title_en, paras = story
     out.append({
         "id": f"path-{i:02d}",
         "title": title,

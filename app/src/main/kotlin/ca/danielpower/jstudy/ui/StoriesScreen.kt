@@ -306,8 +306,9 @@ private fun StoryRow(story: SavedStory, onClick: () -> Unit, onHold: () -> Unit)
 }
 
 /**
- * A story or lesson on the path: its title, then a story's first line or a
- * lesson's English name, and whether it's read or what's new in it.
+ * A story or lesson on the path, and whether it's read or what's new in it.
+ * A story shows its English title over its first line; a lesson shows its
+ * Japanese title, which names the grammar, over its English name.
  */
 @Composable
 private fun PathRow(entry: PathEntry, onClick: () -> Unit) {
@@ -326,10 +327,12 @@ private fun PathRow(entry: PathEntry, onClick: () -> Unit) {
         if (entry.lesson) Box(Modifier.width(3.dp).fillMaxHeight().background(indigo))
         Column(Modifier.padding(16.dp).alpha(if (read) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (entry.lesson) LessonTag()
-            Text(entry.story.title, style = MaterialTheme.typography.titleLarge, fontFamily = Gothic)
+            val english = entry.story.translations.firstOrNull().orEmpty()
             if (entry.lesson) {
-                Text(entry.story.translations.firstOrNull().orEmpty(), style = MaterialTheme.typography.bodyMedium)
+                Text(entry.story.title, style = MaterialTheme.typography.titleLarge, fontFamily = Gothic)
+                Text(english, style = MaterialTheme.typography.bodyMedium)
             } else {
+                Text(english.ifEmpty { entry.story.title }, style = MaterialTheme.typography.titleLarge)
                 Text(
                     entry.story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
@@ -408,11 +411,12 @@ fun BeforeReadingScreen(state: Screen.BeforeReading, vm: AppViewModel) {
                 if (state.kana.isNotEmpty()) SectionLabel(ui("Words", "言葉"), Modifier.padding(top = 12.dp))
                 for (word in state.words) {
                     Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        // Furigana above the word, as in the reader.
                         Column(Modifier.weight(1f)) {
-                            Text(word.display, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                             if (word.kana != word.display) {
                                 Text(word.kana, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                            Text(word.display, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         }
                         Text(
                             word.senses.firstOrNull()?.glosses?.take(2)?.joinToString("; ").orEmpty(),
@@ -1147,7 +1151,12 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel, onWord: (Pair<
             onPath -> {
                 if (nextOnPath != null) {
                     PrimaryButton(onClick = { vm.openStory(nextOnPath.story.id) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                        Text((if (nextOnPath.lesson) "Next lesson: " else "Next story: ") + nextOnPath.story.title, fontFamily = Gothic)
+                        val step = nextOnPath.story
+                        // Named as on the list: a lesson by its Japanese title, a story by its English one.
+                        Text(
+                            if (nextOnPath.lesson) "Next lesson: ${step.title}" else "Next story: ${step.translations.firstOrNull() ?: step.title}",
+                            fontFamily = if (nextOnPath.lesson) Gothic else null,
+                        )
                     }
                 }
                 SecondaryButton(onClick = vm::openStories, modifier = Modifier.fillMaxWidth()) {
