@@ -410,7 +410,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         menu = false
         open = if (selected == key) null else Opened(key.first, key.second, sentence = false)
         // Looking a word up means reading it doesn't count towards its mastery.
-        reading.word(key.first, key.second)?.takeIf { it.kind == WordKind.WORD }?.wordId?.let(vm::lookedUp)
+        val id = reading.word(key.first, key.second)?.takeIf { it.kind == WordKind.WORD }?.wordId
+        if (id != null) vm.lookedUp(id)
     }
     val hold = { key: Pair<Int, Int> ->
         menu = false
