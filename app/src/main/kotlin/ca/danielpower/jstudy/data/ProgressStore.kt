@@ -185,10 +185,13 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     /**
      * Add the stories that come with the app, or update their text when an
-     * update changes it, keeping whether you've read them.
+     * update changes it, keeping whether you've read them. Ones the app no
+     * longer has are removed.
      */
     fun syncPathStories(stories: List<SavedStory>) = transaction { db ->
         val saved = storyRows("path_id IS NOT NULL", null).associateBy { it.pathId }
+        val ids = stories.mapTo(HashSet()) { it.pathId }
+        for (old in saved.values) if (old.pathId !in ids) db.delete("story", "id = ?", arrayOf(old.id.toString()))
         for (story in stories) {
             val old = saved[story.pathId]
             if (old == null) {

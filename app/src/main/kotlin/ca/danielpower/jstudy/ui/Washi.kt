@@ -295,6 +295,7 @@ object WashiIcons {
         "M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1",
     )
     val Close = icon("close", "M6 6l12 12M18 6L6 18")
+    val Lock = icon("lock", "M7 11V8a5 5 0 0 1 10 0v3", "M5 11h14v10H5z")
     val Back = icon("back", "M15 5l-7 7 7 7")
     val Undo = icon("undo", "M9 14L4 9l5-5", "M4 9h10a6 6 0 0 1 0 12h-3")
     val Delete = icon("delete", "M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13")

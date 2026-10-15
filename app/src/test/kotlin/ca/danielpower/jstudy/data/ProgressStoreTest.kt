@@ -239,6 +239,14 @@ class ProgressStoreTest {
     }
 
     @Test
+    fun pathStoriesTheAppNoLongerHasAreRemoved() {
+        fun path(id: String) = SavedStory(0, 100, "Cat", "猫だ。", "", "", "", listOf("A cat."), pathId = id)
+        store.syncPathStories(listOf(path("old-01"), path("new-01")))
+        store.syncPathStories(listOf(path("new-01")))
+        assertEquals(setOf("new-01"), store.pathStories().keys)
+    }
+
+    @Test
     fun upgradingFromVersion5KeepsStories() {
         store.close()
         context.deleteDatabase(ProgressStore.NAME)

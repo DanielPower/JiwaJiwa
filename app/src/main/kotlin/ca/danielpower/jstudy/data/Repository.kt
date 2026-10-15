@@ -34,6 +34,10 @@ import ca.danielpower.jstudy.core.ClaudeException
 import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.Reader
 import ca.danielpower.jstudy.core.ReadingWord
+import ca.danielpower.jstudy.core.CastMember
+import ca.danielpower.jstudy.core.Chapter
+import ca.danielpower.jstudy.core.GrammarTopic
+import ca.danielpower.jstudy.core.PathSeries
 import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.Story
 import ca.danielpower.jstudy.core.StepGap
@@ -123,7 +127,7 @@ data class StoryReading(
     val coverage: Coverage,
     /** The sequel, once one is written. */
     val next: Long?,
-    /** For a lesson on the path: its English and the grammar it teaches. */
+    /** For a grammar topic's page: its English notes between the examples. */
     val lesson: PathStory? = null,
 ) {
     /** New words with a dictionary entry, in the order they first appear, with where: the end page lists these. */
@@ -154,13 +158,57 @@ data class StoryReading(
     }
 }
 
-/** What to learn before reading a path story or lesson. */
-data class StepToLearn(val lesson: Boolean, val kana: List<KanaUnit>, val words: List<Word>)
-
-/** A story or lesson on the path, and what of it you haven't learned. */
-data class PathEntry(val story: SavedStory, val lesson: Boolean, val gap: StepGap) {
-    val ready get() = gap.ready
+/** What to learn before reading a chapter: its new kana and words, and the grammar topic it brings in. */
+data class StepToLearn(val kana: List<KanaUnit>, val words: List<Word>, val topic: GrammarTopic?) {
+    val isEmpty get() = kana.isEmpty() && words.isEmpty() && topic == null
 }
+
+/** A chapter of a story that comes with the app, and what of it you haven't learned. */
+data class ChapterEntry(
+    val series: PathSeries,
+    val chapter: Chapter,
+    val story: SavedStory,
+    val gap: StepGap,
+    /** The grammar topic it teaches, when you haven't seen it yet. */
+    val newTopic: GrammarTopic?,
+) {
+    val ready get() = gap.ready
+    val read get() = story.readAt != null
+}
+
+/** A story that comes with the app, with each of its chapters. */
+data class SeriesEntry(val series: PathSeries, val chapters: List<ChapterEntry>) {
+    val readCount get() = chapters.count { it.read }
+
+    /** The first chapter that's open and unread. */
+    val next get() = chapters.firstOrNull { it.ready && !it.read }
+
+    /** On the list once something in it is open, or read. */
+    val shown get() = chapters.any { it.ready || it.read }
+
+    /** The people you've met in the chapters you've read, in order. */
+    val cast: List<CastMember> get() = chapters.filter { it.read }.flatMap { it.chapter.meets }.distinctBy { it.name }
+
+    /** Whether chapters you haven't read introduce anyone else. */
+    val moreCast get() = chapters.any { !it.read && it.chapter.meets.isNotEmpty() }
+}
+
+/** Why a chapter is locked, and what would open it. */
+data class LockInfo(
+    val entry: ChapterEntry,
+    /** New words with dictionary entries, and how many it allows. */
+    val words: List<Word>,
+    val kana: List<KanaUnit>,
+    /** Grammar it uses that you haven't seen, with the chapters that teach it. */
+    val grammar: List<Pair<GrammarTopic, List<ChapterEntry>>>,
+    /** Open, unread chapters that have some of the new words, most first, with how many. */
+    val sources: List<Pair<ChapterEntry, Int>>,
+    /** Reading this story's earlier chapters gives you every one of the new words. */
+    val earlierCover: Boolean,
+)
+
+/** A grammar topic for the Words tab: whether you've met it, where it's taught, and its page. */
+data class GrammarRow(val topic: GrammarTopic, val seen: Boolean, val taughtIn: ChapterEntry?, val pageId: Long)
 
 /** A sentence of a story: its words in their paragraph, and its English if the story has translations. */
 /** The story reader's typefaces: two sans serifs and a serif, all bundled under the OFL. */
@@ -712,7 +760,8 @@ class Repository(context: Context) {
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
-        val title = reader.read(story.title).flatten()
+        // A bundled chapter's title is English, and a grammar page's names its pattern; neither is read.
+        val title = if (story.pathId != null) emptyList() else reader.read(story.title).flatten()
         val paragraphs = reader.read(story.body)
         val ids = (title + paragraphs.flatten()).mapNotNull { it.wordId }.toSet()
         val statuses = store.wordStatuses()
@@ -724,21 +773,32 @@ class Repository(context: Context) {
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),
             next = store.nextPart(id),
-            lesson = pathStep(story)?.first?.takeIf { it.isLesson },
+            lesson = story.pathId?.let { id -> catalog.grammar.firstOrNull { it.page.id == id }?.page },
         )
     }
 
     // ------------------------------------------------------------ story path
 
-    /** The stories and lessons that come with the app, in path order, with what each asks of you. */
-    private val path: List<Pair<PathStory, StepNeeds>> by lazy {
-        val json = appContext.assets.open("stories/path.json").bufferedReader().use { it.readText() }
-        StoryPath.parse(json).map { it to StoryPath.needs(reader, it) }
+    /** The stories and grammar topics that come with the app. */
+    private val catalog by lazy {
+        StoryPath.parse(appContext.assets.open("stories/path.json").bufferedReader().use { it.readText() })
+    }
+
+    /** What each chapter asks of you, by its id. */
+    private val needs: Map<String, StepNeeds> by lazy {
+        catalog.chapters.associate { (_, c) -> c.story.id to StoryPath.needs(reader, c.story) }
     }
     private var pathSynced = false
 
-    /** The path step a saved story was made from. */
-    private fun pathStep(story: SavedStory) = story.pathId?.let { id -> path.firstOrNull { it.first.id == id } }
+    /** Saves the chapters and grammar pages on first use, so they can be opened like any story. */
+    private fun savedPath(now: Long): Map<String, SavedStory> {
+        if (!pathSynced) {
+            val stories = catalog.chapters.map { it.second.story } + catalog.grammar.map { it.page }
+            store.syncPathStories(stories.map { p -> SavedStory(0, now, p.title, p.body, "", "", "", p.translations, pathId = p.id) })
+            pathSynced = true
+        }
+        return store.pathStories()
+    }
 
     /** What's left of a step to learn: words and kana you haven't started, and grammar you haven't seen. */
     private fun gaps(): (StepNeeds) -> StepGap {
@@ -750,29 +810,77 @@ class Repository(context: Context) {
         return { needs -> StoryPath.gap(needs, isKnown, knowsKana, grammar) }
     }
 
-    /** Every path story and lesson, in order, with what you haven't learned of it. Saves them on first use. */
-    fun storyPath(now: Long): List<PathEntry> {
-        if (!pathSynced) {
-            store.syncPathStories(
-                path.map { (p, _) -> SavedStory(0, now, p.title, p.body, "", "", "", p.translations, pathId = p.id) },
-            )
-            pathSynced = true
-        }
-        val saved = store.pathStories()
+    /** Every story that comes with the app, in order, with each chapter and what you haven't learned of it. */
+    fun storyPath(now: Long): List<SeriesEntry> {
+        val saved = savedPath(now)
         val gap = gaps()
-        return path.mapNotNull { (p, needs) ->
-            saved[p.id]?.let { PathEntry(it, p.isLesson, gap(needs)) }
+        val seen = seenGrammar()
+        return catalog.series.map { series ->
+            SeriesEntry(series, series.chapters.mapNotNull { c ->
+                val story = saved[c.story.id] ?: return@mapNotNull null
+                val topic = catalog.topic(c.topic)?.takeIf { !seen.containsAll(it.points) }
+                ChapterEntry(series, c, story, gap(needs.getValue(c.story.id)), topic)
+            })
         }
     }
 
-    /** The kana and words (with dictionary entries) in a path story you haven't learned yet, or null off the path. */
-    fun stepToLearn(story: SavedStory): StepToLearn? {
-        val (step, needs) = pathStep(story) ?: return null
-        val gap = gaps()(needs)
-        return StepToLearn(step.isLesson, gap.kana, gap.words.mapNotNull { w -> w.wordId?.let { dictionary.word(it) } })
+    /** The story a saved chapter belongs to, and the chapter. */
+    fun chapterOf(story: SavedStory, now: Long): ChapterEntry? =
+        story.pathId?.let { id -> storyPath(now).flatMap { it.chapters }.firstOrNull { it.chapter.story.id == id } }
+
+    /** The kana and words (with dictionary entries) in a chapter you haven't learned yet, and its new grammar, or null off the path. */
+    fun stepToLearn(story: SavedStory, now: Long): StepToLearn? {
+        val entry = chapterOf(story, now) ?: return null
+        return StepToLearn(entry.gap.kana, entry.gap.words.mapNotNull { w -> w.wordId?.let { dictionary.word(it) } }, entry.newTopic)
     }
 
-    /** Grammar points you've had a lesson on, or skipped one for. */
+    /** Why [chapterId] is locked: what it's missing, and where to pick that up. */
+    fun lockInfo(chapterId: String, now: Long): LockInfo? {
+        val path = storyPath(now)
+        val chapters = path.flatMap { it.chapters }
+        val entry = chapters.firstOrNull { it.chapter.story.id == chapterId } ?: return null
+        val missing = entry.gap.words.mapNotNull { it.wordId }.toSet()
+        val grammar = entry.gap.grammar.mapNotNull { catalog.topicOf(it) }.distinct().map { topic ->
+            topic to chapters.filter { it.chapter.topic == topic.id }
+        }
+        val sources = chapters
+            .filter { it.ready && !it.read && it !== entry }
+            .map { c -> c to needs.getValue(c.chapter.story.id).words.count { it.wordId in missing } }
+            .filter { it.second > 0 }
+            .sortedByDescending { it.second }
+            .take(3)
+        val earlier = entry.series.chapters.takeWhile { it !== entry.chapter }
+            .filter { c -> chapters.firstOrNull { it.chapter === c }?.read == false }
+            .flatMap { c -> needs.getValue(c.story.id).words.mapNotNull { it.wordId } }
+            .toSet()
+        return LockInfo(
+            entry = entry,
+            words = entry.gap.words.mapNotNull { w -> w.wordId?.let { dictionary.word(it) } },
+            kana = entry.gap.kana,
+            grammar = grammar,
+            sources = sources,
+            earlierCover = missing.isNotEmpty() && earlier.containsAll(missing),
+        )
+    }
+
+    /** Every grammar topic, newest you've met first, then the ones you haven't, in the order they come. */
+    fun grammarRows(now: Long): List<GrammarRow> {
+        val saved = savedPath(now)
+        val seen = seenGrammar()
+        val chapters = storyPath(now).flatMap { it.chapters }
+        val rows = catalog.grammar.mapNotNull { topic ->
+            val page = saved[topic.page.id] ?: return@mapNotNull null
+            val taughtIn = chapters.filter { it.chapter.topic == topic.id }.let { c -> c.firstOrNull { it.read } ?: c.firstOrNull() }
+            GrammarRow(topic, seen.containsAll(topic.points), taughtIn, page.id)
+        }
+        val (met, unmet) = rows.partition { it.seen }
+        return met.reversed() + unmet
+    }
+
+    /** The saved story holding [topic]'s page. */
+    fun grammarPageId(topic: GrammarTopic, now: Long): Long? = savedPath(now)[topic.page.id]?.id
+
+    /** Grammar points you've been taught, or said you knew. */
     fun seenGrammar(): Set<String> =
         store.getValue("grammar_seen")?.split(',')?.filter { it.isNotEmpty() }?.toSet().orEmpty()
 
@@ -786,7 +894,7 @@ class Repository(context: Context) {
      */
     fun readWords(story: SavedStory, lookedUp: Set<Long>, now: Long) {
         val reviewer = Reviewer(Fsrs(), clock())
-        val ids = StoryPath.words(reader, PathStory("", story.title, story.body, emptyList())).mapNotNull { it.wordId }
+        val ids = StoryPath.words(reader, story.body).mapNotNull { it.wordId }
         for (id in ids.distinct() - lookedUp) {
             val card = recognitionCard(id) ?: continue
             if (card.state != CardState.REVIEW || card.dueAt > now || store.isSuspended(id)) continue

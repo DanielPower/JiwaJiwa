@@ -1,151 +1,168 @@
 # Writes app/src/main/assets/stories/path.json: python3 tools/stories/path.py app/src/main/assets/stories/path.json
-# Then run StoryPathTest (./gradlew -PcoreOnly=true :core:test) to check every step can be reached.
-# Each story: (title, title English, [paragraph, ...]); a paragraph is [(Japanese sentence, English), ...].
+# Then run StoryPathTest (./gradlew -PcoreOnly=true :core:test) to check every chapter can be reached.
+#
+# A story is one or more chapters. Each chapter is a list of paragraphs, each a
+# list of (Japanese sentence, English). A chapter may teach one grammar topic,
+# shown before it's read, and introduce people. Chapter ids are the story id
+# and number, so keep chapters in place once people have read them.
+#
+# Speech is casual from the start: Alex and his friends talk the way friends
+# do. Staff and strangers are polite, and です/ます come in as their own topic.
 import json, sys
-S = [
-# path-01 (これは猫です。) was lesson 1 word for word, so it went; numbers stay put so read stories stay read.
-None,
-("犬？", "A dog?", [[("それは犬ですか。", "Is that a dog?"), ("はい、犬です。", "Yes, it's a dog.")]]),
-("本", "A book", [[("あれは本ですか。", "Is that a book over there?"), ("いいえ、本じゃないです。", "No, it isn't a book.")]]),
-("わたしの猫", "My cat", [[("これはわたしの猫です。", "This is my cat."), ("猫の名前はタマです。", "The cat's name is Tama.")]]),
-("先生と学生", "Teacher and student", [[("わたしは田中です。", "I'm Tanaka."), ("学生です。", "I'm a student.")], [("山田さんは先生です。", "Mr. Yamada is a teacher.")]]),
-("友達", "A friend", [[("鈴木さんは学生です。", "Suzuki is a student."), ("わたしも学生です。", "I'm a student too."), ("鈴木さんはわたしの友達です。", "Suzuki is my friend.")]]),
-("このかばん", "This bag", [[("このかばんはわたしのです。", "This bag is mine."), ("そのかばんは鈴木さんのです。", "That bag is Suzuki's.")]]),
-("だれの？", "Whose?", [[("あのかばんはだれのですか。", "Whose is that bag over there?"), ("山田先生のです。", "It's Mr. Yamada's.")]]),
-("何？", "What?", [[("これは何ですか。", "What is this?"), ("それはりんごです。", "That's an apple."), ("タマのりんごじゃないです。", "It isn't Tama's apple.")]]),
-("学校", "School", [[("ここは学校です。", "This is a school."), ("わたしと鈴木さんの学校です。", "It's my and Suzuki's school.")]]),
-("どこ？", "Where?", [[("「トイレはどこですか。」", "\"Where is the toilet?\""), ("「あそこです。」", "\"Over there.\"")]]),
-("本がたくさん", "Lots of books", [[("学校に本があります。", "There are books at school."), ("たくさんあります。", "There are lots of them.")]]),
-("家に猫がいます", "There's a cat at home", [[("わたしの家に猫がいます。", "There's a cat at my house."), ("タマです。", "It's Tama."), ("犬もいます。", "There's a dog too.")]]),
-("大きい犬", "A big dog", [[("犬は大きいです。", "The dog is big."), ("タマは小さいです。", "Tama is small.")]]),
-("鈴木さんの家", "Suzuki's house", [[("鈴木さんの家は大きくないです。", "Suzuki's house isn't big."), ("でも、きれいです。", "But it's pretty.")]]),
-("好き", "I like it", [[("わたしは猫が好きです。", "I like cats."), ("犬も好きです。", "I like dogs too."), ("タマは魚が好きです。", "Tama likes fish.")]]),
-("食べます", "Eating", [[("タマは魚を食べます。", "Tama eats fish."), ("わたしはパンを食べます。", "I eat bread.")]]),
-("飲みます", "Drinking", [[("わたしは水を飲みます。", "I drink water."), ("山田先生はコーヒーを飲みます。", "Mr. Yamada drinks coffee.")]]),
-("食べません", "Doesn't eat it", [[("タマはパンを食べません。", "Tama doesn't eat bread."), ("りんごも食べません。", "Tama doesn't eat apples either."), ("魚を食べます。", "Tama eats fish.")], [("鈴木さんはお茶を飲みません。", "Suzuki doesn't drink tea.")]]),
-("学校へ行きます", "Going to school", [[("わたしは毎日学校へ行きます。", "I go to school every day."), ("鈴木さんも行きます。", "Suzuki goes too.")]]),
-("店で", "At the shop", [[("店でパンを買います。", "I buy bread at the shop."), ("りんごも買います。", "I buy apples too.")]]),
-("きのう", "Yesterday", [[("きのう、店で魚を買いました。", "Yesterday I bought fish at the shop."), ("タマは魚を食べました。", "Tama ate the fish."), ("おいしかったです。", "It was delicious.")]]),
-("行きませんでした", "Didn't go", [[("きのう、鈴木さんは学校へ行きませんでした。", "Yesterday Suzuki didn't go to school."), ("家で寝ました。", "Suzuki slept at home.")]]),
-("今日は休み", "A day off", [[("今日は休みです。", "Today is a day off."), ("公園へ行きます。", "I'm going to the park.")]]),
-("友達と", "With a friend", [[("鈴木さんと一緒に公園へ行きました。", "I went to the park with Suzuki."), ("公園に犬がいました。", "There was a dog in the park.")]]),
-("白い犬", "A white dog", [[("公園で大きい犬を見ました。", "I saw a big dog at the park."), ("白い犬でした。", "It was a white dog.")]]),
-("本を読みます", "Reading a book", [[("家で本を読みます。", "I read a book at home."), ("おもしろい本です。", "It's an interesting book.")]]),
-("朝", "Morning", [[("朝、六時に起きます。", "I get up at six in the morning."), ("パンを食べて、お茶を飲みます。", "I eat bread and drink tea.")]]),
-("行きませんか", "Shall we go?", [[("「あした、一緒に公園へ行きませんか。」", "\"Do you want to go to the park together tomorrow?\""), ("「いいですね。行きましょう。」", "\"Sounds good. Let's go.\"")]]),
-("食べたい", "I want to eat", [[("今日は肉が食べたいです。", "Today I want to eat meat."), ("でも、肉は高いです。", "But meat is expensive.")]]),
-("赤いりんご", "Red apples", [[("この店のりんごは安いです。", "The apples at this shop are cheap."), ("赤いりんごを三つ買いました。", "I bought three red apples.")]]),
-("ください", "Please", [[("「すみません、このりんごをください。」", "\"Excuse me, these apples, please.\""), ("「はい、どうぞ。」", "\"Here you are.\"")]]),
-("寒いから", "Because it's cold", [[("今日は寒いですから、家にいます。", "It's cold today, so I'm staying home."), ("暑い日は公園へ行きます。", "On hot days I go to the park.")]]),
-("今", "Right now", [[("今、タマは寝ています。", "Tama is sleeping right now."), ("犬は外で遊んでいます。", "The dog is playing outside.")]]),
-("いい天気", "Nice weather", [[("今日はいい天気です。", "It's nice weather today."), ("鈴木さんと外で遊びました。", "I played outside with Suzuki."), ("楽しかったです。", "It was fun.")]]),
-("雨", "Rain", [[("今日は雨です。", "It's raining today."), ("傘を持って、学校へ行きます。", "I take an umbrella and go to school.")]]),
-("電車", "The train", [[("駅で電車に乗ります。", "I get on the train at the station."), ("電車は大きいです。", "The train is big.")]]),
-("手紙", "A letter", [[("友達に手紙を書きました。", "I wrote a letter to a friend."), ("あした出します。", "I'll send it tomorrow.")]]),
-("母", "My mother", [[("母は料理が上手です。", "My mother is good at cooking."), ("母の料理はおいしいです。", "My mother's cooking is delicious.")]]),
-("父", "My father", [[("父は毎朝新聞を読みます。", "My father reads the newspaper every morning."), ("コーヒーも飲みます。", "He drinks coffee too.")]]),
-("わたしの部屋", "My room", [[("わたしの部屋は狭いです。", "My room is small."), ("でも、明るいです。", "But it's bright.")]]),
-("新しい時計", "A new watch", [[("きのう、新しい時計を買いました。", "Yesterday I bought a new watch."), ("高かったです。", "It was expensive.")]]),
-("誕生日", "Birthday", [[("今日は母の誕生日です。", "Today is my mother's birthday."), ("母に花をあげました。", "I gave my mother flowers.")]]),
-("映画", "A movie", [[("夜、鈴木さんと映画を見ました。", "In the evening I watched a movie with Suzuki."), ("とてもおもしろかったです。", "It was very interesting.")]]),
-("タマの一日", "Tama's day", [
-  [("タマはわたしの猫です。", "Tama is my cat."), ("小さくて、白い猫です。", "She's a small white cat.")],
-  [("朝、タマは魚を食べます。", "In the morning Tama eats fish."), ("それから、外で遊びます。", "Then she plays outside.")],
-  [("夜、タマは家に帰ります。", "At night Tama comes home."), ("わたしの部屋で寝ます。", "She sleeps in my room.")],
-  [("わたしはタマが大好きです。", "I love Tama.")]]),
-]
 
-# Each lesson: (after story number, title, title English, grammar ids taught, parts);
-# a part is a string of English, or (Japanese sentence, English).
-L = [
-(0, "これは ～です", "This is ~", ["wa", "desu"], [
-  "To say what something is, put the thing first, then は, then what it is, then です.",
-  ("これは猫です。", "This is a cat."),
-  "は marks what you're talking about, the topic. It's written は, but when it does this job it's said \"wa\".",
-  "です is a polite \"is\". It always comes at the very end.",
-]),
-(1, "～ですか", "Asking questions", ["ka", "janai"], [
-  "To make a question, add か to the end. No question mark is needed.",
-  ("これは猫ですか。", "Is this a cat?"),
-  "Answer with はい for yes,",
-  ("はい、猫です。", "Yes, it's a cat."),
-  "or いいえ for no. To say something isn't, use じゃないです in place of です.",
-  ("いいえ、猫じゃないです。", "No, it isn't a cat."),
-]),
-(3, "わたしの ～", "Whose: の", ["no", "no-nominal"], [
-  "の joins two nouns, like 's or \"of\": the first owns or describes the second.",
-  ("これはわたしの猫です。", "This is my cat."),
-  "When it's clear what you mean, the second noun can go. わたしの on its own means \"mine\".",
-  ("これはわたしのです。", "This is mine."),
-]),
-(4, "～と～、～も", "And, too: と and も", ["to", "mo"], [
-  "と joins nouns: \"A and B\".",
-  ("わたしの猫と犬です。", "They're my cat and dog."),
-  "も means \"too\" or \"also\". It takes the place of は.",
-  ("これは猫です。", "This is a cat."),
-  ("それも猫です。", "That's a cat too."),
-]),
-(11, "あります、います", "There is: が and に", ["ga", "ni"], [
-  "あります says a thing is there. います is for people and animals.",
-  "が marks what there is, and に marks where it is.",
-  ("ここに本があります。", "There's a book here."),
-  ("あそこに猫がいます。", "There's a cat over there."),
-]),
-(16, "～を ～ます", "Doing things: を", ["wo"], [
-  "The verb comes at the end of the sentence. Polite verbs end in ます.",
-  "を marks the thing the action is done to. It's written を and said \"o\".",
-  ("わたしはりんごを食べます。", "I eat apples."),
-  "To say you don't, change ます to ません.",
-  ("犬はりんごを食べません。", "The dog doesn't eat apples."),
-]),
-(19, "～へ、～で", "Where: へ and で", ["e", "de"], [
-  "へ marks where you're going. It's written へ, but said \"e\" here.",
-  ("わたしは学校へ行きます。", "I go to school."),
-  "で marks where something happens.",
-  ("学校でパンを食べます。", "I eat bread at school."),
-]),
-(28, "～ませんか", "Inviting: ませんか and ね", ["masenka", "ne"], [
-  "Asking with ～ませんか, \"won't you?\", is a polite way to invite someone.",
-  ("「一緒に公園へ行きませんか。」", "\"Won't you come to the park with me?\""),
-  "ね at the end asks the listener to agree, like \"isn't it?\" or \"right?\".",
-  ("「いいですね。」", "\"That sounds good.\""),
-]),
-(32, "～ですから", "Because: から", ["kara-because"], [
-  "から after a sentence gives a reason: \"because\". The reason comes first, then what happens.",
-  ("今日は休みですから、公園へ行きます。", "It's a day off today, so I'm going to the park."),
-]),
-(33, "～ています", "Right now: ～ています", ["te-iru"], [
-  "A verb's て form plus います says something is going on right now.",
-  ("タマは魚を食べています。", "Tama is eating fish."),
-  ("鈴木さんは本を読んでいます。", "Suzuki is reading a book."),
-]),
-]
 
-def lesson(n, title, title_en, teaches, parts):
-    lines, en, notes = [], [title_en], []
+def topic(id, title, title_en, points, summary, parts):
+    """A grammar topic. Its first Japanese line is the example shown with the summary before the chapter."""
+    lines, en, notes = [], [], []
     for p in parts:
         if isinstance(p, str):
             notes.append({"before": len(lines), "text": p})
         else:
             lines.append(p[0]); en.append(p[1])
-    return {"id": f"lesson-{n:02d}", "title": title, "body": "\n".join(lines), "translations": en, "teaches": teaches, "notes": notes}
+    return {"id": id, "title": title, "title_en": title_en, "points": points, "summary": summary,
+            "body": "\n".join(lines), "translations": en, "notes": notes}
 
-out = []
-lessons = {}
-for n, (after, *rest) in enumerate(L, 1):
-    lessons.setdefault(after, []).append(lesson(n, *rest))
-out += lessons.get(0, [])
-for i, story in enumerate(S, 1):
-    if story is None:
-        out += lessons.get(i, [])
-        continue
-    title, title_en, paras = story
-    out.append({
-        "id": f"path-{i:02d}",
-        "title": title,
-        "body": "\n\n".join("".join(s for s, _ in p) for p in paras),
-        "translations": [title_en] + [e for p in paras for _, e in p],
-    })
-    out += lessons.get(i, [])
-json.dump({"stories": out}, open(sys.argv[1], "w"), ensure_ascii=False, indent=1)
-print(len(out), "steps")
+
+def chapter(title, *paras, topic=None, meets=()):
+    return {"title": title, "paras": paras, "topic": topic, "meets": [{"name": n, "about": a} for n, a in meets]}
+
+
+def series(id, title, blurb, *chapters, after=()):
+    out = []
+    for n, c in enumerate(chapters, 1):
+        ch = {
+            "id": f"{id}-{n:02d}",
+            "title": c["title"],
+            "body": "\n\n".join("".join(s for s, _ in p) for p in c["paras"]),
+            "translations": [e for p in c["paras"] for _, e in p],
+        }
+        if c["topic"]: ch["topic"] = c["topic"]
+        if c["meets"]: ch["meets"] = c["meets"]
+        out.append(ch)
+    return {"id": id, "title": title, "blurb": blurb, "after": list(after), "chapters": out}
+
+
+GRAMMAR = [
+topic("ta", "～た", "Did", ["ta"],
+  "た on the end of a verb puts it in the past, the way friends say it: 来る (come), 来た (came).",
+  [("ついに来た！", "I'm finally here!"),
+   "Verbs change their endings to say when, and whether, something happens. The plain past ends in た, or だ after some verbs.",
+   ("お腹すいた。", "I'm hungry. (My stomach has emptied.)"),
+   "This plain form is what you use with friends. The polite past, ～ました, comes later.",
+  ]),
+topic("da", "だ / です", "Is", ["desu"],
+  "だ ends a sentence that says what something is: 成田だ, it's Narita. Friends say だ or leave it off; strangers and staff say です.",
+  [("成田だ。", "It's Narita."),
+   "だ comes at the very end of the sentence. In casual talk it's often left off, especially in questions.",
+   ("いい部屋だ！", "It's a nice room!"),
+   "です means the same thing, politely. You'll hear it from staff and strangers.",
+  ]),
+topic("wa", "は", "As for…", ["wa"],
+  "は marks what you're talking about. It's written は but said \"wa\". On its own with a rising voice, it asks \"what about…?\"",
+  [("駅は？", "Where's the station? (What about the station?)"),
+   "The topic comes first, then は, then what you say about it.",
+   ("外は山だ。", "Outside, it's mountains."),
+  ]),
+topic("ga", "が", "Who or what", ["ga"],
+  "が points at who or what does something, or what a description is about: 人が多い, there are lots of people.",
+  [("人が多い。", "There are a lot of people."),
+   "は sets the topic for what follows; が picks out the one thing the sentence is about. Often either works, with a slightly different feel.",
+   ("ビルが高い。", "The buildings are tall."),
+  ]),
+topic("nai", "～ない", "Not", ["nai"],
+  "ない on a verb makes it negative, the way friends say it: わかる (understand), わからない (don't understand).",
+  [("わからない。", "I don't know."),
+   "The verb's ending changes before ない. For る verbs, drop る: 食べる, 食べない. For others, the last sound moves to the \"a\" row: わかる, わからない.",
+   ("いない。", "Nobody's here."),
+  ]),
+topic("yo-ne", "よ / ね", "You know / right?", ["yo", "ne"],
+  "よ at the end tells someone something they don't know yet. ね looks for agreement, like \"right?\" or \"huh\".",
+  [("ユキだよ。", "I'm Yuki."),
+   "よ is friendly emphasis: you're filling the listener in.",
+   ("いい部屋だね。", "It's a nice room, huh."),
+   "ね assumes the listener sees it the same way.",
+  ]),
+topic("no", "の", "'s, of", ["no"],
+  "の joins two nouns, like 's or \"of\": アレックスの部屋, Alex's room.",
+  [("アレックスの部屋。", "Alex's room."),
+   "The first noun owns or describes the second.",
+   ("ここのラーメン。", "The ramen here."),
+  ]),
+topic("tai", "～たい", "Want to", ["tai"],
+  "たい on a verb's stem means you want to do it: 食べる, 食べたい, want to eat.",
+  [("ラーメン、食べたい？", "Want some ramen?"),
+   "Drop る from a る verb, or move other verbs to their \"i\" sound, and add たい: やる, やりたい.",
+   "It changes like an adjective: 食べたくない is \"don't want to eat\".",
+  ]),
+topic("wo", "を", "Object", ["wo"],
+  "を marks what a verb is done to: ラーメンを食べる, eat ramen. It's said \"o\".",
+  [("ラーメンを食べる。", "I eat ramen."),
+   "Friends often drop it: ラーメン、食べる？ means the same.",
+  ]),
+topic("mo", "も", "Too, also", ["mo"],
+  "も means \"too\" or \"also\", in place of は, が or を: ビールも, beer too.",
+  [("ビールも！", "Beer too!"),
+   ("ケンタも眠い。", "Kenta's sleepy too."),
+  ]),
+topic("kara-made", "から / まで", "From, until", ["kara-from", "made"],
+  "から marks where or when something starts; まで, where or when it ends: 朝まで, until morning.",
+  [("朝までゲーム。", "Games until morning."),
+   "They work with places and times, together or apart.",
+  ]),
+]
+
+SERIES = [
+series("arrival", "Arrival", "Alex has a year in Japan on a working holiday visa. First, he has to get there.",
+  chapter("I'm here", [("来た。", "I'm here."), ("ついに来た！", "Finally here!")], topic="ta",
+          meets=[("アレックス", "from Canada, in Japan for a year")]),
+  chapter("Narita", [("成田だ。", "This is Narita."), ("大きいな。", "It's big."), ("人、多い！", "So many people!")], topic="da"),
+  chapter("Which way?", [("駅は？", "Where's the station?"), ("あっち？", "That way?"), ("あ、あっちだ。", "Oh, it's that way.")], topic="wa"),
+  chapter("Out the window", [("外は山だ。", "Outside, mountains."), ("山、山、山。", "Mountains, mountains, mountains."), ("きれい！", "Beautiful!")]),
+  chapter("Tokyo", [("東京だ！", "Tokyo!"), ("人が多い。", "There are so many people."), ("ビルが高い。", "The buildings are tall.")], topic="ga"),
+  chapter("Lost", [("ここ、どこ？", "Where am I?"), ("わからない。", "No idea.")], topic="nai"),
+  chapter("The konbini", [("あ、コンビニだ！", "Oh, a konbini!")], [("「いらっしゃいませ！」", "\"Welcome!\"")], [("ここ、いい。", "I like this place.")]),
+  chapter("The house", [("ここだ。", "This is it."), ("「アレックス？」", "\"Alex?\""), ("「うん。」", "\"Yeah.\"")]),
+  chapter("Yuki", [("「ユキだよ。よろしく。」", "\"I'm Yuki. Nice to meet you.\""), ("「よろしく！」", "\"Nice to meet you!\"")], topic="yo-ne",
+          meets=[("ユキ", "lives in the share house, makes coffee, plays bass")]),
+  chapter("The room", [("「ここ、アレックスの部屋。」", "\"This is your room, Alex.\""), ("「いい部屋だね！」", "\"It's a nice room!\"")], topic="no"),
+  chapter("Hungry", [("「お腹、すいた？」", "\"Hungry?\""), ("「すいた！」", "\"Starving!\"")]),
+  chapter("Ramen?", [("「ラーメン、食べたい？」", "\"Want some ramen?\""), ("「食べたい！」", "\"Yes!\"")], topic="tai"),
+),
+
+series("ramen-night", "Ramen night", "Yuki knows a ramen shop. Alex is very hungry.",
+  chapter("The ticket machine",
+    [("「ここのラーメン、うまいよ。」", "\"The ramen here is great.\"")], [("チケットを買う。", "You buy a ticket.")],
+    topic="wo"),
+  chapter("Which one?",
+    [("「これ、食べたい！」", "\"I want this one!\""), ("「卵も？」", "\"Egg too?\""),
+     ("「うん、卵も。ビールも！」", "\"Yeah, egg too. And a beer!\"")],
+    topic="mo"),
+  chapter("Slurp",
+    [("「うまい！」", "\"So good!\""), ("「でしょ？」", "\"Told you.\""), ("「熱い！」", "\"Hot!\""), ("「ゆっくり食べて。」", "\"Eat slowly.\"")]),
+  chapter("The manager",
+    [("店長が来た。", "The manager came over.")], [("「バイト、やりたい？」", "\"Want a part-time job?\""),
+     ("「やりたい！」", "\"I do!\"")],
+    meets=[("店長", "runs the ramen shop, needs help")]),
+  after=["arrival"]),
+
+series("share-house", "The Share House",
+  "Alex has a year in Tokyo, a room in a Shimokitazawa share house, and housemates with opinions.",
+  chapter("Morning",
+    [("朝だ。", "It's morning."), ("「おはよう！」", "\"Morning!\""), ("「…おはよう。」", "\"…Morning.\""),
+     ("「ケンタ？」", "\"Kenta?\""), ("「うん。眠い…」", "\"Yeah. Sleepy…\"")],
+    meets=[("ケンタ", "the room next door, games all night")]),
+  chapter("All night",
+    [("「眠い？」", "\"Sleepy?\""), ("「うん。朝までゲームだった。」", "\"Yeah. I was gaming until morning.\""),
+     ("「朝まで！？」", "\"Until morning?!\"")],
+    [("「アレックス、ゲーム好き？」", "\"Alex, do you like games?\""), ("「好き！」", "\"I do!\""), ("「今夜、ゲームだ！」", "\"Games tonight, then!\"")],
+    topic="kara-made"),
+  chapter("Coffee",
+    [("ユキは朝、コーヒーを飲む。", "Yuki drinks coffee in the morning.")],
+    [("「アレックス、飲む？」", "\"Alex, want some?\""), ("「飲む！ありがとう。」", "\"Yes! Thanks.\"")],
+    [("「ケンタは？」", "\"Kenta?\""), ("「…飲む。」", "\"…Yes.\"")],
+    topic="wo"),
+  after=["arrival"]),
+]
+
+json.dump({"series": SERIES, "grammar": GRAMMAR}, open(sys.argv[1], "w"), ensure_ascii=False, indent=1)
+print(sum(len(s["chapters"]) for s in SERIES), "chapters,", len(GRAMMAR), "grammar topics")

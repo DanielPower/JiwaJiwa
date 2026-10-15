@@ -73,7 +73,7 @@ fun App(vm: AppViewModel, screen: Screen) {
     val tab = when (screen) {
         is Screen.Home -> Tab.HOME
         is Screen.Dictionary -> Tab.DICTIONARY
-        is Screen.Stories, is Screen.BeforeReading -> Tab.STORIES
+        is Screen.Stories, is Screen.Series, is Screen.BeforeReading -> Tab.STORIES
         is Screen.Settings -> Tab.SETTINGS
         else -> null
     }
@@ -110,6 +110,7 @@ fun App(vm: AppViewModel, screen: Screen) {
                     is Screen.KanjiPage -> KanjiScreen(screen, vm)
                     is Screen.RenshuuImport -> RenshuuImportScreen(screen.step, vm)
                     is Screen.Stories -> StoriesScreen(screen, vm)
+                    is Screen.Series -> SeriesScreen(screen, vm)
                     is Screen.StoryReader -> StoryReaderScreen(screen, vm)
                     is Screen.BeforeReading -> BeforeReadingScreen(screen, vm)
                 }

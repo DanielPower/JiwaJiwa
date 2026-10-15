@@ -384,6 +384,33 @@ internal object Grammar {
             listOf(base("で"), particle("は"), Step(false) { it.base == "ない" || it.base == "ある" }),
         )
         point(
+            "nai", "～ない", 5, "not (plain)",
+            "The plain negative of a verb, as friends say it: 食べる, 食べない.",
+            "肉は食べない。", "I don't eat meat.",
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ナイ" }),
+        )
+        point(
+            "ta", "～た", 5, "did (plain past)",
+            "The plain past of a verb or adjective, as friends say it: 食べる, 食べた. After some verbs it's だ (読んだ).",
+            "もう食べた。", "I already ate.",
+            // Not たら, which is its own point.
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・タ" && it.form != "仮定形" }),
+        )
+        point(
+            "tai", "～たい", 5, "want to",
+            "On a verb's stem: you want to do it. It changes like an i-adjective: 食べたい, 食べたくない, 食べたかった.",
+            "ラーメン食べたい。", "I want ramen.",
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・タイ" }),
+        )
+        point(
+            "masu", "～ます", 5, "polite verb ending",
+            "The polite form of a verb, used with strangers, staff and at work: 食べます, 食べません, 食べました.",
+            "これ、お願いします。", "This one, please.",
+            // Not set phrases learned whole: いらっしゃいませ, ありがとうございます.
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・マス" && !it.form.startsWith("命令") }),
+            before = { it.base != "ござる" },
+        )
+        point(
             "masenka", "～ませんか", 5, "won't you…?, shall we…?",
             "A polite invitation or suggestion. It can also just be a negative question.",
             "一緒に行きませんか。", "Would you like to go together?",
