@@ -25,11 +25,10 @@ Guiding rules from Daniel:
 
 | Path | What it is |
 | --- | --- |
-| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kana course, kanji readings, romaji, story budgets, Kuromoji word splitting, the story server client (Claude conversations, sign-in), Renshuu import planning. No Android imports. |
+| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kana course, kanji readings, romaji, the story path, Kuromoji word splitting, Renshuu import planning. No Android imports. |
 | `app/` | The Android app: Jetpack Compose UI, SQLite storage, reminder, backup. |
 | `tools/dictionary/` | Python (stdlib only) build of the bundled dictionary DB from pinned sources. |
 | `tools/fsrs/` | Generates `core/src/test/resources/fsrs_vectors.tsv` from py-fsrs. |
-| `server/` | The story server (Python, FastAPI, SQLite, Docker Compose): Google sign-in, per-account rate limits, and the Claude API key, so the app never holds one. See `server/README.md`. |
 | `.github/workflows/` | CI (see below). |
 
 Put logic in `core` whenever it doesn't need Android, so it can be tested
@@ -64,7 +63,6 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
 | `build.yml` | pushes to branches other than main | test and build without releasing |
 | `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
-| `server.yml` (Story server) | PRs and pushes to main touching `server/` | server tests and image build; on main, pushes `ghcr.io/danielpower/jiwajiwa-story-server` (`latest` and `sha-…`) |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
 
 Every push to main ships a release, so main must always be releasable.
@@ -137,7 +135,7 @@ Other features (all shipped):
 - Daily reminder has **no default time**; the user picks one. Don't request
   notification permission until they turn it on.
 - Manual backup/restore only (`jiwajiwa-<date>.jstudy`, a copy of the progress
-  DB). No automatic backups. The story sign-in isn't included.
+  DB). No automatic backups.
 - Settings has a reset button that erases all user data.
 - Stats page (heatmap, recall, forecast, per-level progress) is a link on the
   home screen, not a tab.
@@ -146,21 +144,15 @@ Other features (all shipped):
   the JMdict id, which is jstudy's word id. Renshuu's kana entries have no
   `edict_ent`; they're matched by text to kana cards. Its other entries
   without one (する verbs, phrases, names) are skipped on purpose.
-- AI graded-reader stories: the user signs in with Google (Credential
-  Manager) and the app sends its Claude conversations to the story server
-  (`server/`, https://api.jiwajiwa.app), which holds the API key, picks the
-  model and limits each account (Daniel, 2026-10-14). There's no API key
-  setting. Writing and its sign-in stay hidden until you've started 300
-  words (`Repository.WRITING_OPENS_AT`), past what the bundled stories
-  teach for now (Daniel, 2026-10-15). The server URL and the Google web client ID are the
-  `storyServerUrl` and `googleWebClientId` Gradle properties. Short/Medium/Long, Easy/Normal/Hard sets the share of known
-  words; unknown words beyond the budget trigger a rewrite. Tapping a word
+- Claude-written stories, and the story server they went through, were
+  removed (Daniel, 2026-10-15); they may be rebuilt later. Stories are the
+  bundled ones only. Tapping a word
   shows its meaning (and conjugation, when conjugated), plus any grammar
   point it's part of (`core/Grammar.kt`); particles and endings are tappable
-  for their grammar alone, and title words too. The meaning opens in a
+  for their grammar alone. The meaning opens in a
   pane fixed at the top of the reader, always visible with the story below
   it so it never covers the text (as in Yomu Yomu), not a popover. Long-pressing a word shows its sentence's English,
-  written by Claude with the story (one extra request per story). Story
+  bundled with the story. Story
   words are never queued automatically: an unknown word's card offers
   "Add to reviews" (front of the new-word queue) as the main action and a
   quieter "I know this". Stories show a page at a time, swiping between
@@ -168,11 +160,7 @@ Other features (all shipped):
   are centred and turn right to left. After the last page comes an end page:
   reaching it marks the story read (timed from opening it), shows the
   read's stats (characters, share of words known, time, characters a
-  minute) and lists its new words with Add and "Add all to reviews". It
-  also offers "Write a sequel": Claude gets every part so far and the same
-  length and difficulty, the sequel keeps the first part's title, and parts
-  show as "Title: Part n" (the first becomes Part 1 when its sequel is
-  saved). Once a sequel exists the button reads "Read the next part". A gear at the top right of the
+  minute), what it did for your words, and what to read next. A gear at the top right of the
   reader opens its settings in the pane: text size (four steps), font (Zen
   Kaku Gothic New by default, Zen Old Mincho serif, Zen Maru Gothic rounded)
   and horizontal or vertical (tategaki) text. They live only there, not in
@@ -227,8 +215,8 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
 - A story with one chapter opens straight to it; one with more has a page
   listing its chapters and the people met so far. Titles are English, with
   Japanese where it fits. Chapters and grammar pages are saved in the
-  `story` table with a `path_id`, can't be deleted, and need no sign-in;
-  rows the app no longer ships are removed when it syncs.
+  `story` table by `path_id`, with when you read them; rows the app no
+  longer ships are removed when it syncs.
 - A chapter opens on its own once it's within reach (`StoryPath.gap`): new
   words at most 3% of its running words, from 3 to 10; at most 6 new kana
   (furigana counts, and kana you said you read never do); and no grammar

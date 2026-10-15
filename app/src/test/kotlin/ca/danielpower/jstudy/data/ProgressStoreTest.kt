@@ -188,33 +188,9 @@ class ProgressStoreTest {
     }
 
     @Test
-    fun storiesAreListedNewestFirst() {
-        val old = store.insertStory(SavedStory(0, 100, "古い", "本文", "", "SHORT", "EASY"))
-        val new = store.insertStory(SavedStory(0, 200, "新しい", "本文", "cats", "LONG", "HARD", listOf("New", "Text")))
-        assertEquals(listOf(new, old), store.stories().map { it.id })
-        assertEquals(SavedStory(new, 200, "新しい", "本文", "cats", "LONG", "HARD", listOf("New", "Text")), store.story(new))
-        assertEquals(emptyList<String>(), store.story(old)!!.translations)
-        store.deleteStory(new)
-        assertNull(store.story(new))
-        assertEquals(listOf(old), store.stories().map { it.id })
-    }
-
-    @Test
-    fun aSequelNumbersBothPartsAndLinksBack() {
-        val first = store.insertStory(SavedStory(0, 100, "猫", "一", "", "SHORT", "EASY"))
-        val second = store.insertSequel(store.story(first)!!, SavedStory(0, 200, "猫", "二", "", "SHORT", "EASY"))
-        val third = store.insertSequel(store.story(second)!!, SavedStory(0, 300, "猫", "三", "", "SHORT", "EASY"))
-        assertEquals(1, store.story(first)!!.part)
-        assertEquals(2, store.story(second)!!.part)
-        assertEquals(3, store.story(third)!!.part)
-        assertEquals(second, store.story(third)!!.previousId)
-        assertEquals(second, store.nextPart(first))
-        assertNull(store.nextPart(third))
-    }
-
-    @Test
     fun finishingAStoryMarksItRead() {
-        val id = store.insertStory(SavedStory(0, 100, "猫", "一", "", "SHORT", "EASY"))
+        store.syncPathStories(listOf(SavedStory(0, "path-01", "Cat", "猫だ。", listOf("A cat."))))
+        val id = store.pathStories().getValue("path-01").id
         assertNull(store.story(id)!!.readAt)
         store.markStoryRead(id, 500, 120_000)
         assertEquals(500L, store.story(id)!!.readAt)
@@ -222,9 +198,8 @@ class ProgressStoreTest {
     }
 
     @Test
-    fun pathStoriesAreSavedOnceUpdatedInPlaceAndKeptApart() {
-        fun path(body: String) = SavedStory(0, 100, "猫", body, "", "", "", listOf("Cat", "A cat."), pathId = "path-01")
-        val mine = store.insertStory(SavedStory(0, 50, "犬", "犬です。", "", "SHORT", "EASY"))
+    fun pathStoriesAreSavedOnceAndUpdatedInPlace() {
+        fun path(body: String) = SavedStory(0, "path-01", "猫", body, listOf("A cat."))
         store.syncPathStories(listOf(path("猫です。")))
         val saved = store.pathStories().getValue("path-01")
         store.markStoryRead(saved.id, 500, 1_000)
@@ -232,22 +207,20 @@ class ProgressStoreTest {
         val updated = store.pathStories().getValue("path-01")
         assertEquals(saved.id, updated.id)
         assertEquals("これは猫です。", updated.body)
+        assertEquals(listOf("A cat."), updated.translations)
         assertEquals(500L, updated.readAt)
-        assertEquals(listOf(mine), store.stories().map { it.id })
-        store.deleteStory(updated.id)
-        assertEquals(1, store.pathStories().size)
     }
 
     @Test
     fun pathStoriesTheAppNoLongerHasAreRemoved() {
-        fun path(id: String) = SavedStory(0, 100, "Cat", "猫だ。", "", "", "", listOf("A cat."), pathId = id)
+        fun path(id: String) = SavedStory(0, id, "Cat", "猫だ。", listOf("A cat."))
         store.syncPathStories(listOf(path("old-01"), path("new-01")))
         store.syncPathStories(listOf(path("new-01")))
         assertEquals(setOf("new-01"), store.pathStories().keys)
     }
 
     @Test
-    fun upgradingFromVersion5KeepsStories() {
+    fun upgradingToVersion8KeepsOnlyWhenBundledStoriesWereRead() {
         store.close()
         context.deleteDatabase(ProgressStore.NAME)
         val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
@@ -255,17 +228,19 @@ class ProgressStoreTest {
             db.execSQL("CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
             db.execSQL(
                 "CREATE TABLE story (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at INTEGER NOT NULL, title TEXT NOT NULL, " +
-                    "body TEXT NOT NULL, prompt TEXT NOT NULL, length TEXT NOT NULL, difficulty TEXT NOT NULL, translations TEXT NOT NULL DEFAULT '')",
+                    "body TEXT NOT NULL, prompt TEXT NOT NULL, length TEXT NOT NULL, difficulty TEXT NOT NULL, " +
+                    "translations TEXT NOT NULL DEFAULT '', part INTEGER, previous_id INTEGER, read_at INTEGER, read_ms INTEGER, path_id TEXT)",
             )
-            db.execSQL("INSERT INTO story (created_at, title, body, prompt, length, difficulty) VALUES (1, '猫', '一', '', 'SHORT', 'EASY')")
-            db.version = 5
+            db.execSQL("INSERT INTO story (created_at, title, body, prompt, length, difficulty) VALUES (1, '猫', '一', 'cats', 'SHORT', 'EASY')")
+            db.execSQL(
+                "INSERT INTO story (created_at, title, body, prompt, length, difficulty, translations, read_at, read_ms, path_id) " +
+                    "VALUES (1, 'Cat', '猫だ。', '', '', '', 'A cat.', 2, 3, 'path-01')",
+            )
+            db.version = 7
         }
         store = ProgressStore(context)
-        val story = store.stories().single()
-        assertEquals("猫", story.title)
-        assertNull(story.part)
-        store.markStoryRead(story.id, 2, 3)
-        assertEquals(2L, store.story(story.id)!!.readAt)
+        val story = store.pathStories().values.single()
+        assertEquals(SavedStory(story.id, "path-01", "Cat", "猫だ。", listOf("A cat."), readAt = 2, readMillis = 3), story)
     }
 
     @Test

@@ -3,8 +3,8 @@
 An Android app for learning Japanese vocabulary. It ships with every word on
 the JLPT N5 to N1 lists, reviews them Anki-style (you grade yourself Wrong or
 Right), schedules them with FSRS, and fades out furigana as each word's
-mastery grows. It can also have Claude write short stories that use mostly
-words you know, with a few new ones that join your reviews.
+mastery grows. Its graded stories bring in new words, kana and grammar a few
+at a time.
 
 Every push to `main` builds a release APK and publishes it on the
 [Releases](../../releases) page.
@@ -14,10 +14,9 @@ Every push to `main` builds a release APK and publishes it on the
 | Path | What it is |
 | --- | --- |
 | `app/` | The Android app (Kotlin, Jetpack Compose) |
-| `core/` | Pure-Kotlin study logic: FSRS, the daily queue, mastery and furigana rules, and stories (Kuromoji word splitting, conjugation notes, the story server client) |
+| `core/` | Pure-Kotlin study logic: FSRS, the daily queue, mastery and furigana rules, and the story path (Kuromoji word splitting, conjugation notes, grammar) |
 | `tools/dictionary/` | Builds `app/src/main/assets/databases/dictionary.db` from pinned sources |
 | `tools/fsrs/` | Generates the FSRS reference vectors the core tests replay |
-| `server/` | The story server the app sends its Claude requests to, run with Docker Compose (see [server/README.md](server/README.md)) |
 
 ## Building
 

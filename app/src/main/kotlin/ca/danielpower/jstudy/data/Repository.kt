@@ -3,7 +3,6 @@ package ca.danielpower.jstudy.data
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import java.io.File
-import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import ca.danielpower.jstudy.core.Answer
@@ -29,8 +28,6 @@ import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.core.WordProgress
-import ca.danielpower.jstudy.BuildConfig
-import ca.danielpower.jstudy.core.ClaudeException
 import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.Reader
 import ca.danielpower.jstudy.core.ReadingWord
@@ -40,23 +37,13 @@ import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.PathSeries
 import ca.danielpower.jstudy.core.PathStory
-import ca.danielpower.jstudy.core.Story
 import ca.danielpower.jstudy.core.StepGap
 import ca.danielpower.jstudy.core.StepNeeds
 import ca.danielpower.jstudy.core.StoryPath
-import ca.danielpower.jstudy.core.StoryDifficulty
-import ca.danielpower.jstudy.core.StoryLength
-import ca.danielpower.jstudy.core.StoryRequest
-import ca.danielpower.jstudy.core.StoryServer
-import ca.danielpower.jstudy.core.StoryTranslator
-import ca.danielpower.jstudy.core.StoryUsage
-import ca.danielpower.jstudy.core.StoryWriter
 import ca.danielpower.jstudy.core.UiLabel
 import ca.danielpower.jstudy.core.UiLabels
 import ca.danielpower.jstudy.core.coverage
-import ca.danielpower.jstudy.core.newWordBudget
 import ca.danielpower.jstudy.core.sentenceRanges
-import ca.danielpower.jstudy.core.sentenceTexts
 import kotlin.random.Random
 
 data class Summary(
@@ -115,47 +102,28 @@ data class Undo(
     val productionCardId: Long?,
 )
 
-/** All reads and writes go through here; call it off the main thread. */
-/** A saved story split into words, with what's needed to show each one. */
+/** A saved story split into words, with what's needed to show each one. Its English title isn't read. */
 data class StoryReading(
     val story: SavedStory,
-    /** The title's words, tappable like the story's. */
-    val title: List<ReadingWord>,
     val paragraphs: List<List<ReadingWord>>,
     /** Dictionary entries for the story's words. */
     val words: Map<Long, Word>,
     val statuses: Map<Long, WordStatus>,
     val coverage: Coverage,
-    /** The sequel, once one is written. */
-    val next: Long?,
     /** For a grammar topic's page: its English notes between the examples. */
     val lesson: PathStory? = null,
 ) {
-    /** New words with a dictionary entry, in the order they first appear, with where: the end page lists these. */
-    val newWords: List<Pair<Pair<Int, Int>, Word>> by lazy {
-        coverage.newWords.mapNotNull { w ->
-            val entry = w.wordId?.let { words[it] } ?: return@mapNotNull null
-            val p = paragraphs.indexOfFirst { para -> para.any { it.key == w.key } }
-            (p to paragraphs[p].indexOfFirst { it.key == w.key }) to entry
-        }
-    }
+    /** The word at [i] in paragraph [p]. */
+    fun word(p: Int, i: Int): ReadingWord? = paragraphs.getOrNull(p)?.getOrNull(i)
 
-    /** The word at [i] in paragraph [p], where paragraph [TITLE] is the title. */
-    fun word(p: Int, i: Int): ReadingWord? = (if (p == TITLE) title else paragraphs.getOrNull(p))?.getOrNull(i)
-
-    /** Each paragraph's sentences, the title's first; the translations follow this order. */
-    private val sentences = (listOf(title) + paragraphs).map(::sentenceRanges)
+    /** Each paragraph's sentences; the translations follow this order. */
+    private val sentences = paragraphs.map(::sentenceRanges)
 
     /** The sentence holding word [i] of paragraph [p]. */
     fun sentence(p: Int, i: Int): StorySentence? {
-        val k = if (p == TITLE) 0 else p + 1
-        val j = sentences.getOrNull(k)?.indexOfFirst { i in it }?.takeIf { it >= 0 } ?: return null
+        val j = sentences.getOrNull(p)?.indexOfFirst { i in it }?.takeIf { it >= 0 } ?: return null
         val translations = story.translations.takeIf { it.size == sentences.sumOf { s -> s.size } }
-        return StorySentence(sentences[k][j], translations?.get(sentences.take(k).sumOf { it.size } + j))
-    }
-
-    companion object {
-        const val TITLE = -1
+        return StorySentence(sentences[p][j], translations?.get(sentences.take(p).sumOf { it.size } + j))
     }
 }
 
@@ -263,14 +231,11 @@ class BackupException(message: String) : Exception(message)
 class Repository(context: Context) {
     private val appContext = context.applicationContext
     val dictionary = Dictionary(context)
-    private val store = ProgressStore(context)
-
-    /** The story server sign-in. Kept out of the progress database so a backup doesn't carry it. */
-    private val secrets = context.getSharedPreferences("secrets", Context.MODE_PRIVATE).also {
-        // Stories used to need your own Claude API key; don't leave one lying around.
-        it.edit().remove("claude_api_key").apply()
+    private val store = ProgressStore(context).also {
+        // Where the story server sign-in was kept, before Claude stories were removed.
+        context.deleteSharedPreferences("secrets")
     }
-    private val storyServer = StoryServer(BuildConfig.STORY_SERVER_URL)
+
     private val reader by lazy { Reader(dictionary) }
 
     /**
@@ -653,46 +618,7 @@ class Repository(context: Context) {
         )
     }
 
-    // ------------------------------------------------------------ story server sign-in
-
-    private fun storyToken(): String? = secrets.getString("story_token", null)
-
-    /** The Google account signed in to write stories, or null. */
-    fun storyAccount(): String? = storyToken()?.let { secrets.getString("story_email", null).orEmpty() }
-
-    /** Sign in to the story server with a Google ID token from Credential Manager. */
-    fun signInToStories(googleIdToken: String) {
-        val session = storyServer.signIn(googleIdToken)
-        secrets.edit().putString("story_token", session.token).putString("story_email", session.email).apply()
-    }
-
-    fun signOutOfStories() {
-        val token = storyToken() ?: return
-        secrets.edit().remove("story_token").remove("story_email").apply()
-        // Ending the session on the server is tidy, not essential; forgetting it here is what signs you out.
-        runCatching { storyServer.signOut(token) }
-    }
-
-    /** How much of today's story allowance is spent, or null if it can't be fetched. */
-    fun storyUsage(): StoryUsage? {
-        val token = storyToken() ?: return null
-        return try {
-            storyServer.usage(token)
-        } catch (e: ClaudeException) {
-            if (e.signInNeeded) forgetStorySession()
-            null
-        }
-    }
-
-    private fun forgetStorySession() {
-        secrets.edit().remove("story_token").remove("story_email").apply()
-    }
-
-    fun stories(): List<SavedStory> = store.stories()
-
     fun story(id: Long): SavedStory? = store.story(id)
-
-    fun deleteStory(id: Long) = store.deleteStory(id)
 
     /** Words you've started, or suspended to leave alone, count as known while reading. */
     private fun known(statuses: Map<Long, WordStatus>): (Long) -> Boolean = { id ->
@@ -700,101 +626,20 @@ class Repository(context: Context) {
         s != null && (s.state != CardState.NEW || s.suspended)
     }
 
-    fun knownWordCount(): Int = wordStatuses().values.count { it.state != CardState.NEW }
-
-    /** What to ask for: your started words, the shakiest of them to practise, and the next new words. */
-    fun storyRequest(prompt: String, length: StoryLength, difficulty: StoryDifficulty): StoryRequest {
-        val statuses = store.wordStatuses()
-        val started = statuses.filterValues { it.state != CardState.NEW }
-        val known = dictionary.vocab(started.keys)
-        val shaky = started.filterValues { !it.suspended && it.mastery < MasteryRules.HIDE_AT }.entries
-            .sortedBy { it.value.mastery }.take(PRACTICE_POOL).map { it.key }.shuffled().take(PRACTICE)
-        val budget = newWordBudget(length, difficulty)
-        val queued = store.cards(
-            "state = ? AND direction = ? AND suspended = 0",
-            arrayOf(CardState.NEW.value.toString(), Direction.RECOGNITION.value.toString()),
-            "sort_key, id",
-        ).map { it.wordId }
-        val introduceCount = maxOf(1, budget / 2)
-        val next = (queued + dictionary.nextWords(statuses.keys, introduceCount, startLevel(), canRead()).map { it.first })
-            .distinct().take(introduceCount)
-        val frontier = dictionary.nextWords(statuses.keys, 1, startLevel()).firstOrNull()?.first
-        return StoryRequest(
-            prompt = prompt,
-            length = length,
-            difficulty = difficulty,
-            grammarLevel = frontier?.let { dictionary.level(it) }?.takeIf { it in 1..5 } ?: 1,
-            known = known,
-            practice = dictionary.vocab(shaky),
-            introduce = dictionary.vocab(next).sortedBy { next.indexOf(it.wordId) },
-        )
-    }
-
-    /**
-     * Have Claude write a story and save it. Its new words aren't queued;
-     * the reader adds the ones the learner picks. Returns the story's id.
-     */
-    fun writeStory(request: StoryRequest, now: Long, sequelTo: SavedStory? = null, progress: (String) -> Unit): Long {
-        val token = storyToken() ?: throw ClaudeException("Sign in with Google to write stories.", signInNeeded = true)
-        val writer = StoryWriter(storyServer.conversation(token), reader)
-        val written = try {
-            writer.write(request, known(store.wordStatuses()), progress)
-        } catch (e: ClaudeException) {
-            if (e.signInNeeded) forgetStorySession()
-            throw e
-        }
-        // Every part of a series keeps the first part's title.
-        val title = sequelTo?.title ?: written.story.title
-        progress("Translating")
-        val sentences = sentenceTexts(listOf(reader.read(title).flatten()) + reader.read(written.story.body))
-        // The story is worth keeping without its translations if they fail.
-        val translations = try {
-            StoryTranslator(storyServer.conversation(token, effort = "low")).translate(sentences)
-        } catch (e: IOException) {
-            null
-        }
-        progress("Saving")
-        val story = SavedStory(
-            id = 0,
-            createdAt = now,
-            title = title,
-            body = written.story.body,
-            prompt = request.prompt.trim(),
-            length = request.length.name,
-            difficulty = request.difficulty.name,
-            translations = translations.orEmpty(),
-        )
-        return if (sequelTo == null) store.insertStory(story) else store.insertSequel(sequelTo, story)
-    }
-
-    /** What to ask for in a sequel to [story]: the same settings as it, and every part so far. */
-    fun sequelRequest(story: SavedStory): StoryRequest {
-        val parts = generateSequence(story) { s -> s.previousId?.let { store.story(it) } }.toList().asReversed()
-        return storyRequest(
-            story.prompt,
-            StoryLength.entries.firstOrNull { it.name == story.length } ?: StoryLength.SHORT,
-            StoryDifficulty.entries.firstOrNull { it.name == story.difficulty } ?: StoryDifficulty.NORMAL,
-        ).copy(previous = parts.map { Story(it.title, it.body) })
-    }
-
     fun markStoryRead(id: Long, now: Long, millis: Long) = store.markStoryRead(id, now, millis)
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
-        // A bundled chapter's title is English, and a grammar page's names its pattern; neither is read.
-        val title = if (story.pathId != null) emptyList() else reader.read(story.title).flatten()
         val paragraphs = reader.read(story.body)
-        val ids = (title + paragraphs.flatten()).mapNotNull { it.wordId }.toSet()
+        val ids = paragraphs.flatten().mapNotNull { it.wordId }.toSet()
         val statuses = store.wordStatuses()
         return StoryReading(
             story = story,
-            title = title,
             paragraphs = paragraphs,
             words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),
-            next = store.nextPart(id),
-            lesson = story.pathId?.let { id -> catalog.grammar.firstOrNull { it.page.id == id }?.page },
+            lesson = catalog.grammar.firstOrNull { it.page.id == story.pathId }?.page,
         )
     }
 
@@ -815,7 +660,7 @@ class Repository(context: Context) {
     private fun savedPath(now: Long): Map<String, SavedStory> {
         if (!pathSynced) {
             val stories = catalog.chapters.map { it.second.story } + catalog.grammar.map { it.page }
-            store.syncPathStories(stories.map { p -> SavedStory(0, now, p.title, p.body, "", "", "", p.translations, pathId = p.id) })
+            store.syncPathStories(stories.map { p -> SavedStory(0, p.id, p.title, p.body, p.translations) })
             pathSynced = true
         }
         return store.pathStories()
@@ -847,7 +692,7 @@ class Repository(context: Context) {
 
     /** The story a saved chapter belongs to, and the chapter. */
     fun chapterOf(story: SavedStory, now: Long): ChapterEntry? =
-        story.pathId?.let { id -> storyPath(now).flatMap { it.chapters }.firstOrNull { it.chapter.story.id == id } }
+        storyPath(now).flatMap { it.chapters }.firstOrNull { it.chapter.story.id == story.pathId }
 
     /** The kana and words (with dictionary entries) in a chapter you haven't learned yet, and its new grammar, or null off the path. */
     fun stepToLearn(story: SavedStory, now: Long): StepToLearn? {
@@ -967,17 +812,6 @@ class Repository(context: Context) {
         }
     }
 
-    /**
-     * Whether a word's kana spelling can be read with the kana you know, or
-     * null when you read all kana.
-     */
-    private fun canRead(): ((String) -> Boolean)? {
-        val known = kanaKnown()
-        if (known == KanaKnown.BOTH) return null
-        val learned = store.kanaInReview()
-        return { kana -> KanaCourse.canRead(kana, known, learned) }
-    }
-
     // ------------------------------------------------------------ first run
 
     /** The JLPT level new words start from: 5 for N5 down to 1 for N1. */
@@ -1076,15 +910,13 @@ class Repository(context: Context) {
 
     /**
      * Erase everything you've done here: cards, mastery, history, settings
-     * and stories, and sign out of stories. The next query recreates an empty
-     * database, so the app starts again at first-run setup.
+     * and stories read. The next query recreates an empty database, so the
+     * app starts again at first-run setup.
      */
     fun resetAll() {
         store.close()
         val target = appContext.getDatabasePath(ProgressStore.NAME)
         SQLiteDatabase.deleteDatabase(target)
-        signOutOfStories()
-        secrets.edit().clear().commit()
         store.count("SELECT COUNT(*) FROM card")
     }
 
@@ -1211,9 +1043,6 @@ class Repository(context: Context) {
     }
 
     companion object {
-        /** Started words before Claude writes stories: below this, the bundled stories cover you. */
-        const val WRITING_OPENS_AT = 300
-
         private const val PRODUCTION_FIRST = 10_000_000_000L
         private const val FORECAST_DAYS = 30
         private const val HISTORY_DAYS = 30
@@ -1221,8 +1050,6 @@ class Repository(context: Context) {
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12
         private const val LEARN_NEXT_FIRST = 20_000_000_000L
-        private const val PRACTICE_POOL = 20
-        private const val PRACTICE = 8
 
         /** Never a label key, which is Japanese text. */
         private const val LABELS_VERSION = "@dictionary"

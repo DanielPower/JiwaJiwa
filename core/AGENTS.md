@@ -11,20 +11,18 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 | `Cards.kt` | `Card`, `WordProgress`, `ReviewLog`, and `Reviewer`, which applies an answer (FSRS + mastery + production unlock), a word read in a story (FSRS Hard), introduces a new word, or marks it known. |
 | `Mastery.kt` | `MasteryRules`: stability ↔ mastery mapping and the furigana thresholds. |
 | `StudyClock.kt` | Study days with a rollover hour, in a time zone. Review cards fall due at the start of a study day. |
-| `Session.kt` | `StudySettings`, `StudyAhead` ("study more"), `DailyLimits`, and `StudySession`, the order cards are shown in during one sitting. |
+| `Session.kt` | `StudySettings`, `Pace` (the soft daily limit and review nudge), `StudyAhead` ("study more"), `DailyLimits`, and `StudySession`, the order cards are shown in during one sitting. |
 | `Kana.kt` | Romaji → kana for search, hiragana/katakana variants. |
 | `Kanji.kt` | `Kanji` entries, the kanji in a word from its furigana, and which dictionary reading a word uses (allowing for rendaku, small っ and verb stems in compounds). |
 | `KanaCourse.kt` | The kana units (negative ids, so they never clash with JMdict word ids), teaching order, and the "kana known" setting. |
 | `Reading.kt` | Kuromoji tokens grouped into words, matched to the dictionary, with conjugation labels. |
 | `Grammar.kt` | About 100 hand-written grammar points (particles and N5–N3 patterns), each with token patterns over Kuromoji output. `Reader` attaches them to words; a match inside a longer match is dropped. `GrammarTest` checks every point's own example sentence finds it, so add an example that does. |
 | `StoryPath.kt` | The bundled story path: parsing `path.json` (stories of chapters, and grammar topics), the words, kana and grammar each chapter needs, which chapters are within reach, and the solver that proves every chapter can be reached. |
-| `Stories.kt` | Graded-reader story requests, budgets of new words, prompts, and the rewrite loop. |
-| `Claude.kt` | A Claude conversation sent through the story server (`server/`): the app sends the system prompt, messages and effort (high for stories, low for translations); the server picks the model (`claude-sonnet-5-5`, Daniel's choice over Opus for speed and cost, 2026-10-13), the token cap and fallbacks. The `send` parameter is the seam for tests. |
-| `StoryServer.kt` | The story server's API over `HttpURLConnection`: swap a Google ID token for a session, usage, sign-out, and conversations. A 401 sets `ClaudeException.signInNeeded`. |
+| `Coverage.kt` | How a story's words measure up against what you know, and a finished read's stats. |
 | `UiLabels.kt` | `UiLabel` (English, Japanese, optional word spellings), the words a label needs (read with `Reader`), and `UiLanguage`, which picks the language each label shows in. |
 | `VerticalText.kt` | Line breaking for the vertical story reader: which column each run of characters goes in, with Japanese line-break rules (hanging 、。, closing brackets never start a column, opening ones never end one). |
 | `HorizontalText.kt` | Line and page breaking for the horizontal story reader, from measured word widths, with the same rules (`Kinsoku.kt` holds the shared character sets). |
-| `Translation.kt` | Splits story paragraphs into sentences (a quote stays with the words around it) and asks Claude for one English line per sentence. |
+| `Sentences.kt` | Splits story paragraphs into sentences (a quote stays with the words around it), which the bundled English follows. |
 | `RenshuuImport.kt` | Plans a Renshuu mastery import (take the higher). |
 
 ## Things that are easy to get wrong

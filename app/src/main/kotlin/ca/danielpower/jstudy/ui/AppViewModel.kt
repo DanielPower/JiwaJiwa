@@ -7,7 +7,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
-import ca.danielpower.jstudy.core.ClaudeException
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.Direction
@@ -21,8 +20,6 @@ import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
-import ca.danielpower.jstudy.core.StoryDifficulty
-import ca.danielpower.jstudy.core.StoryLength
 import ca.danielpower.jstudy.core.UiLabel
 import ca.danielpower.jstudy.core.UiLanguage
 import ca.danielpower.jstudy.data.BackupException
@@ -115,14 +112,6 @@ sealed interface Screen {
     data class Settings(
         val settings: StudySettings,
         val attribution: String,
-        /** The Google account signed in to write stories, or null. */
-        val storyAccount: String?,
-        /** How much of today's story allowance is spent, 0 to 1, once fetched. */
-        val storyUsage: Double? = null,
-        /** Why signing in to stories failed. */
-        val storyError: String? = null,
-        /** Whether you've started enough words for Claude to write stories. */
-        val writingOpen: Boolean = false,
         val startLevel: Int,
         val reminder: Reminder,
         val kanaKnown: KanaKnown,
@@ -170,14 +159,6 @@ sealed interface Screen {
     data class Stories(
         /** The stories that come with the app, in order, ready or not. */
         val path: List<SeriesEntry>,
-        val stories: List<SavedStory>,
-        val draft: StoryDraft,
-        val signedIn: Boolean,
-        /** Words you've started, to warn when there are too few for a story. */
-        val knownWords: Int,
-        /** What the story writer is doing, while it works. */
-        val writing: String?,
-        val error: String?,
         /** Today's new words and kana against the daily limit, and reviews waiting. */
         val pace: Pace? = null,
         /** Open chapters you haven't read that have nothing new to learn. */
@@ -204,7 +185,6 @@ sealed interface Screen {
     data class StoryReader(
         val reading: StoryReading,
         val style: ReaderStyle,
-        val signedIn: Boolean,
         /** For a chapter, where it sits in its story. */
         val chapter: ChapterEntry? = null,
         /** For a chapter, what to read next: the story's next open chapter, or the next story on the path. */
@@ -214,9 +194,6 @@ sealed interface Screen {
         /** For a path story, once read: today's pace, and something with nothing new to read next. */
         val pace: Pace? = null,
         val rest: NextStep? = null,
-        /** What the sequel writer is doing, while it writes this story's sequel. */
-        val writing: String? = null,
-        val error: String? = null,
     ) : Screen
 }
 
@@ -237,13 +214,6 @@ data class ReadImpact(
 data class NextStep(val storyId: Long, val label: String)
 
 enum class SetupPage { WELCOME, KANA, LEVEL, REMINDER }
-
-/** The story form, kept while you move around the app. */
-data class StoryDraft(
-    val prompt: String = "",
-    val length: StoryLength = StoryLength.SHORT,
-    val difficulty: StoryDifficulty = StoryDifficulty.NORMAL,
-)
 
 sealed interface ImportStep {
     data class EnterKey(val error: String? = null) : ImportStep
@@ -292,12 +262,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var searchJob: Job? = null
     private var importJob: Job? = null
 
-    private var draft = StoryDraft()
-    private var storyJob: Job? = null
-    private var storyProgress: String? = null
-    private var storyError: String? = null
-    // The story whose sequel is being written, so its reader shows the progress.
-    private var sequelOf: Long? = null
     // When the open story was opened, to time the reading, and whether its end has been reached.
     private var readingSince = 0L
     private var readingFinished = false
@@ -522,14 +486,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Settings(
             settings = repo.settings(),
             attribution = attribution,
-            storyAccount = repo.storyAccount(),
-            writingOpen = repo.knownWordCount() >= Repository.WRITING_OPENS_AT,
             startLevel = repo.startLevel(),
             reminder = repo.reminder(),
             kanaKnown = repo.kanaKnown(),
             backupMessage = backupMessage,
         )
-        if (repo.storyAccount() != null) fetchStoryUsage()
     }
 
     /** Start new words from [level]; a non-zero [easierMastery] marks the unstarted words below it known. */
@@ -584,9 +545,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------ reset
 
-    /** Wipe all progress, settings, stories and keys, and start again at first-run setup. */
+    /** Wipe all progress, settings and stories read, and start again at first-run setup. */
     fun resetAll() {
-        storyJob?.cancel()
         importJob?.cancel()
         searchJob?.cancel()
         launchIo {
@@ -598,9 +558,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             entryIds = emptySet()
             statuses = emptyMap()
             lastDictionary = null
-            draft = StoryDraft()
-            storyProgress = null
-            storyError = null
             display.edit().clear().commit()
             _theme.value = ThemeMode.AUTO
             DailyReminder.schedule(getApplication(), repo.reminder())
@@ -632,62 +589,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ------------------------------------------------------------ stats
 
     fun openStats() = launchIo { _screen.value = Screen.StatsPage(repo.stats(now())) }
-
-    // ------------------------------------------------------------ story sign-in
-
-    /**
-     * Sign in to stories with Google. [getToken] shows Android's account
-     * sheet and returns null if you back out.
-     */
-    fun signInToStories(getToken: suspend () -> String?) {
-        viewModelScope.launch {
-            try {
-                val token = getToken() ?: return@launch
-                withContext(Dispatchers.IO) { repo.signInToStories(token) }
-                storyError = null
-                refreshSignIn()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                val message = e.message ?: "Google sign-in didn't work. Try again."
-                _screen.update {
-                    when (it) {
-                        is Screen.Settings -> it.copy(storyError = message)
-                        is Screen.Stories -> it.copy(error = message)
-                        else -> it
-                    }
-                }
-            }
-        }
-    }
-
-    fun signOutOfStories() = launchIo {
-        repo.signOutOfStories()
-        refreshSignIn()
-    }
-
-    /** Show the current sign-in on whichever screen cares. */
-    private suspend fun refreshSignIn() {
-        val account = withContext(Dispatchers.IO) { repo.storyAccount() }
-        _screen.update {
-            when (it) {
-                is Screen.Settings -> it.copy(storyAccount = account, storyUsage = null, storyError = null)
-                is Screen.Stories -> it.copy(signedIn = account != null, error = storyError)
-                is Screen.StoryReader -> it.copy(signedIn = account != null)
-                else -> it
-            }
-        }
-        if (account != null && _screen.value is Screen.Settings) fetchStoryUsage()
-    }
-
-    /** Fetched apart from the screen, since it needs the network. */
-    private fun fetchStoryUsage() {
-        viewModelScope.launch {
-            val usage = withContext(Dispatchers.IO) { repo.storyUsage() }
-            val account = withContext(Dispatchers.IO) { repo.storyAccount() }
-            _screen.update { if (it is Screen.Settings) it.copy(storyUsage = usage?.usedToday, storyAccount = account) else it }
-        }
-    }
 
     fun saveSettings(settings: StudySettings) = launchIo {
         repo.saveSettings(settings)
@@ -762,12 +663,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val path = repo.storyPath(now())
         _screen.value = Screen.Stories(
             path = path,
-            stories = repo.stories(),
-            draft = draft,
-            signedIn = repo.storyAccount() != null,
-            knownWords = repo.knownWordCount(),
-            writing = storyProgress,
-            error = storyError,
             pace = repo.pace(now()),
             nothingNew = nothingNew(path),
         )
@@ -775,50 +670,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Open chapters you haven't read with nothing new to learn, story order. */
     private fun nothingNew(path: List<SeriesEntry>) = path.flatMap { it.chapters }.filter { it.nothingNew && !it.read }
-
-    fun editDraft(change: (StoryDraft) -> StoryDraft) {
-        draft = change(draft)
-        _screen.update { if (it is Screen.Stories) it.copy(draft = draft) else it }
-    }
-
-    private fun storyStatus(progress: String?, error: String?) {
-        storyProgress = progress
-        storyError = error
-        _screen.update {
-            when {
-                it is Screen.Stories -> it.copy(writing = progress, error = error)
-                it is Screen.StoryReader && it.reading.story.id == sequelOf -> it.copy(writing = progress, error = error)
-                else -> it
-            }
-        }
-    }
-
-    /** Write a story from the draft. It keeps going if you leave the screen, and opens when done if you're still here. */
-    fun writeStory() {
-        if (storyJob?.isActive == true) return
-        val request = draft
-        sequelOf = null
-        storyStatus("Getting your words ready", null)
-        // Not under the lock: writing takes a while and shouldn't block the rest of the app.
-        storyJob = viewModelScope.launch {
-            try {
-                val id = withContext(Dispatchers.IO) {
-                    val req = lock.withLock { repo.storyRequest(request.prompt, request.length, request.difficulty) }
-                    repo.writeStory(req, now()) { storyStatus(it, null) }
-                }
-                storyStatus(null, null)
-                draft = draft.copy(prompt = "")
-                if (_screen.value is Screen.Stories) {
-                    lock.withLock { withContext(Dispatchers.IO) { showStory(id) } }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                storyStatus(null, e.message ?: "Something went wrong writing the story.")
-                if (e is ClaudeException && e.signInNeeded) refreshSignIn()
-            }
-        }
-    }
 
     /** A story from the path: one chapter opens straight away, more show their chapters. */
     fun openPathStory(entry: SeriesEntry) {
@@ -928,13 +779,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         readingFinished = false
         masteryAtOpen = repo.masteries(reading.words.keys)
         lookedUpWords.clear()
-        val writing = if (sequelOf == id) storyProgress else null
-        val error = if (sequelOf == id) storyError else null
         val chapter = repo.chapterOf(reading.story, now())
-        _screen.value = Screen.StoryReader(
-            reading, repo.readerStyle(), repo.storyAccount() != null,
-            chapter = chapter, next = chapter?.let(::nextStep), writing = writing, error = error,
-        )
+        _screen.value = Screen.StoryReader(reading, repo.readerStyle(), chapter = chapter, next = chapter?.let(::nextStep))
     }
 
     /** After [chapter]: its story's next open, unread chapter, or else the next story on the path that has one. */
@@ -957,24 +803,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val at = now()
         val story = state.reading.story
         repo.markStoryRead(story.id, at, at - readingSince)
-        if (story.pathId != null) {
-            repo.readWords(story, lookedUpWords.toSet(), at)
-            val after = repo.masteries(state.reading.words.keys)
-            fun crossed(line: Int) = after.filter { (id, m) -> (masteryAtOpen[id] ?: 0) < line && m >= line }.keys
-            val words = state.reading.words
-            val impact = ReadImpact(
-                seen = seenForStory.mapNotNull { words[it] },
-                known = crossed(MasteryRules.HIDE_AT).mapNotNull { words[it] },
-                mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
-                topic = topicForStory,
-            )
-            val rest = nothingNew(repo.storyPath(at)).firstOrNull { it.story.id != story.id }?.let {
-                val name = if (it.series.single) it.series.title else "${it.series.title} ${it.chapter.number}"
-                NextStep(it.story.id, "Next: $name · nothing new")
-            }
-            val pace = repo.pace(at)
-            _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
+        repo.readWords(story, lookedUpWords.toSet(), at)
+        val after = repo.masteries(state.reading.words.keys)
+        fun crossed(line: Int) = after.filter { (id, m) -> (masteryAtOpen[id] ?: 0) < line && m >= line }.keys
+        val words = state.reading.words
+        val impact = ReadImpact(
+            seen = seenForStory.mapNotNull { words[it] },
+            known = crossed(MasteryRules.HIDE_AT).mapNotNull { words[it] },
+            mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
+            topic = topicForStory,
+        )
+        val rest = nothingNew(repo.storyPath(at)).firstOrNull { it.story.id != story.id }?.let {
+            val name = if (it.series.single) it.series.title else "${it.series.title} ${it.chapter.number}"
+            NextStep(it.story.id, "Next: $name · nothing new")
         }
+        val pace = repo.pace(at)
+        _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
         refreshStory()
     }
 
@@ -983,52 +827,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         lookedUpWords += wordId
     }
 
-    /**
-     * Write the next part of the open story, from every part so far. The
-     * story becomes Part 1 once its sequel is saved, and the sequel opens if
-     * you're still reading.
-     */
-    fun writeSequel() {
-        if (storyJob?.isActive == true) return
-        val story = (_screen.value as? Screen.StoryReader)?.reading?.story ?: return
-        sequelOf = story.id
-        storyStatus("Getting your words ready", null)
-        storyJob = viewModelScope.launch {
-            try {
-                val id = withContext(Dispatchers.IO) {
-                    val req = lock.withLock { repo.sequelRequest(story) }
-                    repo.writeStory(req, now(), sequelTo = story) { storyStatus(it, null) }
-                }
-                storyStatus(null, null)
-                sequelOf = null
-                if ((_screen.value as? Screen.StoryReader)?.reading?.story?.id == story.id) {
-                    lock.withLock { withContext(Dispatchers.IO) { showStory(id) } }
-                }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                storyStatus(null, e.message ?: "Something went wrong writing the sequel.")
-                if (e is ClaudeException && e.signInNeeded) refreshSignIn()
-            }
-        }
-    }
-
-    fun deleteStory(id: Long) = launchIo {
-        repo.deleteStory(id)
-        showStories()
-    }
-
     /** "Add to reviews" on a word in a story: put it at the front of the new-word queue. */
     fun addStoryWord(wordId: Long) = storyWordAction { repo.learnNext(wordId, now()) }
 
     /** "I know this" on a word in a story: mark it known, as on a new card. */
     fun knowStoryWord(wordId: Long) = storyWordAction { repo.markKnown(wordId, MasteryRules.HIDE_AT, now()) }
-
-    /** "Add all to reviews" on the end page, in the order the words came up. */
-    fun addStoryWords(wordIds: List<Long>) = storyWordAction {
-        val now = now()
-        for (id in wordIds) repo.learnNext(id, now)
-    }
 
     private fun storyWordAction(action: () -> Unit) = launchIo {
         if (_screen.value !is Screen.StoryReader) return@launchIo
