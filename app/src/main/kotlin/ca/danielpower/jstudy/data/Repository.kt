@@ -1211,6 +1211,9 @@ class Repository(context: Context) {
     }
 
     companion object {
+        /** Started words before Claude writes stories: below this, the bundled stories cover you. */
+        const val WRITING_OPENS_AT = 300
+
         private const val PRODUCTION_FIRST = 10_000_000_000L
         private const val FORECAST_DAYS = 30
         private const val HISTORY_DAYS = 30

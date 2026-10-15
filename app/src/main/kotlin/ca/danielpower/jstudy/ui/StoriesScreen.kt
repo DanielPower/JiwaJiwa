@@ -102,6 +102,7 @@ import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderFont
 import ca.danielpower.jstudy.data.ReaderStyle
+import ca.danielpower.jstudy.data.Repository
 import ca.danielpower.jstudy.data.SavedStory
 import ca.danielpower.jstudy.data.SeriesEntry
 import ca.danielpower.jstudy.data.StoryReading
@@ -110,9 +111,6 @@ import ca.danielpower.jstudy.data.levelLabel
 import java.text.DateFormat
 import java.util.Date
 import kotlin.math.roundToInt
-
-/** Below this many started words, stories have little to work with. */
-private const val FEW_WORDS = 300
 
 // ------------------------------------------------------------------ list and form
 
@@ -162,100 +160,95 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        HorizontalDivider(Modifier.padding(top = 12.dp), color = MaterialTheme.colorScheme.onSurface)
-        SectionLabel(ui("Write your own", "自分で書く", "自分", "書く"))
+        // Claude writes stories once you have enough words for them to work with.
+        if (state.knownWords >= Repository.WRITING_OPENS_AT) {
+            HorizontalDivider(Modifier.padding(top = 12.dp), color = MaterialTheme.colorScheme.onSurface)
+            SectionLabel(ui("Write your own", "自分で書く", "自分", "書く"))
 
-        if (!state.signedIn) {
-            StorySeal()
-            Text(
-                "Claude writes short stories using mostly words you know, with a few new ones to learn.",
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text("Sign in with Google to start.", style = MaterialTheme.typography.bodyLarge)
-            SignInWithGoogleButton(vm, Modifier.fillMaxWidth().height(52.dp))
-            Text(
-                "Your Google account is only used to keep each person to a fair number of stories a day. " +
-                    "Your progress stays on this phone.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            state.error?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-            }
-        } else {
-            OutlinedTextField(
-                value = draft.prompt,
-                onValueChange = { text -> vm.editDraft { it.copy(prompt = text) } },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("What should it be about? (optional)") },
-                placeholder = { Text("Slice of life, a cat who runs a café…") },
-                enabled = !writing,
-            )
-            val recent = state.stories.map { it.prompt }.filter { it.isNotBlank() }.distinct().take(5)
-            if (recent.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    for (prompt in recent) {
-                        SuggestionChip(
-                            onClick = { vm.editDraft { it.copy(prompt = prompt) } },
-                            label = { Text(prompt, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            if (!state.signedIn) {
+                StorySeal()
+                Text(
+                    "Claude writes short stories using mostly words you know, with a few new ones to learn.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text("Sign in with Google to start.", style = MaterialTheme.typography.bodyLarge)
+                SignInWithGoogleButton(vm, Modifier.fillMaxWidth().height(52.dp))
+                Text(
+                    "Your Google account is only used to keep each person to a fair number of stories a day. " +
+                        "Your progress stays on this phone.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                state.error?.let {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                }
+            } else {
+                OutlinedTextField(
+                    value = draft.prompt,
+                    onValueChange = { text -> vm.editDraft { it.copy(prompt = text) } },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("What should it be about? (optional)") },
+                    placeholder = { Text("Slice of life, a cat who runs a café…") },
+                    enabled = !writing,
+                )
+                val recent = state.stories.map { it.prompt }.filter { it.isNotBlank() }.distinct().take(5)
+                if (recent.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        for (prompt in recent) {
+                            SuggestionChip(
+                                onClick = { vm.editDraft { it.copy(prompt = prompt) } },
+                                label = { Text(prompt, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                enabled = !writing,
+                            )
+                        }
+                    }
+                }
+
+                Text(ui("Length", "長さ"), style = MaterialTheme.typography.titleSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (length in StoryLength.entries) {
+                        WashiChip(
+                            selected = draft.length == length,
+                            onClick = { vm.editDraft { it.copy(length = length) } },
+                            label = ui(length.label),
                             enabled = !writing,
                         )
                     }
                 }
-            }
-
-            Text(ui("Length", "長さ"), style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                for (length in StoryLength.entries) {
-                    WashiChip(
-                        selected = draft.length == length,
-                        onClick = { vm.editDraft { it.copy(length = length) } },
-                        label = ui(length.label),
-                        enabled = !writing,
-                    )
+                Text(ui("Difficulty", "難しさ"), style = MaterialTheme.typography.titleSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (difficulty in StoryDifficulty.entries) {
+                        WashiChip(
+                            selected = draft.difficulty == difficulty,
+                            onClick = { vm.editDraft { it.copy(difficulty = difficulty) } },
+                            label = ui(difficulty.label),
+                            enabled = !writing,
+                        )
+                    }
                 }
-            }
-            Text(ui("Difficulty", "難しさ"), style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                for (difficulty in StoryDifficulty.entries) {
-                    WashiChip(
-                        selected = draft.difficulty == difficulty,
-                        onClick = { vm.editDraft { it.copy(difficulty = difficulty) } },
-                        label = ui(difficulty.label),
-                        enabled = !writing,
-                    )
-                }
-            }
-            Text(
-                "${(draft.difficulty.knownShare * 100).roundToInt()}% of the words will be ones you know. " +
-                    "New words go to the front of your reviews.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (state.knownWords < FEW_WORDS) {
                 Text(
-                    "You've started ${state.knownWords} words. Stories read best once you know a few hundred, " +
-                        "so early ones will have more new words.",
+                    "${(draft.difficulty.knownShare * 100).roundToInt()}% of the words will be ones you know. " +
+                        "New words go to the front of your reviews.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
 
-            if (writing) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp, color = MaterialTheme.colorScheme.primary)
-                    Text(state.writing.orEmpty() + "…", style = MaterialTheme.typography.bodyLarge)
+                if (writing) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp, color = MaterialTheme.colorScheme.primary)
+                        Text(state.writing.orEmpty() + "…", style = MaterialTheme.typography.bodyLarge)
+                    }
+                } else {
+                    PrimaryButton(onClick = vm::writeStory, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                        Text(ui("Write a story", "物語を書く"), fontSize = 18.sp)
+                    }
                 }
-            } else {
-                PrimaryButton(onClick = vm::writeStory, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text(ui("Write a story", "物語を書く"), fontSize = 18.sp)
+                state.error?.let {
+                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
                 }
-            }
-            state.error?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             }
         }
 

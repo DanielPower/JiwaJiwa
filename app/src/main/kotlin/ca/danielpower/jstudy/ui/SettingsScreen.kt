@@ -173,35 +173,38 @@ fun SettingsScreen(
             }
         }
 
-        Section(ui("Stories", "物語"))
-        val account = state.storyAccount
-        if (account == null) {
-            Text(
-                "Claude writes short stories using mostly words you know. Sign in with Google to start.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SignInWithGoogleButton(vm)
-        } else {
-            Text("Signed in as", style = MaterialTheme.typography.bodyLarge)
-            Text(account, style = MaterialTheme.typography.bodyMedium)
-            state.storyUsage?.let { used ->
-                val percent = (used * 100).roundToInt()
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Today's stories", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    Text("$percent% used", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Hidden until you've started enough words for Claude to write stories.
+        if (state.writingOpen) {
+            Section(ui("Stories", "物語"))
+            val account = state.storyAccount
+            if (account == null) {
+                Text(
+                    "Claude writes short stories using mostly words you know. Sign in with Google to start.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SignInWithGoogleButton(vm)
+            } else {
+                Text("Signed in as", style = MaterialTheme.typography.bodyLarge)
+                Text(account, style = MaterialTheme.typography.bodyMedium)
+                state.storyUsage?.let { used ->
+                    val percent = (used * 100).roundToInt()
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Today's stories", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                        Text("$percent% used", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    MasteryBar(percent, Modifier.fillMaxWidth())
                 }
-                MasteryBar(percent, Modifier.fillMaxWidth())
+                Text(
+                    "Each account can write a limited number of stories a day.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SecondaryButton(onClick = vm::signOutOfStories) { Text("Sign out") }
             }
-            Text(
-                "Each account can write a limited number of stories a day.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SecondaryButton(onClick = vm::signOutOfStories) { Text("Sign out") }
-        }
-        state.storyError?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            state.storyError?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            }
         }
 
         Section(ui("Import", "インポート"))

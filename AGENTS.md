@@ -150,7 +150,9 @@ Other features (all shipped):
   Manager) and the app sends its Claude conversations to the story server
   (`server/`, https://api.jiwajiwa.app), which holds the API key, picks the
   model and limits each account (Daniel, 2026-10-14). There's no API key
-  setting. The server URL and the Google web client ID are the
+  setting. Writing and its sign-in stay hidden until you've started 300
+  words (`Repository.WRITING_OPENS_AT`), past what the bundled stories
+  teach for now (Daniel, 2026-10-15). The server URL and the Google web client ID are the
   `storyServerUrl` and `googleWebClientId` Gradle properties. Short/Medium/Long, Easy/Normal/Hard sets the share of known
   words; unknown words beyond the budget trigger a rewrite. Tapping a word
   shows its meaning (and conjugation, when conjugated), plus any grammar

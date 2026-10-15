@@ -121,6 +121,8 @@ sealed interface Screen {
         val storyUsage: Double? = null,
         /** Why signing in to stories failed. */
         val storyError: String? = null,
+        /** Whether you've started enough words for Claude to write stories. */
+        val writingOpen: Boolean = false,
         val startLevel: Int,
         val reminder: Reminder,
         val kanaKnown: KanaKnown,
@@ -521,6 +523,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             settings = repo.settings(),
             attribution = attribution,
             storyAccount = repo.storyAccount(),
+            writingOpen = repo.knownWordCount() >= Repository.WRITING_OPENS_AT,
             startLevel = repo.startLevel(),
             reminder = repo.reminder(),
             kanaKnown = repo.kanaKnown(),
