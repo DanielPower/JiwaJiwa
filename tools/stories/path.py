@@ -27,7 +27,9 @@ def chapter(title, *paras, topic=None, meets=()):
     return {"title": title, "paras": paras, "topic": topic, "meets": [{"name": n, "about": a} for n, a in meets]}
 
 
-def series(id, title, blurb, *chapters, after=()):
+def series(id, title, blurb, *chapters, after=(), side=False):
+    """A story. after names stories, or chapters to mean the story up to that one. A side
+    story uses only what those teach: something new to read with no new words."""
     out = []
     for n, c in enumerate(chapters, 1):
         ch = {
@@ -39,7 +41,9 @@ def series(id, title, blurb, *chapters, after=()):
         if c["topic"]: ch["topic"] = c["topic"]
         if c["meets"]: ch["meets"] = c["meets"]
         out.append(ch)
-    return {"id": id, "title": title, "blurb": blurb, "after": list(after), "chapters": out}
+    s = {"id": id, "title": title, "blurb": blurb, "after": list(after), "chapters": out}
+    if side: s["side"] = True
+    return s
 
 
 GRAMMAR = [
@@ -228,5 +232,50 @@ series("share-house", "The Share House",
   after=["arrival"]),
 ]
 
-json.dump({"series": SERIES, "grammar": GRAMMAR}, open(sys.argv[1], "w"), ensure_ascii=False, indent=1)
-print(sum(len(s["chapters"]) for s in SERIES), "chapters,", len(GRAMMAR), "grammar topics")
+# Side stories and one-shots: nothing new to learn, so there's always something
+# new to read once you've had enough new words for the day.
+SIDE = [
+series("midnight-konbini", "Midnight konbini", "Jet lag, an empty stomach, and a konbini that never closes.",
+  chapter("Midnight konbini",
+    [("お腹すいた。", "I'm hungry.")],
+    [("コンビニはどこ？", "Where's a konbini?"), ("あ、あっちだ！", "Oh, over there!")],
+    [("「いらっしゃいませ！」", "\"Welcome!\"")],
+    [("ラーメンだ。", "Ramen."), ("大きいラーメンだ！", "A big ramen!"), ("食べたい！", "I want it!")]),
+  after=["arrival"], side=True),
+series("rush-hour", "Rush hour", "Alex and Yuki try to meet at the station at the worst possible time.",
+  chapter("Rush hour",
+    [("駅だ。", "The station."), ("人が多い！", "So many people!")],
+    [("人、人、人。", "People, people, people.")],
+    [("ユキはどこ？", "Where's Yuki?"), ("わからない！", "No idea!")],
+    [("「アレックス！」", "\"Alex!\"")],
+    [("あ、ユキだ。", "Oh, there's Yuki.")],
+    [("「人、多いね。」", "\"So crowded, huh.\""), ("「多い！」", "\"So crowded!\"")]),
+  after=["arrival"], side=True),
+series("seconds", "Seconds", "One bowl was not enough.",
+  chapter("Seconds",
+    [("「卵、食べたい？」", "\"Want an egg?\""), ("「食べたい！」", "\"Yes!\"")],
+    [("「ラーメンも？」", "\"More ramen too?\""), ("「…うん、ラーメンも！」", "\"…Yeah, ramen too!\"")],
+    [("チケットを買う。", "Another ticket.")],
+    [("「お腹、大きいね。」", "\"Your belly's huge.\""), ("「…うん。」", "\"…Yeah.\"")]),
+  after=["ramen-night"], side=True),
+series("kentas-side", "Kenta's side", "Game night, from next door.",
+  chapter("Kenta's side",
+    [("ゲームは好き。", "I like games.")],
+    [("今夜もゲームだ。", "Games tonight too.")],
+    [("アレックスが来た。", "Alex came over.")],
+    [("「…もう一回？」", "\"…Again?\""), ("「もう一回！」", "\"Again!\"")],
+    [("朝までゲームだった。", "We played until morning.")],
+    [("「おはよう…」", "\"Morning…\"")],
+    [("「眠い…」", "\"So sleepy…\"")]),
+  after=["share-house-07"], side=True),
+series("day-off", "Day off", "No shift, no plans, and Yuki has coffee on.",
+  chapter("Day off",
+    [("「アレックス、コーヒー飲む？」", "\"Alex, coffee?\""), ("「飲む！」", "\"Yes!\"")],
+    [("「今日は休み？」", "\"Day off today?\""), ("「うん、休み。」", "\"Yeah, day off.\"")],
+    [("「マンガの店に行く？」", "\"Going to the manga shop?\""), ("「行く！」", "\"Yeah!\"")],
+    [("「ユキも行く？」", "\"You coming too, Yuki?\""), ("「…行く。」", "\"…Sure.\"")]),
+  after=["share-house"], side=True),
+]
+
+json.dump({"series": SERIES + SIDE, "grammar": GRAMMAR}, open(sys.argv[1], "w"), ensure_ascii=False, indent=1)
+print(sum(len(s["chapters"]) for s in SERIES + SIDE), "chapters,", len(GRAMMAR), "grammar topics")

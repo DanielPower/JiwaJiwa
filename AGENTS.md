@@ -209,7 +209,11 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   one-year working holiday in Tokyo, a share house, a ramen shop job, a
   cast met a few at a time. **Arrival** is the prologue; side stories (Ramen
   night) and the long series (**The Share House**, 20+ chapters planned)
-  follow it (`after`). Formal speech comes later as its own topic.
+  follow it (`after`, which can also name a chapter to mean the story up
+  to there). Formal speech comes later as its own topic.
+- Side stories and one-shots (`side`) use only what the stories they
+  follow teach: no new words, kana or grammar. They're there so you can
+  keep reading something new without learning anything new.
 - A story with one chapter opens straight to it; one with more has a page
   listing its chapters and the people met so far. Titles are English, with
   Japanese where it fits. Chapters and grammar pages are saved in the
@@ -229,7 +233,8 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   full page, opened from there or from the Grammar list on the Words tab.
 - `StoryPathTest` checks the stories against the built dictionary (skipped
   when it isn't): each story, read in order after the ones it follows,
-  opens chapter by chapter, so side stories are never required; and
+  opens chapter by chapter, so side stories are never required, and a
+  `side` story has nothing new at all; and
   `StoryPath.solve` reaches every chapter from knowing nothing, kana
   included. Readiness only grows as you learn, so no reading order can get
   stuck. Rerun it after editing a story.

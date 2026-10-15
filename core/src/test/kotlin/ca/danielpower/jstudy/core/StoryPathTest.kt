@@ -118,27 +118,35 @@ class StoryPathTest {
             }
 
             // Each story read in order, after the ones it follows, opens one chapter at a time.
+            // A side story opens with nothing new at all.
             val bySeries = catalog.series.associateBy { it.id }
-            fun before(series: PathSeries): List<PathSeries> =
-                series.after.flatMap { id -> bySeries[id]?.let { before(it) + it } ?: emptyList<PathSeries>().also { problems += "${series.id}: no story $id" } }.distinct()
+            val seriesOf = catalog.series.flatMap { s -> s.chapters.map { it.story.id to s } }.toMap()
+            fun before(series: PathSeries): List<Chapter> = series.after.flatMap { id ->
+                bySeries[id]?.let { before(it) + it.chapters }
+                    ?: seriesOf[id]?.let { s -> before(s) + s.chapters.takeWhile { it.story.id != id } + s.chapters.first { it.story.id == id } }
+                    ?: emptyList<Chapter>().also { problems += "${series.id}: no story or chapter $id" }
+            }.distinct()
             for (series in catalog.series) {
                 val words = HashSet<Long>()
                 val kana = HashSet<KanaUnit>()
                 val grammar = HashSet<String>()
-                for (s in before(series) + series) for (c in s.chapters) {
+                for (c in before(series) + series.chapters) {
+                    val own = c in series.chapters
                     val n = needs.getValue(c.story.id)
                     val gap = StoryPath.gap(n, { it in words }, { it in kana }, grammar)
                     // The stories this one follows are checked on their own turn.
-                    if (s === series) {
+                    if (own) {
                         val id = c.story.id
                         if (gap.words.size > gap.allowance) problems += "$id: ${gap.words.size} new words, ${gap.allowance} allowed"
                         if (gap.kana.size > StoryPath.MAX_KANA) problems += "$id: ${gap.kana.size} new kana"
                         if (gap.grammar.isNotEmpty()) problems += "$id: grammar not taught yet: ${gap.grammar}"
+                        if (series.side && (gap.words.isNotEmpty() || gap.kana.isNotEmpty() || c.topic != null))
+                            problems += "$id: side story has something new: ${gap.words.map { it.lemma }} ${gap.kana.map { it.text }} ${c.topic.orEmpty()}"
                     }
                     words += n.words.mapNotNull { it.wordId }
                     kana += n.kana
                     grammar += n.grammar + n.teaches
-                    if (s !== series) continue
+                    if (!own) continue
                     // The topic's example, shown before reading, uses only words you have by then.
                     catalog.topic(c.topic)?.example?.let { (jp, _) ->
                         val unknown = StoryPath.words(reader, jp).filter { it.wordId !in words }

@@ -375,6 +375,135 @@
      ]
     }
    ]
+  },
+  {
+   "id": "midnight-konbini",
+   "title": "Midnight konbini",
+   "blurb": "Jet lag, an empty stomach, and a konbini that never closes.",
+   "after": [
+    "arrival"
+   ],
+   "chapters": [
+    {
+     "id": "midnight-konbini-01",
+     "title": "Midnight konbini",
+     "body": "お腹すいた。\n\nコンビニはどこ？あ、あっちだ！\n\n「いらっしゃいませ！」\n\nラーメンだ。大きいラーメンだ！食べたい！",
+     "translations": [
+      "I'm hungry.",
+      "Where's a konbini?",
+      "Oh, over there!",
+      "\"Welcome!\"",
+      "Ramen.",
+      "A big ramen!",
+      "I want it!"
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "rush-hour",
+   "title": "Rush hour",
+   "blurb": "Alex and Yuki try to meet at the station at the worst possible time.",
+   "after": [
+    "arrival"
+   ],
+   "chapters": [
+    {
+     "id": "rush-hour-01",
+     "title": "Rush hour",
+     "body": "駅だ。人が多い！\n\n人、人、人。\n\nユキはどこ？わからない！\n\n「アレックス！」\n\nあ、ユキだ。\n\n「人、多いね。」「多い！」",
+     "translations": [
+      "The station.",
+      "So many people!",
+      "People, people, people.",
+      "Where's Yuki?",
+      "No idea!",
+      "\"Alex!\"",
+      "Oh, there's Yuki.",
+      "\"So crowded, huh.\"",
+      "\"So crowded!\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "seconds",
+   "title": "Seconds",
+   "blurb": "One bowl was not enough.",
+   "after": [
+    "ramen-night"
+   ],
+   "chapters": [
+    {
+     "id": "seconds-01",
+     "title": "Seconds",
+     "body": "「卵、食べたい？」「食べたい！」\n\n「ラーメンも？」「…うん、ラーメンも！」\n\nチケットを買う。\n\n「お腹、大きいね。」「…うん。」",
+     "translations": [
+      "\"Want an egg?\"",
+      "\"Yes!\"",
+      "\"More ramen too?\"",
+      "\"…Yeah, ramen too!\"",
+      "Another ticket.",
+      "\"Your belly's huge.\"",
+      "\"…Yeah.\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "kentas-side",
+   "title": "Kenta's side",
+   "blurb": "Game night, from next door.",
+   "after": [
+    "share-house-07"
+   ],
+   "chapters": [
+    {
+     "id": "kentas-side-01",
+     "title": "Kenta's side",
+     "body": "ゲームは好き。\n\n今夜もゲームだ。\n\nアレックスが来た。\n\n「…もう一回？」「もう一回！」\n\n朝までゲームだった。\n\n「おはよう…」\n\n「眠い…」",
+     "translations": [
+      "I like games.",
+      "Games tonight too.",
+      "Alex came over.",
+      "\"…Again?\"",
+      "\"Again!\"",
+      "We played until morning.",
+      "\"Morning…\"",
+      "\"So sleepy…\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "day-off",
+   "title": "Day off",
+   "blurb": "No shift, no plans, and Yuki has coffee on.",
+   "after": [
+    "share-house"
+   ],
+   "chapters": [
+    {
+     "id": "day-off-01",
+     "title": "Day off",
+     "body": "「アレックス、コーヒー飲む？」「飲む！」\n\n「今日は休み？」「うん、休み。」\n\n「マンガの店に行く？」「行く！」\n\n「ユキも行く？」「…行く。」",
+     "translations": [
+      "\"Alex, coffee?\"",
+      "\"Yes!\"",
+      "\"Day off today?\"",
+      "\"Yeah, day off.\"",
+      "\"Going to the manga shop?\"",
+      "\"Yeah!\"",
+      "\"You coming too, Yuki?\"",
+      "\"…Sure.\""
+     ]
+    }
+   ],
+   "side": true
   }
  ],
  "grammar": [

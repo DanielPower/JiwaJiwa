@@ -2,6 +2,7 @@ package ca.danielpower.jstudy.core
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -53,8 +54,11 @@ data class PathSeries(
     /** English, with Japanese where it fits. */
     val title: String,
     val blurb: String,
+    /** Story ids, or chapter ids for the chapters up to and including that one. */
     val after: List<String>,
     val chapters: List<Chapter>,
+    /** Uses only what [after] teaches, so it's something new to read with nothing new to learn. */
+    val side: Boolean = false,
 ) {
     /** A one-chapter story opens straight to its chapter, with no chapter list. */
     val single get() = chapters.size == 1
@@ -162,6 +166,7 @@ object StoryPath {
                 title = o.text("title"),
                 blurb = o["blurb"]?.jsonPrimitive?.content.orEmpty(),
                 after = o.texts("after"),
+                side = o["side"]?.jsonPrimitive?.boolean ?: false,
                 chapters = o.getValue("chapters").jsonArray.mapIndexed { i, c ->
                     val ch = c.jsonObject
                     val topic = ch["topic"]?.jsonPrimitive?.content
