@@ -17,6 +17,7 @@ import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.KanaUnit
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
@@ -175,6 +176,10 @@ sealed interface Screen {
         /** What the story writer is doing, while it works. */
         val writing: String?,
         val error: String?,
+        /** Today's new words and kana against the daily limit, and reviews waiting. */
+        val pace: Pace? = null,
+        /** Open chapters you haven't read that have nothing new to learn. */
+        val nothingNew: List<ChapterEntry> = emptyList(),
     ) : Screen
 
     /** A story with more than one chapter: its chapters, and why one is locked once you tap it. */
@@ -189,6 +194,9 @@ sealed interface Screen {
         val topic: GrammarTopic?,
         /** The topic's full page, saved as a story to open. */
         val topicPage: Long? = null,
+        val pace: Pace? = null,
+        /** Whether anything with nothing new is open to read instead. */
+        val nothingNewOpen: Boolean = false,
     ) : Screen
 
     data class StoryReader(
@@ -201,6 +209,9 @@ sealed interface Screen {
         val next: NextStep? = null,
         /** For a path story, once read: what reading it did for your words. */
         val impact: ReadImpact? = null,
+        /** For a path story, once read: today's pace, and something with nothing new to read next. */
+        val pace: Pace? = null,
+        val rest: NextStep? = null,
         /** What the sequel writer is doing, while it writes this story's sequel. */
         val writing: String? = null,
         val error: String? = null,
@@ -745,16 +756,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun showStories() {
+        val path = repo.storyPath(now())
         _screen.value = Screen.Stories(
-            path = repo.storyPath(now()),
+            path = path,
             stories = repo.stories(),
             draft = draft,
             signedIn = repo.storyAccount() != null,
             knownWords = repo.knownWordCount(),
             writing = storyProgress,
             error = storyError,
+            pace = repo.pace(now()),
+            nothingNew = nothingNew(path),
         )
     }
+
+    /** Open chapters you haven't read with nothing new to learn, story order. */
+    private fun nothingNew(path: List<SeriesEntry>) = path.flatMap { it.chapters }.filter { it.nothingNew && !it.read }
 
     fun editDraft(change: (StoryDraft) -> StoryDraft) {
         draft = change(draft)
@@ -852,10 +869,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val learn = story?.let { repo.stepToLearn(it, now()) }
         if (story != null && learn != null && !learn.isEmpty) {
             val page = learn.topic?.let { repo.grammarPageId(it, now()) }
-            _screen.value = Screen.BeforeReading(story, repo.chapterOf(story, now()), learn.kana, learn.words, learn.topic, page)
+            val open = nothingNew(repo.storyPath(now())).isNotEmpty()
+            _screen.value = Screen.BeforeReading(
+                story, repo.chapterOf(story, now()), learn.kana, learn.words, learn.topic, page,
+                pace = repo.pace(now()), nothingNewOpen = open,
+            )
         } else {
             showStory(id)
         }
+    }
+
+    /** Past today's limit, before a chapter: the stories with nothing new, or reviews if none are open. */
+    fun readNothingNew() {
+        val state = _screen.value as? Screen.BeforeReading
+        if (state?.nothingNewOpen == false) startReview() else openStories()
     }
 
     /** A grammar topic's page, from before a chapter or the Words tab; Back returns there. */
@@ -938,7 +965,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
                 topic = topicForStory,
             )
-            _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact) else it }
+            val rest = nothingNew(repo.storyPath(at)).firstOrNull { it.story.id != story.id }?.let {
+                val name = if (it.series.single) it.series.title else "${it.series.title} ${it.chapter.number}"
+                NextStep(it.story.id, "Next: $name · nothing new")
+            }
+            val pace = repo.pace(at)
+            _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
         }
         refreshStory()
     }

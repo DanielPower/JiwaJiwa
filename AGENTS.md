@@ -214,6 +214,14 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words, kana or grammar. They're there so you can
   keep reading something new without learning anything new.
+- Pace (`core/Pace`, `Repository.pace`): a soft daily limit on new words
+  and kana started (`newPerDay`, default 20, from the rollover hour), and a
+  review nudge (`reviewNudge`, default 50 due, 0 for off). "I know these"
+  and imports start nothing, so they don't count. Past either, the Stories
+  tab leads with open chapters that have nothing new, the before-reading
+  screen suggests them first ("Learn anyway" carries on), and a chapter's
+  end offers one before the next chapter. Nothing is ever locked by it.
+  Unlocked production cards in reviews fill what's left of the limit.
 - A story with one chapter opens straight to it; one with more has a page
   listing its chapters and the people met so far. Titles are English, with
   Japanese where it fits. Chapters and grammar pages are saved in the

@@ -89,6 +89,7 @@ import ca.danielpower.jstudy.core.GrammarPoint
 import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.HorizontalText
 import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.StoryDifficulty
@@ -129,8 +130,30 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
 
         // The stories that come with the app, shown once a chapter is within reach.
         val shown = state.path.filter { it.shown }
-        SectionLabel(ui("Ready to read", "読める物語", "読める", "物語"))
-        for (entry in shown) PathRow(entry) { vm.openPathStory(entry) }
+        val pace = state.pace
+        if (pace != null) PaceMeter(pace)
+        if (pace?.nudge == true) {
+            // Past today's limit, or behind on reviews: what you can read with nothing new comes first.
+            NudgeCard(pace, onReview = vm::startReview)
+            if (state.nothingNew.isNotEmpty()) {
+                SectionLabel("Nothing new to learn", Modifier.padding(top = 8.dp))
+                for (entry in state.nothingNew) NothingNewRow(entry) { vm.openStory(entry.story.id) }
+            } else {
+                Text(
+                    "No stories with nothing new are open right now. Reviews make room for more.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            SectionLabel(ui("Your path", "あなたの道", "あなた", "道"), Modifier.padding(top = 8.dp))
+            val listed = state.nothingNew.filter { it.series.single }.map { it.series.id }.toSet()
+            for (entry in shown.filter { it.series.id !in listed }) {
+                Box(Modifier.alpha(0.65f)) { PathRow(entry) { vm.openPathStory(entry) } }
+            }
+        } else {
+            SectionLabel(ui("Ready to read", "読める物語", "読める", "物語"))
+            for (entry in shown) PathRow(entry) { vm.openPathStory(entry) }
+        }
         val waiting = state.path.size - shown.size
         if (waiting > 0) {
             Text(
@@ -367,7 +390,7 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium,
                     color = when {
-                        done -> rightGreen()
+                        done || (single && next?.nothingNew == true) -> rightGreen()
                         next == null -> MaterialTheme.colorScheme.onSurfaceVariant
                         else -> seal
                     },
@@ -382,12 +405,97 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
 private fun newLabel(entry: ChapterEntry): String {
     val words = entry.gap.words.size
     val kana = entry.gap.kana.size
-    if (words == 0 && kana == 0 && entry.newTopic == null) return ui("No new words", "新しい言葉なし", "新しい", "言葉")
+    if (words == 0 && kana == 0 && entry.newTopic == null) return ui("Nothing new", "新しい言葉なし", "新しい", "言葉")
     return listOfNotNull(
         words.takeIf { it > 0 }?.let { if (it == 1) "1 new word" else "$it new words" },
         kana.takeIf { it > 0 }?.let { "$it new kana" },
         entry.newTopic?.title,
     ).joinToString(" · ")
+}
+
+/** Today's new words and kana against the daily limit, gold once it's reached. */
+@Composable
+private fun PaceMeter(pace: Pace) {
+    val color = if (pace.atLimit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(Modifier.fillMaxWidth()) {
+            Text(ui("Today", "今日"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text(
+                "${pace.newToday} of ${pace.limit} new",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Box(Modifier.fillMaxWidth().height(4.dp).clip(WashiShape).background(MaterialTheme.colorScheme.outlineVariant)) {
+            Box(Modifier.fillMaxWidth((pace.newToday / pace.limit.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)).fillMaxHeight().background(color))
+        }
+    }
+}
+
+/** Why the list leads with stories that have nothing new: reviews piling up, or today's limit reached. */
+@Composable
+private fun NudgeCard(pace: Pace, onReview: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .clip(WashiShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape),
+    ) {
+        Box(Modifier.width(3.dp).fillMaxHeight().background(MaterialTheme.colorScheme.tertiary))
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (pace.backlog) {
+                Text("${pace.reviewsDue} reviews waiting", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Catch up before adding more, so the words you've started don't slip. Stories with nothing new help too.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                PrimaryButton(onClick = onReview, modifier = Modifier.fillMaxWidth()) { Text("Review now") }
+            } else {
+                Text("That's ${pace.newToday} new today", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Give them time to settle. These stories use only what you know, and your reviews will lock them in.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (pace.reviewsDue > 0) {
+                    SecondaryButton(onClick = onReview, modifier = Modifier.fillMaxWidth()) { Text("Review · ${pace.reviewsDue} due") }
+                }
+            }
+        }
+    }
+}
+
+/** An open chapter with nothing new to learn: its story, title and first line. */
+@Composable
+private fun NothingNewRow(entry: ChapterEntry, onClick: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (!entry.series.single) Tag("${entry.series.title} · chapter ${entry.chapter.number}", MaterialTheme.colorScheme.primary)
+        Text(entry.chapter.story.title, style = MaterialTheme.typography.titleLarge)
+        Text(
+            entry.story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            fontFamily = Gothic,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            ui("Nothing new", "新しい言葉なし", "新しい", "言葉"),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = rightGreen(),
+        )
+    }
 }
 
 /** A small capitalised label over a card's title. */
@@ -624,6 +732,25 @@ fun BeforeReadingScreen(state: Screen.BeforeReading, vm: AppViewModel) {
             "Before you read, learn ${if (state.topic == null) "the " else ""}$list new in this chapter.",
             style = MaterialTheme.typography.bodyLarge,
         )
+        val pace = state.pace
+        val over = pace?.over(count) == true
+        if (over) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+                    .border(1.dp, MaterialTheme.colorScheme.tertiary, WashiShape)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text("Over today's limit", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "You've started ${pace!!.newToday} new words and kana today. This chapter adds $count more.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             state.topic?.let { topic ->
                 SectionLabel(ui("Grammar", "文法"))
@@ -667,6 +794,13 @@ fun BeforeReadingScreen(state: Screen.BeforeReading, vm: AppViewModel) {
                 }
             }
         }
+        if (over) {
+            // A suggestion, not a lock: the alternative leads, and learning anyway is one tap.
+            PrimaryButton(onClick = vm::readNothingNew, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                Text(if (state.nothingNewOpen) "Read something with nothing new" else "Review instead", fontSize = 18.sp)
+            }
+            SecondaryButton(onClick = vm::learnStoryWords, modifier = Modifier.fillMaxWidth()) { Text("Learn anyway") }
+        } else {
         // Grammar on its own needs no cards: read on once it's explained.
         PrimaryButton(onClick = vm::learnStoryWords, modifier = Modifier.fillMaxWidth().height(56.dp)) {
             Text(
@@ -677,6 +811,7 @@ fun BeforeReadingScreen(state: Screen.BeforeReading, vm: AppViewModel) {
                 },
                 fontSize = 18.sp,
             )
+        }
         }
         if (count > 0) {
             TextButton(onClick = vm::knowStoryWords, modifier = Modifier.align(Alignment.CenterHorizontally)) {
@@ -1416,7 +1551,35 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel, onWord: (Pair<
         val nextStep = state.next
         when {
             onPath -> {
-                if (nextStep != null) {
+                val pace = state.pace
+                if (pace?.nudge == true) {
+                    // At today's limit or behind on reviews: something with nothing new, or reviews, before the next chapter.
+                    pace.takeIf { it.atLimit }?.let { PaceMeter(it) }
+                    val rest = state.rest
+                    if (rest != null) {
+                        PrimaryButton(onClick = { vm.openStory(rest.storyId) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                            Text(rest.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                    if (pace.reviewsDue > 0) {
+                        if (rest == null) {
+                            PrimaryButton(onClick = vm::startReview, modifier = Modifier.fillMaxWidth().height(52.dp)) { Text("Review · ${pace.reviewsDue} due") }
+                        } else {
+                            SecondaryButton(onClick = vm::startReview, modifier = Modifier.fillMaxWidth()) { Text("Review · ${pace.reviewsDue} due") }
+                        }
+                    }
+                    if (nextStep != null && nextStep.storyId != rest?.storyId) {
+                        TextButton(onClick = { vm.openStory(nextStep.storyId) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                            Text(
+                                nextStep.label.replaceFirst("Next", "Next anyway"),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                } else if (nextStep != null) {
                     PrimaryButton(onClick = { vm.openStory(nextStep.storyId) }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                         Text(nextStep.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }

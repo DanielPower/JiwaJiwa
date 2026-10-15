@@ -126,9 +126,22 @@ fun SettingsScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Stepper(ui("New words per day", "一日の新しい単語"), "${s.newPerDay}") { d ->
-            update { s.copy(newPerDay = (s.newPerDay + d).coerceIn(0, 100)) }
+        Stepper(ui("New words and kana per day", "一日の新しい言葉と仮名"), "${s.newPerDay}") { d ->
+            update { s.copy(newPerDay = (s.newPerDay + d * 5).coerceIn(5, 100)) }
         }
+        Text(
+            "A suggestion, never a lock. Past it, stories with nothing new come first, and you can always learn more.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Stepper("Remind me to review at", if (s.reviewNudge == 0) "Off" else "${s.reviewNudge}") { d ->
+            update { s.copy(reviewNudge = (s.reviewNudge + d * 10).coerceIn(0, 500)) }
+        }
+        Text(
+            "Reviews due before the app suggests catching up.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Stepper("Review limit per day", "${s.reviewCap}") { d ->
             update { s.copy(reviewCap = (s.reviewCap + d * 50).coerceIn(50, 2000)) }
         }

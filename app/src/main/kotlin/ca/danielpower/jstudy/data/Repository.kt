@@ -37,6 +37,7 @@ import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.CastMember
 import ca.danielpower.jstudy.core.Chapter
 import ca.danielpower.jstudy.core.GrammarTopic
+import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.PathSeries
 import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.Story
@@ -174,6 +175,9 @@ data class ChapterEntry(
 ) {
     val ready get() = gap.ready
     val read get() = story.readAt != null
+
+    /** Open, with no new words, kana or grammar: something new to read with nothing to learn. */
+    val nothingNew get() = ready && gap.words.isEmpty() && gap.kana.isEmpty() && newTopic == null
 }
 
 /** A story that comes with the app, with each of its chapters. */
@@ -282,8 +286,8 @@ class Repository(context: Context) {
         fun int(key: String, default: Int) = store.getValue(key)?.toIntOrNull() ?: default
         return runCatching {
             StudySettings(
-                newPerDay = int("new_per_day", d.newPerDay),
-                newKanaPerDay = int("new_kana_per_day", d.newKanaPerDay),
+                newPerDay = int("daily_new", d.newPerDay),
+                reviewNudge = int("review_nudge", d.reviewNudge),
                 reviewCap = int("review_cap", d.reviewCap),
                 rolloverHour = int("rollover_hour", d.rolloverHour),
             )
@@ -293,8 +297,8 @@ class Repository(context: Context) {
     fun saveSettings(s: StudySettings) {
         store.setValues(
             mapOf(
-                "new_per_day" to s.newPerDay.toString(),
-                "new_kana_per_day" to s.newKanaPerDay.toString(),
+                "daily_new" to s.newPerDay.toString(),
+                "review_nudge" to s.reviewNudge.toString(),
                 "review_cap" to s.reviewCap.toString(),
                 "rollover_hour" to s.rolloverHour.toString(),
             ),
@@ -328,16 +332,8 @@ class Repository(context: Context) {
             ahead = ahead(),
             clock = clock,
             now = now,
-            newIntroducedToday = store.count(
-                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND direction != ?",
-                today,
-                Direction.KANA.value,
-            ),
-            newKanaIntroducedToday = store.count(
-                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND direction = ?",
-                today,
-                Direction.KANA.value,
-            ),
+            // Production cards fill what today's new words and kana leave of the daily limit.
+            newIntroducedToday = store.count("SELECT COUNT(*) FROM card WHERE introduced_day = ?", today),
             reviewsDoneToday = store.count(
                 "SELECT COUNT(*) FROM review_log WHERE day = ? AND state_before = ?",
                 today,
@@ -369,6 +365,31 @@ class Repository(context: Context) {
             limits.newCards,
         )
         return StudySession(reviews, newWords, learning, random = Random.Default)
+    }
+
+    /**
+     * The new words and kana you've started today, against the daily limit,
+     * and the reviews due today. "I know these" and imports start nothing,
+     * so they don't count.
+     */
+    fun pace(now: Long): Pace {
+        val settings = settings()
+        val clock = clock(settings)
+        val today = clock.dayOf(now)
+        return Pace(
+            newToday = store.count(
+                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND direction != ?",
+                today,
+                Direction.PRODUCTION.value,
+            ),
+            limit = settings.newPerDay,
+            reviewsDue = store.count(
+                "SELECT COUNT(*) FROM card WHERE state = ? AND due_at < ? AND suspended = 0",
+                CardState.REVIEW.value,
+                clock.startOf(today + 1),
+            ),
+            reviewNudge = settings.reviewNudge,
+        )
     }
 
     fun endOfToday(now: Long): Long {
