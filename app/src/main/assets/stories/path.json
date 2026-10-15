@@ -252,6 +252,127 @@
       "\"…Yes.\""
      ],
      "topic": "wo"
+    },
+    {
+     "id": "share-house-04",
+     "title": "Trash day",
+     "body": "朝、ユキが来た。\n\n「アレックス、今日はゴミだよ。」「ゴミ？」\n\n「うん。これは今日。」「これも今日？」「うん、これも。」",
+     "translations": [
+      "In the morning, Yuki came by.",
+      "\"Alex, it's trash day.\"",
+      "\"Trash?\"",
+      "\"Yeah. This goes out today.\"",
+      "\"This too?\"",
+      "\"Yep, that too.\""
+     ],
+     "topic": "mo"
+    },
+    {
+     "id": "share-house-05",
+     "title": "The interview",
+     "body": "ラーメンの店長だ。\n\n「アレックスさん？」「はい！」\n\n「今日から、お願いします。」「…はい！」",
+     "translations": [
+      "It's the ramen shop's manager.",
+      "\"Alex?\"",
+      "\"Yes!\"",
+      "\"You start today, then.\"",
+      "\"…Yes!\""
+     ],
+     "topic": "masu",
+     "meets": [
+      {
+       "name": "店長",
+       "about": "runs the ramen shop where Alex works"
+      }
+     ]
+    },
+    {
+     "id": "share-house-06",
+     "title": "First shift",
+     "body": "「いらっしゃいませ！」\n\n「すみません！」「はい！」\n\n「ちょっと待ってください！」\n\nラーメン、ラーメン、ラーメン。",
+     "translations": [
+      "\"Welcome!\"",
+      "\"Excuse me!\"",
+      "\"Coming!\"",
+      "\"Just a moment, please!\"",
+      "Ramen, ramen, ramen."
+     ],
+     "topic": "te-kudasai"
+    },
+    {
+     "id": "share-house-07",
+     "title": "Game night",
+     "body": "ケンタの部屋。\n\n「アレックス、これやる？」「やる！」\n\n「…負けた。」「もう一回！」",
+     "translations": [
+      "Kenta's room, that night.",
+      "\"Alex, want to play this?\"",
+      "\"Sure!\"",
+      "\"…I lost.\"",
+      "\"Again!\""
+     ]
+    },
+    {
+     "id": "share-house-08",
+     "title": "The manga shop",
+     "body": "今日は休み。\n\nマンガの店に来た。\n\n「いらっしゃいませ！」\n\n店の人はミホさん。",
+     "translations": [
+      "It's my day off.",
+      "I came to the manga shop.",
+      "\"Welcome!\"",
+      "The clerk is Miho."
+     ],
+     "topic": "ni",
+     "meets": [
+      {
+       "name": "ミホ",
+       "about": "works at the manga shop, has recommendations"
+      }
+     ]
+    },
+    {
+     "id": "share-house-09",
+     "title": "Miho's pick",
+     "body": "「これ、好き？」「好き！」\n\n「じゃあ、これも。おもしろいよ。」\n\n「…買う！」",
+     "translations": [
+      "\"Do you like this one?\"",
+      "\"I love it!\"",
+      "\"Then this one too. It's good.\"",
+      "\"…I'll take it!\""
+     ]
+    },
+    {
+     "id": "share-house-10",
+     "title": "The bass upstairs",
+     "body": "ボン、ボン、ボン。\n\n「…うるさい。」\n\nユキのベースだ。\n\n「ユキ！」「あ、ごめん！」",
+     "translations": [
+      "Boom, boom, boom.",
+      "\"…So loud.\"",
+      "It's Yuki's bass.",
+      "\"Yuki!\"",
+      "\"Oh, sorry!\""
+     ]
+    },
+    {
+     "id": "share-house-11",
+     "title": "Laundry day",
+     "body": "「アレックス、雨、降ってるよ！」\n\n「洗濯…外だ！」",
+     "translations": [
+      "\"Alex, it's raining!\"",
+      "\"My laundry… it's outside!\""
+     ],
+     "topic": "te-iru"
+    },
+    {
+     "id": "share-house-12",
+     "title": "Yuki's gig",
+     "body": "「今夜、ライブだよ。来る？」「行く！」\n\n「ケンタは？」「…行く。」\n\n「楽しみ！」",
+     "translations": [
+      "\"I've got a gig tonight. Coming?\"",
+      "\"I'll go!\"",
+      "\"Kenta?\"",
+      "\"…I'll go.\"",
+      "\"Can't wait!\""
+     ]
     }
    ]
   }
@@ -459,13 +580,93 @@
    "points": [
     "mo"
    ],
-   "summary": "も means \"too\" or \"also\", in place of は, が or を: ビールも, beer too.",
-   "body": "ビールも！\nケンタも眠い。",
+   "summary": "も means \"too\" or \"also\", in place of は, が or を: これも, this too.",
+   "body": "ラーメンも食べたい。\nこれも！",
    "translations": [
-    "Beer too!",
-    "Kenta's sleepy too."
+    "I want ramen too.",
+    "This one too!"
    ],
    "notes": []
+  },
+  {
+   "id": "masu",
+   "title": "です / ます",
+   "title_en": "Polite speech",
+   "points": [
+    "masu"
+   ],
+   "summary": "Staff, strangers and bosses speak politely: verbs end in ます, and \"is\" is です. You'll hear it long before you need to say it.",
+   "body": "今日から、お願いします。",
+   "translations": [
+    "Starting today, please."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "ます goes on a verb's stem, the same stem as たい: 食べます, 飲みます. Its negative is ません, and its past is ました."
+    },
+    {
+     "before": 1,
+     "text": "Friends would say the plain form instead. Using ます with friends sounds distant; leaving it off with strangers sounds rude."
+    }
+   ]
+  },
+  {
+   "id": "te-kudasai",
+   "title": "～てください",
+   "title_en": "Please do",
+   "points": [
+    "te-kudasai"
+   ],
+   "summary": "A verb's て form plus ください politely asks someone to do something. Friends just use the て form.",
+   "body": "ちょっと待ってください！",
+   "translations": [
+    "Just a moment, please!"
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "The て form of 待つ is 待って. With friends, 待って on its own is enough."
+    }
+   ]
+  },
+  {
+   "id": "ni",
+   "title": "に",
+   "title_en": "To, at",
+   "points": [
+    "ni"
+   ],
+   "summary": "に marks where something goes, or where it is: 店に来た, came to the shop.",
+   "body": "マンガの店に来た。",
+   "translations": [
+    "I came to the manga shop."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "It also marks times: 朝に, in the morning. In casual talk it's sometimes dropped after places."
+    }
+   ]
+  },
+  {
+   "id": "te-iru",
+   "title": "～てる / ～ている",
+   "title_en": "Is doing",
+   "points": [
+    "te-iru"
+   ],
+   "summary": "A verb's て form plus いる says something is going on now. Friends shorten ている to てる.",
+   "body": "雨、降ってるよ！",
+   "translations": [
+    "It's raining!"
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "It can also mean a state that's ongoing: 知ってる, I know (I'm in the state of having learned it)."
+    }
+   ]
   },
   {
    "id": "kara-made",

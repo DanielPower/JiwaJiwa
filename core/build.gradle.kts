@@ -29,4 +29,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // StoryPathTest reads the app's bundled stories and, when it's been built, the dictionary.
+    inputs.file("../app/src/main/assets/stories/path.json").withPropertyName("stories")
+    inputs.files(fileTree("../app/src/main/assets/databases") { include("dictionary.db") }).withPropertyName("dictionary")
 }

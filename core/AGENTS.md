@@ -17,7 +17,7 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 | `KanaCourse.kt` | The kana units (negative ids, so they never clash with JMdict word ids), teaching order, and the "kana known" setting. |
 | `Reading.kt` | Kuromoji tokens grouped into words, matched to the dictionary, with conjugation labels. |
 | `Grammar.kt` | About 100 hand-written grammar points (particles and N5–N3 patterns), each with token patterns over Kuromoji output. `Reader` attaches them to words; a match inside a longer match is dropped. `GrammarTest` checks every point's own example sentence finds it, so add an example that does. |
-| `StoryPath.kt` | The bundled story path: parsing `path.json` (stories and lessons), the words, kana and grammar each step needs, which steps are within reach, and the solver that proves every step can be reached. |
+| `StoryPath.kt` | The bundled story path: parsing `path.json` (stories of chapters, and grammar topics), the words, kana and grammar each chapter needs, which chapters are within reach, and the solver that proves every chapter can be reached. |
 | `Stories.kt` | Graded-reader story requests, budgets of new words, prompts, and the rewrite loop. |
 | `Claude.kt` | A Claude conversation sent through the story server (`server/`): the app sends the system prompt, messages and effort (high for stories, low for translations); the server picks the model (`claude-sonnet-5-5`, Daniel's choice over Opus for speed and cost, 2026-10-13), the token cap and fallbacks. The `send` parameter is the seam for tests. |
 | `StoryServer.kt` | The story server's API over `HttpURLConnection`: swap a Google ID token for a session, usage, sign-out, and conversations. A 401 sets `ClaudeException.signInNeeded`. |

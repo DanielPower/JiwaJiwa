@@ -198,41 +198,50 @@ is CC BY-SA 4.0, and the EDRDG licence requires regular JMdict updates
 (`.github/workflows/update-dictionary.yml`). New data sources must have a
 licence that allows this.
 
-Story path (an experiment on its own branch, Daniel, 2026-10-14):
+Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 2026-10-15):
 
 - New words, kana and grammar come from the path instead of reviews.
   Reviews and the home count no longer introduce words or kana; only
   unlocked production cards are new there.
 - The path (`app/src/main/assets/stories/path.json`, written by
-  `tools/stories/path.py`) is
-  44 stories and 10 lessons, from one sentence up to roughly 100 N5 words.
-  They're saved in the `story` table with a `path_id`, can't be deleted, and
-  need no sign-in. The list names a story by its English title and a lesson
-  by its Japanese one (the grammar it teaches).
-- A step shows on the Stories tab once it's within reach (`StoryPath.gap`):
-  new words at most 3% of its running words, from 3 to 10; at most 6 new
-  kana (furigana counts, and kana you said you read never do); and no
-  grammar point you haven't seen. Hiragana and katakana are separate units.
-- Lessons are the only way grammar comes in. A lesson is a path entry with
-  `teaches` (grammar point ids) and English `notes` between its Japanese
-  lines. It opens in the reader as one scrolling page, with the same tap and
-  hold pane. "Done" or the quiet "I know this already" marks its points
-  seen (a list in the `grammar_seen` value, no cards). Stories have no
-  grammar allowance.
-- `StoryPathTest` checks the path against the built dictionary (skipped when
-  it isn't built): read in order every step is within reach, and
-  `StoryPath.solve` reaches every step from knowing nothing, kana included.
-  Readiness only grows as you learn, so that also means no reading order can
-  get stuck. Rerun it after editing a story or lesson.
+  `tools/stories/path.py`) is stories made of chapters, plus grammar topics.
+  All of it is our own writing for adults, casual speech first: Alex, on a
+  one-year working holiday in Tokyo, a share house, a ramen shop job, a
+  cast met a few at a time. **Arrival** is the prologue; side stories (Ramen
+  night) and the long series (**The Share House**, 20+ chapters planned)
+  follow it (`after`). Formal speech comes later as its own topic.
+- A story with one chapter opens straight to it; one with more has a page
+  listing its chapters and the people met so far. Titles are English, with
+  Japanese where it fits. Chapters and grammar pages are saved in the
+  `story` table with a `path_id`, can't be deleted, and need no sign-in;
+  rows the app no longer ships are removed when it syncs.
+- A chapter opens on its own once it's within reach (`StoryPath.gap`): new
+  words at most 3% of its running words, from 3 to 10; at most 6 new kana
+  (furigana counts, and kana you said you read never do); and no grammar
+  point you haven't seen, other than its own topic. Hiragana and katakana
+  are separate units. Tapping a locked chapter shows what it's missing and
+  the open chapters with the most of it.
+- Grammar comes in as topics (one or more related points, like から/まで),
+  at most one per chapter, shown before the chapter with a summary and an
+  example; the same topic can be listed on several chapters, and whichever
+  you reach first teaches it. "Learn these" or "I know these already" marks
+  its points seen (the `grammar_seen` value, no cards). Each topic has a
+  full page, opened from there or from the Grammar list on the Words tab.
+- `StoryPathTest` checks the stories against the built dictionary (skipped
+  when it isn't): each story, read in order after the ones it follows,
+  opens chapter by chapter, so side stories are never required; and
+  `StoryPath.solve` reaches every chapter from knowing nothing, kana
+  included. Readiness only grows as you learn, so no reading order can get
+  stuck. Rerun it after editing a story.
 - Words: **seen** (has a card, mastery below 40), **known** (40, where
   furigana hides), **mastered** (70).
-- Opening a step with new kana or words lists them first; "Learn these"
-  shows each as a new card once (kana first), then it opens. "I know these
-  already" marks them known.
-- At the end of a path story or lesson, each word due for review that you
-  read without tapping counts as an FSRS Hard review (`Reviewer.read`): less
-  than a Right answer, since context helps. The end page shows how many
-  words were seen, moved to known and moved to mastered, and for a lesson,
-  the grammar it opened up.
+- Opening a chapter with new grammar, kana or words lists them first;
+  "Learn these" shows each kana and word as a new card once (kana first),
+  then it opens. "I know these already" marks them known.
+- At the end of a chapter, each word due for review that you read without
+  tapping counts as an FSRS Hard review (`Reviewer.read`): less than a
+  Right answer, since context helps. The end page shows how many words were
+  seen, moved to known and moved to mastered, the grammar topic, anyone
+  you met, and the next chapter.
 
 Not decided or not built yet: example sentences, audio.
