@@ -112,6 +112,8 @@ data class StoryReading(
     val coverage: Coverage,
     /** For a grammar topic's page: its English notes between the examples. */
     val lesson: PathStory? = null,
+    /** The saved page of the grammar topic each grammar point belongs to, by point id. */
+    val lessons: Map<String, Long> = emptyMap(),
 ) {
     /** The word at [i] in paragraph [p]. */
     fun word(p: Int, i: Int): ReadingWord? = paragraphs.getOrNull(p)?.getOrNull(i)
@@ -127,10 +129,8 @@ data class StoryReading(
     }
 }
 
-/** What to learn before reading a chapter: its new kana and words, and the grammar topic it brings in. */
-data class StepToLearn(val kana: List<KanaUnit>, val words: List<Word>, val topic: GrammarTopic?) {
-    val isEmpty get() = kana.isEmpty() && words.isEmpty() && topic == null
-}
+/** What a chapter brings that you haven't learned: its new kana and words, and the grammar topic it brings in. */
+data class StepToLearn(val kana: List<KanaUnit>, val words: List<Word>, val topic: GrammarTopic?)
 
 /** A chapter of a story that comes with the app, and what of it you haven't learned. */
 data class ChapterEntry(
@@ -639,9 +639,19 @@ class Repository(context: Context) {
             words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),
-            lesson = catalog.grammar.firstOrNull { it.page.id == story.pathId }?.page,
+            lesson = topicOfPage(story)?.page,
+            lessons = lessons(),
         )
     }
+
+    /** Each grammar point's topic page, saved when the path was. */
+    private fun lessons(): Map<String, Long> {
+        val saved = store.pathStories().associate { it.pathId to it.id }
+        return catalog.grammar.flatMap { t -> saved[t.page.id]?.let { id -> t.points.map { it to id } }.orEmpty() }.toMap()
+    }
+
+    /** The grammar topic whose page [story] is, if it's one. */
+    fun topicOfPage(story: SavedStory): GrammarTopic? = catalog.grammar.firstOrNull { it.page.id == story.pathId }
 
     // ------------------------------------------------------------ story path
 
@@ -769,23 +779,36 @@ class Repository(context: Context) {
         }
     }
 
+    /**
+     * Finishing a story: its words you haven't started, or said you know,
+     * start as cards, as though just shown. Returns their ids.
+     */
+    fun startStoryWords(story: SavedStory, now: Long): List<Long> {
+        val isKnown = known(store.wordStatuses())
+        val ids = StoryPath.words(reader, story.body).mapNotNull { it.wordId }.distinct()
+            .filter { !isKnown(it) && dictionary.word(it) != null }
+        for (id in ids) {
+            learnNext(id, now)
+            recognitionCard(id)?.takeIf { it.state == CardState.NEW }?.let { introduce(it, now) }
+        }
+        return ids
+    }
+
     /** Mastery of each of [ids] you've started. */
     fun masteries(ids: Collection<Long>): Map<Long, Int> {
         val statuses = store.wordStatuses()
         return ids.mapNotNull { id -> statuses[id]?.takeIf { it.state != CardState.NEW }?.let { id to it.mastery } }.toMap()
     }
 
-    /** Start [kana] and [wordIds] as new cards, to learn before reading: kana first, then words, in order. */
-    fun cardsToLearn(wordIds: List<Long>, kana: List<KanaUnit>, now: Long): List<Card> {
+    /** Start [kana] as new cards, to learn before reading a chapter, in order. */
+    fun kanaToLearn(kana: List<KanaUnit>): List<Card> {
         store.transaction { db ->
             kana.forEachIndexed { i, unit ->
                 store.setSuspended(db, unit.id, false)
                 if (mainCard(unit.id, Direction.KANA) == null) store.insertNewCard(db, unit.id, Direction.KANA, i.toLong())
             }
         }
-        for (id in wordIds) learnNext(id, now)
-        val kanaCards = kana.mapNotNull { mainCard(it.id, Direction.KANA) }
-        return (kanaCards + wordIds.mapNotNull { recognitionCard(it) }).filter { it.state == CardState.NEW }
+        return kana.mapNotNull { mainCard(it.id, Direction.KANA) }.filter { it.state == CardState.NEW }
     }
 
     // ------------------------------------------------------------ kana

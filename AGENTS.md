@@ -206,11 +206,12 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   keep reading something new without learning anything new.
 - Pace (`core/Pace`, `Repository.pace`): a soft daily limit on new words
   and kana started (`newPerDay`, default 20, from the rollover hour), and a
-  review nudge (`reviewNudge`, default 50 due, 0 for off). "I know these"
+  review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this"
   and imports start nothing, so they don't count. Past either, the Stories
-  tab leads with open chapters that have nothing new, the before-reading
-  screen suggests them first ("Learn anyway" carries on), and a chapter's
-  end offers one before the next chapter. Nothing is ever locked by it.
+  tab leads with open chapters that have nothing new, tapping a chapter
+  that adds more shows a sheet suggesting them first ("Read it anyway"
+  carries on), and a chapter's end offers one before the next chapter.
+  Nothing is ever locked by it.
   Unlocked production cards in reviews fill what's left of the limit.
 - A story with one chapter opens straight to it; one with more has a page
   listing its chapters and the people met so far. Titles are English, with
@@ -224,11 +225,13 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   are separate units. Tapping a locked chapter shows what it's missing and
   the open chapters with the most of it.
 - Grammar comes in as topics (one or more related points, like から/まで),
-  at most one per chapter, shown before the chapter with a summary and an
-  example; the same topic can be listed on several chapters, and whichever
-  you reach first teaches it. "Learn these" or "I know these already" marks
-  its points seen (the `grammar_seen` value, no cards). Each topic has a
-  full page, opened from there or from the Grammar list on the Words tab.
+  at most one per chapter; the same topic can be listed on several
+  chapters, and whichever you reach first teaches it. Each topic has a full
+  page: opened before the chapter, it ends with a button into the chapter,
+  which marks its points seen (the `grammar_seen` value, no cards). It's
+  also on the Grammar list on the Words tab, and a grammar point's note in
+  the reader links to its topic's page; Back returns to the same page of
+  the story.
 - `StoryPathTest` checks the stories against the built dictionary (skipped
   when it isn't): each story, read in order after the ones it follows,
   opens chapter by chapter, so side stories are never required, and a
@@ -238,9 +241,11 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   stuck. Rerun it after editing a story.
 - Words: **seen** (has a card, mastery below 40), **known** (40, where
   furigana hides), **mastered** (70).
-- Opening a chapter with new grammar, kana or words lists them first;
-  "Learn these" shows each kana and word as a new card once (kana first),
-  then it opens. "I know these already" marks them known.
+- Opening a chapter shows its new kana as new cards once, then its new
+  grammar's page, then the chapter. New words aren't listed up front:
+  they're red and underlined in the text, and tapping one shows it, with
+  "I know this" to mark it known. Reaching the end page starts every word
+  in it you haven't started as a card (`Repository.startStoryWords`).
 - At the end of a chapter, each word due for review that you read without
   tapping counts as an FSRS Hard review (`Reviewer.read`): less than a
   Right answer, since context helps. The end page shows how many words were

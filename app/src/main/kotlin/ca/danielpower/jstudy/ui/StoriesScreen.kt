@@ -51,6 +51,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -73,7 +74,6 @@ import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FlowWord
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.GrammarPoint
-import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.HorizontalText
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.Pace
@@ -514,151 +514,26 @@ private fun LockSheet(lock: LockInfo, vm: AppViewModel) {
 private fun chapterName(entry: ChapterEntry) =
     if (entry.series.single) entry.series.title else "${entry.series.title} ${entry.chapter.number}"
 
-/** A chapter's new grammar, kana and words, to see before reading it, or to mark known. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Past today's limit, a chapter that adds more: something with nothing new first, or read it anyway. */
 @Composable
-fun BeforeReadingScreen(state: Screen.BeforeReading, vm: AppViewModel) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        WashiIconButton(WashiIcons.Back, "Back", vm::storyBackPressed)
-        val chapter = state.chapter
-        if (chapter != null && !chapter.series.single) {
-            SectionLabel("${chapter.series.title} · chapter ${chapter.chapter.number} of ${chapter.series.chapters.size}")
-        }
-        Text(state.story.title, style = MaterialTheme.typography.headlineSmall)
-        val count = state.words.size + state.kana.size
-        val what = listOfNotNull(
-            state.topic?.let { "the grammar" },
-            state.kana.takeIf { it.isNotEmpty() }?.let { "kana" },
-            state.words.takeIf { it.isNotEmpty() }?.let { "words" },
-        )
-        val list = if (what.size > 1) what.dropLast(1).joinToString(", ") + " and " + what.last() else what.firstOrNull().orEmpty()
-        Text(
-            "Before you read, learn ${if (state.topic == null) "the " else ""}$list new in this chapter.",
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        val pace = state.pace
-        val over = pace?.over(count) == true
-        if (over) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
-                    .border(1.dp, MaterialTheme.colorScheme.tertiary, WashiShape)
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text("Over today's limit", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    "You've started ${pace!!.newToday} new words and kana today. This chapter adds $count more.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            state.topic?.let { topic ->
-                SectionLabel(ui("Grammar", "文法"))
-                TopicCard(topic, onMore = { state.topicPage?.let(vm::openGrammar) })
-            }
-            if (state.kana.isNotEmpty()) {
-                SectionLabel(ui("Kana", "仮名"), if (state.topic != null) Modifier.padding(top = 12.dp) else Modifier)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (unit in state.kana) {
-                        Column(
-                            Modifier
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Text(unit.text, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-                            Text(unit.romaji, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-            if (state.words.isNotEmpty()) {
-                if (state.kana.isNotEmpty() || state.topic != null) SectionLabel(ui("Words", "言葉"), Modifier.padding(top = 12.dp))
-                for (word in state.words) {
-                    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        // Furigana above the word, as in the reader.
-                        Column(Modifier.weight(1f)) {
-                            if (word.kana != word.display) {
-                                Text(word.kana, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text(word.display, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        }
-                        Text(
-                            word.senses.firstOrNull()?.glosses?.take(2)?.joinToString("; ").orEmpty(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.End,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                }
-            }
-        }
-        if (over) {
-            // A suggestion, not a lock: the alternative leads, and learning anyway is one tap.
-            PrimaryButton(onClick = vm::readNothingNew, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                Text(if (state.nothingNewOpen) "Read something with nothing new" else "Review instead", fontSize = 18.sp)
-            }
-            SecondaryButton(onClick = vm::learnStoryWords, modifier = Modifier.fillMaxWidth()) { Text("Learn anyway") }
-        } else {
-        // Grammar on its own needs no cards: read on once it's explained.
-        PrimaryButton(onClick = vm::learnStoryWords, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-            Text(
-                when (count) {
-                    0 -> ui("Start reading", "読み始める", "読む", "始める")
-                    1 -> "Learn this"
-                    else -> "Learn these"
-                },
-                fontSize = 18.sp,
-            )
-        }
-        }
-        if (count > 0) {
-            TextButton(onClick = vm::knowStoryWords, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text(
-                    if (count == 1 && state.topic == null) "I know this already" else "I know these already",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-/** A grammar topic before a chapter: the pattern, what it does, an example, and a link to its full page. */
-@Composable
-private fun TopicCard(topic: GrammarTopic, onMore: () -> Unit) {
-    val indigo = MaterialTheme.colorScheme.secondary
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .clip(WashiShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape),
+fun LimitSheet(prompt: LimitPrompt, vm: AppViewModel) {
+    Column(
+        Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.width(3.dp).fillMaxHeight().background(indigo))
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(topic.title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = indigo)
-                Text(topic.titleEn, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(topic.summary, style = MaterialTheme.typography.bodyMedium)
-            topic.example?.let { (jp, en) ->
-                Text(jp, fontFamily = Gothic, fontSize = 18.sp)
-                Text(en, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(
-                "Full explanation",
-                style = MaterialTheme.typography.labelLarge,
-                color = indigo,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable(onClick = onMore).padding(vertical = 2.dp),
-            )
+        SectionLabel(listOfNotNull(prompt.chapter, "Over today's limit").joinToString(" · "))
+        Text(prompt.title, style = MaterialTheme.typography.titleLarge)
+        Text(
+            "You've started ${prompt.newToday} new words and kana today. This adds ${prompt.adding} more.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        // A suggestion, not a lock: the alternative leads, and reading anyway is one tap.
+        PrimaryButton(onClick = vm::readNothingNew, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            Text(if (prompt.nothingNewOpen) "Read something with nothing new" else "Review instead")
+        }
+        SecondaryButton(onClick = { vm.openStory(prompt.storyId, anyway = true) }, modifier = Modifier.fillMaxWidth()) {
+            Text("Read it anyway")
         }
     }
 }
@@ -735,7 +610,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 openWord != null -> WordCard(
                     word = openWord,
                     reading = reading,
-                    onAdd = vm::addStoryWord,
+                    onLesson = vm::openGrammar,
                     onKnow = { id ->
                         open = null
                         vm.knowStoryWord(id)
@@ -759,6 +634,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     onTap = tap,
                     onHold = hold,
                     onBlank = close,
+                    onRead = vm::readAfterLesson,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
                 )
             } else if (style.vertical) {
@@ -773,6 +649,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     onBlank = close,
                     end = end,
                     onEnd = vm::finishStory,
+                    startPage = state.startPage,
+                    onPageShown = vm::readerAt,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
                 )
             } else {
@@ -787,6 +665,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     onBlank = close,
                     end = end,
                     onEnd = vm::finishStory,
+                    startPage = state.startPage,
+                    onPageShown = vm::readerAt,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
                 )
             }
@@ -810,6 +690,8 @@ private fun HorizontalStory(
     onBlank: () -> Unit,
     end: @Composable () -> Unit,
     onEnd: () -> Unit,
+    startPage: Int,
+    onPageShown: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -841,7 +723,7 @@ private fun HorizontalStory(
             HorizontalText.pages(flows.map { HorizontalText.lines(it, width) }, lineHeight, gap, height)
         }
         val lineDp = with(density) { lineHeight.toDp() }
-        StoryPager(pages.size, reverse = false, end, onEnd) { page ->
+        StoryPager(pages.size, reverse = false, end, onEnd, startPage, onPageShown) { page ->
             Column(Modifier.fillMaxSize().padding(horizontal = PAGE_PADDING_H, vertical = PAGE_PADDING)) {
                 pages[page].forEachIndexed { n, line ->
                     if (n > 0 && line.words.first == 0) Spacer(Modifier.height(PARAGRAPH_GAP))
@@ -871,7 +753,8 @@ private fun HorizontalStory(
 /**
  * A grammar topic's page: its English with the Japanese examples between,
  * tapping words and holding for a sentence's English as in a story. It's
- * one page that scrolls, always across, to look back at whenever.
+ * one page that scrolls, always across, to look back at whenever. Before
+ * a chapter, it ends with a button into the chapter.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -885,6 +768,7 @@ private fun LessonPage(
     onTap: (Pair<Int, Int>) -> Unit,
     onHold: (Pair<Int, Int>) -> Unit,
     onBlank: () -> Unit,
+    onRead: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val reading = state.reading
@@ -918,13 +802,20 @@ private fun LessonPage(
                 }
             }
         }
+        // Opened before a chapter: on into it.
+        state.then?.let { then ->
+            PrimaryButton(onClick = onRead, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(52.dp)) {
+                Text(then.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
     }
 }
 
 /**
  * [count] pages to swipe between, with the page number under them, then the
  * [end] page, which calls [onEnd] when it's reached. [reverse] puts the next
- * page on the left.
+ * page on the left. It opens on [startPage], and tells [onPageShown] each page
+ * it settles on, so a story can reopen where you were.
  */
 @Composable
 internal fun StoryPager(
@@ -932,11 +823,14 @@ internal fun StoryPager(
     reverse: Boolean,
     end: @Composable () -> Unit,
     onEnd: () -> Unit,
+    startPage: Int,
+    onPageShown: (Int) -> Unit,
     page: @Composable (Int) -> Unit,
 ) {
-    val state = rememberPagerState { count + 1 }
+    val state = rememberPagerState(startPage.coerceIn(0, count)) { count + 1 }
     val atEnd = state.settledPage == count
     LaunchedEffect(atEnd) { if (atEnd) onEnd() }
+    LaunchedEffect(state) { snapshotFlow { state.settledPage }.collect(onPageShown) }
     Column(Modifier.fillMaxSize()) {
         HorizontalPager(state, Modifier.weight(1f).fillMaxWidth(), reverseLayout = reverse, verticalAlignment = Alignment.Top) {
             if (it < count) page(it) else end()
@@ -1147,7 +1041,7 @@ private fun SentenceCard(translation: String?) {
 private fun WordCard(
     word: ReadingWord,
     reading: StoryReading,
-    onAdd: (Long) -> Unit,
+    onLesson: (Long) -> Unit,
     onKnow: (Long) -> Unit,
 ) {
     val entry = word.wordId?.let { reading.words[it] }
@@ -1191,7 +1085,8 @@ private fun WordCard(
                 val status = reading.statuses[entry.id]
                 Text(
                     levelLabel(entry.jlpt) + "  ·  " + when {
-                        status == null -> ui("New", "新しい")
+                        // A story's words you haven't started join your reviews at its end page; a grammar page has none.
+                        status == null -> ui("New", "新しい") + if (reading.lesson == null) ", joins your reviews when you finish" else ""
                         status.suspended -> "Suspended"
                         status.state == CardState.NEW -> "New, in your new-word queue"
                         else -> "Mastery ${status.mastery}"
@@ -1200,22 +1095,15 @@ private fun WordCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            for (use in word.grammar.distinctBy { it.point.id }) GrammarNote(use.point)
+            for (use in word.grammar.distinctBy { it.point.id }) {
+                // The topic's page, unless that's the page you're on.
+                val lesson = reading.lessons[use.point.id]?.takeIf { it != reading.story.id }
+                GrammarNote(use.point, lesson?.let { { onLesson(it) } })
+            }
         }
         if (entry != null && reading.isUnknown(word)) {
-            // Words aren't queued just for being read; "Add to reviews" is the main action, "I know this" the quiet one.
-            Row(
-                Modifier.padding(end = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (reading.statuses[entry.id] == null) {
-                    PrimaryButton(onClick = { onAdd(entry.id) }, modifier = Modifier.weight(1f).height(40.dp)) {
-                        Text(ui("Add to reviews", "復習に追加"))
-                    }
-                } else {
-                    Spacer(Modifier.weight(1f))
-                }
+            // New words join your reviews when you finish; "I know this" keeps one out.
+            Row(Modifier.fillMaxWidth().padding(end = 12.dp), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = { onKnow(entry.id) }) {
                     Text(ui("I know this", "知っている"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -1224,9 +1112,9 @@ private fun WordCard(
     }
 }
 
-/** One grammar point in the word card: the pattern, what it means, and an example. */
+/** One grammar point in the word card: the pattern, what it means, an example, and [onLesson] for its topic's page. */
 @Composable
-private fun GrammarNote(point: GrammarPoint) {
+private fun GrammarNote(point: GrammarPoint, onLesson: (() -> Unit)?) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 2.dp)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
@@ -1235,7 +1123,13 @@ private fun GrammarNote(point: GrammarPoint) {
                 ui("Grammar", "文法") + "  ·  " + levelLabel(point.level),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
             )
+            if (onLesson != null) {
+                TextButton(onClick = onLesson) {
+                    Text("Lesson →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                }
+            }
         }
         Text(point.meaning, fontSize = 16.sp, lineHeight = 21.sp)
         Text(point.note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1308,7 +1202,7 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
                 }
             }
             if (nextStep != null && nextStep.storyId != rest?.storyId) {
-                TextButton(onClick = { vm.openStory(nextStep.storyId) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                TextButton(onClick = { vm.openStory(nextStep.storyId, anyway = true) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Text(
                         nextStep.label.replaceFirst("Next", "Next anyway"),
                         style = MaterialTheme.typography.labelLarge,

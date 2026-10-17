@@ -37,6 +37,7 @@ import ca.danielpower.jstudy.data.RenshuuException
 import ca.danielpower.jstudy.data.Repository
 import ca.danielpower.jstudy.data.SavedStory
 import ca.danielpower.jstudy.data.SeriesEntry
+import ca.danielpower.jstudy.data.StepToLearn
 import ca.danielpower.jstudy.data.StoryReading
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Undo
@@ -168,20 +169,6 @@ sealed interface Screen {
     /** A story with more than one chapter: its chapters, and why one is locked once you tap it. */
     data class Series(val entry: SeriesEntry, val lock: LockInfo? = null) : Screen
 
-    /** A chapter's new kana, words and grammar, to learn before reading it. */
-    data class BeforeReading(
-        val story: SavedStory,
-        val chapter: ChapterEntry?,
-        val kana: List<KanaUnit>,
-        val words: List<Word>,
-        val topic: GrammarTopic?,
-        /** The topic's full page, saved as a story to open. */
-        val topicPage: Long? = null,
-        val pace: Pace? = null,
-        /** Whether anything with nothing new is open to read instead. */
-        val nothingNewOpen: Boolean = false,
-    ) : Screen
-
     data class StoryReader(
         val reading: StoryReading,
         val style: ReaderStyle,
@@ -194,8 +181,24 @@ sealed interface Screen {
         /** For a path story, once read: today's pace, and something with nothing new to read next. */
         val pace: Pace? = null,
         val rest: NextStep? = null,
+        /** For a grammar page opened before a chapter: that chapter, to read once it's done. */
+        val then: NextStep? = null,
+        /** The page to open on, when coming back from a grammar page. */
+        val startPage: Int = 0,
     ) : Screen
 }
+
+/** Past today's limit, a story that would add [adding] new words and kana, before it opens. */
+data class LimitPrompt(
+    val storyId: Long,
+    val title: String,
+    /** "Chapter 2", for a story with more than one. */
+    val chapter: String?,
+    val adding: Int,
+    val newToday: Int,
+    /** Whether anything with nothing new is open to read instead. */
+    val nothingNewOpen: Boolean,
+)
 
 /**
  * What reading a path story did: the words you first saw for it, and the
@@ -234,6 +237,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     )
     val theme: StateFlow<ThemeMode> = _theme.asStateFlow()
 
+    /** Shown over the screen you tapped a story on. */
+    private val _limit = MutableStateFlow<LimitPrompt?>(null)
+    val limit: StateFlow<LimitPrompt?> = _limit.asStateFlow()
+
     /** Which UI labels are in Japanese: the ones whose words you've mastered. */
     private val _language = MutableStateFlow(UiLanguage.ENGLISH)
     val language: StateFlow<UiLanguage> = _language.asStateFlow()
@@ -242,12 +249,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private lateinit var repo: Repository
     private var session: StudySession? = null
-    // The path story whose new words the session is teaching; it opens when they're done.
+    // The chapter whose new kana the session is teaching; it goes on when they're done.
     private var learningFor: Long? = null
-    // The grammar topic learned before the open chapter, for its end page.
+    // The grammar topic read before the open chapter, for its end page.
     private var topicForStory: GrammarTopic? = null
     // Where Back goes from a grammar page: the screen it was opened from.
     private var beforeGrammar: Screen? = null
+    // The page the open story is on, set from the main thread.
+    @Volatile private var readerPage = 0
     private var undo: Undo? = null
     private val lock = Mutex()
 
@@ -265,9 +274,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // When the open story was opened, to time the reading, and whether its end has been reached.
     private var readingSince = 0L
     private var readingFinished = false
-    // For the open path story: the words seen before reading it, your mastery
-    // when it opened, and the words you looked up, which reading doesn't credit.
-    private var seenForStory: List<Long> = emptyList()
+    // For the open path story: your mastery when it opened, and the words you
+    // looked up, which reading doesn't credit.
     private var masteryAtOpen: Map<Long, Int> = emptyMap()
     // Tapped on the main thread, read when the story ends.
     private val lookedUpWords: MutableSet<Long> = ConcurrentHashMap.newKeySet()
@@ -339,7 +347,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             is Screen.WordPage -> closeWord()
             is Screen.KanjiPage -> goBack()
             is Screen.RenshuuImport -> closeImport()
-            is Screen.StoryReader, is Screen.BeforeReading, is Screen.Series -> storyBack()
+            is Screen.StoryReader, is Screen.Series -> storyBack()
             is Screen.Setup -> setupBack()
             else -> goHome()
         }
@@ -365,11 +373,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val counts = ReviewCounts(s.newRemaining, s.learningRemaining, s.reviewRemaining)
         val card = s.next(now())
         if (card == null && learningFor != null) {
-            val story = learningFor!!
+            val story = repo.story(learningFor!!)
             session = null
             learningFor = null
             undo = null
-            return showStory(story)
+            return if (story != null) continueChapter(story) else showStories()
         }
         if (card == null) {
             val due = s.nextLearningDue
@@ -440,7 +448,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val s = session ?: return@launchIo
         val now = now()
         if (learningFor != null) {
-            // Learning a story's words: each is shown once, then the story opens.
+            // Learning a chapter's kana: each is shown once, then the chapter goes on.
             val u = if (mastery <= 0) {
                 repo.introduce(state.current.card, now).second
             } else {
@@ -696,8 +704,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val screen = _screen.value
         val grammarFrom = beforeGrammar
         val chapter = when (screen) {
-            is Screen.StoryReader -> if (screen.reading.lesson != null) null else screen.chapter
-            is Screen.BeforeReading -> screen.chapter
+            // A grammar page before a chapter goes back to its chapters.
+            is Screen.StoryReader -> if (screen.reading.lesson == null) screen.chapter else screen.then?.let { repo.story(it.storyId) }?.let { repo.chapterOf(it, now()) }
             else -> null
         }
         when {
@@ -714,73 +722,97 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** The back arrow on story screens. */
     fun storyBackPressed() = storyBack()
 
-    /** Open a story. A chapter with kana, words or grammar you haven't learned lists them first. */
-    fun openStory(id: Long) = launchIo {
-        _screen.value = Screen.Loading
-        seenForStory = emptyList()
-        topicForStory = null
-        val story = repo.story(id)
-        val learn = story?.let { repo.stepToLearn(it, now()) }
-        if (story != null && learn != null && !learn.isEmpty) {
-            val page = learn.topic?.let { repo.grammarPageId(it, now()) }
-            val open = nothingNew(repo.storyPath(now())).isNotEmpty()
-            _screen.value = Screen.BeforeReading(
-                story, repo.chapterOf(story, now()), learn.kana, learn.words, learn.topic, page,
-                pace = repo.pace(now()), nothingNewOpen = open,
+    /**
+     * Open a story. A chapter's new kana come first, as cards, then its new
+     * grammar's page, then the chapter; its new words you learn by reading.
+     * Past today's limit, a chapter that adds more asks first, unless [anyway].
+     */
+    fun openStory(id: Long, anyway: Boolean = false) = launchIo {
+        _limit.value = null
+        val story = repo.story(id) ?: return@launchIo showStories()
+        val learn = repo.stepToLearn(story, now())
+        val adding = learn?.let { it.words.size + it.kana.size } ?: 0
+        val pace = repo.pace(now())
+        if (!anyway && pace.over(adding)) {
+            val chapter = repo.chapterOf(story, now())
+            _limit.value = LimitPrompt(
+                id, story.title, chapter?.takeIf { !it.series.single }?.let { "Chapter ${it.chapter.number}" },
+                adding, pace.newToday, nothingNew(repo.storyPath(now())).isNotEmpty(),
             )
-        } else {
-            showStory(id)
+            return@launchIo
         }
+        topicForStory = null
+        continueChapter(story, learn)
+    }
+
+    /** On towards reading [story]: its new kana as cards, then its new grammar's page, then the story. */
+    private fun continueChapter(story: SavedStory, learn: StepToLearn? = repo.stepToLearn(story, now())) {
+        val kana = learn?.kana?.let(repo::kanaToLearn).orEmpty()
+        if (kana.isNotEmpty()) {
+            session = StudySession(emptyList(), kana, emptyList())
+            learningFor = story.id
+            undo = null
+            return advance()
+        }
+        val page = learn?.topic?.let { repo.grammarPageId(it, now()) } ?: return showStory(story.id)
+        val chapter = repo.chapterOf(story, now())
+        val name = if (chapter != null && !chapter.series.single) "chapter ${chapter.chapter.number}: ${chapter.chapter.story.title}" else story.title
+        beforeGrammar = null
+        showStory(page, then = NextStep(story.id, "Read $name"))
+    }
+
+    /** The button at the end of a grammar page before a chapter: the grammar counts as seen, and the chapter opens. */
+    fun readAfterLesson() = launchIo {
+        val state = _screen.value as? Screen.StoryReader ?: return@launchIo
+        val then = state.then ?: return@launchIo
+        repo.topicOfPage(state.reading.story)?.let { topic ->
+            repo.markGrammarSeen(topic.points)
+            topicForStory = topic
+        }
+        showStory(then.storyId)
     }
 
     /** Past today's limit, before a chapter: the stories with nothing new, or reviews if none are open. */
     fun readNothingNew() {
-        val state = _screen.value as? Screen.BeforeReading
-        if (state?.nothingNewOpen == false) startReview() else openStories()
+        val prompt = _limit.value
+        _limit.value = null
+        if (prompt?.nothingNewOpen == false) startReview() else openStories()
     }
 
-    /** A grammar topic's page, from before a chapter or the Words tab; Back returns there. */
+    fun closeLimit() {
+        _limit.value = null
+    }
+
+    /**
+     * A grammar topic's page, from the Words tab or a grammar point in a
+     * story; Back returns there, to the same page of the story. From one
+     * grammar page to another, Back skips the first.
+     */
     fun openGrammar(pageId: Long) = launchIo {
-        beforeGrammar = _screen.value
+        val screen = _screen.value
+        if (screen !is Screen.StoryReader || screen.reading.lesson == null) {
+            beforeGrammar = if (screen is Screen.StoryReader) screen.copy(startPage = readerPage) else screen
+        }
         showStory(pageId)
     }
 
-    /** "Learn these": the chapter's grammar counts as seen, then each new kana and word shows once as a new card, then the chapter. */
-    fun learnStoryWords() = launchIo {
-        val state = _screen.value as? Screen.BeforeReading ?: return@launchIo
-        learnTopic(state)
-        val cards = repo.cardsToLearn(state.words.map { it.id }, state.kana, now())
-        seenForStory = cards.map { it.wordId }.filter { !KanaCourse.isKanaId(it) }
-        session = StudySession(emptyList(), cards, emptyList())
-        learningFor = state.story.id
-        undo = null
-        advance()
+    /** The page the open story has settled on. */
+    fun readerAt(page: Int) {
+        readerPage = page
     }
 
-    /** "I know these": mark the chapter's new kana and words known, as on a new card, and its grammar seen, and read it. */
-    fun knowStoryWords() = launchIo {
-        val state = _screen.value as? Screen.BeforeReading ?: return@launchIo
-        val now = now()
-        learnTopic(state)
-        for (unit in state.kana) repo.markKnown(unit.id, MasteryRules.HIDE_AT, now)
-        for (word in state.words) repo.markKnown(word.id, MasteryRules.HIDE_AT, now)
-        showStory(state.story.id)
-    }
-
-    private fun learnTopic(state: Screen.BeforeReading) {
-        val topic = state.topic ?: return
-        repo.markGrammarSeen(topic.points)
-        topicForStory = topic
-    }
-
-    private fun showStory(id: Long) {
+    /** Open a story, or a grammar page; a grammar page leaves the story it was opened from as it was. */
+    private fun showStory(id: Long, then: NextStep? = null) {
         val reading = repo.readStory(id) ?: return showStories()
-        readingSince = now()
-        readingFinished = false
-        masteryAtOpen = repo.masteries(reading.words.keys)
-        lookedUpWords.clear()
+        if (reading.lesson == null) {
+            readingSince = now()
+            readingFinished = false
+            masteryAtOpen = repo.masteries(reading.words.keys)
+            lookedUpWords.clear()
+            readerPage = 0
+        }
         val chapter = repo.chapterOf(reading.story, now())
-        _screen.value = Screen.StoryReader(reading, repo.readerStyle(), chapter = chapter, next = chapter?.let(::nextStep))
+        _screen.value = Screen.StoryReader(reading, repo.readerStyle(), chapter = chapter, next = chapter?.let(::nextStep), then = then)
     }
 
     /** After [chapter]: its story's next open, unread chapter, or else the next story on the path that has one. */
@@ -804,11 +836,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val story = state.reading.story
         repo.markStoryRead(story.id, at, at - readingSince)
         repo.readWords(story, lookedUpWords.toSet(), at)
+        val started = repo.startStoryWords(story, at)
         val after = repo.masteries(state.reading.words.keys)
         fun crossed(line: Int) = after.filter { (id, m) -> (masteryAtOpen[id] ?: 0) < line && m >= line }.keys
         val words = state.reading.words
         val impact = ReadImpact(
-            seen = seenForStory.mapNotNull { words[it] },
+            seen = started.mapNotNull { words[it] },
             known = crossed(MasteryRules.HIDE_AT).mapNotNull { words[it] },
             mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
             topic = topicForStory,
@@ -826,9 +859,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun lookedUp(wordId: Long) {
         lookedUpWords += wordId
     }
-
-    /** "Add to reviews" on a word in a story: put it at the front of the new-word queue. */
-    fun addStoryWord(wordId: Long) = storyWordAction { repo.learnNext(wordId, now()) }
 
     /** "I know this" on a word in a story: mark it known, as on a new card. */
     fun knowStoryWord(wordId: Long) = storyWordAction { repo.markKnown(wordId, MasteryRules.HIDE_AT, now()) }

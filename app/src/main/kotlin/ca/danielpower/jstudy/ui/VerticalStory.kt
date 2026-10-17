@@ -100,6 +100,8 @@ fun VerticalStory(
     onBlank: () -> Unit,
     end: @Composable () -> Unit,
     onEnd: () -> Unit,
+    startPage: Int,
+    onPageShown: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pieces = remember(reading) { pieces(reading) }
@@ -133,7 +135,7 @@ fun VerticalStory(
         val seal = MaterialTheme.colorScheme.primary
         val highlight = seal.copy(alpha = 0.14f)
 
-        StoryPager(pages.size, reverse = true, end, onEnd) { page ->
+        StoryPager(pages.size, reverse = true, end, onEnd, startPage, onPageShown) { page ->
             val onPage = pages[page]
             Layout(
                 modifier = Modifier.fillMaxSize().padding(PAGE_PADDING),

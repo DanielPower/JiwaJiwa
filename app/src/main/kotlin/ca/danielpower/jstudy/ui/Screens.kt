@@ -28,8 +28,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -64,7 +66,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun App(vm: AppViewModel, screen: Screen) {
     // Kept here so the list keeps its place while a word is open.
@@ -73,7 +75,7 @@ fun App(vm: AppViewModel, screen: Screen) {
     val tab = when (screen) {
         is Screen.Home -> Tab.HOME
         is Screen.Dictionary -> Tab.DICTIONARY
-        is Screen.Stories, is Screen.Series, is Screen.BeforeReading -> Tab.STORIES
+        is Screen.Stories, is Screen.Series -> Tab.STORIES
         is Screen.Settings -> Tab.SETTINGS
         else -> null
     }
@@ -112,7 +114,6 @@ fun App(vm: AppViewModel, screen: Screen) {
                     is Screen.Stories -> StoriesScreen(screen, vm)
                     is Screen.Series -> SeriesScreen(screen, vm)
                     is Screen.StoryReader -> StoryReaderScreen(screen, vm)
-                    is Screen.BeforeReading -> BeforeReadingScreen(screen, vm)
                 }
             }
             if (navTab != null) {
@@ -125,6 +126,12 @@ fun App(vm: AppViewModel, screen: Screen) {
                     }
                 }
             }
+        }
+    }
+    val limit by vm.limit.collectAsStateWithLifecycle()
+    limit?.let { prompt ->
+        ModalBottomSheet(onDismissRequest = vm::closeLimit, containerColor = MaterialTheme.colorScheme.surface) {
+            LimitSheet(prompt, vm)
         }
     }
 }
