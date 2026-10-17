@@ -6,6 +6,7 @@
     [["ユキ|「ここだよ。」", "\"This is it.\""], ["アレックス|「人が多いね！」", "\"So many people!\""]],
     [["ユキ|「ここのラーメン、うまいよ。」", "\"The ramen here is great.\""]],
     [["チケットを買う。", "You buy a ticket."], ["ユキはチケットを買う。", "Yuki buys hers."]],
+    {"note": "Many ramen shops have a ticket machine by the door. You pay at the machine, press the button for your bowl, and hand the ticket to the staff; no ordering at the counter."},
     [["アレックス|「お腹すいた！」", "\"I'm so hungry!\""], ["ユキ|「ラーメン、食べたいね。」", "\"I want ramen.\""]]
   ]
 }

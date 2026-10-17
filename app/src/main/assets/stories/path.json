@@ -116,6 +116,12 @@
       "It's not crowded.",
       "I like this place.",
       "Konbini are great!"
+     ],
+     "notes": [
+      {
+       "before": 3,
+       "text": "Shop staff call いらっしゃいませ (\"welcome\") to everyone who walks in. It isn't said to you personally, and nobody answers it; a nod is plenty."
+      }
      ]
     },
     {
@@ -146,6 +152,12 @@
       "\"I did!\"",
       "\"Tokyo's big, huh.\"",
       "\"So big! So many people! The buildings are so tall!\""
+     ],
+     "notes": [
+      {
+       "before": 2,
+       "text": "よろしく has no neat English match. Said on meeting someone, it asks them to treat you well from here on, like \"nice to meet you\" and \"I'm counting on you\" at once. It's also said when asking a favour."
+      }
      ],
      "meets": [
       {
@@ -222,6 +234,12 @@
       "Yuki buys hers.",
       "\"I'm so hungry!\"",
       "\"I want ramen.\""
+     ],
+     "notes": [
+      {
+       "before": 4,
+       "text": "Many ramen shops have a ticket machine by the door. You pay at the machine, press the button for your bowl, and hand the ticket to the staff; no ordering at the counter."
+      }
      ],
      "topic": "wo"
     },
@@ -611,6 +629,12 @@
       "\"I took pictures of the cherry blossoms, too!\"",
       "Mom's doing well."
      ],
+     "notes": [
+      {
+       "before": 1,
+       "text": "母 (はは) is how you speak of your own mother to others. Talking to her, or about someone else's mother, it's お母さん (おかあさん). Family words often come in pairs like this."
+      }
+     ],
      "meets": [
       {
        "name": "母",
@@ -803,6 +827,12 @@
       "\"I really am.\"",
       "\"We'll miss you.\"",
       "With Yuki and Kenta, I ate one last ramen."
+     ],
+     "notes": [
+      {
+       "before": 6,
+       "text": "Japanese has no everyday word for \"I'll miss you\". People say 寂しい (\"lonely\"): saying goodbye makes them lonely."
+      }
      ],
      "topic": "to"
     },

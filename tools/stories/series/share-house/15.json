@@ -4,6 +4,7 @@
   "meets": [{"name": "母", "about": "Alex's mom, back in Canada"}],
   "paragraphs": [
     [["今夜、電話が来た。", "Tonight I got a phone call."], ["カナダの母だ。", "It's my mom, in Canada."]],
+    {"note": "母 (はは) is how you speak of your own mother to others. Talking to her, or about someone else's mother, it's お母さん (おかあさん). Family words often come in pairs like this."},
     [["母|「アレックス、元気？」", "\"Alex, how are you?\""], ["アレックス|「元気だよ！」", "\"I'm good!\""]],
     [["母|「日本、好き？」", "\"Do you like Japan?\""], ["アレックス|「好き！ラーメンがうまい！」", "\"I love it! The ramen is great!\""]],
     [["母|「友達は？」", "\"And friends?\""], ["アレックス|「ユキ、ケンタ、ミホさん。いい友達だよ。」", "\"Yuki, Kenta, Miho. They're good friends.\""]],

@@ -8,6 +8,7 @@
     [["ラーメン、ラーメン、ラーメン。", "Ramen, ramen, ramen."]],
     [["店長|「アレックスさん、今日は最後ですね。」", "\"Alex, today's your last day.\""], ["アレックス|「はい…」", "\"Yes…\""]],
     [["店長|「寂しいです。」", "\"We'll miss you.\""]],
+    {"note": "Japanese has no everyday word for \"I'll miss you\". People say 寂しい (\"lonely\"): saying goodbye makes them lonely."},
     [["アレックス|「店長とラーメン、本当に好きでした。」", "\"I really loved the ramen, and working with you.\""], ["店長|「最後のラーメン、うまいですよ。」", "\"The last ramen's a good one.\""]],
     [["店長|「最後のラーメン、食べますか？」", "\"One last ramen?\""], ["アレックス|「食べます！」", "\"Yes, please!\""]],
     [["ユキとケンタが来た。", "Yuki and Kenta came."], ["ミホさんも来た。", "Miho too."]],
