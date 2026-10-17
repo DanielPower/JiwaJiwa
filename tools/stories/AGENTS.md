@@ -14,6 +14,7 @@ tools (core `src/stories`).
 | `series/<id>/story.json` | A story's `title`, `blurb`, the stories it follows (`after`: story ids, or a chapter id such as `share-house/yukis-gig` to mean the story up to that chapter), `side` for a side story, and `chapters`: its chapters' slugs in reading order. |
 | `series/<id>/<slug>.json` | One chapter each, named by its slug (lowercase words joined by hyphens, usually from its title: `trash-day.json`): `title`, a one-line `plot`, optional `topic` (one grammar topic it teaches), `meets` (people it introduces, `{"name", "about"}`) and `readings` (see below), and `paragraphs`, each a list of `[Japanese sentence, English]`, or a note (`{"note": "English…"}`) between two of them. Its id is the story's id and its slug (`share-house/trash-day`), which saved progress uses. To add or move a chapter, add its file and put its slug where it goes in `chapters`; never rename a slug or delete a chapter people may have read. |
 | `series/<id>/SUMMARY.md` | Written by the tools, never by hand: the cast so far, each chapter's plot, words and new words, and every word and grammar topic known by the end. |
+| `PLAN.md` | The approved plan for the stories being written next: grammar topics in order, and each story's cast and outline. |
 | `COVERAGE.md` | Written by the tools: how many of the most common words the stories use, the words left (most common first), and the grammar points left. |
 
 ## Conventions
