@@ -40,8 +40,6 @@ data class Entry(
     val secondary: String?,
     val gloss: String,
     val jlpt: Int,
-    /** Int.MAX_VALUE for words that aren't on the JLPT lists. */
-    val studyOrder: Int,
 )
 
 /** "N5" to "N1", or "Other" for a word that isn't on the JLPT lists. */
@@ -147,7 +145,7 @@ class Dictionary(context: Context) : Lexicon {
     private fun entryRows(where: String, args: Array<String>): List<Entry> =
         db.rawQuery(
             """
-            SELECT w.id, w.kanji, w.kana, w.usually_kana, w.furigana IS NOT NULL, w.jlpt, w.study_order,
+            SELECT w.id, w.kanji, w.kana, w.usually_kana, w.furigana IS NOT NULL, w.jlpt,
                 (SELECT gloss FROM sense s WHERE s.word_id = w.id ORDER BY s.ord LIMIT 1)
             FROM word w WHERE $where ORDER BY w.study_order IS NULL, w.study_order, w.id
             """,
@@ -163,9 +161,8 @@ class Dictionary(context: Context) : Lexicon {
                             id = c.getLong(0),
                             display = if (showsKanji) kanji!! else kana,
                             secondary = if (showsKanji) kana else kanji,
-                            gloss = c.getString(7)?.let { strings(it).joinToString("; ") }.orEmpty(),
+                            gloss = c.getString(6)?.let { strings(it).joinToString("; ") }.orEmpty(),
                             jlpt = c.getInt(5),
-                            studyOrder = if (c.isNull(6)) Int.MAX_VALUE else c.getInt(6),
                         ),
                     )
                 }

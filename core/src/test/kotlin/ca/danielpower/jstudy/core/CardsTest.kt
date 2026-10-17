@@ -100,7 +100,6 @@ class CardsTest {
 
         val capped = reviewer.markKnown(card, WordProgress(7), 150, now, Random(1))
         assertEquals(100, capped.progress.mastery)
-        assertEquals(90, capped.intervalDays)
         assertEquals(90.0, capped.card.stability)
 
         val already = reviewer.markKnown(card, WordProgress(7, productionUnlocked = true), 80, now, Random(1))

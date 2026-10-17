@@ -35,6 +35,9 @@ class ProgressStoreTest {
         store.close()
     }
 
+    private fun wordIds(direction: Direction) =
+        store.cards("direction = ?", arrayOf(direction.value.toString()), "id").map { it.wordId }.toSet()
+
     private fun log(cardId: Long, day: Long, correct: Boolean, before: CardState = CardState.REVIEW) = ReviewLog(
         cardId = cardId, reviewedAt = day * 86_400_000L, day = day, correct = correct,
         stateBefore = before, stateAfter = CardState.REVIEW, elapsedDays = 3,
@@ -67,8 +70,8 @@ class ProgressStoreTest {
             assertEquals(-1L, store.insertNewCard(it, 7, Direction.RECOGNITION, 2))
             assertTrue(store.insertNewCard(it, 7, Direction.PRODUCTION, 3) > 0)
         }
-        assertEquals(setOf(7L), store.wordIdsWithCards(Direction.RECOGNITION))
-        assertEquals(setOf(7L), store.wordIdsWithCards(Direction.PRODUCTION))
+        assertEquals(setOf(7L), wordIds(Direction.RECOGNITION))
+        assertEquals(setOf(7L), wordIds(Direction.PRODUCTION))
     }
 
     @Test
@@ -93,8 +96,6 @@ class ProgressStoreTest {
         store.transaction { store.saveProgress(it, WordProgress(7, mastery = 30)) }
         store.transaction { store.saveProgress(it, WordProgress(7, mastery = 60, productionUnlocked = true)) }
         assertEquals(WordProgress(7, mastery = 60, productionUnlocked = true), store.progress(7))
-        store.transaction { store.deleteProgress(it, 7) }
-        assertEquals(WordProgress(7), store.progress(7))
     }
 
     @Test
@@ -143,21 +144,6 @@ class ProgressStoreTest {
             }
         }
         assertEquals(listOf(100L), store.reviewDueTimes(250))
-    }
-
-    @Test
-    fun rebuildingTheQueueKeepsStartedSuspendedAndLearnNextCards() {
-        val ids = store.transaction {
-            val queued = store.insertNewCard(it, 1, Direction.RECOGNITION, 1)
-            val learnNext = store.insertNewCard(it, 2, Direction.RECOGNITION, -1)
-            val suspended = store.insertNewCard(it, 3, Direction.RECOGNITION, 2, suspended = true)
-            val started = store.insertNewCard(it, 4, Direction.RECOGNITION, 3)
-            store.updateCard(it, store.card(started)!!.copy(state = CardState.LEARNING, reps = 1))
-            listOf(queued, learnNext, suspended, started)
-        }
-        store.transaction { store.deleteQueuedNewCards(it) }
-        assertNull(store.card(ids[0]))
-        for (id in ids.drop(1)) assertEquals(id, store.card(id)?.id)
     }
 
     @Test
@@ -233,7 +219,7 @@ class ProgressStoreTest {
                 error("boom")
             }
         }
-        assertEquals(emptySet<Long>(), store.wordIdsWithCards(Direction.RECOGNITION))
+        assertEquals(emptySet<Long>(), wordIds(Direction.RECOGNITION))
     }
 
     @Test
@@ -279,7 +265,7 @@ class ProgressStoreTest {
     }
 
     @Test
-    fun upgradingToVersion9DropsKanaCards() {
+    fun upgradingToVersion9DropsKanaCardsAndQueuedWords() {
         store.close()
         context.deleteDatabase(ProgressStore.NAME)
         val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
@@ -300,13 +286,17 @@ class ProgressStoreTest {
             )
             card(7, Direction.RECOGNITION.value)
             card(-1, 2)
+            // Waiting unstarted in the old new-word queue.
+            db.execSQL(
+                "INSERT INTO card (word_id, direction, state, due_at, reps, lapses, sort_key) VALUES (8, 0, 0, 0, 0, 0, 1)",
+            )
             db.execSQL("INSERT INTO word_progress (word_id, mastery, production_unlocked) VALUES (7, 50, 0), (-1, 40, 0)")
             db.execSQL("INSERT INTO kv (key, value) VALUES ('kana_known', 'none')")
         }
 
         store = ProgressStore(context)
         assertEquals(1, store.count("SELECT COUNT(*) FROM card"))
-        assertEquals(setOf(7L), store.wordIdsWithCards(Direction.RECOGNITION))
+        assertEquals(setOf(7L), wordIds(Direction.RECOGNITION))
         assertEquals(0, store.progress(-1).mastery)
         assertEquals(50, store.progress(7).mastery)
         assertNull(store.getValue("kana_known"))

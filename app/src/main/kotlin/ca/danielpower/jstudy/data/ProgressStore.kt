@@ -96,13 +96,18 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         if (oldVersion < 2) db.execSQL("ALTER TABLE card ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0")
         if (oldVersion < 4) deriveMastery(db)
         if (oldVersion < 8) keepOnlyBundledStories(db)
-        if (oldVersion < 9) dropKana(db)
+        if (oldVersion < 9) dropRemovedCards(db)
     }
 
-    /** Version 9 dropped kana cards (direction 2, negative word ids), their history and settings. */
-    private fun dropKana(db: SQLiteDatabase) {
+    /**
+     * Version 9 dropped kana cards (direction 2, negative word ids), their
+     * history and settings, and the new-word queue: words waiting there
+     * unstarted never come up now that stories bring in new words.
+     */
+    private fun dropRemovedCards(db: SQLiteDatabase) {
         db.execSQL("DELETE FROM kv WHERE key IN ('kana_known', 'new_kana_per_day')")
         if (!hasColumn(db, "card", "direction")) return
+        db.execSQL("DELETE FROM card WHERE state = 0 AND direction = 0 AND reps = 0 AND suspended = 0")
         db.execSQL("DELETE FROM review_log WHERE card_id IN (SELECT id FROM card WHERE direction = 2)")
         db.execSQL("DELETE FROM card WHERE direction = 2")
         db.execSQL("DELETE FROM word_progress WHERE word_id < 0")
@@ -239,12 +244,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     fun card(id: Long): Card? = cards("id = ?", arrayOf(id.toString()), "id").firstOrNull()
 
-    fun wordIdsWithCards(direction: Direction): Set<Long> =
-        readableDatabase.rawQuery(
-            "SELECT word_id FROM card WHERE direction = ?",
-            arrayOf(direction.value.toString()),
-        ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
-
     fun insertNewCard(
         db: SQLiteDatabase,
         wordId: Long,
@@ -278,10 +277,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             putNullable("introduced_day", card.introducedDay)
         }
         db.update("card", values, "id = ?", arrayOf(card.id.toString()))
-    }
-
-    fun setSortKey(db: SQLiteDatabase, id: Long, sortKey: Long) {
-        db.update("card", ContentValues().apply { put("sort_key", sortKey) }, "id = ?", arrayOf(id.toString()))
     }
 
     fun setSuspended(db: SQLiteDatabase, wordId: Long, suspended: Boolean) {
@@ -369,10 +364,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         db.insertWithOnConflict("word_progress", null, values, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
-    fun deleteProgress(db: SQLiteDatabase, wordId: Long) {
-        db.delete("word_progress", "word_id = ?", arrayOf(wordId.toString()))
-    }
-
     // ------------------------------------------------------------ history
 
     fun insertLog(db: SQLiteDatabase, log: ReviewLog): Long {
@@ -427,18 +418,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             "SELECT due_at FROM card WHERE state = ? AND suspended = 0 AND due_at < ?",
             arrayOf(CardState.REVIEW.value.toString(), before.toString()),
         ).use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }
-
-    /**
-     * Drop unstarted cards that were queued in study order, so the queue is
-     * rebuilt in a new order. Words queued with Learn next, or suspended, stay.
-     */
-    fun deleteQueuedNewCards(db: SQLiteDatabase) {
-        db.delete(
-            "card",
-            "state = ? AND direction = ? AND reps = 0 AND suspended = 0 AND sort_key >= 0",
-            arrayOf(CardState.NEW.value.toString(), Direction.RECOGNITION.value.toString()),
-        )
-    }
 
     // ------------------------------------------------------------ backup
 

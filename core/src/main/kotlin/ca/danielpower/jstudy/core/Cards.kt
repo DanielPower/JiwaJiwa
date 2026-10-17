@@ -218,7 +218,6 @@ class Reviewer(
             ),
             progress = progress.copy(mastery = newMastery, productionUnlocked = progress.productionUnlocked || unlock),
             unlockedProduction = unlock,
-            intervalDays = days,
         )
     }
 }
@@ -227,5 +226,4 @@ data class Known(
     val card: Card,
     val progress: WordProgress,
     val unlockedProduction: Boolean,
-    val intervalDays: Int,
 )

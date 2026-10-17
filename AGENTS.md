@@ -100,13 +100,14 @@ Study and scheduling:
 - Target retention and the mastery thresholds (furigana and production)
   are fixed constants (`MasteryRules`), not settings, so users aren't
   overwhelmed with choices. Don't add them back unless Daniel asks.
-- New words go N5 → N1, by frequency within a level. Within a sitting,
-  reviews and new cards are shuffled. Reviews never show a "new card"
-  screen: new words start when a story is finished.
+- New words start when a story is finished; there's no new-word queue or
+  "Learn next" (removed 2026-10-17). The only new cards in reviews are
+  unlocked production cards. Within a sitting, reviews and new cards are
+  shuffled.
 - "Mark known" lets you set the word's mastery; it gets a review schedule to
   match, first due on a random day in that interval.
 - "Study more" pulls every schedule one day earlier (a `daysAhead` counter)
-  and adds another day's worth of new cards for today.
+  and adds another day's worth of production cards for today.
 - v1 card back is minimal: word, reading, English meanings. No example
   sentences, TTS or pitch accent yet.
 

@@ -90,8 +90,7 @@ data class KanjiWordRow(val entry: Entry, val mastery: Int, val reading: String?
 data class Undo(
     val cardBefore: Card,
     val progressBefore: WordProgress,
-    /** Null when the action wasn't a review (marking a word known). */
-    val logId: Long?,
+    val logId: Long,
     val productionCardId: Long?,
 )
 
@@ -122,8 +121,8 @@ data class StoryReading(
     }
 }
 
-/** What a chapter brings that you haven't learned: its new words, and the grammar topic it brings in. */
-data class StepToLearn(val words: List<Word>, val topic: GrammarTopic?)
+/** What a chapter brings that you haven't learned: how many new words, and the grammar topic it brings in. */
+data class StepToLearn(val newWords: Int, val topic: GrammarTopic?)
 
 /** A chapter of a story that comes with the app, and what of it you haven't learned. */
 data class ChapterEntry(
@@ -384,22 +383,18 @@ class Repository(context: Context) {
         store.transaction { db -> store.updateCard(db, reviewer.introduce(card, now)) }
     }
 
-    /** Mark a word you already know at [mastery]. Returns the review interval in days. */
-    fun markKnown(card: Card, mastery: Int, now: Long): Pair<Int, Undo> {
+    /** Mark a word you already know at [mastery]. */
+    private fun markKnown(card: Card, mastery: Int, now: Long) {
         val settings = settings()
         val reviewer = Reviewer(Fsrs(), clock(settings))
         val before = store.progress(card.wordId)
         val known = reviewer.markKnown(card, before, mastery, now, Random.Default)
-        return store.transaction { db ->
+        store.transaction { db ->
             store.updateCard(db, known.card)
             store.saveProgress(db, known.progress)
-            val production = if (known.unlockedProduction) {
+            if (known.unlockedProduction) {
                 store.insertNewCard(db, card.wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
-                    .takeIf { it > 0 }
-            } else {
-                null
             }
-            known.intervalDays to Undo(card, before, null, production)
         }
     }
 
@@ -407,7 +402,7 @@ class Repository(context: Context) {
         store.transaction { db ->
             store.updateCard(db, undo.cardBefore)
             store.saveProgress(db, undo.progressBefore)
-            undo.logId?.let { store.deleteLog(db, it) }
+            store.deleteLog(db, undo.logId)
             undo.productionCardId?.let { store.deleteCard(db, it) }
         }
     }
@@ -444,31 +439,18 @@ class Repository(context: Context) {
             "id",
         ).firstOrNull()
 
-    /** Put a word at the front of the new-word queue. */
-    fun learnNext(wordId: Long, now: Long) {
-        store.transaction { db ->
-            store.setSuspended(db, wordId, false)
-            val card = recognitionCard(wordId)
-            if (card == null) {
-                store.insertNewCard(db, wordId, Direction.RECOGNITION, now / 1000 - LEARN_NEXT_FIRST)
-            } else if (card.state == CardState.NEW) {
-                store.setSortKey(db, card.id, now / 1000 - LEARN_NEXT_FIRST)
-            }
-        }
-    }
-
     /** Mark a word from the dictionary as known at [mastery], starting it if needed. */
     fun markKnown(wordId: Long, mastery: Int, now: Long) {
         store.transaction { db ->
             store.setSuspended(db, wordId, false)
             if (recognitionCard(wordId) == null) {
-                store.insertNewCard(db, wordId, Direction.RECOGNITION, now / 1000 - LEARN_NEXT_FIRST)
+                store.insertNewCard(db, wordId, Direction.RECOGNITION, 0)
             }
         }
         markKnown(recognitionCard(wordId) ?: return, mastery, now)
     }
 
-    /** Forget a word: its cards, mastery and history. It returns to its place in the study order. */
+    /** Forget a word: its cards, mastery and history. */
     fun reset(wordId: Long) {
         store.transaction { db -> store.deleteWord(db, wordId) }
     }
@@ -476,12 +458,12 @@ class Repository(context: Context) {
     fun setSuspended(wordId: Long, suspended: Boolean) {
         store.transaction { db ->
             if (suspended && recognitionCard(wordId) == null) {
-                // Keeps an unstarted word out of the new-word queue.
+                // Suspension lives on the card, so an unstarted word gets one.
                 store.insertNewCard(db, wordId, Direction.RECOGNITION, 0, suspended = true)
             }
             store.setSuspended(db, wordId, suspended)
             if (!suspended) {
-                // An unstarted word goes back to its usual place in the study order.
+                // An unstarted word goes back to having no card.
                 val card = recognitionCard(wordId)
                 if (card != null && card.state == CardState.NEW && card.reps == 0) store.deleteCard(db, card.id)
             }
@@ -539,7 +521,7 @@ class Repository(context: Context) {
         store.transaction { db ->
             for ((wordId, mastery) in updates) {
                 if (recognitionCard(wordId) == null) {
-                    store.insertNewCard(db, wordId, Direction.RECOGNITION, now / 1000 - LEARN_NEXT_FIRST)
+                    store.insertNewCard(db, wordId, Direction.RECOGNITION, 0)
                 }
                 val card = recognitionCard(wordId) ?: continue
                 val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default)
@@ -680,10 +662,10 @@ class Repository(context: Context) {
     fun chapterOf(story: SavedStory, now: Long): ChapterEntry? =
         storyPath(now).flatMap { it.chapters }.firstOrNull { it.chapter.story.id == story.pathId }
 
-    /** The words (with dictionary entries) in a chapter you haven't learned yet, and its new grammar, or null off the path. */
+    /** How many words in a chapter you haven't learned yet, and its new grammar, or null off the path. */
     fun stepToLearn(story: SavedStory, now: Long): StepToLearn? {
         val entry = chapterOf(story, now) ?: return null
-        return StepToLearn(entry.gap.words.mapNotNull { w -> w.wordId?.let { dictionary.word(it) } }, entry.newTopic)
+        return StepToLearn(entry.gap.words.count { it.wordId != null }, entry.newTopic)
     }
 
     /** Why [chapterId] is locked: what it's missing, and where to pick that up. */
@@ -763,7 +745,7 @@ class Repository(context: Context) {
         val ids = StoryPath.words(reader, story.body).mapNotNull { it.wordId }.distinct()
             .filter { !isKnown(it) && dictionary.word(it) != null }
         for (id in ids) {
-            learnNext(id, now)
+            store.transaction { db -> if (recognitionCard(id) == null) store.insertNewCard(db, id, Direction.RECOGNITION, 0) }
             recognitionCard(id)?.takeIf { it.state == CardState.NEW }?.let { introduce(it, now) }
         }
         return ids
@@ -780,10 +762,8 @@ class Repository(context: Context) {
     /** The JLPT level new words start from: 5 for N5 down to 1 for N1. */
     fun startLevel(): Int = store.getValue("start_level")?.toIntOrNull()?.coerceIn(1, 5) ?: 5
 
-    /** Start new words from another level. Words already queued in the old order are re-queued. */
     fun setStartLevel(level: Int) {
         store.setValues(mapOf("start_level" to level.coerceIn(1, 5).toString()))
-        store.transaction { db -> store.deleteQueuedNewCards(db) }
     }
 
     /**
@@ -991,7 +971,6 @@ class Repository(context: Context) {
 
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12
-        private const val LEARN_NEXT_FIRST = 20_000_000_000L
 
         /** Never a label key, which is Japanese text. */
         private const val LABELS_VERSION = "@dictionary"

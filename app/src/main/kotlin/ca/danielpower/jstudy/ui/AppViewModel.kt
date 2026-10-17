@@ -646,7 +646,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _limit.value = null
         val story = repo.story(id) ?: return@launchIo showStories()
         val learn = repo.stepToLearn(story, now())
-        val adding = learn?.words?.size ?: 0
+        val adding = learn?.newWords ?: 0
         val pace = repo.pace(now())
         if (!anyway && pace.over(adding)) {
             val chapter = repo.chapterOf(story, now())
@@ -893,8 +893,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             else -> _screen.value = screen
         }
     }
-
-    fun learnNext() = wordAction { repo.learnNext(it, now()) }
 
     fun markKnown(mastery: Int) = wordAction { repo.markKnown(it, mastery, now()) }
 

@@ -324,9 +324,8 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         when {
                             detail.suspended -> Text(ui("Suspended", "保留中"), style = MaterialTheme.typography.bodyLarge)
-                            recognition == null -> Text(ui("Not started", "未学習"), style = MaterialTheme.typography.bodyLarge)
-                            recognition.state == CardState.NEW ->
-                                Text("Waiting in the new-word queue", style = MaterialTheme.typography.bodyLarge)
+                            recognition == null || recognition.state == CardState.NEW ->
+                                Text(ui("Not started", "未学習"), style = MaterialTheme.typography.bodyLarge)
                             else -> {
                                 CardLine(ui("Japanese → English", "日本語から英語"), recognition, state.clock)
                                 production?.let { CardLine(ui("English → Japanese", "英語から日本語"), it, state.clock) }
@@ -343,9 +342,6 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel(ui("Actions", "操作"))
-                if (!started) {
-                    PrimaryButton(onClick = vm::learnNext, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(ui("Learn next", "次に覚える", "次", "覚える")) }
-                }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SecondaryButton(onClick = { vm.markKnown(MasteryRules.HIDE_AT) }, modifier = Modifier.weight(1f).height(48.dp)) {
                         Text(if (started) ui("Set as known", "知っている") else ui("Mark known", "知っている"))
@@ -365,8 +361,8 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                     }
                 }
                 Text(
-                    "Suspended words never come up for review or as new words. Reset forgets the word's progress and " +
-                        "history, and it comes back as a new word in its usual place.",
+                    "Suspended words never come up for review, and count as known in stories. Reset forgets the " +
+                        "word's progress and history.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
