@@ -1,0 +1,19 @@
+{
+  "title": "Miho's Manga",
+  "blurb": "A magazine contest, a heroine who looks a lot like Yuki, and a deadline on the last day of summer.",
+  "after": ["the-band/mihos-notebook"],
+  "chapters": [
+    "the-contest",
+    "the-heroine",
+    "the-publisher",
+    "the-pros-pages",
+    "no-time",
+    "drawing-the-band",
+    "when-i-was-a-kid",
+    "old-notebooks",
+    "the-ending",
+    "the-deadline",
+    "waiting",
+    "honourable-mention"
+  ]
+}

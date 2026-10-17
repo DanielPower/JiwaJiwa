@@ -175,7 +175,8 @@ class Reader(private val lexicon: Lexicon) {
      * [readings] maps a word, written as the text writes it, to its reading,
      * for the odd word the reader gets wrong: 方 in あの方 is かた, not the
      * ほう of ～のほうが. A pinned word is looked up by that reading, and
-     * left as it was if the dictionary doesn't have it.
+     * left as it was if the dictionary doesn't have it. A pinned dictionary
+     * form pins its conjugations too: 描く read かく makes 描いた かいた.
      */
     fun words(paragraph: String, readings: Map<String, String> = emptyMap()): List<ReadingWord> {
         val tokens = tokenizer.tokenize(paragraph).map(::Morpheme)
@@ -186,7 +187,7 @@ class Reader(private val lexicon: Lexicon) {
         while (i < tokens.size) {
             val from = i
             val t = tokens[i]
-            val compound = compound(tokens, i) ?: counted(tokens, i)
+            val compound = compound(tokens, i) ?: counted(tokens, i) ?: greeting(tokens, i) ?: setPhrase(tokens, i)
             when {
                 compound != null -> {
                     out += compound.first
@@ -196,7 +197,7 @@ class Reader(private val lexicon: Lexicon) {
                     out += plain(listOf(t), WordKind.PUNCTUATION, null)
                     i++
                 }
-                t.isInflectingHead || (t.isSuruNoun && tokens.getOrNull(i + 1)?.isSuru == true) -> {
+                t.isInflectingHead || comesWithout(tokens, i) || (t.isSuruNoun && tokens.getOrNull(i + 1)?.isSuru == true) -> {
                     val end = chainEnd(tokens, i + if (t.isSuruNoun) 2 else 1)
                     out += inflected(tokens.subList(i, end))
                     i = end
@@ -237,16 +238,33 @@ class Reader(private val lexicon: Lexicon) {
 
     /** [word] as [readings] reads it, if it pins it and the dictionary has it with that reading. */
     private fun pinned(word: ReadingWord, readings: Map<String, String>): ReadingWord {
-        val reading = readings[word.surface] ?: return word
+        val reading = readings[word.surface] ?: return conjugationPinned(word, readings)
         val match = (lexicon.find(word.surface, reading) ?: lexicon.find(word.lemma, reading))?.takeIf { it.reading == reading }
             ?: return word
         return word.copy(kind = WordKind.WORD, wordId = match.wordId, reading = reading, ruby = ruby(word.surface, reading))
     }
 
+    /** A conjugated [word] whose dictionary form [readings] pins, read the pinned way: 描いた as かいた for 描く read かく. */
+    private fun conjugationPinned(word: ReadingWord, readings: Map<String, String>): ReadingWord {
+        if (word.kind != WordKind.WORD || word.lemma == word.surface) return word
+        val reading = readings[word.lemma] ?: return word
+        val match = lexicon.find(word.lemma, reading)?.takeIf { it.reading == reading } ?: return word
+        // The kanji the two share keep the pinned reading; the kana after them are read as written.
+        val stem = word.lemma.takeWhile { !Kana.isKana(it.toString()) }
+        val lemmaTail = Kana.toHiragana(word.lemma.drop(stem.length))
+        val tail = word.surface.removePrefix(stem)
+        if (stem.isEmpty() || tail == word.surface || !Kana.isKana(tail) || !reading.endsWith(lemmaTail)) return word
+        val surfaceReading = reading.dropLast(lemmaTail.length) + Kana.toHiragana(tail)
+        return word.copy(wordId = match.wordId, reading = surfaceReading, ruby = ruby(word.surface, surfaceReading))
+    }
+
     private fun withGrammar(words: List<ReadingWord>, spans: List<IntRange>, tokens: List<Morpheme>): List<ReadingWord> {
         val wordOf = IntArray(tokens.size)
         spans.forEachIndexed { w, span -> for (k in span) wordOf[k] = w }
+        // A set phrase or compound read whole (いってきます) has no grammar inside it.
+        val whole = words.indices.filter { words[it].kind == WordKind.WORD && words[it].lemma == words[it].surface && spans[it].count() > 1 }.toSet()
         val found = Grammar.find(tokens).map { GrammarUse(it.point, wordOf[it.start], wordOf[it.end - 1]) }
+            .filterNot { it.first == it.last && it.first in whole }
         // A bare stem is there for what follows it, so it joins that point: 見 in 見に行く, 暑く in 暑くなる.
         val stems = words.indices.filter { words[it].stem }.toSet()
         val joined = found.map { u ->
@@ -261,7 +279,15 @@ class Reader(private val lexicon: Lexicon) {
             ).sortedBy { it.first }
         return words.mapIndexed { w, word ->
             val mine = uses.filter { w in it.first..it.last }
-            if (mine.isNotEmpty()) word.copy(grammar = mine) else if (word.conjugated && !word.stem) phrase(word) else word
+            when {
+                mine.isNotEmpty() -> word.copy(grammar = mine)
+                word.conjugated && !word.stem -> phrase(word)
+                // A time noun the tokenizer files with grammar but no point explains is a word: 日 in 休みの日, 最後の日です.
+                word.kind == WordKind.GRAMMAR && word.surface.any(::isKanji) &&
+                    (tokens[spans[w].first].pos3 == "副詞可能" || word.lemma in TIME_NOUNS) ->
+                    lexicon.find(word.lemma, word.reading)?.let { word.copy(kind = WordKind.WORD, wordId = it.wordId) } ?: word
+                else -> word
+            }
         }
     }
 
@@ -273,6 +299,37 @@ class Reader(private val lexicon: Lexicon) {
     private fun phrase(word: ReadingWord): ReadingWord {
         val match = lexicon.find(word.surface, word.reading) ?: return word
         return word.copy(lemma = word.surface, wordId = match.wordId, reading = match.reading, conjugation = emptyList(), ruby = ruby(word.surface, match.reading))
+    }
+
+    /** An interjection and the polite ending the dictionary has with it as one phrase: ありがとうございます. */
+    private fun greeting(tokens: List<Morpheme>, start: Int): Pair<ReadingWord, Int>? {
+        if (tokens[start].pos != "感動詞") return null
+        var end = start + 1
+        while (end < tokens.size && tokens[end].pos == "助動詞") end++
+        for (stop in end downTo start + 2) {
+            val group = tokens.subList(start, stop)
+            val text = group.joinToString("") { it.surface }
+            val match = lexicon.find(text, group.joinToString("") { it.readingOrSurface }) ?: continue
+            return plain(group, WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(text, match.reading)) to stop
+        }
+        return null
+    }
+
+    /**
+     * An everyday set phrase the tokenizer splits or misreads, as its
+     * dictionary entry: ただいま (not ただ + いま before ！), いってきます (not a
+     * form of 言う).
+     */
+    private fun setPhrase(tokens: List<Morpheme>, start: Int): Pair<ReadingWord, Int>? {
+        for (phrase in SET_PHRASES) {
+            var end = start
+            var text = ""
+            while (end < tokens.size && text.length < phrase.length) text += tokens[end++].surface
+            if (text != phrase || end == start) continue
+            val match = lexicon.find(phrase, Kana.toHiragana(phrase)) ?: continue
+            return plain(tokens.subList(start, end), WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(phrase, match.reading)) to end
+        }
+        return null
     }
 
     /** A run of nouns the dictionary knows as one word (図書館員, 魔導士), longest first. */
@@ -320,6 +377,11 @@ class Reader(private val lexicon: Lexicon) {
         return plain(group, WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(text, match.reading)) to end
     }
 
+    /** 来る after ～ないで, "come without doing": a verb of its own, though the tokenizer takes it for ～てくる's. */
+    private fun comesWithout(tokens: List<Morpheme>, i: Int): Boolean =
+        tokens[i].pos == "動詞" && tokens[i].base in setOf("くる", "来る") && tokens.getOrNull(i - 1)?.base == "で" &&
+            tokens.getOrNull(i - 2)?.base == "ない"
+
     /** Where the conjugation attached to a verb or adjective at [from] - 1 ends. */
     private fun chainEnd(tokens: List<Morpheme>, from: Int): Int {
         var i = from
@@ -331,6 +393,7 @@ class Reader(private val lexicon: Lexicon) {
                 t.pos == "動詞" && t.pos2 == "接尾" -> true
                 t.pos == "助詞" && t.pos2 == "接続助詞" && t.base in CONNECTIVES -> true
                 t.pos == "助詞" && t.pos2 == "並立助詞" && t.base == "たり" -> true
+                comesWithout(tokens, i) -> false
                 t.pos == "動詞" && t.pos2 == "非自立" ->
                     prev.base in setOf("て", "で", "ば") || t.base in CONTRACTIONS
                 // The tokenizer sometimes takes ちゃう for a verb of its own (帰っちゃう).
@@ -414,6 +477,10 @@ class Reader(private val lexicon: Lexicon) {
         private const val MAX_COMPOUND = 4
         private val CONNECTIVES = setOf("て", "で", "ば", "ながら", "つつ")
         private val CONJUNCTIONS = setOf("でも", "けど", "だけど", "だって")
+        /** Nouns the tokenizer sometimes files as dependent (grammar) nouns, though they're words: 日 in 最後の日です. */
+private val TIME_NOUNS = setOf("日")
+
+private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "おかえり", "いってきます", "いってらっしゃい")
         private val CONTRACTIONS = setOf("ちゃう", "じゃう", "ちまう", "とく", "てる", "でる")
         private val E_TO_U = mapOf('え' to 'う', 'け' to 'く', 'せ' to 'す', 'て' to 'つ', 'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る', 'げ' to 'ぐ')
 
@@ -577,8 +644,12 @@ internal class Morpheme(token: Token) {
     val form: String = token.conjugationForm
     val type: String = token.conjugationType
     val unknown: Boolean = token.baseForm == "*"
-    val base: String = if (unknown) surface else token.baseForm
-    private val reading: String? = token.reading.takeIf { it != "*" }?.let(Kana::toHiragana)
+    // 行っ(た) is 行く, "went", far more often than 行う, "carried out", which the tokenizer sometimes picks.
+    private val went = token.baseForm == "行う" && surface == "行っ"
+    val base: String = if (unknown) surface else if (went) "行く" else token.baseForm
+    // 後 after の (仕事の後で) is あと; the tokenizer says のち.
+    private val after = surface == "後" && pos2 == "非自立"
+    private val reading: String? = if (went) "いっ" else if (after) "あと" else token.reading.takeIf { it != "*" }?.let(Kana::toHiragana)
 
     /** The reading in hiragana, or the surface if the tokenizer has none. */
     val readingOrSurface: String get() = reading ?: Kana.toHiragana(surface)

@@ -1,0 +1,21 @@
+{
+  "title": "The new guy",
+  "plot": "Spring: Sora arrives from Hokkaido with a huge bag, and Yuki lets him in.",
+  "topic": "n-desu",
+  "meets": [{"name": "ソラ", "about": "takes Alex's old room; 19, from Hokkaido, starting university"}],
+  "paragraphs": [
+    [["春の朝だ。", "A spring morning."]],
+    [["外に、人がいる。", "There's someone outside."], ["大きい荷物だ。", "With a big bag."]],
+    [["ユキ|「あ！新しい人？」", "\"Oh! Are you the new guy?\""]],
+    [["ソラ|「はい。ソラです。よろしくお願いします。」", "\"Yes. I'm Sora. Nice to meet you.\""], ["ユキ|「ユキです。よろしく！」", "\"I'm Yuki. Nice to meet you!\""]],
+    [["ユキ|「どこから来たの？」", "\"Where are you from?\""], ["ソラ|「北海道から来ました。」", "\"I came from Hokkaido.\""]],
+    [["ユキ|「北海道！寒いでしょ？」", "\"Hokkaido! It's cold there, right?\""], ["ソラ|「はい、寒いです。」", "\"Yes, it's cold.\""]],
+    [["ユキ|「東京の大学に行くの？」", "\"Are you going to university in Tokyo?\""], ["ソラ|「はい。春から、大学です。」", "\"Yes. I start university this spring.\""]],
+    [["ユキ|「荷物、大きいね。」", "\"That's a big bag.\""], ["ソラ|「…マンガです。」", "\"…It's manga.\""]],
+    [["ユキ|「マンガ！」", "\"Manga!\""], ["ソラ|「北海道で買ったんです。」", "\"I bought it in Hokkaido.\""]],
+    [["ユキ|「ソラの部屋は、アレックスの部屋だったよ。」", "\"Your room used to be Alex's.\""], ["ソラ|「アレックスさん？」", "\"Alex?\""]],
+    [["ユキ|「カナダに帰ったんだ。」", "\"He went home to Canada.\""]],
+    [["ユキ|「ケンタもいるよ。でも、朝は眠いの。」", "\"Kenta lives here too. But he's sleepy in the mornings.\""]],
+    [["ユキ|「来て！コーヒー、飲む？」", "\"Come on in! Want a coffee?\""], ["ソラ|「あ、はい！」", "\"Oh, yes!\""]]
+  ]
+}

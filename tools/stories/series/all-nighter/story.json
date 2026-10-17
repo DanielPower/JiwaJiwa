@@ -1,0 +1,7 @@
+{
+  "title": "All-nighter",
+  "blurb": "Kenta finally has a night off, and Sora finds out what that means.",
+  "after": ["new-housemate/first-day"],
+  "side": true,
+  "chapters": ["all-nighter"]
+}

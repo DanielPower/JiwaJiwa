@@ -36,6 +36,26 @@ class ReadingTest {
     }
 
     @Test
+    fun aPinnedDictionaryFormPinsItsConjugations() {
+        // 描く is えがく or かく; the tokenizer reads it えがく.
+        val kaku = LexiconMatch(50, "かく")
+        val reader = Reader { text, reading -> if (text == "描く") (if (reading == "かく") kaku else LexiconMatch(51, "えがく")) else null }
+        val w = reader.words("絵を描いた。", mapOf("描く" to "かく")).first { it.lemma == "描く" }
+        assertEquals("描いた", w.surface)
+        assertEquals(50L, w.wordId)
+        assertEquals("かいた", w.reading)
+        assertEquals(listOf(Ruby("描", "か"), Ruby("いた", null)), w.ruby)
+    }
+
+    @Test
+    fun wentIsGoNotCarryOut() {
+        val reader = Reader { _, _ -> null }
+        val w = reader.words("電車で行った。").first { it.surface == "行った" }
+        assertEquals("行く", w.lemma)
+        assertEquals("いった", w.reading)
+    }
+
+    @Test
     fun aConjunctionOpeningASentenceIsAWord() {
         val reader = Reader { text, reading -> if (text == "でも") LexiconMatch(40, "でも") else null }
         val demo = reader.words("うるさい！でも、いい！").first { it.surface == "でも" }
@@ -86,6 +106,32 @@ class ReadingTest {
         assertEquals(7L, mi.wordId)
         assertEquals(listOf("ni-iku"), mi.grammar.map { it.point.id })
         assertEquals(listOf("naru"), reader.words("高くなる").first().grammar.map { it.point.id })
+    }
+
+    @Test
+    fun aGreetingWithItsPoliteEndingIsOneWord() {
+        val reader = Reader { text, _ -> mapOf("ありがとう" to 70L, "ありがとうございます" to 71L)[text]?.let { LexiconMatch(it, "ありがとうございます") } }
+        assertEquals(listOf(71L), reader.words("ありがとうございます。").filter { it.kind == WordKind.WORD }.map { it.wordId })
+    }
+
+    @Test
+    fun aSetPhraseIsOneWordWithNoGrammarInside() {
+        val reader = Reader { text, _ -> mapOf("ただいま" to 90L, "いってきます" to 91L, "来る" to 92L)[text]?.let { LexiconMatch(it, text) } }
+        val tadaima = reader.words("ただいま！").first()
+        assertEquals(90L, tadaima.wordId)
+        val ittekimasu = reader.words("いってきます。").first()
+        assertEquals(91L, ittekimasu.wordId)
+        assertTrue(ittekimasu.grammar.isEmpty())
+        // ～ないで来た is "came without", so 来た is its own word.
+        assertEquals(92L, reader.words("食べないで来た。").first { it.surface == "来た" }.wordId)
+    }
+
+    @Test
+    fun aTimeNounNoPointExplainsIsAWord() {
+        val reader = Reader { text, _ -> mapOf("休み" to 80L, "日" to 81L)[text]?.let { LexiconMatch(it, "ひ") } }
+        val hi = reader.words("休みの日").first { it.surface == "日" }
+        assertEquals(WordKind.WORD, hi.kind)
+        assertEquals(81L, hi.wordId)
     }
 
     @Test
