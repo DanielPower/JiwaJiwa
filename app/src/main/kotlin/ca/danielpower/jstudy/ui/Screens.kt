@@ -70,7 +70,7 @@ fun App(vm: AppViewModel, screen: Screen) {
         is Screen.Home -> Tab.HOME
         is Screen.Dictionary -> Tab.DICTIONARY
         is Screen.Stories, is Screen.Series -> Tab.STORIES
-        is Screen.Settings -> Tab.SETTINGS
+        is Screen.ReviewTab -> Tab.REVIEW
         else -> null
     }
     // The bar steps aside while typing, so the keyboard doesn't squeeze the screen.
@@ -87,7 +87,8 @@ fun App(vm: AppViewModel, screen: Screen) {
                     Screen.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
-                    is Screen.Home -> HomeScreen(screen.summary, vm)
+                    is Screen.Home -> HomeScreen(screen.dashboard, vm)
+                    is Screen.ReviewTab -> ReviewTabScreen(screen.summary, vm)
                     is Screen.Review -> ReviewScreen(screen, vm)
                     is Screen.Waiting -> WaitingScreen(screen, vm)
                     is Screen.Done -> DoneScreen(screen.summary, vm::studyMore, vm::goHome)
@@ -111,12 +112,13 @@ fun App(vm: AppViewModel, screen: Screen) {
                 }
             }
             if (navTab != null) {
-                WashiNavBar(navTab) {
+                val due by vm.due.collectAsStateWithLifecycle()
+                WashiNavBar(navTab, badges = mapOf(Tab.REVIEW to due)) {
                     when (it) {
                         Tab.HOME -> vm.goHome()
-                        Tab.DICTIONARY -> vm.openDictionary()
                         Tab.STORIES -> vm.openStories()
-                        Tab.SETTINGS -> vm.openSettings()
+                        Tab.REVIEW -> vm.openReviewTab()
+                        Tab.DICTIONARY -> vm.openDictionary()
                     }
                 }
             }
@@ -130,31 +132,17 @@ fun App(vm: AppViewModel, screen: Screen) {
     }
 }
 
-// ------------------------------------------------------------------ home
+// ------------------------------------------------------------------ review tab
 
+/** Today's cards, study days, and the way into a review session. */
 @Composable
-private fun HomeScreen(summary: Summary, vm: AppViewModel) {
+private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
     val due = summary.newCards + summary.learning + summary.reviews
     Column(
         modifier = Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Box(
-                Modifier.size(36.dp).background(MaterialTheme.colorScheme.primary, WashiShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("学", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onPrimary)
-            }
-            Text("Jiwa Jiwa", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
-            val day = LocalDate.ofEpochDay(summary.today)
-            Text(
-                day.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale.JAPANESE) + " · " +
-                    day.format(DateTimeFormatter.ofPattern("MMM d")),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(ui("Review", "復習"), style = MaterialTheme.typography.headlineMedium)
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             SectionLabel(ui("Today", "今日"))
@@ -218,12 +206,6 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            // New words come from the story path, not from reviews.
-            Text(
-                "New words come from stories. Read the next story to learn more.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
 
         Spacer(Modifier.weight(1f))
@@ -236,9 +218,6 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
                 PrimaryButton(onClick = vm::studyMore, modifier = Modifier.fillMaxWidth().height(58.dp)) {
                     Text(ui("Study more", "もっと勉強する"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
-            }
-            SecondaryButton(onClick = vm::openStories, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                Text(ui("Read a story", "物語を読む"), fontSize = 16.sp)
             }
         }
     }

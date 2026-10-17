@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -222,13 +225,13 @@ fun MasteryMeter(mastery: Int, modifier: Modifier = Modifier) {
 
 enum class Tab(val label: UiLabel, val icon: ImageVector) {
     HOME(UiLabel("Home", "ホーム"), WashiIcons.Home),
+    STORIES(UiLabel("Read", "読む"), WashiIcons.Book),
+    REVIEW(UiLabel("Review", "復習"), WashiIcons.Cards),
     DICTIONARY(UiLabel("Dictionary", "辞書"), WashiIcons.Search),
-    STORIES(UiLabel("Stories", "物語"), WashiIcons.Book),
-    SETTINGS(UiLabel("Settings", "設定"), WashiIcons.Settings),
 }
 
 @Composable
-fun WashiNavBar(current: Tab, onSelect: (Tab) -> Unit) {
+fun WashiNavBar(current: Tab, badges: Map<Tab, Int> = emptyMap(), onSelect: (Tab) -> Unit) {
     Column(Modifier.fillMaxWidth()) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(
@@ -248,7 +251,24 @@ fun WashiNavBar(current: Tab, onSelect: (Tab) -> Unit) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
                 ) {
-                    Icon(tab.icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+                    Box {
+                        Icon(tab.icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+                        val count = badges[tab] ?: 0
+                        if (count > 0) {
+                            Text(
+                                if (count > 99) "99+" else "$count",
+                                fontSize = 9.sp,
+                                lineHeight = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 10.dp, y = (-4).dp)
+                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 4.dp),
+                            )
+                        }
+                    }
                     Text(
                         ui(tab.label),
                         fontSize = 12.sp,
@@ -289,13 +309,18 @@ object WashiIcons {
     val Home = icon("home", "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z")
     val Search = icon("search", "M5 11a6 6 0 1 0 12 0a6 6 0 1 0 -12 0", "M20 20l-4.5-4.5")
     val Book = icon("book", "M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4z", "M20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z")
+    // A toothed cog, so it reads as settings rather than a sun. Its outline is Lucide's "settings" (ISC licence).
     val Settings = icon(
         "settings",
+        "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z",
         "M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0",
-        "M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1",
     )
+    /** Two cards, one behind the other, for reviews. */
+    val Cards = icon("cards", "M4 8h12v12H4z", "M8 4h12v12")
+    val Forward = icon("forward", "M5 12h14", "M13 6l6 6-6 6")
     val Close = icon("close", "M6 6l12 12M18 6L6 18")
     val Lock = icon("lock", "M7 11V8a5 5 0 0 1 10 0v3", "M5 11h14v10H5z")
     val Back = icon("back", "M15 5l-7 7 7 7")
+    val Next = icon("next", "M9 5l7 7-7 7")
     val Undo = icon("undo", "M9 14L4 9l5-5", "M4 9h10a6 6 0 0 1 0 12h-3")
 }

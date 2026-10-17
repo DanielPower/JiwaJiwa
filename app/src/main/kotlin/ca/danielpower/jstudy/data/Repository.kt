@@ -32,7 +32,13 @@ import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.CastMember
 import ca.danielpower.jstudy.core.Chapter
 import ca.danielpower.jstudy.core.GrammarTopic
+import ca.danielpower.jstudy.core.Candidate
+import ca.danielpower.jstudy.core.NextUp
 import ca.danielpower.jstudy.core.Pace
+import ca.danielpower.jstudy.core.Streak
+import ca.danielpower.jstudy.core.Suggest
+import ca.danielpower.jstudy.core.WordDay
+import ca.danielpower.jstudy.core.WordHistory
 import ca.danielpower.jstudy.core.PathSeries
 import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.StepGap
@@ -60,6 +66,25 @@ data class Summary(
 ) {
     val anythingDue get() = newCards + learning + reviews > 0
 }
+
+/** Everything Home shows: what to do next, and how far you've come. */
+data class Dashboard(
+    val today: Long,
+    val next: NextUp<ChapterEntry>,
+    val pace: Pace,
+    /** Study days with a review answered or a chapter finished. */
+    val activeDays: Set<Long>,
+    val streak: Int,
+    /** Words seen, known and mastered at the end of each day, up to today. */
+    val words: List<WordDay>,
+    /** Words started in the last week, newest first, and how many there are in all. */
+    val newWords: List<Word>,
+    val newWordCount: Int,
+    val grammar: List<GrammarRow>,
+)
+
+/** Where you left a chapter: its page, in the reader style the pages were laid out with. */
+data class ReaderPlace(val storyId: Long, val page: Int, val style: String)
 
 data class WordDetail(
     val word: Word,
@@ -971,6 +996,76 @@ class Repository(context: Context) {
         )
     }
 
+    // ------------------------------------------------------------ home
+
+    fun dashboard(now: Long): Dashboard {
+        val clock = clock()
+        val today = clock.dayOf(now)
+        val active = activeDays(clock)
+        val started = store.startedWords()
+        // A word that came in with mastery has no real first day, even once it's reviewed.
+        val firstDays = started.associate { w -> w.wordId to w.introducedDay?.takeIf { (w.firstBefore ?: 0) == 0 } }
+        val firsts = listOfNotNull(firstDays.values.filterNotNull().minOrNull(), active.minOrNull())
+        val from = minOf(firsts.minOrNull() ?: today, today - MIN_GRAPH_DAYS + 1)
+        val words = WordHistory.days(firstDays, started.associate { it.wordId to it.mastery }, store.masteryChanges(), from, today)
+        val recent = firstDays.filterValues { it != null && it > today - NEW_WORD_DAYS }.entries
+            .sortedWith(compareByDescending<Map.Entry<Long, Long?>> { it.value }.thenByDescending { it.key })
+        return Dashboard(
+            today = today,
+            next = nextUp(now),
+            pace = pace(now),
+            activeDays = active,
+            streak = Streak.current(active, today),
+            words = words,
+            newWords = recent.take(NEW_WORDS_SHOWN).mapNotNull { dictionary.word(it.key) },
+            newWordCount = recent.size,
+            grammar = grammarRows(now),
+        )
+    }
+
+    /** Study days with a review answered or a chapter finished. */
+    private fun activeDays(clock: StudyClock): Set<Long> = (store.studyDays() + store.storyReadTimes().map(clock::dayOf)).toSet()
+
+    /** What Home suggests: see [Suggest.next]. */
+    private fun nextUp(now: Long): NextUp<ChapterEntry> {
+        val path = storyPath(now)
+        val chapters = path.flatMap { it.chapters }
+        val place = readerPlace()
+        val open = chapters.filter { it.ready && !it.read }
+        val resumed = open.firstOrNull { it.story.id == place?.storyId }
+        val lastSeries = chapters.filter { it.read }.maxByOrNull { it.story.readAt ?: 0 }?.series?.id
+        // The chapter you left part way, else the next in the story you read last, else the first open on the path.
+        val current = resumed
+            ?: path.firstOrNull { it.series.id == lastSeries }?.next
+            ?: path.firstOrNull { !it.series.side && it.next != null }?.next
+            ?: open.firstOrNull()
+        val side = open.firstOrNull { it.nothingNew && it.story.id != current?.story?.id }
+        fun candidate(entry: ChapterEntry) = Candidate(
+            entry,
+            newWords = entry.gap.words.size,
+            teachesGrammar = entry.newTopic != null,
+            resumePage = place?.takeIf { it.storyId == entry.story.id }?.page ?: 0,
+        )
+        val summary = summary(now)
+        return Suggest.next(
+            pace(now),
+            due = summary.newCards + summary.learning + summary.reviews,
+            current = current?.let(::candidate),
+            side = side?.let(::candidate),
+            anyRead = chapters.any { it.read },
+        )
+    }
+
+    fun readerPlace(): ReaderPlace? {
+        val parts = store.getValue("reader_place")?.split(':', limit = 3) ?: return null
+        if (parts.size < 3) return null
+        return ReaderPlace(parts[0].toLongOrNull() ?: return null, parts[1].toIntOrNull() ?: return null, parts[2])
+    }
+
+    fun saveReaderPlace(place: ReaderPlace) = store.setValues(mapOf("reader_place" to "${place.storyId}:${place.page}:${place.style}"))
+
+    fun clearReaderPlace() = store.deleteValue("reader_place")
+
     // ------------------------------------------------------------ summary
 
     fun summary(now: Long): Summary {
@@ -999,7 +1094,7 @@ class Repository(context: Context) {
                 CardState.RELEARNING.value,
             ),
             reviews = minOf(limits.reviews, reviewsDue),
-            streak = streak(store.studyDays(), today),
+            streak = Streak.current(activeDays(clock), today),
             daysAhead = ahead().daysAhead,
             reviewedToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ?", today),
             correctToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND correct = 1", today),
@@ -1019,23 +1114,17 @@ class Repository(context: Context) {
         private const val FORECAST_DAYS = 30
         private const val HISTORY_DAYS = 30
 
+        /** The words graph covers at least this many days, so a new start isn't a single point. */
+        private const val MIN_GRAPH_DAYS = 7
+
+        /** Words started within this many days are new on Home. */
+        private const val NEW_WORD_DAYS = 7
+        private const val NEW_WORDS_SHOWN = 6
+
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12
 
         /** Never a label key, which is Japanese text. */
         private const val LABELS_VERSION = "@dictionary"
-
-        /** Consecutive study days ending today, or yesterday if today has no reviews yet. */
-        fun streak(daysNewestFirst: List<Long>, today: Long): Int {
-            if (daysNewestFirst.isEmpty()) return 0
-            var expected = if (daysNewestFirst.first() == today) today else today - 1
-            var count = 0
-            for (day in daysNewestFirst) {
-                if (day != expected) break
-                count++
-                expected--
-            }
-            return count
-        }
     }
 }

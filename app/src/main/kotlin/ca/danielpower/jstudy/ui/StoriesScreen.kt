@@ -101,7 +101,7 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(ui("Stories", "物語"), style = MaterialTheme.typography.headlineMedium)
+        Text(ui("Read", "読む"), style = MaterialTheme.typography.headlineMedium)
 
         // The stories that come with the app, shown once a chapter is within reach.
         val shown = state.path.filter { it.shown }
