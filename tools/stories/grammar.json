@@ -169,5 +169,87 @@
       ["朝までゲーム。", "Games until morning."],
       "They work with places and times, together or apart."
     ]
+  },
+  {
+    "id": "n-desu", "title": "～んだ / ～の？", "title_en": "Explaining, asking", "points": ["n-desu", "no-question"],
+    "summary": "ん or の before だ or です explains: 帰ったんだ, (the thing is,) he went home. A bare の with a rise asks for the story: 来たの？, you came?",
+    "parts": [
+      ["カナダに帰ったんだ。", "He went home to Canada."],
+      "A bare 帰った just reports. 帰ったんだ gives the story behind something, here why Alex's room is empty. Friends say ～んだ; with です it's ～んです.",
+      ["どこから来たの？", "Where did you come from?"],
+      "A の at the end, said with a rise, is how friends ask when they want to know more. Said flat, it explains, like ～んだ."
+    ]
+  },
+  {
+    "id": "filler", "title": "あのー / えーと", "title_en": "Um, er", "points": ["filler"],
+    "summary": "あのー and えーと fill a pause while you think. あのー also gets someone's attention, politely.",
+    "parts": [
+      ["えーと…わからないです。", "Um… I don't know."],
+      "えーと is thinking out loud: you're looking for the answer. あのー is a little shy: you're about to ask or say something.",
+      ["あのー、ラーメン、食べたいです。", "Um, I'd like to eat ramen."]
+    ]
+  },
+  {
+    "id": "janai", "title": "～じゃない / じゃん", "title_en": "Isn't, right?", "points": ["janai", "jan"],
+    "summary": "じゃない after a noun or na-adjective is the plain \"isn't\": ベースじゃない, it's not the bass. Said with a rise, it asks \"isn't it?\", and じゃん says \"see?\".",
+    "parts": [
+      ["ケンタさんじゃない。", "It's not Kenta."],
+      "じゃない is the negative of だ, the way ～ない is the negative of a verb. With です it's じゃないです.",
+      ["ユキさんの声じゃない？", "Isn't that Yuki's voice?"],
+      "With a rise, じゃない？ asks the listener to agree. じゃん, short for it, says the same thing as a fact: you should see it too.",
+      ["いい歌じゃん。", "That's a good song, you know."]
+    ]
+  },
+  {
+    "id": "keredo", "title": "～けど / ～が", "title_en": "But", "points": ["keredo", "ga-but"],
+    "summary": "けど after a full sentence means \"but\": 大きいけど, it's big, but…. が after a sentence means the same, a little more formally.",
+    "parts": [
+      ["行きたくないけど、行きます。", "I don't want to go, but I'm going."],
+      "けど joins two sentences that pull different ways. Friends say けど; だけど after a noun.",
+      ["大学は大きいですが、友達がいないです。", "The university's big, but I don't have any friends."],
+      "が for \"but\" comes after です or ます more often than after the plain form. At the end of a sentence, けど leaves the rest unsaid, which softens it."
+    ]
+  },
+  {
+    "id": "volitional", "title": "～よう / ～おう", "title_en": "Let's", "points": ["volitional"],
+    "summary": "The volitional form is a casual \"let's\": 行こう, let's go. Said about yourself, it's what you've decided: 歌おう, I'll sing.",
+    "parts": [
+      ["みんなで行こう！", "Let's all go!"],
+      "う verbs change their last sound to the お row and add う: 行く, 行こう; 歌う, 歌おう. る verbs swap る for よう: 食べる, 食べよう.",
+      ["一緒に歌おう！", "Let's sing together!"],
+      "する and 来る have their own: しよう, 来よう. Among friends it's how you suggest anything; ～ましょう is the polite version."
+    ]
+  },
+  {
+    "id": "to-omou", "title": "～と思う / ～と", "title_en": "I think, said", "points": ["to-omou", "to-quote"],
+    "summary": "と思う after a plain sentence says what you think: 歌うと思う, I think I'll sing. The same と quotes what someone said: 「来年は歌う」と言った.",
+    "parts": [
+      ["次は歌うと思う。", "I think I'll sing next time."],
+      "What you think comes first, in the plain form, then と思う. With strangers it's と思います.",
+      ["ユキの歌は、いいと思う。", "I think Yuki's songs are good."],
+      "と also marks the words of a quote, before 言う and verbs like it. The quote can be the exact words, in 「」, or put in your own.",
+      ["ユキは「来年は歌う」と言った。", "Yuki said, \"I'll sing next year.\""]
+    ]
+  },
+  {
+    "id": "tte", "title": "～って / ～という", "title_en": "Says, called", "points": ["tte", "toiu"],
+    "summary": "って is a casual と言う: 歌うって, says she's singing. という names something: 『雪』という曲, a song called \"Snow\".",
+    "parts": [
+      ["ユキが歌うって？", "Yuki's singing, you say?"],
+      "って quotes what someone said or wrote, and the verb after it often drops: 歌うって (言った). Said with a rise, it checks what you heard.",
+      ["僕が『ユキさんが歌う』って書いた。", "I wrote that Yuki's singing."],
+      "という (と plus 言う) puts a name or a description in front of a noun: what it's called.",
+      ["『雪』という曲です。", "It's a song called \"Snow\"."]
+    ]
+  },
+  {
+    "id": "kana", "title": "かな / かも", "title_en": "I wonder, maybe", "points": ["kana", "kamoshirenai"],
+    "summary": "かな at the end of a sentence wonders out loud: 大丈夫かな, will it be okay, I wonder. かも (かもしれない) says it might be so: 出ないかも, it might not come out.",
+    "parts": [
+      ["私、大丈夫かな。", "Will I be okay, I wonder."],
+      "かな is か (a question) and な (to yourself): a question you don't expect anyone to answer. It's casual.",
+      ["声が出ないかも。", "My voice might not come out."],
+      "かも is short for かもしれない, \"it might be\", about half sure. It goes after the plain form, or straight after a noun: 無理かも, maybe not."
+    ]
   }
 ]

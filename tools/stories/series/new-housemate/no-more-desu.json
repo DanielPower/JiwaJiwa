@@ -1,0 +1,21 @@
+{
+  "title": "No more です",
+  "plot": "Trash day: Yuki tells Sora to drop the polite talk, and Kenta slips into it.",
+  "paragraphs": [
+    [["朝だ。", "Morning."], ["今日はゴミだ。", "It's trash day."]],
+    [["ユキ|「ソラ、今日はゴミだよ。」", "\"Sora, it's trash day today.\""], ["ソラ|「はい、わかりました！」", "\"Yes, understood!\""]],
+    [["ユキ|「ソラ、敬語、もういいよ。」", "\"Sora, you can drop the polite talk.\""], ["ソラ|「えーと…でも…」", "\"Um… but…\""]],
+    [["ユキ|「ソラと私、友達でしょ？」", "\"You and I are friends, aren't we?\""], ["ソラ|「…はい。」", "\"…Yes.\""], ["ユキ|「ほら、また。」", "\"See, there you go again.\""]],
+    [["ユキ|「ケンタも、敬語じゃないよ。」", "\"Kenta doesn't use polite talk either.\""], ["ソラ|「ケンタさんは…ケンタさんだから。」", "\"Kenta's… Kenta.\""]],
+    [["ユキ|「アレックスも、敬語じゃなかったよ。」", "\"Alex didn't use it either.\""]],
+    [["ソラ|「えーと…うん。わかった。」", "\"Um… okay. Got it.\""], ["ユキ|「そう！」", "\"That's it!\""]],
+    [["ソラ|「ゴミ、外に…行く、よ。」", "\"I'll… take the trash out.\""], ["ユキ|「うん！」", "\"Yep!\""]],
+    [["ケンタ|「おはよう…ソラ、ゴミ？」", "\"Morning… Sora, trash?\""], ["ソラ|「うん。ケンタさんのゴミも？」", "\"Yeah. Yours too?\""]],
+    [["ケンタ|「…お願いします。」", "\"…If you would, please.\""]],
+    [["ソラ|「ケンタさん、今、敬語！」", "\"Kenta, that was polite!\""], ["ケンタ|「仕事の朝だから…」", "\"It's a work morning…\""]],
+    [["ユキ|「ケンタ、部屋のゴミは？」", "\"Kenta, what about the trash in your room?\""], ["ケンタ|「部屋に、ゴミ…」", "\"There's trash in my room…\""]],
+    [["ソラ|「ケンタさんの部屋、ゴミが多いよね。」", "\"Your room's got a lot of trash, huh.\""], ["ケンタ|「ソラ、敬語じゃない！」", "\"Sora, you're not being polite!\""]],
+    [["ソラ|「うん。もう、敬語じゃないよ。」", "\"Yeah. No more polite talk.\""], ["ケンタ|「いいね、ソラ。」", "\"Nice one, Sora.\""]],
+    [["ユキ|「ソラとケンタ、同じだね。」", "\"You two are the same.\""]]
+  ]
+}
