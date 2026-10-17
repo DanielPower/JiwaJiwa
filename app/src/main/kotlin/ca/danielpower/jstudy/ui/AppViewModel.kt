@@ -177,6 +177,8 @@ sealed interface Screen {
         val startPage: Int = 0,
         /** Words you said you forgot: each gets a Wrong review when you finish. */
         val forgotten: Set<Long> = emptySet(),
+        /** Words the finished story started that you said you already know. */
+        val knewNew: Set<Long> = emptySet(),
     ) : Screen
 }
 
@@ -796,6 +798,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val pace = repo.pace(at)
         _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
         refreshStory()
+    }
+
+    /** "I know this" on a word the finished story started, or its Undo: it stops counting against today's new words. */
+    fun toggleKnewNew(wordId: Long) = launchIo {
+        val state = _screen.value as? Screen.StoryReader ?: return@launchIo
+        if (state.impact == null) return@launchIo
+        val at = now()
+        val knew = wordId in state.knewNew
+        if (knew) repo.unknowStartedWord(wordId, at) else repo.knowStartedWord(wordId, at)
+        val pace = repo.pace(at)
+        _screen.update {
+            if (it !is Screen.StoryReader) it
+            else it.copy(knewNew = if (knew) it.knewNew - wordId else it.knewNew + wordId, pace = pace)
+        }
     }
 
     /** "I forgot this" on a word in the open story, or its Undo. */
