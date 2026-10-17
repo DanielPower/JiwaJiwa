@@ -454,5 +454,65 @@
       ["大きいのを買った。", "I bought the big one."],
       "After an adjective, の stands for a thing you've already talked about: 大きいの, the big one; 新しいの, the new one. A na-adjective takes な first: 静かなの, the quiet one."
     ]
+  },
+  {
+    "id": "te-kureru", "title": "～てくれる / ～てあげる / ～てもらう", "title_en": "Doing for someone", "points": ["te-kureru", "te-ageru", "te-morau"],
+    "summary": "After a verb's て form, くれる, あげる and もらう say who a favour is for: 作ってくれた, someone made it for me; 作ってあげた, I made it for someone; 作ってもらった, I had someone make it.",
+    "parts": [
+      ["ソラが、コーヒーを入れてくれた。", "Sora made me a coffee."],
+      "～てくれる: someone does something for me, or for my side (my family, my friends, my band). It carries a little thanks.",
+      ["私が、ソラにコーヒーを入れてあげた。", "I made Sora a coffee."],
+      "～てあげる goes the other way: I, or my side, do something for someone else. Said to that person's face it can sound like you're doing them a big favour, so people often say just 入れるよ instead.",
+      ["ケンタに、写真を撮ってもらった。", "I got Kenta to take a photo."],
+      "～てもらう looks at the same favour from my side: I get it done. The one who does it takes に. Asking for one, people say 撮ってもらってもいい？, could you take it for me?"
+    ]
+  },
+  {
+    "id": "node", "title": "～ので / ～し", "title_en": "Because; and besides", "points": ["node", "shi"],
+    "summary": "ので gives a reason, softer than から: 仕事なので, since I've got work. し adds a reason, hinting there are more: 安いし、うまいし, it's cheap, it's good.",
+    "parts": [
+      ["明日は仕事なので、もう寝る。", "I've got work tomorrow, so I'm off to bed."],
+      "ので goes after a plain verb or adjective: 雨が降っているので, 寒いので. A noun or na-adjective takes な first: 仕事なので, 静かなので. It sounds softer and politer than から, so it's what people use with です and ます: 仕事があるので、行けません。",
+      ["店長のラーメンは、安いし、うまいし、最高。", "The manager's ramen is cheap, it's good, it's the best."],
+      "し after a plain form lists a reason, and leaves room for more. Two in a row make a case for something.",
+      ["寒いし、もう帰ろう。", "It's cold and all, so let's head home."],
+      "Just one し says \"for one thing\": the rest go unsaid."
+    ]
+  },
+  {
+    "id": "noni", "title": "～のに", "title_en": "Even though", "points": ["noni"],
+    "summary": "のに joins two things where the second isn't what you'd expect: 練習したのに、うまくできなかった, I practised, and still it didn't go well.",
+    "parts": [
+      ["練習したのに、うまく歌えなかった。", "Even though I practised, I couldn't sing it well."],
+      "のに goes after a plain verb or adjective. A noun or na-adjective takes な first: 休みなのに, even though it's a day off. It carries a feeling: surprise, disappointment, sometimes a complaint.",
+      ["休みなのに、仕事に行った。", "I went to work even though it was my day off."],
+      "Compare けど: けど just says \"but\"; のに says it went against what should have happened.",
+      ["見たかったのに。", "And I wanted to see it, too."],
+      "At the end of a sentence, のに is a sigh about what should have been, with the rest left unsaid."
+    ]
+  },
+  {
+    "id": "hou-ga-ii", "title": "～ほうがいい / ～すぎる", "title_en": "Had better; too much", "points": ["hou-ga-ii", "sugiru"],
+    "summary": "ほうがいい gives advice: 寝たほうがいい, you'd better get some sleep. すぎる after a stem says too much: 飲みすぎた, I drank too much.",
+    "parts": [
+      ["今日は、寝たほうがいいよ。", "You'd better get some sleep today."],
+      "For doing something, the verb before ほうがいい is usually past: 行ったほうがいい, you should go. For not doing it, use ない: 行かないほうがいい, better not go. It's the ほう of のほうが: of the two ways, this one's better.",
+      ["夜、ビールを飲みすぎた。", "I drank too much beer last night."],
+      "すぎる goes on a verb's stem (飲み, 食べ, し) or an adjective without its い (高い, 高すぎる; 静か, 静かすぎる), and changes like 食べる: すぎた, すぎない.",
+      ["このラーメン、熱すぎる。", "This ramen's too hot."],
+      "The stem すぎ works as a noun on its own: 飲みすぎ, too much drinking; 練習しすぎ, too much practice."
+    ]
+  },
+  {
+    "id": "ta-koto", "title": "～たことがある", "title_en": "Have done before", "points": ["ta-koto-ga-aru"],
+    "summary": "A past verb, then ことがある, says it's happened at least once: 行ったことがある, I've been there. ことがない says never.",
+    "parts": [
+      ["カナダに行ったことがある？", "Have you ever been to Canada?"],
+      "こと is a thing, an event: 行ったこと, the having gone. ある says there's such a thing in your past. Ask with ある？, and answer ある or ない.",
+      ["ステージで歌ったことがない。", "I've never sung on a stage."],
+      "ない says never. は or も can take the place of が: 見たことはある, I've seen it, at least; 食べたこともない, I've never even eaten it.",
+      ["マンガは、読んだことはある。", "Manga, I've read."],
+      "It's about what you've been through, not about today: ラーメンを食べた is what you just did; ラーメンを食べたことがある says you know what it's like."
+    ]
   }
 ]
