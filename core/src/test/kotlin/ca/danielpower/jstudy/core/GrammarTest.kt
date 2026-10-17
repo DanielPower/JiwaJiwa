@@ -27,6 +27,22 @@ class GrammarTest {
     }
 
     @Test
+    fun `conjugation labels map to points that exist`() {
+        val missing = LABEL_POINTS.values.flatten().filter { grammarPoint(it) == null }
+        assertTrue(missing.isEmpty(), "unknown points: $missing")
+    }
+
+    @Test
+    fun `a conjugation label no grammar point explains is kept`() {
+        fun word(text: String, lemma: String) = reader.words(text).first { it.lemma == lemma }
+        assertEquals(listOf("past"), word("弦が切れちゃった。", "切れる").unexplainedConjugation())
+        assertEquals(emptyList(), word("ラーメン、食べたい。", "食べる").unexplainedConjugation())
+        assertEquals(emptyList(), word("毎日、練習してるじゃん。", "練習する").unexplainedConjugation())
+        assertEquals(listOf("past"), word("日本に来ました。", "来る").unexplainedConjugation())
+        assertEquals(emptyList(), word("写真を撮ってもいい？", "撮る").unexplainedConjugation())
+    }
+
+    @Test
     fun `a pattern covers its particles rather than explaining them one by one`() {
         assertEquals(listOf("wo", "te-wa-ikenai"), points("写真を撮ってはいけません。"))
         assertEquals(listOf("ta-koto-ga-aru"), points("行ったことがない。"))

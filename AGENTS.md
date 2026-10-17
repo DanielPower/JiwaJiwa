@@ -173,7 +173,11 @@ Other features (all shipped):
   bundled ones only. Tapping a word
   shows its meaning (and conjugation, when conjugated), plus any grammar
   point it's part of (`core/Grammar.kt`); particles and endings are tappable
-  for their grammar alone. The meaning opens in a
+  for their grammar alone. A word's grammar points are links in its
+  conjugation line ("食べたい: ～たい want to ›"), each opening the point in
+  the pane with a back link, followed by any conjugation label no point
+  explains ("· past" in 切れちゃった); Daniel picked this over tabs,
+  2026-10-17. The meaning opens in a
   pane fixed at the top of the reader, always visible with the story below
   it so it never covers the text (as in Yomu Yomu), not a popover. Long-pressing a word shows its sentence's English,
   bundled with the story. Story

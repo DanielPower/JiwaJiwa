@@ -14,8 +14,8 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 | `Session.kt` | `StudySettings`, `Pace` (the soft daily limit and review nudge), `StudyAhead` ("study more"), `DailyLimits`, and `StudySession`, the order cards are shown in during one sitting. |
 | `Kana.kt` | Romaji → kana for search, hiragana/katakana variants. |
 | `Kanji.kt` | `Kanji` entries, the kanji in a word from its furigana, and which dictionary reading a word uses (allowing for rendaku, small っ and verb stems in compounds). |
-| `Reading.kt` | Kuromoji tokens grouped into words, matched to the dictionary, with conjugation labels. |
-| `Grammar.kt` | Hand-written grammar points (particles, N5 and N4 patterns, a few N3), each with token patterns over Kuromoji output. `Reader` attaches them to words; a match inside a longer match is dropped. `GrammarTest` checks every point's own example sentence finds it, so add an example that does. A rule can guard the token before (`before`) or after (`after`) its match. `StoryPathTest` fails on any particle, ending or changed form in the stories that no point explains. |
+| `Reading.kt` | Kuromoji tokens grouped into words, matched to the dictionary, with conjugation labels. A new conjugation label needs a row in `LABEL_POINTS` (`Grammar.kt`). |
+| `Grammar.kt` | Hand-written grammar points (particles, N5 and N4 patterns, a few N3), each with token patterns over Kuromoji output. `Reader` attaches them to words; a match inside a longer match is dropped. `GrammarTest` checks every point's own example sentence finds it, so add an example that does. A rule can guard the token before (`before`) or after (`after`) its match. `StoryPathTest` fails on any particle, ending or changed form in the stories that no point explains. `LABEL_POINTS` says which points explain each conjugation label, so the reader's word pane can show a label only when none of the word's points covers it (`unexplainedConjugation`). |
 | `StoryPath.kt` | The bundled story path: parsing `path.json` (stories of chapters, and grammar topics), the words and grammar each chapter needs, which chapters are within reach, and the solver that proves every chapter can be reached. |
 | `src/stories/.../StoryTools.kt`, `StorySource.kt` | Not part of the app (its own source set). Puts `path.json` together from `tools/stories` (`StorySource`), reads the stories with the built dictionary over JDBC, looking words up as the app does (`bestHomograph` in `Reading.kt`), and writes `needs.json`, each story's `SUMMARY.md` and `tools/stories/COVERAGE.md` (`./gradlew -PcoreOnly=true :core:stories`). `StoryPathTest` uses it. |
 | `Coverage.kt` | How a story's words measure up against what you know, and a finished read's stats. |
@@ -32,6 +32,13 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 - `Direction` and `CardState` values are stored in the app's database. Don't
   renumber them; add new values at the end.
 - Value 2 was `Direction.KANA` (kana cards, removed); don't reuse it.
+- `LABEL_POINTS` in `Grammar.kt` maps each conjugation label `Reading.kt`
+  can give a word ("past", "want to", "completely or regrettably") to the
+  grammar points that explain it. When you add a label, add its row; when
+  you add a point that explains a label (a new ～て… helper, say), add its
+  id to that label's row. A missing row doesn't hide anything, but the pane
+  then shows the label next to the link that already says it
+  ("～たい want to › · want to").
 - Elapsed time for FSRS is counted in study days, not 24-hour periods.
 - Times are epoch milliseconds; days are epoch days of the study day's
   calendar date. Tests use `America/St_Johns` (a half-hour offset with DST)
