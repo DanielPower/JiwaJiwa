@@ -4,8 +4,7 @@ import com.atilika.kuromoji.ipadic.Token
 import com.atilika.kuromoji.ipadic.Tokenizer
 
 /** A dictionary entry matched to a word, and the entry's reading of that spelling in hiragana. */
-/** An entry found for a word, the reading it has there, and the entry's JLPT level (0 for none). */
-data class LexiconMatch(val wordId: Long, val reading: String, val jlpt: Int = 0)
+data class LexiconMatch(val wordId: Long, val reading: String)
 
 /** Finds dictionary entries for the words in a story. */
 fun interface Lexicon {
@@ -26,8 +25,11 @@ const val HOMOGRAPHS_SQL =
 /**
  * The entry for a word among the [homographs] spelled the way it is. One with
  * a kana spelling matching [reading] wins, then JLPT words, then the more
- * frequent. [forms] gives an entry's spellings. The app and the story tools
- * both look words up this way, so a story's index matches what the app reads.
+ * frequent. JLPT only breaks ties here: the frequency list ranks spellings,
+ * not entries, so a rare homograph shares a common word's rank (右舞 has
+ * うまい's), and the JLPT lists name the entry learners mean. [forms] gives
+ * an entry's spellings. The app and the story tools both look words up this
+ * way, so a story's index matches what the app reads.
  */
 fun bestHomograph(homographs: List<Homograph>, reading: String?, forms: (Long) -> List<String>): LexiconMatch? {
     val candidates = homographs.distinctBy { it.id }
@@ -37,7 +39,7 @@ fun bestHomograph(homographs: List<Homograph>, reading: String?, forms: (Long) -
         Kana.toHiragana(cand.kana) == wanted || forms(cand.id).any { Kana.isKana(it) && Kana.toHiragana(it) == wanted }
     }.map { it.id }.toSet()
     val best = candidates.minWith(compareBy<Homograph>({ it.id !in readingMatches }, { it.jlpt == 0 }, { it.rank }, { it.id }))
-    return LexiconMatch(best.id, if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana), best.jlpt)
+    return LexiconMatch(best.id, if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana))
 }
 
 /** One piece of a written word and the reading above it (null for kana). */
@@ -240,9 +242,10 @@ class Reader(private val lexicon: Lexicon) {
     }
 
     /**
-     * A number with its counter that's taught as a word of its own, usually
-     * for its reading (一つ, 二人, 一日, 二十歳). Others (三時, 五百円) are
-     * read a piece at a time, so you learn 三 and 時 rather than every pair.
+     * A number with its counter that's a word of its own: a dictionary word
+     * whose reading isn't its pieces read in turn (一つ, 二人, 一回, 六本,
+     * 二十歳). Others (三時, 三人, 五百円) are read a piece at a time, so you
+     * learn 三 and 時 rather than every pair.
      */
     private fun counted(tokens: List<Morpheme>, start: Int): Pair<ReadingWord, Int>? {
         if (!tokens[start].isNumber || tokens.getOrNull(start - 1)?.isNumber == true) return null
@@ -255,7 +258,8 @@ class Reader(private val lexicon: Lexicon) {
         if (text.any(Char::isDigit)) return null
         // The tokenizer reads each piece on its own (二人 as に・にん), which is
         // exactly what these words don't do, so the dictionary's reading wins.
-        val match = lexicon.find(text, null)?.takeIf { it.jlpt > 0 } ?: return null
+        val pieces = Kana.toHiragana(group.joinToString("") { it.readingOrSurface })
+        val match = lexicon.find(text, null)?.takeIf { it.reading != pieces } ?: return null
         return plain(group, WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(text, match.reading)) to end
     }
 

@@ -232,6 +232,10 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - Numbers in kanji and counters are words (三, 時, 円); a number taught
   with its counter is one word (一つ, 二人, 二十歳), the rest are read a
   piece at a time. Numbers in digits are names.
+- Vocabulary by frequency (Daniel, 2026-10-17): the stories teach the
+  words used most in casual Japanese (Jiten's frequency list), from the
+  whole dictionary. JLPT levels are only a hint, never a rule: they label
+  words, and break ties between entries spelled the same way.
 - Grammar pace (Daniel, 2026-10-17): don't teach too much too fast. Keep
   chapters with no new grammar, using what came before, between the ones
   that teach a topic, and reuse each topic in the chapters after it.

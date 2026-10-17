@@ -15,9 +15,7 @@ python3 -m unittest discover tools/dictionary
   records the content digest plus every spelling the build changed and
   anything it couldn't resolve. CI fails if a build changes the report, so
   commit the regenerated report with any change to the build or sources.
-- Hand corrections go in `overrides.csv`, not in code. A `jlpt` row also
-  puts a word the lists leave out on them (母, which they only have as
-  お母さん).
+- Hand corrections go in `overrides.csv`, not in code.
 - `SCHEMA_VERSION` must be bumped when the table layout changes, and the
   app's queries in `app/.../data/Dictionary.kt` updated to match.
 - Sources: JMdict and KANJIDIC2 via jmdict-simplified, JmdictFurigana,

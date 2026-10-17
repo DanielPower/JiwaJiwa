@@ -17,8 +17,8 @@ import java.sql.ResultSet
 //
 // writes path.json (StorySource), the index of each chapter's words and
 // grammar (stories/needs.json, which the app reads in place of reading every
-// chapter), each story's SUMMARY.md and what's left of N5 and N4
-// (tools/stories/COVERAGE.md). StoryPathTest checks they're up to date. Needs
+// chapter), each story's SUMMARY.md and what's left of the most common
+// words and grammar (tools/stories/COVERAGE.md). StoryPathTest checks they're up to date. Needs
 // the dictionary built first.
 
 /** Writes the stories, their index and summaries for the repository at the one argument. */
@@ -49,25 +49,29 @@ class JdbcLexicon(private val conn: Connection) : Lexicon {
         }.firstOrNull()
     }.orEmpty()
 
-    /** A word on the JLPT lists, as the coverage report shows it. */
-    data class Listed(val id: Long, val label: String, val gloss: String)
+    /** A word as the coverage report shows it: 言う (いう), its first meaning, and its JLPT level (0 for none). */
+    data class Listed(val id: Long, val label: String, val gloss: String, val jlpt: Int)
 
     /**
-     * The words at JLPT [level] the reader can count, most frequent first.
-     * Particles and auxiliaries are left out: the reader treats them as grammar.
+     * The words ranked [top] or better in the frequency list the reader can
+     * count, most frequent first. The list ranks spellings, so entries
+     * written the same way share a rank (ん "yes" and ン "some"); each rank
+     * keeps the entry the reader would pick for it ([bestHomograph]).
+     * Particles and auxiliaries are left out, along with whatever shares
+     * their rank (蛾 has が's): the reader treats them as grammar.
      */
-    fun level(level: Int): List<Listed> = query(
-        """SELECT w.id, w.kanji, w.kana, w.usually_kana, s.pos, s.gloss FROM word w JOIN sense s ON s.word_id = w.id AND s.ord = 0
-           WHERE w.jlpt = ? ORDER BY COALESCE(w.freq_rank, 1000000000), w.id""",
-        level.toString(),
+    fun common(top: Int): List<Listed> = query(
+        """SELECT w.id, w.kanji, w.kana, w.usually_kana, s.pos, s.gloss, w.jlpt, w.freq_rank FROM word w JOIN sense s ON s.word_id = w.id AND s.ord = 0
+           WHERE w.freq_rank <= ? ORDER BY w.freq_rank, w.jlpt = 0, w.id""",
+        top.toString(),
     ) {
         val kanji = getString(2)
         val kana = getString(3)
         val label = if (kanji == null || getInt(4) == 1) kana else "$kanji ($kana)"
         val pos = Json.parseToJsonElement(getString(5)).jsonArray.map { it.jsonPrimitive.content }
         val gloss = Json.parseToJsonElement(getString(6)).jsonArray.first().jsonPrimitive.content
-        Listed(getLong(1), label, gloss).takeIf { pos.none { it == "prt" || it.startsWith("aux") || it == "cop" } }
-    }.filterNotNull()
+        Triple(getInt(8), Listed(getLong(1), label, gloss, getInt(7)), pos.any { it == "prt" || it.startsWith("aux") || it == "cop" })
+    }.groupBy { it.first }.values.filter { rank -> rank.none { it.third } }.map { it.first().second }
 
     private fun <T> query(sql: String, arg: String, row: ResultSet.() -> T): List<T> =
         conn.prepareStatement(sql).use { st ->
@@ -188,52 +192,44 @@ class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
     }
 
     /**
-     * COVERAGE.md: how much of N5 and N4 the stories cover, and what's left,
-     * to pick new words and grammar from. A word counts once a chapter uses
-     * it, and a grammar point once a chapter uses it or teaches its topic.
+     * COVERAGE.md: how much of the most common Japanese the stories cover,
+     * and what's left, to pick new words and grammar from. A word counts once
+     * a chapter uses it, and a grammar point once a chapter uses it or teaches
+     * its topic. Words go by how common they are; JLPT levels are only a hint.
      */
     fun coverage(): String = buildString {
         val used = needs.values.flatMap { n -> n.words.mapNotNull { it.wordId } }.toSet()
         val grammar = needs.values.flatMap { it.grammar + it.teaches }.toSet()
-        appendLine("# What's left of N5 and N4")
+        val common = lexicon.common(COMMON)
+        val left = common.filter { it.id !in used }
+        appendLine("# What's left to cover")
         appendLine()
         appendLine("Written by `./gradlew -PcoreOnly=true :core:stories` from the stories. Don't edit it by hand.")
         appendLine()
         appendLine("What the stories cover so far, and what's left to bring in: pick a chapter's new words and grammar from here. A word counts once any chapter uses it, and a grammar point once a chapter uses it or teaches its topic.")
-        val levels = used.groupingBy { lexicon.entry(it)?.jlpt ?: 0 }.eachCount()
         appendLine()
-        appendLine(
-            "The stories use ${used.size} words: " +
-                listOf(5, 4, 3, 2, 1).filter { it in levels }.joinToString(", ") { "${levels[it]} N$it" } +
-                (levels[0]?.let { ", and $it not on the JLPT lists" }.orEmpty()) + ".",
-        )
-        val points = grammarPoints()
-        for (level in listOf(5, 4)) {
-            val words = lexicon.level(level)
-            val wordsLeft = words.filter { it.id !in used }
-            val pointsAt = points.filter { it.level == level }
-            val pointsLeft = pointsAt.filter { it.id !in grammar }
+        appendLine("The stories use ${used.size} words, ${common.size - left.size} of them among the ${"%,d".format(COMMON)} most common (Jiten's frequency list, from anime, drama, novels, manga and games).")
+        appendLine()
+        appendLine("## Words left")
+        appendLine()
+        appendLine("The most common words the stories don't use yet, most common first, with their first meaning and their JLPT level as a rough guide. The list ranks spellings, so a few are grammar the reader handles itself (だろう), or a rarer word written the same way as a common one (ところ as a yam).")
+        for ((i, chunk) in left.chunked(50).withIndex()) {
             appendLine()
-            appendLine("## N$level")
+            appendLine("${i * 50 + 1}–${i * 50 + chunk.size}: " + chunk.joinToString(" · ") { w: JdbcLexicon.Listed ->
+                w.label + (if (w.jlpt > 0) " N${w.jlpt}" else "") + " " + w.gloss
+            })
+        }
+        appendLine()
+        appendLine("## Grammar left")
+        appendLine()
+        appendLine("The grammar points the reader knows that the stories don't use yet, by JLPT level as a rough guide. A chapter can only use a point once a topic in grammar.json has it; the ones in a topic already name it.")
+        for ((level, points) in grammarPoints().filter { it.id !in grammar }.groupBy { it.level }.toSortedMap(reverseOrder())) {
             appendLine()
-            appendLine("- Grammar: ${pointsAt.size - pointsLeft.size} of ${pointsAt.size} points.")
-            appendLine("- Words: ${words.size - wordsLeft.size} of ${words.size}.")
+            appendLine("### N$level")
             appendLine()
-            appendLine("### Grammar left")
-            appendLine()
-            appendLine("A chapter can only use a point once a topic in grammar.json has it; the ones in a topic already name it.")
-            appendLine()
-            for (p in pointsLeft) {
+            for (p in points) {
                 val topic = catalog.topicOf(p.id)?.let { " (topic `${it.id}`)" }.orEmpty()
                 appendLine("- `${p.id}` ${p.pattern}: ${p.meaning}$topic")
-            }
-            appendLine()
-            appendLine("### Words left")
-            appendLine()
-            appendLine("Most common first, with their first meaning.")
-            for ((i, chunk) in wordsLeft.chunked(50).withIndex()) {
-                appendLine()
-                appendLine("${i * 50 + 1}–${i * 50 + chunk.size}: " + chunk.joinToString(" · ") { "${it.label} ${it.gloss}" })
             }
         }
     }
@@ -255,5 +251,8 @@ class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
         }
 
         private fun level(jlpt: Int) = if (jlpt == 0) "not JLPT" else "N$jlpt"
+
+        /** How far down the frequency list the coverage report looks. */
+        private const val COMMON = 3000
     }
 }

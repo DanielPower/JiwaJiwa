@@ -484,7 +484,11 @@ def select_other(entry: dict, ranks: dict[tuple[str, str], int]) -> Word:
     for item in shown + [(k["text"], False) for k in entry["kanji"]] + [(k["text"], True) for k in entry["kana"]]:
         if item[0] and item not in forms:
             forms.append(item)
-    rank = min([ranks.get((t, hiragana(kana)), UNRANKED) for t, _ in forms] or [UNRANKED])
+    # As for JLPT words, a word written in kanji is ranked by its kanji
+    # spellings: its kana spelling's rank belongs to whatever is written that
+    # way (ない, not 亡い).
+    ranked = [t for t, is_kana in forms if usually_kana or not is_kana]
+    rank = min([ranks.get((t, hiragana(kana)), UNRANKED) for t in ranked] or [UNRANKED])
     return Word(
         id=int(entry["id"]),
         kanji=kanji_text,
@@ -535,14 +539,6 @@ def build(src: dict, overrides: dict[str, dict[str, str]]) -> Build:
     by_seq: dict[str, list[JlptRow]] = defaultdict(list)
     for row in linked:
         by_seq[row.seq].append(row)
-    # A jlpt override can also put a word on the lists that they leave out,
-    # written as it would be off them.
-    for seq, fields in overrides.items():
-        if "jlpt" in fields and seq not in by_seq:
-            if seq not in entries:
-                raise SystemExit(f"overrides.csv: JMdict entry {seq} not found")
-            other = select_other(entries[seq], ranks)
-            by_seq[seq].append(JlptRow(seq, other.kana, other.kanji or "", int(fields["jlpt"])))
 
     words: list[Word] = []
     for seq, rows in by_seq.items():

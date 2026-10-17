@@ -175,14 +175,6 @@ class BuildTest(unittest.TestCase):
         # An excluded word is still there to look up.
         self.assertEqual([(w.id, w.jlpt) for w in result.others], [(1577980, 0)])
 
-    def test_override_puts_a_word_on_the_lists(self):
-        src = self.source()
-        src["jmdict"]["words"].append(MADOUSHI)
-        result = bd.build(src, {"2000001": {"jlpt": "4"}})
-        word = next(w for w in result.words if w.id == 2000001)
-        self.assertEqual((word.kanji, word.kana, word.jlpt), ("魔導士", "まどうし", 4))
-        self.assertNotIn(2000001, [w.id for w in result.others])
-
     def test_words_off_the_lists_are_kept_for_lookups(self):
         src = self.source()
         src["jmdict"]["words"].append(MADOUSHI)
@@ -196,6 +188,15 @@ class BuildTest(unittest.TestCase):
             row = con.execute("SELECT kanji, kana, jlpt, study_order FROM word WHERE id = 2000001").fetchone()
             con.close()
         self.assertEqual(row, ("魔導士", "まどうし", 0, None))
+
+
+class OtherRankTest(unittest.TestCase):
+    def test_a_kanji_word_isnt_ranked_by_its_kana_spelling(self):
+        nai = entry(1000001, [kanji("亡い")], [kana("ない")], [sense("dead")])
+        w = bd.select_other(nai, {("ない", "ない"): 5, ("亡い", "ない"): 9000})
+        self.assertEqual(w.freq_rank, 9000)
+        uk = entry(1000002, [kanji("亡い")], [kana("ない")], [sense("dead", misc=["uk"])])
+        self.assertEqual(bd.select_other(uk, {("ない", "ない"): 5, ("亡い", "ない"): 9000}).freq_rank, 5)
 
 
 class KanjiTest(unittest.TestCase):

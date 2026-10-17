@@ -116,13 +116,14 @@ class ReadingTest {
 
     @Test
     fun numbersInKanjiAndCountersAreWords() {
-        // 二人 is taught as a word (a JLPT entry); 三時 isn't, so it's 三 and 時.
-        val dictionary = mapOf("三" to LexiconMatch(30, "さん", 5), "時" to LexiconMatch(31, "じ"), "二人" to LexiconMatch(32, "ふたり", 5), "三時" to LexiconMatch(33, "さんじ"))
+        // 二人 isn't read に・にん, so it's a word; 三時 is just さん・じ, so it's 三 and 時.
+        val dictionary = mapOf("三" to LexiconMatch(30, "さん"), "時" to LexiconMatch(31, "じ"), "二人" to LexiconMatch(32, "ふたり"), "三時" to LexiconMatch(33, "さんじ"), "一回" to LexiconMatch(34, "いっかい"))
         val reader = Reader { text, _ -> dictionary[text] }
         assertEquals(listOf("三" to 30L, "時" to 31L), reader.words("三時に来る").take(2).map { it.surface to it.wordId })
         val pair = reader.words("二人").single()
         assertEquals(32L, pair.wordId)
         assertEquals(listOf(Ruby("二人", "ふたり")), pair.ruby)
+        assertEquals(34L, reader.words("一回").single().wordId)
         assertEquals(WordKind.WORD, reader.words("三匹").first().kind)
     }
 

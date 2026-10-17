@@ -14,7 +14,7 @@ tools (core `src/stories`).
 | `series/<id>/story.json` | A story's `title`, `blurb`, the stories it follows (`after`: story ids, or a chapter id such as `share-house/yukis-gig` to mean the story up to that chapter), `side` for a side story, and `chapters`: its chapters' slugs in reading order. |
 | `series/<id>/<slug>.json` | One chapter each, named by its slug (lowercase words joined by hyphens, usually from its title: `trash-day.json`): `title`, a one-line `plot`, optional `topic` (one grammar topic it teaches), `meets` (people it introduces, `{"name", "about"}`) and `readings` (see below), and `paragraphs`, each a list of `[Japanese sentence, English]`, or a note (`{"note": "English…"}`) between two of them. Its id is the story's id and its slug (`share-house/trash-day`), which saved progress uses. To add or move a chapter, add its file and put its slug where it goes in `chapters`; never rename a slug or delete a chapter people may have read. |
 | `series/<id>/SUMMARY.md` | Written by the tools, never by hand: the cast so far, each chapter's plot, words and new words, and every word and grammar topic known by the end. |
-| `COVERAGE.md` | Written by the tools: how much of N5 and N4 the stories cover, and the grammar points and words left, most common first. |
+| `COVERAGE.md` | Written by the tools: how many of the most common words the stories use, the words left (most common first), and the grammar points left. |
 
 ## Conventions
 
@@ -45,12 +45,13 @@ To continue a story you don't need the others: read its `SUMMARY.md`, its
 last chapter or two, and the conventions above. The summary's "Known at
 the end" is what a reader has by then. Use those words freely and bring
 back ones met only once or twice. Pick new words from `COVERAGE.md`, most
-common first, so the stories work through N5 and then N4.
+common first: the stories teach the words used most in casual Japanese,
+whatever their JLPT level, and any word in the dictionary can be used.
 
 Chapters grow as the reader's words do: the allowance grows with length,
-and the rest of N5 needs chapters of 150 to 300 words. A short chapter now
-and then is fine, but one under half as long as the chapters before it
-fails the check.
+and the next few hundred common words need chapters of 150 to 300 words.
+A short chapter now and then is fine, but one under half as long as the
+chapters before it fails the check.
 
 A chapter's new words must fit its allowance (3% of its running words, from
 3 to 10), it may teach one grammar topic (and should usually teach none,
