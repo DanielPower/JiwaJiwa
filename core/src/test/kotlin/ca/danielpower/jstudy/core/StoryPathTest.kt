@@ -164,6 +164,11 @@ class StoryPathTest {
             val order = StoryPath.solve(all)
             val stuck = all.indices - order.toSet()
             if (stuck.isNotEmpty()) problems += "the solver can't reach ${stuck.map { catalog.chapters[it].second.story.id }}"
+            // Words met in only one chapter get no reinforcement from reading; aim to bring them back.
+            val chaptersWith = HashMap<Long, Int>()
+            for (n in all) for (id in n.words.mapNotNull { it.wordId }.distinct()) chaptersWith.merge(id, 1, Int::plus)
+            val once = chaptersWith.filterValues { it == 1 }.keys
+            report.appendLine("Words in one chapter only (${once.size} of ${chaptersWith.size}): ${once.joinToString(" ") { lexicon.describe(it).substringBefore('/') }}")
             val kana = all.flatMap { it.kana }.toSet()
             report.appendLine("Kana never needed: ${KanaCourse.units.filter { it !in kana }.joinToString(" ") { it.text }}")
             File("build/reports").mkdirs()
