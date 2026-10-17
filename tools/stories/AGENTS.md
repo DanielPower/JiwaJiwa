@@ -58,8 +58,8 @@ and the next few hundred common words need chapters of 150 to 300 words.
 A short chapter now and then is fine, but one under half as long as the
 chapters before it fails the check.
 
-A chapter's new words must fit its allowance (3% of its running words, from
-3 to 10), it may teach one grammar topic (and should usually teach none,
+A chapter's new words must fit its allowance (3% of its running words, and at
+least 3), it may teach one grammar topic (and should usually teach none,
 see the grammar pace in the root AGENTS.md), and every word should appear in
 at least two chapters. Side stories have nothing new at all.
 
