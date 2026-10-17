@@ -67,6 +67,11 @@ sentence. A changed form no point explains but the dictionary lists as one
 entry (いらっしゃいませ) is read as that word instead. でも, けど, だけど and
 だって opening a sentence are words, not grammar.
 
+The reader reads ～られる on a る verb (食べられる) and spoken 食べれる, 来れる
+as "can" (the `potential` point), and ～れる / ～られる on a う verb or する
+as the passive. For a passive on a る verb, reword. It writes 来られる
+in kanji poorly (as 来る きたる), so use 来れる.
+
 Then run, with the dictionary built (`python3 tools/dictionary/build_dictionary.py`):
 
     ./gradlew -PcoreOnly=true :core:stories :core:test

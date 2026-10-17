@@ -37,8 +37,8 @@ internal object Grammar {
      */
     class Rule(val point: GrammarPoint, val steps: List<Step>, val before: ((Morpheme) -> Boolean)?, val after: ((Morpheme?) -> Boolean)? = null)
 
-    /** A match over tokens [start] until [end]. */
-    data class Match(val point: GrammarPoint, val start: Int, val end: Int)
+    /** A match over tokens [start] until [end], [core] of them matched by the pattern itself rather than trailing endings. */
+    data class Match(val point: GrammarPoint, val start: Int, val end: Int, val core: Int = end - start)
 
     fun find(tokens: List<Morpheme>): List<Match> {
         val found = ArrayList<Match>()
@@ -48,15 +48,17 @@ internal object Grammar {
                 var end = match(rule.steps, 0, tokens, start)
                 if (end <= start) continue
                 if (rule.after != null && !rule.after.invoke(tokens.getOrNull(end))) continue
+                val core = end - start
                 // Take in the endings that follow (いけ + ない, つもり + です) so the whole phrase lights up.
                 while (end < tokens.size && tokens[end].pos == "助動詞" && tokens[end].base in ENDINGS) end++
-                found += Match(rule.point, start, end)
+                found += Match(rule.point, start, end, core)
             }
         }
         val distinct = found.distinctBy { Triple(it.point.id, it.start, it.end) }
+        // Of two matches over the same tokens, the one whose pattern matched more of them wins: ～てた is ～ている, not ～て with た.
         return distinct.filter { m ->
             distinct.none { o -> o !== m && o.start <= m.start && o.end >= m.end && (o.end - o.start) > (m.end - m.start) }
-        }.distinctBy { it.start to it.end }.sortedWith(compareBy({ it.start }, { -it.end }))
+        }.sortedWith(compareBy({ it.start }, { -it.end }, { -it.core })).distinctBy { it.start to it.end }
     }
 
     /** Where the match of [steps] from [s] ends, or -1. Optional steps are tried taken first. */
@@ -562,6 +564,8 @@ internal object Grammar {
             "今、本を読んでいます。", "I'm reading a book now.",
             listOf(te, dependentVerb("いる", "おる")),
             listOf(dependentVerb("てる", "でる")),
+            // ～てた: in speech the い drops, and the tokenizer sees て and た alone.
+            listOf(te, Step(false) { it.pos == "助動詞" && it.type == "特殊・タ" }),
         )
         point(
             "te-mo-ii", "～てもいい", 5, "may, it's okay to",
@@ -588,7 +592,8 @@ internal object Grammar {
             "Says an action is fully done, or happened with regret or by accident. In speech it shrinks to ～ちゃう or ～じゃう.",
             "宿題を忘れてしまいました。", "I forgot my homework (oops).",
             listOf(te, dependentVerb("しまう")),
-            listOf(dependentVerb("ちゃう", "じゃう", "ちまう")),
+            // The tokenizer sometimes takes ちゃう for a verb of its own (帰っちゃう).
+            listOf(Step(false) { it.pos == "動詞" && it.base in setOf("ちゃう", "じゃう", "ちまう") }),
         )
         point(
             "te-miru", "～てみる", 4, "try doing",
@@ -675,10 +680,19 @@ internal object Grammar {
             listOf(Step(false) { it.pos == "動詞" && it.form.startsWith("命令") && it.base !in setOf("くださる", "下さる", "なさる", "いらっしゃる") }),
         )
         point(
+            "potential", "～える / ～られる", 4, "can, be able to",
+            "The potential form: what you can do. う verbs change their last sound to the え row plus る (話す, 話せる; 行く, 行ける), and る verbs take られる (食べられる), often shortened to れる in speech (食べれる). It changes like a る verb: 行けない, 行けた.",
+            "納豆、食べられる？", "Can you eat natto?",
+            // う verbs' potentials are words of their own to the tokenizer (話せる); Reader finds those.
+            listOf(Step(false) { it.pos == "動詞" && it.pos2 == "接尾" && it.base in setOf("れる", "られる") }),
+            before = { it.pos == "動詞" && it.pos2 != "接尾" && (it.type.startsWith("一段") || it.type.startsWith("カ変")) },
+        )
+        point(
             "passive", "～れる / ～られる", 4, "is done (passive)",
-            "The passive: something is done to the subject, often with に for who did it (先生に言われた, I was told by the teacher). For る verbs, the same form also means \"can\" (食べられる).",
+            "The passive: something is done to the subject, often with に for who did it (先生に言われた, I was told by the teacher). On る verbs the reader takes ～られる to mean \"can\", which is far more common.",
             "先生に名前を呼ばれました。", "My name was called by the teacher.",
             listOf(Step(false) { it.pos == "動詞" && it.pos2 == "接尾" && it.base in setOf("れる", "られる") }),
+            before = { !(it.pos == "動詞" && it.pos2 != "接尾" && (it.type.startsWith("一段") || it.type.startsWith("カ変"))) },
         )
         point(
             "causative", "～せる / ～させる", 4, "make or let someone do",
@@ -694,8 +708,8 @@ internal object Grammar {
             "明日早く起きなければなりません。", "I have to get up early tomorrow.",
             listOf(Step(false) { it.base == "ない" && it.form == "仮定形" }, particle("ば"), dependentVerb("なる", "いける")),
             listOf(Step(false) { it.base == "ない" && it.form == "連用テ接続" }, te, particle("は"), dependentVerb("なる", "いける")),
-            listOf(Step(false) { it.pos == "助動詞" && it.base == "ない" && it.form.startsWith("仮定縮約") }),
-            listOf(Step(false) { it.base == "ない" && it.form == "連用テ接続" }, particle("ちゃ")),
+            listOf(Step(false) { it.pos == "助動詞" && it.base == "ない" && it.form.startsWith("仮定縮約") }, dependentVerb("なる", "いける").optional()),
+            listOf(Step(false) { it.base == "ない" && it.form == "連用テ接続" }, particle("ちゃ"), dependentVerb("なる", "いける").optional()),
         )
         point(
             "nakute-mo-ii", "～なくてもいい", 4, "don't have to",
@@ -841,9 +855,11 @@ internal object Grammar {
         )
         point(
             "n-desu", "～んです / ～のだ", 4, "explaining, asking why",
-            "の or ん before だ or です explains or asks for an explanation: どうしたんですか, what's wrong?. It sounds softer and more involved than a bare statement.",
+            "の or ん before だ or です explains or asks for an explanation: どうしたんですか, what's wrong?. It sounds softer and more involved than a bare statement. ～んじゃない？ suggests: isn't it that…?",
             "どうして来なかったんですか。", "Why didn't you come?",
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, Step(false) { it.pos == "助動詞" && it.type in setOf("特殊・ダ", "特殊・デス") }),
+            // ～んじゃない: "isn't it that…?".
+            listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, particle("じゃ")),
         )
         point(
             "mae-ni", "～前に", 5, "before doing",
@@ -893,10 +909,11 @@ internal object Grammar {
         // Guesses, hearsay and likeness.
         point(
             "kamoshirenai", "～かもしれない", 4, "might, maybe",
-            "A guess the speaker is about half sure of. ～かもしれません is the polite form.",
+            "A guess the speaker is about half sure of. ～かもしれません is the polite form, and in speech it's often just ～かも.",
             "明日は雨が降るかもしれません。", "It might rain tomorrow.",
             listOf(particle("かも"), base("しれる", "知れる")),
             listOf(particle("か"), particle("も"), base("しれる", "知れる")),
+            listOf(particle("かも")),
         )
         point(
             "to-omou", "～と思う", 4, "I think",

@@ -100,6 +100,23 @@ class GrammarTest {
     }
 
     @Test
+    fun `spoken contractions keep their point`() {
+        assertEquals(listOf("te-iru"), points("読んでた。"))
+        assertEquals(listOf("te-shimau", "no-question"), points("帰っちゃうの？"))
+        assertEquals(listOf("kamoshirenai"), points("雨かも。"))
+        assertEquals(listOf("nakereba"), points("行かなきゃいけない。"))
+        assertEquals(listOf("ga", "n-desu"), points("これがいいんじゃない？"))
+    }
+
+    @Test
+    fun `られる on a る verb is can, on a う verb it's the passive`() {
+        assertEquals(listOf("potential"), points("食べられる？"))
+        assertEquals(listOf("potential"), points("食べれる？"))
+        assertEquals(listOf("ni", "passive"), points("先生に呼ばれた。"))
+        assertEquals(listOf("causative", "passive"), points("食べさせられた。"))
+    }
+
+    @Test
     fun `before needs a verb in front of it`() {
         assertEquals(listOf("mae-ni"), points("寝る前に"))
         assertEquals(listOf("no"), points("駅の前に").filter { it != "ni" })

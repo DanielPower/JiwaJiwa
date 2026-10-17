@@ -179,6 +179,7 @@ The grammar points the reader knows that the stories don't use yet, by JLPT leve
 - `te-kuremasenka` ～てくれませんか: could you…?
 - `te-hoshii` ～てほしい: want someone to
 - `te-mo` ～ても: even if, even though
+- `potential` ～える / ～られる: can, be able to
 - `passive` ～れる / ～られる: is done (passive)
 - `causative` ～せる / ～させる: make or let someone do
 - `nakereba` ～なければならない: must, have to
