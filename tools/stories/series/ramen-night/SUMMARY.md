@@ -11,13 +11,13 @@ Yuki knows a ramen shop. Alex is very hungry.
 
 Everyone met by the end, in the chapter that introduces them.
 
-- **アレックス** (`arrival-01`): from Canada, in Japan for a year
-- **ユキ** (`arrival-09`): lives in the share house, makes coffee, plays bass
-- **店長** (`ramen-night-04`): runs the ramen shop, needs help
+- **アレックス** (`arrival/im-here`): from Canada, in Japan for a year
+- **ユキ** (`arrival/yuki`): lives in the share house, makes coffee, plays bass
+- **店長** (`ramen-night/the-manager`): runs the ramen shop, needs help
 
 ## Chapters
 
-### 1. The ticket machine (`ramen-night-01`)
+### 1. The ticket machine (`ramen-night/the-ticket-machine`)
 
 At the ramen shop, Alex and Yuki buy tickets from the machine.
 
@@ -25,7 +25,7 @@ At the ramen shop, Alex and Yuki buy tickets from the machine.
 - Teaches を (`wo`).
 - New: うまい (N4), チケット (not JLPT), 買う (かう, N5).
 
-### 2. Which one? (`ramen-night-02`)
+### 2. Which one? (`ramen-night/which-one`)
 
 Alex and Yuki choose their ramen, with eggs and beer.
 
@@ -33,14 +33,14 @@ Alex and Yuki choose their ramen, with eggs and beer.
 - Teaches も (`mo`).
 - New: これ (N5), 卵 (たまご, N5), ビール (N3).
 
-### 3. Slurp (`ramen-night-03`)
+### 3. Slurp (`ramen-night/slurp`)
 
 The huge, hot ramen arrives and it's great.
 
 - 13 words; 2 new of 3 allowed.
 - New: 熱い (あつい, N5), ゆっくり (N5).
 
-### 4. The manager (`ramen-night-04`)
+### 4. The manager (`ramen-night/the-manager`)
 
 The manager offers Alex a part-time job, and he jumps at it.
 

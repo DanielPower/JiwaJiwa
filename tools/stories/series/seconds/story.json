@@ -2,5 +2,6 @@
   "title": "Seconds",
   "blurb": "One bowl was not enough.",
   "after": ["ramen-night"],
-  "side": true
+  "side": true,
+  "chapters": ["seconds"]
 }

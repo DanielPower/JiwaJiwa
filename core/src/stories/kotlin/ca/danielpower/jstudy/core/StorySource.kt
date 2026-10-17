@@ -42,20 +42,29 @@ object StorySource {
         return pretty.encodeToString(JsonElement.serializer(), path) + "\n"
     }
 
+    /**
+     * A story: story.json lists its chapters' slugs in reading order, and each
+     * is a file of that name. A chapter's id is the story's id and its slug
+     * (share-house/trash-day), so chapters can be added or moved anywhere
+     * without changing the ids saved progress uses.
+     */
     private fun story(folder: File): JsonObject {
         val id = folder.name
+        require(id.matches(SLUG) && id != "grammar") { "$id: a story's id is lowercase words joined by hyphens, and not \"grammar\"" }
         val meta = read(File(folder, "story.json")).jsonObject
-        val files = folder.listFiles { f -> f.name.matches(Regex("\\d{2}\\.json")) }.orEmpty().map { it.name }.sorted()
-        require(files.map { it.take(2).toInt() } == (1..files.size).toList()) {
-            "$id: chapters must be numbered 01.json, 02.json, … with no gaps: $files"
-        }
+        val slugs = meta["chapters"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
+        require(slugs.isNotEmpty()) { "$id: story.json lists no \"chapters\"" }
+        for (slug in slugs) require(slug.matches(SLUG)) { "$id: chapter \"$slug\" should be lowercase words joined by hyphens" }
+        require(slugs.size == slugs.toSet().size) { "$id: a chapter is listed twice: ${slugs.groupBy { it }.filter { it.value.size > 1 }.keys}" }
+        val files = folder.listFiles { f -> f.name.endsWith(".json") && f.name != "story.json" }.orEmpty().map { it.name.removeSuffix(".json") }.toSet()
+        require(files == slugs.toSet()) { "$id: story.json and the chapter files disagree: listed only ${slugs - files}, files only ${files - slugs.toSet()}" }
         return buildJsonObject {
             put("id", id)
             put("title", meta.text("title"))
             put("blurb", meta.text("blurb"))
             put("after", meta["after"] ?: JsonArray(emptyList()))
             putJsonArray("chapters") {
-                for (f in files) add(chapter("$id-${f.take(2)}", read(File(folder, f)).jsonObject))
+                for (slug in slugs) add(chapter("$id/$slug", read(File(folder, "$slug.json")).jsonObject))
             }
             if (meta["side"]?.jsonPrimitive?.boolean == true) put("side", true)
         }
@@ -133,6 +142,9 @@ object StorySource {
     } catch (e: Exception) {
         throw IllegalArgumentException("${file.path}: ${e.message}", e)
     }
+
+    /** Story ids and chapter slugs: lowercase words joined by hyphens. */
+    private val SLUG = Regex("[a-z0-9]+(-[a-z0-9]+)*")
 
     @OptIn(ExperimentalSerializationApi::class)
     private val pretty = Json { prettyPrint = true; prettyPrintIndent = " " }

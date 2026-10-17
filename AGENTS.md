@@ -204,7 +204,8 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   Reviews and the home count no longer introduce words; only
   unlocked production cards are new there.
 - The path (`app/src/main/assets/stories/path.json`, written from
-  `tools/stories`, a file per chapter; see `tools/stories/AGENTS.md`) is
+  `tools/stories`, a file per chapter named by its slug, with each story's
+  order in its `story.json`; see `tools/stories/AGENTS.md`) is
   stories made of chapters, plus grammar topics. Each chapter's words and
   grammar are worked out when the stories change and shipped in
   `stories/needs.json` (Daniel, 2026-10-17), so the app never reads every

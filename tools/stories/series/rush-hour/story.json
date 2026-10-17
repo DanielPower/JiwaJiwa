@@ -2,5 +2,6 @@
   "title": "Rush hour",
   "blurb": "Alex and Yuki try to meet at the station at the worst possible time.",
   "after": ["arrival"],
-  "side": true
+  "side": true,
+  "chapters": ["rush-hour"]
 }

@@ -12,12 +12,12 @@ Jet lag, an empty stomach, and a konbini that never closes.
 
 Everyone met by the end, in the chapter that introduces them.
 
-- **アレックス** (`arrival-01`): from Canada, in Japan for a year
-- **ユキ** (`arrival-09`): lives in the share house, makes coffee, plays bass
+- **アレックス** (`arrival/im-here`): from Canada, in Japan for a year
+- **ユキ** (`arrival/yuki`): lives in the share house, makes coffee, plays bass
 
 ## Chapters
 
-### 1. Midnight konbini (`midnight-konbini-01`)
+### 1. Midnight konbini (`midnight-konbini/midnight-konbini`)
 
 Jet-lagged and hungry, Alex finds a konbini at midnight.
 

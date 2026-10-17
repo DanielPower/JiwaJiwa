@@ -12,12 +12,12 @@ Alex and Yuki try to meet at the station at the worst possible time.
 
 Everyone met by the end, in the chapter that introduces them.
 
-- **アレックス** (`arrival-01`): from Canada, in Japan for a year
-- **ユキ** (`arrival-09`): lives in the share house, makes coffee, plays bass
+- **アレックス** (`arrival/im-here`): from Canada, in Japan for a year
+- **ユキ** (`arrival/yuki`): lives in the share house, makes coffee, plays bass
 
 ## Chapters
 
-### 1. Rush hour (`rush-hour-01`)
+### 1. Rush hour (`rush-hour/rush-hour`)
 
 Alex loses Yuki in the rush-hour station crowd.
 

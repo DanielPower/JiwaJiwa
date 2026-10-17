@@ -5,21 +5,21 @@ Written by `./gradlew -PcoreOnly=true :core:stories` from the chapter files here
 Game night, from next door.
 
 - Id `kentas-side`, 1 chapter.
-- Follows `share-house-07`.
+- Follows `share-house/game-night`.
 - A side story: it has nothing new to learn, no new words and no grammar topic.
 
 ## Cast
 
 Everyone met by the end, in the chapter that introduces them.
 
-- **アレックス** (`arrival-01`): from Canada, in Japan for a year
-- **ユキ** (`arrival-09`): lives in the share house, makes coffee, plays bass
-- **店長** (`ramen-night-04`): runs the ramen shop where Alex works
-- **ケンタ** (`share-house-01`): the room next door, games all night
+- **アレックス** (`arrival/im-here`): from Canada, in Japan for a year
+- **ユキ** (`arrival/yuki`): lives in the share house, makes coffee, plays bass
+- **店長** (`ramen-night/the-manager`): runs the ramen shop where Alex works
+- **ケンタ** (`share-house/morning`): the room next door, games all night
 
 ## Chapters
 
-### 1. Kenta's side (`kentas-side-01`)
+### 1. Kenta's side (`kentas-side/kentas-side`)
 
 Kenta's view of his life and his first game night with Alex.
 

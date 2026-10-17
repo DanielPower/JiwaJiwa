@@ -5,22 +5,22 @@ Written by `./gradlew -PcoreOnly=true :core:stories` from the chapter files here
 No shift, no plans, and Yuki has coffee on.
 
 - Id `day-off`, 1 chapter.
-- Follows `share-house-12`.
+- Follows `share-house/yukis-gig`.
 - A side story: it has nothing new to learn, no new words and no grammar topic.
 
 ## Cast
 
 Everyone met by the end, in the chapter that introduces them.
 
-- **アレックス** (`arrival-01`): from Canada, in Japan for a year
-- **ユキ** (`arrival-09`): lives in the share house, makes coffee, plays bass
-- **店長** (`ramen-night-04`): runs the ramen shop where Alex works
-- **ケンタ** (`share-house-01`): the room next door, games all night
-- **ミホ** (`share-house-08`): works at the manga shop, has recommendations
+- **アレックス** (`arrival/im-here`): from Canada, in Japan for a year
+- **ユキ** (`arrival/yuki`): lives in the share house, makes coffee, plays bass
+- **店長** (`ramen-night/the-manager`): runs the ramen shop where Alex works
+- **ケンタ** (`share-house/morning`): the room next door, games all night
+- **ミホ** (`share-house/the-manga-shop`): works at the manga shop, has recommendations
 
 ## Chapters
 
-### 1. Day off (`day-off-01`)
+### 1. Day off (`day-off/day-off`)
 
 A day off: coffee, laundry, the manga shop, and another gig tonight.
 

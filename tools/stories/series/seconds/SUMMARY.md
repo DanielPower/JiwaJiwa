@@ -12,13 +12,13 @@ One bowl was not enough.
 
 Everyone met by the end, in the chapter that introduces them.
 
-- **アレックス** (`arrival-01`): from Canada, in Japan for a year
-- **ユキ** (`arrival-09`): lives in the share house, makes coffee, plays bass
-- **店長** (`ramen-night-04`): runs the ramen shop, needs help
+- **アレックス** (`arrival/im-here`): from Canada, in Japan for a year
+- **ユキ** (`arrival/yuki`): lives in the share house, makes coffee, plays bass
+- **店長** (`ramen-night/the-manager`): runs the ramen shop, needs help
 
 ## Chapters
 
-### 1. Seconds (`seconds-01`)
+### 1. Seconds (`seconds/seconds`)
 
 Still hungry, Alex orders seconds, and the manager mentions the job.
 
