@@ -1278,7 +1278,7 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
         val chapter = state.chapter
         if (chapter != null && !chapter.series.single) SectionLabel("Chapter ${chapter.chapter.number} done")
         Text(if (chapter != null && !chapter.series.single) chapter.chapter.story.title else ui("The end", "終わり"), style = MaterialTheme.typography.headlineSmall)
-        state.impact?.let { WordImpact(it) }
+        state.impact?.let { WordImpact(it, vm::openWord) }
         state.impact?.topic?.let { topic ->
             SectionLabel(ui("Grammar", "文法"), Modifier.padding(top = 8.dp))
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1346,7 +1346,7 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
 
 /** What reading a path story did for your words: each word newly seen, or moved up to known or mastered. */
 @Composable
-private fun WordImpact(impact: ReadImpact) {
+private fun WordImpact(impact: ReadImpact, onWord: (Long) -> Unit) {
     SectionLabel(ui("Your words", "あなたの言葉", "あなた", "言葉"), Modifier.padding(top = 8.dp))
     val groups = listOf(
         Triple("New", impact.seen, masteryColor(0)),
@@ -1364,16 +1364,16 @@ private fun WordImpact(impact: ReadImpact) {
             }
             words.forEachIndexed { i, word ->
                 if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                ImpactWord(word)
+                ImpactWord(word) { onWord(word.id) }
             }
         }
     }
 }
 
-/** One word in the end page's lists: its spelling, its kana if that's in kanji, and its first meaning. */
+/** One word in the end page's lists: its spelling, its kana if that's in kanji, and its first meaning. Tap for its dictionary page. */
 @Composable
-private fun ImpactWord(word: Word) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun ImpactWord(word: Word, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 3.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(word.display, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         if (word.showsKanji) Text(word.kana, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(

@@ -884,7 +884,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openWord(wordId: Long) = launchIo {
         when (val current = _screen.value) {
             is Screen.Dictionary -> lastDictionary = current
-            is Screen.KanjiPage -> trail.addLast(current)
+            is Screen.KanjiPage, is Screen.StoryReader -> trail.addLast(current)
             else -> {}
         }
         showWord(wordId)
