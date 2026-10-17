@@ -96,6 +96,16 @@ as an adverb, 来るみたい (来る as きたる), 弾きたい (as はじく)
 ～たって), なんで / 何の (the なん entry), よかった (as よい), あげる "give"
 (the 上げる entry), a stuttered ご、ごめん (後), 送りに行く (送り as a noun),
 終わり on its own (the stem of 終わる), and 何ページ (the なん entry).
+Also: 弾きました (as はじく; 弾いた is fine), の marking the subject in a
+description (ソラの笑う声), ～そうに as an adverb, ～かもしれません (しれる is
+a new word; かも is taught), 男の人 in narration (男 is a new word; it's fine
+as a speaker label, or write あの人), and と opening a sentence (…と、思う).
+
+Sentences split at 。, ！ and ？ only: a line ending in … alone runs into
+the next one, and so do several 『…』 lyric lines in one paragraph, which
+breaks the sentence and translation count. End it with 。 or give each line
+its own paragraph. A side story is held to the length rule too, counting
+the main chapters before the one it follows.
 
 Then run, with the dictionary built (`python3 tools/dictionary/build_dictionary.py`):
 
