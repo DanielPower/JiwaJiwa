@@ -999,3 +999,54 @@ fun grammarPoint(id: String): GrammarPoint? = Grammar.points.firstOrNull { it.id
 
 /** Every grammar point the reader knows, in the order they're defined. */
 fun grammarPoints(): List<GrammarPoint> = Grammar.points
+
+/** The grammar points that explain each conjugation label a word can have (see [ReadingWord.conjugation]). */
+internal val LABEL_POINTS = mapOf(
+    "past" to setOf("ta", "ta-koto-ga-aru", "ta-bakari", "tokoro-just", "ato-de"),
+    "negative" to setOf("nai", "janai", "naide", "naide-kudasai", "nakute-mo-ii"),
+    "polite" to setOf("masu", "masenka", "mashou", "mashouka", "desu", "deshou"),
+    "want to" to setOf("tai"),
+    "volitional (let's)" to setOf("volitional", "mashou", "mashouka", "you-to-omou"),
+    "probably" to setOf("deshou"),
+    "seems" to setOf("rashii"),
+    "conditional (if/when)" to setOf("tara"),
+    "conditional (if)" to setOf("ba"),
+    "while" to setOf("nagara"),
+    "things like" to setOf("tari"),
+    "must" to setOf("nakereba"),
+    "causative" to setOf("causative"),
+    "passive" to setOf("passive"),
+    "potential" to setOf("potential"),
+    "imperative" to setOf("imperative", "nasai"),
+    "ongoing or resulting state" to setOf("te-iru", "tokoro-ing"),
+    "ongoing (humble)" to setOf("te-iru"),
+    "has been done" to setOf("te-aru"),
+    "in advance" to setOf("te-oku"),
+    "completely or regrettably" to setOf("te-shimau"),
+    "try" to setOf("te-miru"),
+    "toward now" to setOf("te-kuru"),
+    "from now on" to setOf("te-iku"),
+    "get someone to" to setOf("te-morau"),
+    "get someone to (humble)" to setOf("te-morau"),
+    "for me" to setOf("te-kureru", "te-kuremasenka"),
+    "please" to setOf("te-kudasai", "naide-kudasai"),
+    "for someone" to setOf("te-ageru"),
+    "want someone to" to setOf("te-hoshii"),
+    "easy to" to setOf("yasui"),
+    "hard to" to setOf("yasui"),
+    "looks like" to setOf("sou-looks"),
+)
+
+/** Labels any of a word's points explain: a stem or a te-form is there for the point it's part of (見 in 見に行く, 使って in 使ってもいい). */
+private val PART_OF_A_POINT = setOf("stem", "stem (continuing)", "adverb (-ly)", "te-form")
+
+/**
+ * The word's conjugation labels that none of its grammar points explains:
+ * "past" in 切れちゃった, whose one point is ～てしまう (it takes in the た),
+ * or in 来ました, whose point is ～ます.
+ */
+fun ReadingWord.unexplainedConjugation(): List<String> {
+    if (grammar.isEmpty()) return conjugation
+    val ids = grammar.map { it.point.id }.toSet()
+    return conjugation.filter { label -> label !in PART_OF_A_POINT && LABEL_POINTS[label].orEmpty().none { it in ids } }
+}

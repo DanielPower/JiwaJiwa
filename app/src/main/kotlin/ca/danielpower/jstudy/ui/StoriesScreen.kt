@@ -89,6 +89,7 @@ import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.Speech
 import ca.danielpower.jstudy.core.WordKind
+import ca.danielpower.jstudy.core.unexplainedConjugation
 import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderFont
@@ -1266,7 +1267,8 @@ private fun WordCard(
 /**
  * A word's conjugation line naming its grammar points, each a link to its
  * explanation: 食べたい: ～たい want to ›. It takes the place of the word's
- * conjugation labels.
+ * conjugation labels, except those no point explains, which follow the links:
+ * 切れちゃった: ～てしまう … › · past.
  */
 @Composable
 private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarPoint>, onOpen: (GrammarPoint) -> Unit) {
@@ -1281,6 +1283,8 @@ private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarP
                     withStyle(SpanStyle(fontWeight = FontWeight.Normal)) { append(" ${point.meaning} ›") }
                 }
             }
+            val rest = word.unexplainedConjugation()
+            if (rest.isNotEmpty()) append("  ·  " + rest.joinToString(", "))
         },
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.tertiary,
