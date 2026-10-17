@@ -153,8 +153,8 @@ Other features (all shipped):
   pane fixed at the top of the reader, always visible with the story below
   it so it never covers the text (as in Yomu Yomu), not a popover. Long-pressing a word shows its sentence's English,
   bundled with the story. Story
-  words you haven't started get "I know this" in the pane, and the rest
-  join your reviews when you finish the story. Stories show a page at a time, swiping between
+  words you haven't started join your reviews when you finish the story;
+  the pane has no way to mark one known. Stories show a page at a time, swiping between
   pages (no scrolling); horizontal pages are top-aligned, vertical pages
   are centred and turn right to left. The text ends with a 読了 seal stamp
   (`FinishStamp`, grained like the icon), under the last line or beside the
@@ -245,8 +245,8 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   furigana hides), **mastered** (70).
 - Opening a chapter shows its new kana as new cards once, then its new
   grammar's page, then the chapter. New words aren't listed up front:
-  they're red and underlined in the text, and tapping one shows it, with
-  "I know this" to mark it known. Finishing starts every word
+  they're red and underlined in the text, and tapping one shows it.
+  Finishing starts every word
   in it you haven't started as a card (`Repository.startStoryWords`).
 - At the end of a chapter, each word due for review that you read without
   tapping counts as an FSRS Hard review (`Reviewer.read`): less than a

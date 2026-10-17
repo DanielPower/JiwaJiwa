@@ -860,15 +860,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         lookedUpWords += wordId
     }
 
-    /** "I know this" on a word in a story: mark it known, as on a new card. */
-    fun knowStoryWord(wordId: Long) = storyWordAction { repo.markKnown(wordId, MasteryRules.HIDE_AT, now()) }
-
-    private fun storyWordAction(action: () -> Unit) = launchIo {
-        if (_screen.value !is Screen.StoryReader) return@launchIo
-        action()
-        refreshStory()
-    }
-
     private fun refreshStory() {
         val state = _screen.value as? Screen.StoryReader ?: return
         val reading = repo.readStory(state.reading.story.id) ?: return

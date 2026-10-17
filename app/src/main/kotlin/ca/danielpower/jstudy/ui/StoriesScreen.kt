@@ -611,10 +611,6 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     word = openWord,
                     reading = reading,
                     onLesson = vm::openGrammar,
-                    onKnow = { id ->
-                        open = null
-                        vm.knowStoryWord(id)
-                    },
                 )
             }
         }
@@ -1045,7 +1041,6 @@ private fun WordCard(
     word: ReadingWord,
     reading: StoryReading,
     onLesson: (Long) -> Unit,
-    onKnow: (Long) -> Unit,
 ) {
     val entry = word.wordId?.let { reading.words[it] }
     // A particle or ending on its own: the card explains its grammar and has no dictionary entry.
@@ -1102,14 +1097,6 @@ private fun WordCard(
                 // The topic's page, unless that's the page you're on.
                 val lesson = reading.lessons[use.point.id]?.takeIf { it != reading.story.id }
                 GrammarNote(use.point, lesson?.let { { onLesson(it) } })
-            }
-        }
-        if (entry != null && reading.isUnknown(word)) {
-            // New words join your reviews when you finish; "I know this" keeps one out.
-            Row(Modifier.fillMaxWidth().padding(end = 12.dp), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { onKnow(entry.id) }) {
-                    Text(ui("I know this", "知っている"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             }
         }
     }
