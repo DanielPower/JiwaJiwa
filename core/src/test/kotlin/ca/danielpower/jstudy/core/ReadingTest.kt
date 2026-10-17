@@ -36,6 +36,24 @@ class ReadingTest {
     }
 
     @Test
+    fun aConjunctionOpeningASentenceIsAWord() {
+        val reader = Reader { text, reading -> if (text == "でも") LexiconMatch(40, "でも") else null }
+        val demo = reader.words("うるさい！でも、いい！").first { it.surface == "でも" }
+        assertEquals(WordKind.WORD, demo.kind)
+        assertEquals(40L, demo.wordId)
+        assertEquals(WordKind.GRAMMAR, reader.words("コーヒーでも飲む？").first { it.surface == "でも" }.kind)
+    }
+
+    @Test
+    fun aFormNoGrammarExplainsIsASetPhrase() {
+        val reader = Reader { text, _ -> mapOf("いらっしゃる" to 41L, "いらっしゃいませ" to 42L)[text]?.let { LexiconMatch(it, "いらっしゃいませ") } }
+        val w = reader.words("いらっしゃいませ！").first()
+        assertEquals(42L, w.wordId)
+        assertEquals("いらっしゃいませ", w.lemma)
+        assertTrue(w.conjugation.isEmpty())
+    }
+
+    @Test
     fun aSpeakersNameIsntPartOfTheText() {
         assertEquals(Speech("ユキ", "「でしょ？」"), Speech.of("ユキ|「でしょ？」"))
         assertEquals(Speech(null, "ラーメンが来た。"), Speech.of("ラーメンが来た。"))

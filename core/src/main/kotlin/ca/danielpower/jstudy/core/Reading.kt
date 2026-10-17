@@ -184,6 +184,12 @@ class Reader(private val lexicon: Lexicon) {
                         i++
                     }
                 }
+                // でも, けど and だって opening a sentence join it to the one before ("But, …"):
+                // a word, though the tokenizer sometimes takes them for particles after ！.
+                t.pos == "助詞" && t.base in CONJUNCTIONS && (i == 0 || tokens[i - 1].pos == "記号") -> {
+                    out += content(t)
+                    i++
+                }
                 t.pos == "助詞" || t.pos == "助動詞" || (t.pos == "動詞" && t.pos2 == "非自立") ||
                     (t.pos == "名詞" && t.pos2 == "非自立") || t.pos == "フィラー" -> {
                     out += plain(listOf(t), WordKind.GRAMMAR, null)
@@ -211,11 +217,20 @@ class Reader(private val lexicon: Lexicon) {
         val wordOf = IntArray(tokens.size)
         spans.forEachIndexed { w, span -> for (k in span) wordOf[k] = w }
         val uses = Grammar.find(tokens).map { GrammarUse(it.point, wordOf[it.start], wordOf[it.end - 1]) }
-        if (uses.isEmpty()) return words
         return words.mapIndexed { w, word ->
             val mine = uses.filter { w in it.first..it.last }
-            if (mine.isEmpty()) word else word.copy(grammar = mine)
+            if (mine.isNotEmpty()) word.copy(grammar = mine) else if (word.conjugated) phrase(word) else word
         }
+    }
+
+    /**
+     * A conjugated word no grammar point explains, as a set phrase when the
+     * dictionary has it whole: いらっしゃいませ is "welcome", not a form of
+     * いらっしゃる.
+     */
+    private fun phrase(word: ReadingWord): ReadingWord {
+        val match = lexicon.find(word.surface, word.reading) ?: return word
+        return word.copy(lemma = word.surface, wordId = match.wordId, reading = match.reading, conjugation = emptyList(), ruby = ruby(word.surface, match.reading))
     }
 
     /** A run of nouns the dictionary knows as one word (図書館員, 魔導士), longest first. */
@@ -331,6 +346,7 @@ class Reader(private val lexicon: Lexicon) {
     companion object {
         private const val MAX_COMPOUND = 4
         private val CONNECTIVES = setOf("て", "で", "ば", "ながら", "つつ")
+        private val CONJUNCTIONS = setOf("でも", "けど", "だけど", "だって")
         private val CONTRACTIONS = setOf("ちゃう", "じゃう", "ちまう", "とく", "てる", "でる")
 
         /** Loading the IPADIC dictionary takes a moment, so it happens once, on first use. */

@@ -105,7 +105,7 @@ Rain hits Alex's laundry and he rushes out, too loud for Kenta.
 
 Everyone goes to Yuki's gig; even Kenta isn't sleepy.
 
-- 23 words; 3 new of 3 allowed.
+- 24 words; 3 new of 3 allowed.
 - New: ライブ (not JLPT), 行く (いく, N5), 楽しみ (たのしみ, N4).
 
 ### 13. Spring (`share-house/spring`)
@@ -141,7 +141,7 @@ Summer heat drives everyone into the konbini for water and beer.
 
 A festival in the park: ramen, crowds, and talk of fireworks.
 
-- 29 words; 3 new of 3 allowed.
+- 30 words; 3 new of 3 allowed.
 - Teaches で (`de`).
 - New: 祭り (まつり, N3), 花火 (はなび, N2), 見る (みる, N5).
 
@@ -199,6 +199,6 @@ Goodbyes at the station; Alex flies home, and Yuki wonders whether to sing her n
 
 Read in order after the stories it follows, a reader knows these by the end of the last chapter.
 
-Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます (`masu`), から / まで (`kara-made`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), か (`ka`), で (`de`), から (`kara-because`), と (`to`).
+Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます (`masu`), から / まで (`kara-made`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), か (`ka`), で (`de`), から (`kara-because`), と (`to`).
 
-105 words: 来る ついに 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃる いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる うまい チケット 買う これ 卵 ビール 熱い ゆっくり 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ はい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 友達 写真 撮る 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に
+105 words: 来る ついに 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる うまい チケット 買う これ 卵 ビール 熱い ゆっくり 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ はい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 友達 写真 撮る 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に

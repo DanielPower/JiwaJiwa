@@ -30,8 +30,12 @@ internal object Grammar {
     /** One token in a pattern. */
     class Step(val optional: Boolean, val test: (Morpheme) -> Boolean)
 
-    /** A token pattern for [point]. [before], when set, must hold for the token just before the match. */
-    class Rule(val point: GrammarPoint, val steps: List<Step>, val before: ((Morpheme) -> Boolean)?)
+    /**
+     * A token pattern for [point]. [before], when set, must hold for the token
+     * just before the match, and [after] for the token just after it (null at
+     * the end).
+     */
+    class Rule(val point: GrammarPoint, val steps: List<Step>, val before: ((Morpheme) -> Boolean)?, val after: ((Morpheme?) -> Boolean)? = null)
 
     /** A match over tokens [start] until [end]. */
     data class Match(val point: GrammarPoint, val start: Int, val end: Int)
@@ -43,6 +47,7 @@ internal object Grammar {
                 if (rule.before != null && (start == 0 || !rule.before.invoke(tokens[start - 1]))) continue
                 var end = match(rule.steps, 0, tokens, start)
                 if (end <= start) continue
+                if (rule.after != null && !rule.after.invoke(tokens.getOrNull(end))) continue
                 // Take in the endings that follow (いけ + ない, つもり + です) so the whole phrase lights up.
                 while (end < tokens.size && tokens[end].pos == "助動詞" && tokens[end].base in ENDINGS) end++
                 found += Match(rule.point, start, end)
@@ -96,9 +101,10 @@ internal object Grammar {
         exampleMeaning: String,
         vararg variants: List<Step>,
         before: ((Morpheme) -> Boolean)? = null,
+        after: ((Morpheme?) -> Boolean)? = null,
     ) {
         val p = GrammarPoint(id, pattern, level, meaning, note, example, exampleMeaning)
-        for (steps in variants) rules += Rule(p, steps, before)
+        for (steps in variants) rules += Rule(p, steps, before, after)
     }
 
     /** Another pattern for the point [id], with its own [before]. */
@@ -247,6 +253,81 @@ internal object Grammar {
             "At the end of a sentence it tells the listener something they may not know, or adds emphasis.",
             "この本はおもしろいですよ。", "This book is interesting, you know.",
             listOf(particle("よ", pos2 = "終助詞")),
+        )
+        point(
+            "demo", "～でも", 4, "or something; even",
+            "After a noun, でも softens a suggestion (コーヒーでも飲む？, want a coffee or something?) or means \"even\" (子供でもわかる, even a kid gets it).",
+            "コーヒーでも飲む？", "Want a coffee or something?",
+            listOf(particle("でも", pos2 = "副助詞")),
+            // Opening a sentence, でも is "but", a word of its own.
+            before = { it.pos != "記号" },
+        )
+        // Casual sentence endings.
+        point(
+            "na-final", "な / なあ", 4, "…huh (to yourself)",
+            "At the end of a sentence, な or a drawn-out なあ is half said to yourself: a feeling or a passing thought (大きいな, it's big, huh). Casual. After a plain verb, a sharp な means \"don't\" (行くな！).",
+            "今日は暑いなあ。", "It's hot today, huh.",
+            listOf(particle("な", "なあ", pos2 = "終助詞")),
+        )
+        point(
+            "kana", "～かな", 4, "I wonder",
+            "か and な together: wondering out loud (行こうかな, maybe I'll go). Casual; かなあ draws it out.",
+            "明日は晴れるかな。", "I wonder if it'll be sunny tomorrow.",
+            listOf(particle("か"), particle("な", "なあ", pos2 = "終助詞")),
+        )
+        point(
+            "no-question", "～の？", 4, "(casual question)",
+            "At the end of a sentence, の said with a rise asks a casual question, often wanting an explanation (どこ行くの？, where are you going?). Said flat, it explains.",
+            "どこに行くの？", "Where are you going?",
+            listOf(particle("の", pos2 = "終助詞")),
+        )
+        point(
+            "tte", "～って", 4, "(casual quote or topic)",
+            "A casual と言う or とは. It quotes what someone said (行くって, he says he's going), or brings up something to ask or talk about (ユキって誰？, who's Yuki?).",
+            "ユキって誰？", "Who's Yuki?",
+            listOf(particle("って")),
+        )
+        point(
+            "jan", "～じゃん", 3, "…, right?, see?",
+            "Casual: points out something the listener should see or agree with (いいじゃん, that's great, isn't it). It comes from じゃないか.",
+            "これ、いいじゃん。", "Hey, this is nice.",
+            listOf(aux("じゃん")),
+        )
+        point(
+            "kke", "～っけ", 3, "was it…?",
+            "Asks about something you've forgotten or are trying to remember: 何だっけ？ What was it again?",
+            "名前、何だっけ？", "What was the name again?",
+            listOf(particle("っけ", "け", pos2 = "終助詞")),
+        )
+        point(
+            "mon", "～もん", 3, "because (it's just so)",
+            "Casual: gives a reason as if that settles it, often a little childish or sulky. Also もの.",
+            "だって、眠いもん。", "Well, I'm sleepy.",
+            listOf(particle("もん", "もの", pos2 = "終助詞")),
+        )
+        point(
+            "sa", "さ", 3, "you know (filler)",
+            "Casual: after a word or at the end of a sentence, さ is a light \"you know\". あのさ is a common way to start talking.",
+            "あのさ、明日ひま？", "Hey, are you free tomorrow?",
+            listOf(particle("さ", pos2 = "終助詞")),
+        )
+        point(
+            "zo-ze", "ぞ / ぜ", 3, "(strong emphasis)",
+            "Rough, casual emphasis at the end of a sentence, mostly from men and in manga: 行くぞ！ Let's go! ぜ is the same, a little friendlier.",
+            "よし、行くぞ！", "Right, let's go!",
+            listOf(particle("ぞ", "ぜ", pos2 = "終助詞")),
+        )
+        point(
+            "wa-final", "わ", 3, "(soft emphasis)",
+            "A light emphasis at the end of a sentence. In Tokyo it sounds feminine; in Kansai anyone says it.",
+            "私も行くわ。", "I'll go too.",
+            listOf(particle("わ", pos2 = "終助詞")),
+        )
+        point(
+            "filler", "あのー / えーと", 5, "um, er",
+            "Hesitation words that buy a moment to think. あのー also gets someone's attention politely.",
+            "えーと、駅はどこですか。", "Um, where's the station?",
+            listOf(Step(false) { it.pos == "フィラー" }),
         )
         point(
             "dake", "だけ", 5, "only, just",
@@ -578,6 +659,21 @@ internal object Grammar {
         )
 
         // Verbs that change form.
+        point(
+            "ku-adverb", "～く", 5, "-ly (adverb)",
+            "An i-adjective swaps い for く to say how something is done: 早い, fast; 早く起きる, get up early. いい becomes よく.",
+            "早く起きた。", "I got up early.",
+            listOf(Step(false) { it.pos == "形容詞" && it.form == "連用テ接続" }),
+            // Not the く of くて, くない and くなる, which belong to those patterns.
+            after = { next -> next == null || next.base !in setOf("て", "ない", "ある", "なる", "は", "も") },
+        )
+        point(
+            "imperative", "～ろ / ～え", 3, "do it! (command)",
+            "The plain command: 食べろ, 行け. Blunt: coaches, manga and close friends use it. ～て and ～なさい are softer.",
+            "早く起きろ！", "Get up already!",
+            // ください, なさい and いらっしゃい are commands too, but have points or entries of their own.
+            listOf(Step(false) { it.pos == "動詞" && it.form.startsWith("命令") && it.base !in setOf("くださる", "下さる", "なさる", "いらっしゃる") }),
+        )
         point(
             "passive", "～れる / ～られる", 4, "is done (passive)",
             "The passive: something is done to the subject, often with に for who did it (先生に言われた, I was told by the teacher). For る verbs, the same form also means \"can\" (食べられる).",
