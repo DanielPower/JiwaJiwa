@@ -247,18 +247,19 @@
     {
      "id": "ramen-night-04",
      "title": "The manager",
-     "body": "店長が来た。\n\n店長|「ラーメン、うまい？」\n\nアレックス|「うまい！」\n\nアレックス|「人が多いね。」\n\n店長|「多いよ。」\n\n店長|「バイト、やりたい？」\n\nアレックス|「…バイト？」\n\n店長|「うん、ここのバイト。」\n\nアレックス|「やりたい！」",
+     "body": "店長が来た。\n\n店長|「ラーメン、うまいです？」\n\nアレックス|「うまい！」\n\nアレックス|「人が多いね。」\n\n店長|「多いです。」\n\n店長|「バイト、やります？」\n\nアレックス|「…バイト？」\n\n店長|「ここのバイトです。」\n\nアレックス|「やりたい！やります！」",
      "translations": [
       "The manager came over.",
       "\"How's the ramen?\"",
       "\"Great!\"",
       "\"Busy, huh.\"",
       "\"It is.\"",
-      "\"Want a part-time job?\"",
+      "\"Would you like a part-time job?\"",
       "\"…A job?\"",
-      "\"Yeah, a job here.\"",
-      "\"I do!\""
+      "\"A job here.\"",
+      "\"I want it! I'll do it!\""
      ],
+     "topic": "masu",
      "meets": [
       {
        "name": "店長",
@@ -273,7 +274,7 @@
    "title": "The Share House",
    "blurb": "Alex has a year in Tokyo, a room in a Shimokitazawa share house, and housemates with opinions.",
    "after": [
-    "arrival"
+    "ramen-night"
    ],
    "chapters": [
     {
@@ -331,8 +332,7 @@
       "\"…Yes.\"",
       "\"Sleepy?\"",
       "\"Sleepy.\""
-     ],
-     "topic": "wo"
+     ]
     },
     {
      "id": "share-house-04",
@@ -349,8 +349,7 @@
       "\"…Over there.\"",
       "\"That's a lot!\"",
       "\"It's all coffee.\""
-     ],
-     "topic": "mo"
+     ]
     },
     {
      "id": "share-house-05",
@@ -368,7 +367,6 @@
       "\"You start today, then.\"",
       "\"…Yes!\""
      ],
-     "topic": "masu",
      "meets": [
       {
        "name": "店長",
@@ -912,8 +910,9 @@
     "masu"
    ],
    "summary": "Staff, strangers and bosses speak politely: verbs end in ます, and \"is\" is です. You'll hear it long before you need to say it.",
-   "body": "今日から、お願いします。",
+   "body": "バイト、やります？\n今日から、お願いします。",
    "translations": [
+    "Would you like the job?",
     "Starting today, please."
    ],
    "notes": [

@@ -207,9 +207,9 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   `tools/stories/path.py`) is stories made of chapters, plus grammar topics.
   All of it is our own writing for adults, casual speech first: Alex, on a
   one-year working holiday in Tokyo, a share house, a ramen shop job, a
-  cast met a few at a time. **Arrival** is the prologue; side stories (Ramen
-  night) and the long series (**The Share House**, 20+ chapters planned)
-  follow it (`after`, which can also name a chapter to mean the story up
+  cast met a few at a time. **Arrival** is the prologue, then **Ramen
+  night**, then the long series (**The Share House**, 20+ chapters planned),
+  each following the one before (`after`, which can also name a chapter to mean the story up
   to there). Formal speech comes later as its own topic.
 - Dialogue shows who's speaking, script style (台本形式, Daniel 2026-10-17):
   a cast member's quote is written `ユキ|「でしょ？」` in the story and
@@ -219,6 +219,10 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   wraps carries on one character further in. Same in vertical text, names
   at the top of the column. Unnamed staff, strangers and thinking aloud
   have no name. Names aren't words: not tappable, not counted.
+- Grammar pace (Daniel, 2026-10-17): don't teach too much too fast. Keep
+  chapters with no new grammar, using what came before, between the ones
+  that teach a topic, and reuse each topic in the chapters after it.
+  Stories no longer follow a kana order (kana aren't taught).
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.
