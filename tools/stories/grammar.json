@@ -255,5 +255,100 @@
       ["声が出ないかも。", "My voice might not come out."],
       "かも is short for かもしれない, \"it might be\", about half sure. It goes after the plain form, or straight after a noun: 無理かも, maybe not."
     ]
+  },
+  {
+    "id": "potential", "title": "～える / ～られる", "title_en": "Can", "points": ["potential"],
+    "summary": "The potential form says what you can do: 歌う (sing), 歌える (can sing); 出る (go out, take part), 出られる (can take part).",
+    "parts": [
+      ["新しいバンドも、出られる？", "Can new bands play too?"],
+      "う verbs change their last sound to the え row and add る: 行く, 行ける; 歌う, 歌える. る verbs take られる: 出る, 出られる. In speech that's often just れる: 出れる.",
+      ["ユキさん、歌えるじゃん！", "Yuki, you can sing!"],
+      "The new verb changes like a る verb: 行けない (can't go), 歌えた (could sing). 来る becomes 来れる, and する becomes できる, which you know already.",
+      ["明日は行けない。", "I can't go tomorrow."]
+    ]
+  },
+  {
+    "id": "tara", "title": "～たら", "title_en": "If, when", "points": ["tara"],
+    "summary": "ら on a verb's past form says \"if\" or \"when\": 勝ったら, if we win. It's the everyday way to say \"if\".",
+    "parts": [
+      ["もし勝ったら、どうする？", "What do we do if we win?"],
+      "Take the plain past and add ら: 勝った, 勝ったら; 降った, 降ったら. Then say what happens. もし (if) in front is optional; it flags early that an \"if\" is coming.",
+      ["雨が降ったら、どうする？", "What if it rains?"],
+      "It works on any past form: 負けなかったら (if we don't lose), 出られたら (if we can get in), 暑かったら (if it's hot), 雨だったら (if it's rain).",
+      ["負けたら、また来年。", "If we lose, there's next year."],
+      "For something sure to happen, たら means \"when\" or \"once\": 終わったら, when it's over.",
+      ["練習が終わったら、ラーメン食べよう。", "Let's have ramen once practice is over."]
+    ]
+  },
+  {
+    "id": "nakereba", "title": "～なきゃ / ～なくてもいい", "title_en": "Have to, don't have to", "points": ["nakereba", "nakute-mo-ii"],
+    "summary": "なきゃいけない or なくちゃ on a verb's ない stem says you have to: 練習しなくちゃ, I have to practise. なくてもいい says you don't: 緊張しなくてもいい, no need to be nervous.",
+    "parts": [
+      ["練習しなくちゃ。", "I have to practise."],
+      "Take the ない form and swap ない for なくちゃ: 練習しない, 練習しなくちゃ. It's short for なくては (いけない): \"if I don't, it won't do\".",
+      ["動画を送らなきゃいけない。", "We have to send a video."],
+      "なきゃ is short for なければ, \"if not\", and does the same job. Friends often drop the いけない. In writing and formal talk it's the whole なければならない.",
+      ["新しい曲じゃなくてもいい。", "It doesn't have to be a new song."],
+      "なくてもいい is the other way round: even not doing it is fine. After a noun it's じゃなくてもいい."
+    ]
+  },
+  {
+    "id": "naru", "title": "～くなる / ～になる / ～く", "title_en": "Become; -ly", "points": ["naru", "ku-adverb"],
+    "summary": "なる means become: 暑くなる, get hot; 上手になる, get good. An adjective's く form on its own says how something's done: 大きく歌う, sing out loud.",
+    "parts": [
+      ["夏が、暑くなった。", "Summer has got hot."],
+      "An i-adjective swaps its い for く before なる: 暑い, 暑くなる. いい becomes よくなる.",
+      ["歌が、上手になった。", "Your singing's got good."],
+      "A noun or a na-adjective takes に: 上手になる, 静かになる, 一つになる.",
+      ["今は、大きく歌える。", "Now I can sing out loud."],
+      "The same く form, with no なる after it, tells how something's done: 大きく (big, loud), 楽しく (happily), うまく (well)."
+    ]
+  },
+  {
+    "id": "mitai", "title": "～みたい / ～そう", "title_en": "Seems, looks", "points": ["you", "sou-looks"],
+    "summary": "みたい after a noun or a plain verb says it seems so: 雨みたい, sounds like rain. そう on an adjective's stem says how it looks: 怖そう, she looks scary.",
+    "parts": [
+      ["雨みたい。", "Sounds like rain."],
+      "みたい is a guess from what you see or hear. It goes straight after a noun, or after the plain form of a verb or adjective: 怒ってるみたい, she seems angry.",
+      ["リナ、怒ってるみたい。", "Rina seems angry."],
+      "Before a noun it's みたいな: 雨みたいな曲, a song like rain. In writing and formal talk it's ～ようだ.",
+      ["リナさん、ちょっと怖そう。", "Rina looks a bit scary."],
+      "そう goes on an adjective with its い dropped (怖い, 怖そう; 楽しい, 楽しそう) or on a verb's stem. It's how something looks to you, before you know. いい becomes よさそう."
+    ]
+  },
+  {
+    "id": "te-shimau", "title": "～ちゃう / ～てしまう", "title_en": "Oops, all done", "points": ["te-shimau"],
+    "summary": "しまう after a verb's て form says it's done and over, often when you didn't want it: 切れてしまった, it went and snapped. Friends say ちゃう: 切れちゃった.",
+    "parts": [
+      ["切れちゃった。", "It snapped."],
+      "て plus しまう shrinks to ちゃう, and で plus しまう to じゃう: 忘れちゃう, 飲んじゃう. In the past, ちゃった and じゃった.",
+      ["歌、忘れちゃった。", "I forgot the words."],
+      "It's often a small \"oops\": it happened, and it can't be undone. It can also just say something's done completely, or can't be helped.",
+      ["私、緊張しちゃう。", "I can't help getting nervous."],
+      "The full てしまう is for writing and polite talk: 切れてしまいました."
+    ]
+  },
+  {
+    "id": "te-miru", "title": "～てみる", "title_en": "Try and see", "points": ["te-miru"],
+    "summary": "みる after a verb's て form means do it and see how it goes: 歌ってみる, try singing it.",
+    "parts": [
+      ["歌ってみて。", "Try singing it."],
+      "It's the verb 見る (see), written in kana: do something, and see what happens.",
+      ["言葉、書いてみた。", "I tried writing the words."],
+      "みる changes like 見る: やってみた (I tried it), やってみよう (let's give it a go), 静かにしてみて (try it quieter).",
+      ["もう一回、やってみよう。", "Let's try it once more."]
+    ]
+  },
+  {
+    "id": "dake", "title": "だけ / しか", "title_en": "Only", "points": ["dake", "shika"],
+    "summary": "だけ after a word means only that: 三曲だけ, just three songs. しか with a negative verb means the same, with a feeling of not enough: 三曲しかない, we've only got three songs.",
+    "parts": [
+      ["三曲しかない。", "We've only got three songs."],
+      "しか always comes with a negative: しかない (there's only), しか知らない (only know). It says there should be more.",
+      ["三曲だけ。", "Just three songs."],
+      "だけ just says that's all there is, with no complaint, and works with any verb: 一回だけ (only once), 俺だけ (only me).",
+      ["ステージは、一回だけ。", "We only get one go on the stage."],
+      "それだけ, \"that's all\", ends what you have to say."
+    ]
   }
 ]
