@@ -1,0 +1,7 @@
+{
+  "title": "Celebration ramen",
+  "blurb": "Ramen at the manager's shop for Miho's honourable mention, and Kenta finds out who her next manga is about.",
+  "after": ["mihos-manga/honourable-mention"],
+  "side": true,
+  "chapters": ["celebration-ramen"]
+}

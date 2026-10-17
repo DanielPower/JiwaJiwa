@@ -382,5 +382,53 @@
       ["ステージは、一回だけ。", "We only get one go on the stage."],
       "それだけ, \"that's all\", ends what you have to say."
     ]
+  },
+  {
+    "id": "ni-iku", "title": "～に行く / へ", "title_en": "Go to do; toward", "points": ["ni-iku", "e"],
+    "summary": "に after a verb's stem says what you're going or coming for: 見に行く, go to see; 見せに来た, came to show. へ marks where you're headed, much like に: スタジオへ行く.",
+    "parts": [
+      ["ラーメンを食べに行こう。", "Let's go and get ramen."],
+      "Take a verb's ます stem (食べます, 食べ), add に, then a verb of going: 行く, 来る or 帰る. The に says what the trip is for.",
+      ["ユキに見せに来た。", "I came to show Yuki."],
+      "A する verb's stem is し: 練習しに行く, go to practise. 何しに来たの？ asks what someone came for.",
+      ["スタジオへ行った。", "I went to the studio."],
+      "へ is the kana he, but read え. It points toward a place, and with 行く and 来る it does the same job as に."
+    ]
+  },
+  {
+    "id": "yori", "title": "より / ～のほうが", "title_en": "Than; the … one", "points": ["yori", "hou-ga"],
+    "summary": "より marks what you compare against: 私の絵より, than my drawing. のほうが picks the side that's more so: プロのほうが上手, the pro's better.",
+    "parts": [
+      ["プロの絵は、私の絵よりきれい。", "The pro's drawing is cleaner than mine."],
+      "A は B より, then an adjective: A is more so than B. There's no word for \"more\"; the adjective does the work.",
+      ["プロのほうが、上手。", "The pro's better."],
+      "ほう means side. A noun takes の before it (プロのほう), a verb doesn't (勝つほう). が marks it as the one that's more so.",
+      ["春より、上手になった。", "I've got better since spring."],
+      "To ask which of two, say どっち: どっちがいい？, which is better? The answer often has のほうが, and sometimes より too."
+    ]
+  },
+  {
+    "id": "toki", "title": "～とき", "title_en": "When", "points": ["toki"],
+    "summary": "とき after a verb, an adjective, or a noun with の says when something happens: 行くとき, when I go; 子供のとき, when I was a kid.",
+    "parts": [
+      ["仕事に行くとき、いつも歌を聞く。", "When I go to work, I always listen to music."],
+      "とき (時) is the word for time. What comes before it says which time: a plain verb, an adjective (忙しいとき, when I'm busy), a na-adjective with な (静かなとき), or a noun with の.",
+      ["子供のとき、毎日マンガを読んでいた。", "When I was a kid, I read manga every day."],
+      "A past verb before とき says it had already happened: 見たとき, when I saw it. A present verb says it hadn't yet, or happens every time.",
+      ["ユキのバンドを見たとき、すごいと思った。", "When I saw Yuki's band, I thought it was amazing."],
+      "Compare たら: 見たら leans toward \"once I see it\" or \"if\"; 見たとき just says at the time."
+    ]
+  },
+  {
+    "id": "mae-ni", "title": "～前に / ～た後で / ～てから", "title_en": "Before, after", "points": ["mae-ni", "ato-de", "te-kara"],
+    "summary": "前に after a plain verb says before: 寝る前に, before bed. 後で after a past verb says after: 終わった後で, after it's over. から after a verb's て form says after, and then: 食べてから, after eating.",
+    "parts": [
+      ["仕事に行く前に、コーヒーを飲む。", "Before I go to work, I have a coffee."],
+      "The verb before 前に is always plain present, even in a story told in the past: 寝る前に読んだ, I read before bed.",
+      ["仕事が終わった後で、ラーメンを食べる。", "After work's over, I have ramen."],
+      "後で (あとで) goes the other way: the verb before it is always past. On its own, 後で means \"later\".",
+      ["食べてから、行こう。", "Let's eat first, then go."],
+      "～てから puts two things in order: this one, and only then that one. It's the everyday way to say one thing has to come first."
+    ]
   }
 ]
