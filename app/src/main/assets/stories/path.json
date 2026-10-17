@@ -6417,6 +6417,410 @@
     }
    ],
    "side": true
+  },
+  {
+   "id": "tokyo-mountains",
+   "title": "Tokyo mountains",
+   "blurb": "Alex spots a big, tall mountain right in the middle of Tokyo.",
+   "after": [
+    "arrival/tokyo"
+   ],
+   "chapters": [
+    {
+     "id": "tokyo-mountains/tokyo-mountains",
+     "title": "Tokyo mountains",
+     "plot": "Outside the station, Alex spots a tall mountain, and it turns out to be a building.",
+     "body": "駅だ。人が多い。\n\nあ、あっちは山だ！\n\n大きい山だ。高い山だ。\n\nきれいだ…\n\nあ、山は、ビルだ！\n\n高いビルだ。ビル、ビル、ビル。\n\n東京は、ビルが山だ。\n\n山は…外だ。",
+     "translations": [
+      "The station.",
+      "So many people.",
+      "Oh, there's a mountain over there!",
+      "A big mountain.",
+      "A tall one.",
+      "Beautiful…",
+      "Oh, the mountain is a building!",
+      "A tall building.",
+      "Buildings, buildings, buildings.",
+      "In Tokyo, the buildings are the mountains.",
+      "The real mountains are… out there."
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "wrong-room",
+   "title": "Wrong room",
+   "blurb": "A new house, a lot of doors, and only one of them is Alex's.",
+   "after": [
+    "arrival/the-room"
+   ],
+   "chapters": [
+    {
+     "id": "wrong-room/wrong-room",
+     "title": "Wrong room",
+     "plot": "Alex can't find his room and walks into Yuki's.",
+     "body": "部屋は…どこ？\n\nここ？あ、きれいな部屋だ。\n\nユキ|「アレックス？」\n\nアレックス|「あ…ここ、ユキの部屋？」\n\nユキ|「うん。」\n\nユキ|「アレックスの部屋は、あっちだよ。」\n\nアレックス|「わからない…部屋が多い！」\n\nユキ|「多くないよ。」\n\nアレックスの部屋だ。外は、ビル。うん、いい部屋だ。",
+     "translations": [
+      "Which one's my room…?",
+      "This one?",
+      "Oh, a nice room.",
+      "\"Alex?\"",
+      "\"Oh… is this your room?\"",
+      "\"Yep.\"",
+      "\"Yours is over there.\"",
+      "\"I can't tell… there are so many rooms!\"",
+      "\"There really aren't.\"",
+      "My room.",
+      "Buildings out the window.",
+      "Yeah. Good room."
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "the-wait",
+   "title": "The wait",
+   "blurb": "The beer comes first. The ramen takes its time.",
+   "after": [
+    "ramen-night/which-one"
+   ],
+   "chapters": [
+    {
+     "id": "the-wait/the-wait",
+     "title": "The wait",
+     "plot": "Waiting for their ramen, Alex eyes other people's bowls and buys another beer.",
+     "body": "ビールが来た。\n\nアレックス|「うまい！」\n\nユキ|「うまいね。」\n\nアレックス|「ラーメンは？」\n\nユキ|「人が多いね…」\n\nアレックス|「あっちの人のラーメン、大きい！」\n\nユキ|「でしょ？」\n\nアレックス|「卵も大きい！」\n\nアレックス|「お腹すいた…」\n\nアレックス|「ビール、うまい…これも買う！」\n\nユキ|「ビールも？」\n\nアレックス|「うん、ビールも！」\n\nチケットを買った。",
+     "translations": [
+      "The beers came.",
+      "\"So good!\"",
+      "\"Isn't it.\"",
+      "\"Where's the ramen?\"",
+      "\"Lots of people tonight…\"",
+      "\"That guy's ramen is huge!\"",
+      "\"Right?\"",
+      "\"His egg's huge too!\"",
+      "\"I'm starving…\"",
+      "\"This beer's great… I'm getting another!\"",
+      "\"Another beer?\"",
+      "\"Yep, another beer!\"",
+      "He bought another ticket."
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "alexs-coffee",
+   "title": "Alex's coffee",
+   "blurb": "For once, Alex makes the morning coffee.",
+   "after": [
+    "share-house/coffee"
+   ],
+   "chapters": [
+    {
+     "id": "alexs-coffee/alexs-coffee",
+     "title": "Alex's coffee",
+     "plot": "Alex makes the morning coffee; it's hot, it's good, and Kenta wakes up.",
+     "body": "朝だ。朝のコーヒーは、アレックスがやる！\n\nアレックス|「ユキ、おはよう！コーヒー、飲む？」\n\nユキ|「アレックスのコーヒー？」\n\nアレックス|「うん！」\n\nユキ|「…熱い！」\n\nアレックス|「ゆっくりね。」\n\nユキ|「でも、うまい。ありがとう。」\n\nケンタが来た。\n\nケンタ|「…おはよう。眠い…」\n\nアレックス|「ケンタも飲む？」\n\nケンタ|「…飲む。」\n\nケンタ|「…うまい。」\n\nケンタ|「眠くない！」\n\nアレックス|「でしょ？」\n\nケンタ|「アレックス、今夜、ゲーム！」\n\nアレックス|「やる！」",
+     "translations": [
+      "Morning.",
+      "Alex is on coffee this morning!",
+      "\"Morning, Yuki! Coffee?\"",
+      "\"Your coffee?\"",
+      "\"Yep!\"",
+      "\"…Hot!\"",
+      "\"Take it slow.\"",
+      "\"But it's good. Thanks.\"",
+      "Kenta came in.",
+      "\"…Morning. So sleepy…\"",
+      "\"Want some too, Kenta?\"",
+      "\"…Yeah.\"",
+      "\"…That's good.\"",
+      "\"I'm awake!\"",
+      "\"Right?\"",
+      "\"Alex, games tonight!\"",
+      "\"I'm in!\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "missing-manga",
+   "title": "The missing manga",
+   "blurb": "Alex's new manga has vanished, and there's one obvious suspect.",
+   "after": [
+    "share-house/the-bass-upstairs"
+   ],
+   "chapters": [
+    {
+     "id": "missing-manga/missing-manga",
+     "title": "The missing manga",
+     "plot": "Alex's manga from Miho's shop goes missing; he finds it in Kenta's room, where Kenta read it all night.",
+     "body": "今日は休みだ。\n\nミホさんのマンガは…どこ？\n\nアレックス|「ユキ、マンガは？」\n\nユキ|「マンガ？わからない。」\n\nアレックス|「今日はゴミ…マンガ…ゴミ！？」\n\nユキ|「ちょっと待って。ケンタは？」\n\nケンタの部屋だ。\n\nアレックス|「ケンタ？」\n\nケンタ|「…おはよう。眠い…」\n\nゴミ、ゲーム、ゴミ…マンガ！アレックスのマンガだ！\n\nケンタ|「あ…ごめん。」\n\nケンタ|「これ、おもしろい！」\n\nケンタ|「朝までマンガだった。」\n\nアレックス|「ゲームは？」\n\nケンタ|「今日は、マンガ。」\n\nケンタ|「もう一回…」\n\nアレックス|「ちょっと待って！」\n\nアレックス|「じゃあ、ケンタも買って！ミホさんの店に！」\n\nケンタ|「…今日は眠い。」",
+     "translations": [
+      "A day off today.",
+      "Where did the manga Miho picked go…?",
+      "\"Yuki, have you seen my manga?\"",
+      "\"Manga? No idea.\"",
+      "\"It's trash day… my manga… in the trash!?\"",
+      "\"Hang on. What about Kenta?\"",
+      "Kenta's room.",
+      "\"Kenta?\"",
+      "\"…Morning. So sleepy…\"",
+      "Trash, games, trash… manga!",
+      "My manga!",
+      "\"Oh… sorry.\"",
+      "\"This is so good!\"",
+      "\"I read it until morning.\"",
+      "\"No games?\"",
+      "\"Manga today.\"",
+      "\"One more time through…\"",
+      "\"Hang on!\"",
+      "\"Then buy your own! At Miho's shop!\"",
+      "\"…Too sleepy today.\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "rain-on-the-sakura",
+   "title": "Rain on the sakura",
+   "blurb": "The day after hanami, it rains. Alex goes to the park anyway.",
+   "after": [
+    "share-house/hanami"
+   ],
+   "chapters": [
+    {
+     "id": "rain-on-the-sakura/rain-on-the-sakura",
+     "title": "Rain on the sakura",
+     "plot": "On a rainy day Alex and Yuki visit the empty park, and Alex forgets his laundry again.",
+     "body": "今日は、雨が降ってる。\n\nアレックス|「桜は？」\n\nユキ|「雨だね…」\n\nアレックス|「公園に行きたい！」\n\nユキ|「雨だよ？」\n\n公園に来た。人は多くない。\n\n雨の桜も、きれいだ。\n\nアレックス|「写真、撮る！」\n\nユキ|「いいね。撮って。」\n\nユキ|「春の雨、好き？」\n\nアレックス|「好き！」\n\nユキ|「…洗濯は？」\n\nアレックス|「あ…洗濯！」",
+     "translations": [
+      "It's raining today.",
+      "\"What about the sakura?\"",
+      "\"It's raining, huh…\"",
+      "\"I want to go to the park!\"",
+      "\"In the rain?\"",
+      "They came to the park.",
+      "Hardly anyone there.",
+      "Sakura in the rain is pretty too.",
+      "\"I'm taking a photo!\"",
+      "\"Nice. Go for it.\"",
+      "\"Do you like spring rain?\"",
+      "\"I do!\"",
+      "\"…And your laundry?\"",
+      "\"Oh no… my laundry!\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "hot-day",
+   "title": "Hot ramen, hot day",
+   "blurb": "Summer at the ramen shop: hot bowls, a hot kitchen, and everyone wants water.",
+   "after": [
+    "share-house/summer"
+   ],
+   "chapters": [
+    {
+     "id": "hot-day/hot-day",
+     "title": "Hot ramen, hot day",
+     "plot": "A summer shift where every customer wants water; then Yuki and Kenta come in for ramen anyway.",
+     "body": "夏だ。今日は、バイトだ。\n\n店は暑い。ラーメンも熱い。\n\nアレックス|「いらっしゃいませ！」\n\n男の人|「すみません、水、お願いします。」\n\nアレックス|「はい、ちょっと待ってください！」\n\n女の人|「すみません、水も！」\n\nアレックス|「はい！」\n\n水、水、水。ラーメン、水、ラーメン、水。\n\n店長|「アレックスさん、これ、お願いします！」\n\nアレックス|「はい！」\n\nお腹すいた…暑い…\n\nアレックス|「店長、今日は水が多いですね。」\n\n店長|「夏ですね。」\n\n店長|「アレックスさんも、水を飲んでください。」\n\nアレックス|「はい！」\n\nユキが来た。ケンタも来た。\n\nケンタ|「暑い…水…」\n\nアレックス|「ラーメンは？」\n\nケンタ|「ラーメンも！」\n\nユキ|「夏のラーメンも、うまいね。」\n\nアレックス|「熱い！暑い！」\n\nケンタ|「でも、うまい！」\n\nケンタ|「アレックス、水、もう一回！」\n\nアレックス|「…はい！」",
+     "translations": [
+      "Summer.",
+      "Work today.",
+      "The shop is hot.",
+      "So is the ramen.",
+      "\"Welcome!\"",
+      "\"Excuse me, water, please.\"",
+      "\"Yes, one moment!\"",
+      "\"Excuse me, water here too!\"",
+      "\"Coming!\"",
+      "Water, water, water.",
+      "Ramen, water, ramen, water.",
+      "\"Alex, this one, please!\"",
+      "\"Yes!\"",
+      "Hungry… hot…",
+      "\"Manager, lots of water today.\"",
+      "\"It's summer.\"",
+      "\"You drink some water too, Alex.\"",
+      "\"Will do!\"",
+      "Later, Yuki came in.",
+      "Kenta too.",
+      "\"Hot… water…\"",
+      "\"And ramen?\"",
+      "\"Ramen too!\"",
+      "\"Ramen's good in summer too.\"",
+      "\"Hot ramen! Hot day!\"",
+      "\"But good!\"",
+      "\"Alex, more water!\"",
+      "\"…Coming!\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "fireworks-photo",
+   "title": "The fireworks photo",
+   "blurb": "Alex sends his mom the photo from the festival.",
+   "after": [
+    "share-house/fireworks"
+   ],
+   "chapters": [
+    {
+     "id": "fireworks-photo/fireworks-photo",
+     "title": "The fireworks photo",
+     "plot": "Alex's mom calls about the fireworks photo, and Canada feels far away.",
+     "body": "夜、電話が来た。母だ。\n\n母|「アレックス、写真、見た！」\n\n母|「花火、きれいだね。」\n\nアレックス|「祭りの花火だよ。公園で見た。」\n\n母|「友達も一緒？」\n\nアレックス|「うん。ユキ、ケンタ、ミホさん。」\n\n母|「いい友達だね。」\n\n母|「夏の日本は、暑い？」\n\nアレックス|「暑い！夜も暑い！」\n\n母|「カナダの夜の空も、きれいだよ。」\n\nアレックス|「…うん。」",
+     "translations": [
+      "That night, the phone rang.",
+      "Mom.",
+      "\"Alex, I saw the photo!\"",
+      "\"The fireworks are beautiful.\"",
+      "\"They were at the festival. We watched them in the park.\"",
+      "\"With your friends?\"",
+      "\"Yeah. Yuki, Kenta and Miho.\"",
+      "\"They look like good friends.\"",
+      "\"Is Japan hot in summer?\"",
+      "\"So hot! Even at night!\"",
+      "\"The night sky in Canada is pretty too.\"",
+      "\"…Yeah.\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "ramen-for-kenta",
+   "title": "Ramen for Kenta",
+   "blurb": "Kenta got the job. That calls for ramen, and the manager has a surprise.",
+   "after": [
+    "share-house/autumn"
+   ],
+   "chapters": [
+    {
+     "id": "ramen-for-kenta/ramen-for-kenta",
+     "title": "Ramen for Kenta",
+     "plot": "The housemates celebrate Kenta's job at the ramen shop; the manager treats him to an egg, and Alex thinks about going home.",
+     "body": "秋の夜だ。寒いから、ラーメンだ。\n\n店長|「いらっしゃいませ！」\n\n店長|「アレックスさん、今日は休みですね。」\n\nアレックス|「はい！今夜は、食べます！」\n\nユキ|「店長、ケンタは今日から、会社の仕事です！」\n\n店長|「ケンタさん、いいですね！」\n\nケンタ|「…はい。頑張ります。」\n\n店長|「じゃあ、今夜の卵は、店長からです。」\n\nケンタ|「卵…！」\n\nラーメンが来た。ビールも来た。\n\nケンタ|「…卵、うまい！」\n\n店長|「ゆっくり食べてください。」\n\nユキ|「ケンタの会社、ゲームの会社だよね。」\n\nケンタ|「うん。ゲームの仕事だ。」\n\nアレックス|「ケンタのゲーム、やりたい！」\n\nユキ|「ケンタ、頑張ってね。」\n\nユキ|「アレックス、元気？」\n\nアレックス|「…うん、元気！」\n\n「カナダに帰る…」\n\n「…でも、今夜はラーメンだ！」",
+     "translations": [
+      "An autumn night.",
+      "It's cold, so: ramen.",
+      "\"Welcome!\"",
+      "\"Alex, it's your day off.\"",
+      "\"Yes! Tonight, I eat!\"",
+      "\"Manager, Kenta starts at a company today!\"",
+      "\"Kenta, that's great!\"",
+      "\"…Thanks. I'll do my best.\"",
+      "\"Then tonight's eggs are on me.\"",
+      "\"Eggs…!\"",
+      "The ramen came.",
+      "So did the beer.",
+      "\"…This egg is great!\"",
+      "\"Take your time.\"",
+      "\"Your company makes games, right?\"",
+      "\"Yeah. I'll be working on games.\"",
+      "\"I want to play your game!\"",
+      "\"Good luck, Kenta.\"",
+      "\"Alex, you okay?\"",
+      "\"…Yeah, I'm fine!\"",
+      "\"Going back to Canada…\"",
+      "\"…But tonight is ramen!\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "the-last-night",
+   "title": "The last night",
+   "blurb": "Alex's last night in the share house: too much manga to pack, and one more game.",
+   "after": [
+    "share-house/the-last-shift"
+   ],
+   "chapters": [
+    {
+     "id": "the-last-night/packing",
+     "title": "Packing",
+     "plot": "On his last night, Alex packs his manga and photos with Yuki and Kenta, and remembers the year.",
+     "body": "夜だ。最後の夜だ。\n\nアレックスの部屋。マンガ、マンガ、マンガ。\n\nユキ|「マンガ、多いね！」\n\nアレックス|「ミホさんの店で、買った。」\n\nアレックス|「これは、ケンタの。」\n\nケンタ|「…ありがとう。」\n\nユキ|「写真は？」\n\nアレックス|「写真も！」\n\n桜の写真。祭りの写真。花火の写真。雪の写真。\n\nユキの写真。ケンタの写真。ミホさんの写真。\n\nアレックス|「春、夏、秋、冬…」\n\nユキ|「いい写真だね。」\n\nアレックス|「ユキのコーヒーも、本当に好きだった。」\n\nユキ|「…ありがとう。」\n\nケンタ|「アレックスの部屋、寂しいね。」\n\nユキ|「…うん。」\n\nケンタ|「…寂しい。」\n\nケンタ|「アレックス、ゲーム、やる？」\n\nアレックス|「やる！最後のゲームだ！」",
+     "translations": [
+      "Night.",
+      "The last night.",
+      "Alex's room.",
+      "Manga, manga, manga.",
+      "\"That's a lot of manga!\"",
+      "\"I bought them at Miho's shop.\"",
+      "\"This one's for you, Kenta.\"",
+      "\"…Thanks.\"",
+      "\"And the photos?\"",
+      "\"Those too!\"",
+      "Sakura photos.",
+      "Festival photos.",
+      "Fireworks photos.",
+      "Snow photos.",
+      "Photos of Yuki.",
+      "Of Kenta.",
+      "Of Miho.",
+      "\"Spring, summer, autumn, winter…\"",
+      "\"They're good photos.\"",
+      "\"I really loved your coffee too.\"",
+      "\"…Thanks.\"",
+      "\"Your room looks lonely, huh.\"",
+      "\"…Yeah.\"",
+      "\"…I'll miss you.\"",
+      "\"Alex, want to play?\"",
+      "\"Yes! One last game!\""
+     ]
+    },
+    {
+     "id": "the-last-night/one-more-game",
+     "title": "One more game",
+     "plot": "A last game night in Kenta's tidied room: Alex finally wins, then Yuki joins and beats them both.",
+     "body": "ケンタの部屋。ゴミは…多くない！\n\nアレックス|「ケンタ、部屋がきれい！」\n\nケンタ|「…最後の夜だから。」\n\nケンタ|「これ、やる？」\n\nアレックス|「やる！」\n\nアレックス|「…負けた。」\n\nアレックス|「もう一回！」\n\nアレックス|「…負けた！」\n\nケンタ|「もう一回？」\n\nアレックス|「もう一回！」\n\nケンタ|「…負けた。」\n\nアレックス|「ケンタが負けた！？本当に？」\n\nケンタ|「…本当に。」\n\nユキが来た。\n\nユキ|「うるさいよ。」\n\nユキ|「…でも、ユキもやる。」\n\nアレックスが負けた。ケンタも負けた。\n\nユキ|「でしょ？」\n\nユキ|「アレックス、もう一回？」\n\nアレックス|「もう一回！」\n\n…負けた。\n\nユキ|「アレックス、カナダは寒い？」\n\nアレックス|「寒い！雪も多い！」\n\n外は、雪だ。寒い夜だ。でも、いい夜だ。\n\nアレックス|「来年も、一緒にゲーム！」\n\nケンタ|「カナダから？」\n\nアレックス|「カナダから！」",
+     "translations": [
+      "Kenta's room.",
+      "The trash… isn't piled up!",
+      "\"Kenta, your room's clean!\"",
+      "\"…It's the last night.\"",
+      "\"Want to play this?\"",
+      "\"Sure!\"",
+      "\"…I lost.\"",
+      "\"Again!\"",
+      "\"…Lost again!\"",
+      "\"Again?\"",
+      "\"Again!\"",
+      "\"…I lost.\"",
+      "\"You lost!? Really?\"",
+      "\"…Really.\"",
+      "Yuki came in.",
+      "\"You're loud.\"",
+      "\"…But I'm playing too.\"",
+      "Alex lost.",
+      "So did Kenta.",
+      "\"Told you.\"",
+      "\"Again, Alex?\"",
+      "\"Again!\"",
+      "…Lost.",
+      "\"Is Canada cold?\"",
+      "\"Freezing! Lots of snow too!\"",
+      "Outside, it's snowing.",
+      "A cold night.",
+      "But a good one.",
+      "\"Games together next year too!\"",
+      "\"From Canada?\"",
+      "\"From Canada!\""
+     ]
+    }
+   ],
+   "side": true
   }
  ],
  "grammar": [
