@@ -88,14 +88,27 @@ class ReadingTest {
     }
 
     @Test
-    fun namesAndNumbersAreNotVocabulary() {
-        val words = reader.words("タロウさんは三匹の猫と東京へ行く")
+    fun namesAndDigitsAreNotVocabulary() {
+        val words = reader.words("タロウさんは3匹の猫と東京へ行く")
         val kinds = words.associate { it.surface to it.kind }
         assertEquals(WordKind.NAME, kinds["タロウ"])
-        assertEquals(WordKind.NAME, kinds["三"])
+        assertEquals(WordKind.NAME, kinds["さん"])
+        assertEquals(WordKind.NAME, kinds["3"])
         assertEquals(WordKind.NAME, kinds["東京"])
         assertEquals(WordKind.WORD, kinds["猫"])
         assertNull(words.first { it.surface == "タロウ" }.wordId)
+    }
+
+    @Test
+    fun numbersInKanjiAndCountersAreWords() {
+        // 二人 is taught as a word (a JLPT entry); 三時 isn't, so it's 三 and 時.
+        val dictionary = mapOf("三" to LexiconMatch(30, "さん", 5), "時" to LexiconMatch(31, "じ"), "二人" to LexiconMatch(32, "ふたり", 5), "三時" to LexiconMatch(33, "さんじ"))
+        val reader = Reader { text, _ -> dictionary[text] }
+        assertEquals(listOf("三" to 30L, "時" to 31L), reader.words("三時に来る").take(2).map { it.surface to it.wordId })
+        val pair = reader.words("二人").single()
+        assertEquals(32L, pair.wordId)
+        assertEquals(listOf(Ruby("二人", "ふたり")), pair.ruby)
+        assertEquals(WordKind.WORD, reader.words("三匹").first().kind)
     }
 
     @Test

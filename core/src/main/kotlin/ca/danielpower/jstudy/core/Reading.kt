@@ -4,7 +4,8 @@ import com.atilika.kuromoji.ipadic.Token
 import com.atilika.kuromoji.ipadic.Tokenizer
 
 /** A dictionary entry matched to a word, and the entry's reading of that spelling in hiragana. */
-data class LexiconMatch(val wordId: Long, val reading: String)
+/** An entry found for a word, the reading it has there, and the entry's JLPT level (0 for none). */
+data class LexiconMatch(val wordId: Long, val reading: String, val jlpt: Int = 0)
 
 /** Finds dictionary entries for the words in a story. */
 fun interface Lexicon {
@@ -36,7 +37,7 @@ fun bestHomograph(homographs: List<Homograph>, reading: String?, forms: (Long) -
         Kana.toHiragana(cand.kana) == wanted || forms(cand.id).any { Kana.isKana(it) && Kana.toHiragana(it) == wanted }
     }.map { it.id }.toSet()
     val best = candidates.minWith(compareBy<Homograph>({ it.id !in readingMatches }, { it.jlpt == 0 }, { it.rank }, { it.id }))
-    return LexiconMatch(best.id, if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana))
+    return LexiconMatch(best.id, if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana), best.jlpt)
 }
 
 /** One piece of a written word and the reading above it (null for kana). */
@@ -46,7 +47,7 @@ enum class WordKind {
     /** A content word: counted as known or new, and tappable. */
     WORD,
 
-    /** A content word that isn't vocabulary to learn: a name or a number. Tappable, never counted. */
+    /** A content word that isn't vocabulary to learn: a name, or a number in digits. Tappable, never counted. */
     NAME,
 
     /** A particle, auxiliary or other grammar on its own. */
@@ -143,7 +144,7 @@ class Reader(private val lexicon: Lexicon) {
         while (i < tokens.size) {
             val from = i
             val t = tokens[i]
-            val compound = compound(tokens, i)
+            val compound = compound(tokens, i) ?: counted(tokens, i)
             when {
                 compound != null -> {
                     out += compound.first
@@ -220,6 +221,26 @@ class Reader(private val lexicon: Lexicon) {
         return null
     }
 
+    /**
+     * A number with its counter that's taught as a word of its own, usually
+     * for its reading (一つ, 二人, 一日, 二十歳). Others (三時, 五百円) are
+     * read a piece at a time, so you learn 三 and 時 rather than every pair.
+     */
+    private fun counted(tokens: List<Morpheme>, start: Int): Pair<ReadingWord, Int>? {
+        if (!tokens[start].isNumber || tokens.getOrNull(start - 1)?.isNumber == true) return null
+        var end = start
+        while (end < tokens.size && tokens[end].isNumber) end++
+        if (tokens.getOrNull(end)?.isCounter == true) end++
+        if (end == start + 1) return null
+        val group = tokens.subList(start, end)
+        val text = group.joinToString("") { it.surface }
+        if (text.any(Char::isDigit)) return null
+        // The tokenizer reads each piece on its own (二人 as に・にん), which is
+        // exactly what these words don't do, so the dictionary's reading wins.
+        val match = lexicon.find(text, null)?.takeIf { it.jlpt > 0 } ?: return null
+        return plain(group, WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(text, match.reading)) to end
+    }
+
     /** Where the conjugation attached to a verb or adjective at [from] - 1 ends. */
     private fun chainEnd(tokens: List<Morpheme>, from: Int): Int {
         var i = from
@@ -265,7 +286,9 @@ class Reader(private val lexicon: Lexicon) {
     }
 
     private fun content(t: Morpheme): ReadingWord {
-        val name = t.pos2 == "固有名詞" || t.pos2 == "数" || t.pos2 == "接尾" || (t.unknown && Kana.isKana(t.surface))
+        // Numbers written in kanji (三, 百, 何) and counters (時, 円, 人) are words to learn; digits aren't.
+        val name = t.pos2 == "固有名詞" || (t.isNumber && t.surface.any(Char::isDigit)) ||
+            (t.pos2 == "接尾" && !t.isCounter) || (t.unknown && Kana.isKana(t.surface))
         val id = if (t.unknown && name) null else lexicon.find(t.base, t.readingOrSurface)?.wordId
         return plain(listOf(t), if (name) WordKind.NAME else WordKind.WORD, id)
     }
@@ -444,4 +467,7 @@ internal class Morpheme(token: Token) {
     val isInflectingHead get() = (pos == "動詞" || pos == "形容詞") && pos2 == "自立"
     val isSuruNoun get() = pos == "名詞" && pos2 == "サ変接続"
     val isSuru get() = pos == "動詞" && base == "する"
+    val isNumber get() = pos == "名詞" && pos2 == "数"
+    /** A counter after a number: 時, 円, 人, つ. */
+    val isCounter get() = pos == "名詞" && pos2 == "接尾" && pos3 == "助数詞"
 }
