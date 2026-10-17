@@ -36,6 +36,10 @@ class JdbcLexicon(private val conn: Connection) : Lexicon {
             query("SELECT text FROM form WHERE word_id = ?", id.toString()) { getString(1) }
         }
 
+    override fun verbs(text: String): List<VerbEntry> = verbEntries(
+        query(VERBS_SQL, text) { SenseRow(getLong(1), getString(2), getInt(3) == 1, getString(4), getString(5), getString(6)) },
+    )
+
     /** An entry's kana and JLPT level (0 for none). */
     data class Entry(val kana: String, val jlpt: Int)
 

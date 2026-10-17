@@ -36,6 +36,59 @@ class ReadingTest {
     }
 
     @Test
+    fun aConjunctionOpeningASentenceIsAWord() {
+        val reader = Reader { text, reading -> if (text == "でも") LexiconMatch(40, "でも") else null }
+        val demo = reader.words("うるさい！でも、いい！").first { it.surface == "でも" }
+        assertEquals(WordKind.WORD, demo.kind)
+        assertEquals(40L, demo.wordId)
+        assertEquals(WordKind.GRAMMAR, reader.words("コーヒーでも飲む？").first { it.surface == "でも" }.kind)
+    }
+
+    @Test
+    fun aFormNoGrammarExplainsIsASetPhrase() {
+        val reader = Reader { text, _ -> mapOf("いらっしゃる" to 41L, "いらっしゃいませ" to 42L)[text]?.let { LexiconMatch(it, "いらっしゃいませ") } }
+        val w = reader.words("いらっしゃいませ！").first()
+        assertEquals(42L, w.wordId)
+        assertEquals("いらっしゃいませ", w.lemma)
+        assertTrue(w.conjugation.isEmpty())
+    }
+
+    @Test
+    fun aPotentialIsItsVerbThatCan() {
+        fun verb(id: Long, kana: String, godan: Boolean, usuallyKana: Boolean = false, potential: Boolean = false) =
+            VerbEntry(id, kana, godan, usuallyKana, potential)
+        val verbs = mapOf(
+            "話す" to verb(50, "はなす", true), "帰る" to verb(51, "かえる", true), "行く" to verb(52, "いく", true),
+            "売る" to verb(53, "うる", true), "来る" to verb(54, "くる", false),
+            // The dictionary's own entries for some of the forms.
+            "話せる" to verb(60, "はなせる", false, potential = true), "行ける" to verb(61, "いける", false, usuallyKana = true),
+            "売れる" to verb(62, "うれる", false),
+        )
+        val reader = Reader(object : Lexicon {
+            override fun find(text: String, reading: String?) = verbs[text]?.let { LexiconMatch(it.id, it.kana) }
+            override fun verbs(text: String) = listOfNotNull(verbs[text])
+        })
+        fun read(text: String) = reader.words(text).first()
+        for ((text, id) in listOf("話せる" to 50L, "帰れない" to 51L, "行ける" to 52L, "来れる" to 54L)) {
+            val w = read(text)
+            assertEquals(id, w.wordId, text)
+            assertEquals("potential", w.conjugation.first(), text)
+            assertEquals(listOf("potential"), w.grammar.map { it.point.id }.filter { it == "potential" }, text)
+        }
+        // 売れる sells well: a verb of its own, not "can sell".
+        assertEquals(62L, read("売れる").wordId)
+        assertTrue(read("売れる").grammar.isEmpty())
+    }
+
+    @Test
+    fun aStemJoinsThePointAfterIt() {
+        val mi = reader.words("見に行く").first()
+        assertEquals(7L, mi.wordId)
+        assertEquals(listOf("ni-iku"), mi.grammar.map { it.point.id })
+        assertEquals(listOf("naru"), reader.words("高くなる").first().grammar.map { it.point.id })
+    }
+
+    @Test
     fun aSpeakersNameIsntPartOfTheText() {
         assertEquals(Speech("ユキ", "「でしょ？」"), Speech.of("ユキ|「でしょ？」"))
         assertEquals(Speech(null, "ラーメンが来た。"), Speech.of("ラーメンが来た。"))
@@ -54,7 +107,7 @@ class ReadingTest {
         val w = word("食べさせられた")
         assertEquals("食べる", w.lemma)
         assertEquals(1L, w.wordId)
-        assertEquals(listOf("causative", "passive or potential", "past"), w.conjugation)
+        assertEquals(listOf("causative", "passive", "past"), w.conjugation)
         assertEquals(listOf(Ruby("食", "た"), Ruby("べ", null), Ruby("させ", null), Ruby("られ", null), Ruby("た", null)), w.ruby)
     }
 

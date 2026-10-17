@@ -105,11 +105,19 @@ class StoryPathTest {
             val problems = ArrayList<String>()
 
             fun sentences(story: PathStory) = reader.read(story.body).sumOf { sentenceRanges(it).size }
+            // Grammar the reader can't explain would go untaught and unchecked: a particle or ending
+            // with no grammar point, or a form of a word that no point covers and the dictionary
+            // doesn't have whole (いらっしゃいませ is a word; いいじゃん needs じゃん).
+            fun unexplained(story: PathStory): String? = reader.read(story.body, story.readings).flatten()
+                .filter { it.grammar.isEmpty() && (it.kind == WordKind.GRAMMAR || it.conjugated) }
+                .takeIf { it.isNotEmpty() }
+                ?.let { w -> "no grammar point explains " + w.joinToString { it.surface } + " (add one to Grammar.kt)" }
             for ((_, c) in catalog.chapters) {
                 val s = c.story
                 if (sentences(s) != s.translations.size) problems += "${s.id}: ${sentences(s)} sentences, ${s.translations.size} translations"
                 for (w in needs.getValue(s.id).words.filter { it.wordId == null }) problems += "${s.id}: ${w.lemma} isn't in the dictionary"
                 if (c.topic != null && catalog.topic(c.topic) == null) problems += "${s.id}: no grammar topic ${c.topic}"
+                unexplained(s)?.let { problems += "${s.id}: $it" }
                 // A pinned reading must be needed, and must take: the reader agrees once it's pinned.
                 for ((text, reading) in s.readings) {
                     fun read(pins: Map<String, String>) = reader.read(s.body, pins).flatten().filter { it.surface == text }
@@ -120,6 +128,7 @@ class StoryPathTest {
                 }
             }
             for (t in catalog.grammar) {
+                unexplained(t.page)?.let { problems += "${t.id}: $it" }
                 if (sentences(t.page) != t.page.translations.size) problems += "${t.id}: ${sentences(t.page)} sentences, ${t.page.translations.size} translations"
                 for (id in t.points.filter { grammarPoint(it) == null }) problems += "${t.id}: no grammar point $id"
                 if (catalog.teaching(t.id).isEmpty()) problems += "${t.id}: no chapter teaches it"

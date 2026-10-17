@@ -13,6 +13,33 @@ fun interface Lexicon {
      * word's reading in hiragana when known, to choose between homographs.
      */
     fun find(text: String, reading: String?): LexiconMatch?
+
+    /** The verbs spelled [text], for telling a potential form (話せる) from a verb of its own (売れる). See [verbEntries]. */
+    fun verbs(text: String): List<VerbEntry> = emptyList()
+}
+
+/**
+ * A dictionary entry for a verb. [potential] when the dictionary says it's a
+ * potential form itself: its first meaning is "to be able to …" (話せる,
+ * 読める), or a sense notes it (取れる, 撮れる).
+ */
+data class VerbEntry(val id: Long, val kana: String, val godan: Boolean, val usuallyKana: Boolean, val potential: Boolean)
+
+/** Every sense of the entries with a spelling (the one argument), for [verbEntries]. */
+const val VERBS_SQL =
+    "SELECT w.id, w.kana, w.usually_kana, s.pos, s.gloss, s.info FROM form f JOIN word w ON w.id = f.word_id " +
+        "JOIN sense s ON s.word_id = w.id WHERE f.text = ? ORDER BY w.id, s.ord"
+
+/** One row of [VERBS_SQL]: parts of speech and glosses as the JSON arrays the dictionary stores. */
+data class SenseRow(val id: Long, val kana: String, val usuallyKana: Boolean, val pos: String, val gloss: String, val info: String?)
+
+/** The verbs among the entries [rows] (from [VERBS_SQL]) describe. The app and the story tools both use this. */
+fun verbEntries(rows: List<SenseRow>): List<VerbEntry> = rows.groupBy { it.id }.values.mapNotNull { senses ->
+    val first = senses.first()
+    if (!first.pos.contains("\"v")) return@mapNotNull null
+    val able = first.gloss.startsWith("[\"to be able to") || first.gloss.startsWith("[\"to be possible to") ||
+        senses.any { it.info?.contains("potential") == true }
+    VerbEntry(first.id, first.kana, first.pos.contains("\"v5"), first.usuallyKana, able)
 }
 
 /** A dictionary entry with a spelling a word was written in, for [bestHomograph]. */
@@ -76,6 +103,9 @@ data class ReadingWord(
     val grammar: List<GrammarUse> = emptyList(),
 ) {
     val conjugated get() = conjugation.isNotEmpty()
+
+    /** A verb or adjective stem on its own, waiting for what follows it: 見 in 見に行く, 暑く in 暑くなる. */
+    val stem get() = conjugation.singleOrNull() in setOf("stem (continuing)", "stem", "adverb (-ly)")
 
     /** Identifies the word for counting: its dictionary entry, or its dictionary form if it has none. */
     val key: String get() = wordId?.toString() ?: lemma
@@ -184,6 +214,12 @@ class Reader(private val lexicon: Lexicon) {
                         i++
                     }
                 }
+                // でも, けど and だって opening a sentence join it to the one before ("But, …"):
+                // a word, though the tokenizer sometimes takes them for particles after ！.
+                t.pos == "助詞" && t.base in CONJUNCTIONS && (i == 0 || tokens[i - 1].pos == "記号") -> {
+                    out += content(t)
+                    i++
+                }
                 t.pos == "助詞" || t.pos == "助動詞" || (t.pos == "動詞" && t.pos2 == "非自立") ||
                     (t.pos == "名詞" && t.pos2 == "非自立") || t.pos == "フィラー" -> {
                     out += plain(listOf(t), WordKind.GRAMMAR, null)
@@ -210,12 +246,33 @@ class Reader(private val lexicon: Lexicon) {
     private fun withGrammar(words: List<ReadingWord>, spans: List<IntRange>, tokens: List<Morpheme>): List<ReadingWord> {
         val wordOf = IntArray(tokens.size)
         spans.forEachIndexed { w, span -> for (k in span) wordOf[k] = w }
-        val uses = Grammar.find(tokens).map { GrammarUse(it.point, wordOf[it.start], wordOf[it.end - 1]) }
-        if (uses.isEmpty()) return words
+        val found = Grammar.find(tokens).map { GrammarUse(it.point, wordOf[it.start], wordOf[it.end - 1]) }
+        // A bare stem is there for what follows it, so it joins that point: 見 in 見に行く, 暑く in 暑くなる.
+        val stems = words.indices.filter { words[it].stem }.toSet()
+        val joined = found.map { u ->
+            if (u.first - 1 in stems && found.none { o -> u.first - 1 in o.first..o.last }) u.copy(first = u.first - 1) else u
+        }
+        // The tokenizer takes a う verb's potential for a verb of its own (話せる), so no pattern finds it.
+        val potential = grammarPoint("potential")!!
+        val uses = (
+            joined + words.indices.filter { w ->
+                "potential" in words[w].conjugation && joined.none { it.point == potential && w in it.first..it.last }
+            }.map { GrammarUse(potential, it, it) }
+            ).sortedBy { it.first }
         return words.mapIndexed { w, word ->
             val mine = uses.filter { w in it.first..it.last }
-            if (mine.isEmpty()) word else word.copy(grammar = mine)
+            if (mine.isNotEmpty()) word.copy(grammar = mine) else if (word.conjugated && !word.stem) phrase(word) else word
         }
+    }
+
+    /**
+     * A conjugated word no grammar point explains, as a set phrase when the
+     * dictionary has it whole: いらっしゃいませ is "welcome", not a form of
+     * いらっしゃる.
+     */
+    private fun phrase(word: ReadingWord): ReadingWord {
+        val match = lexicon.find(word.surface, word.reading) ?: return word
+        return word.copy(lemma = word.surface, wordId = match.wordId, reading = match.reading, conjugation = emptyList(), ruby = ruby(word.surface, match.reading))
     }
 
     /** A run of nouns the dictionary knows as one word (図書館員, 魔導士), longest first. */
@@ -276,8 +333,11 @@ class Reader(private val lexicon: Lexicon) {
                 t.pos == "助詞" && t.pos2 == "並立助詞" && t.base == "たり" -> true
                 t.pos == "動詞" && t.pos2 == "非自立" ->
                     prev.base in setOf("て", "で", "ば") || t.base in CONTRACTIONS
+                // The tokenizer sometimes takes ちゃう for a verb of its own (帰っちゃう).
+                t.pos == "動詞" && t.base in CONTRACTIONS -> prev.form == "連用タ接続"
                 t.pos == "形容詞" && t.pos2 == "非自立" -> true
-                t.pos == "名詞" && t.pos3 == "助動詞語幹" && t.base == "そう" -> prev.form.startsWith("連用")
+                t.pos == "名詞" && t.base == "そう" && (t.pos3 == "助動詞語幹" || t.pos2 == "接尾") ->
+                    prev.form.startsWith("連用") || prev.form == "ガル接続"
                 else -> false
             }
             if (!attaches) break
@@ -296,7 +356,7 @@ class Reader(private val lexicon: Lexicon) {
         } else {
             lexicon.find(head.base, reading)
         }?.wordId
-        return ReadingWord(
+        val word = ReadingWord(
             surface = group.joinToString("") { it.surface },
             lemma = if (suru) lemma + "する" else lemma,
             reading = group.joinToString("") { it.readingOrSurface },
@@ -305,6 +365,28 @@ class Reader(private val lexicon: Lexicon) {
             conjugation = labels(group),
             ruby = group.flatMap { ruby(it.surface, it.readingOrSurface) },
         )
+        if (suru || !head.type.startsWith("一段")) return word
+        val (verb, verbText) = potential(head.base, reading) ?: return word
+        return word.copy(lemma = verbText, wordId = verb.wordId, conjugation = (listOf("potential") + word.conjugation).distinct())
+    }
+
+    /**
+     * The う verb an ichidan verb [base], read [reading], is the potential form
+     * of, with its spelling: 話す for 話せる, since the tokenizer takes 話せる
+     * and 行ける for verbs of their own. Null when there's no such verb, or
+     * when the dictionary has [base] as a verb with a meaning of its own (売れる
+     * sells well, 開ける opens). A verb usually written in kana but written
+     * here in kanji is the potential: 行ける is "can go", not いける "to be good at".
+     */
+    private fun potential(base: String, reading: String): Pair<LexiconMatch, String>? {
+        // 来れる, the spoken potential of 来る ("can come"), the one irregular verb with one.
+        if (base == "来れる" || base == "これる") return lexicon.find("来る", "くる")?.let { it to "来る" }
+        val godan = godanOf(base) ?: return null
+        val godanReading = godanOf(reading) ?: return null
+        val verb = lexicon.verbs(godan).firstOrNull { it.godan && Kana.toHiragana(it.kana) == godanReading } ?: return null
+        val own = lexicon.verbs(base).filter { Kana.toHiragana(it.kana) == reading }
+        if (own.any { !it.potential && !(it.usuallyKana && base.any(::isKanji)) }) return null
+        return LexiconMatch(verb.id, godanReading) to godan
     }
 
     private fun content(t: Morpheme): ReadingWord {
@@ -331,7 +413,16 @@ class Reader(private val lexicon: Lexicon) {
     companion object {
         private const val MAX_COMPOUND = 4
         private val CONNECTIVES = setOf("て", "で", "ば", "ながら", "つつ")
+        private val CONJUNCTIONS = setOf("でも", "けど", "だけど", "だって")
         private val CONTRACTIONS = setOf("ちゃう", "じゃう", "ちまう", "とく", "てる", "でる")
+        private val E_TO_U = mapOf('え' to 'う', 'け' to 'く', 'せ' to 'す', 'て' to 'つ', 'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る', 'げ' to 'ぐ')
+
+        /** The う verb whose potential [text] would be: 話せる to 話す. Null when it can't be one. */
+        private fun godanOf(text: String): String? {
+            if (text.length < 2 || !text.endsWith("る")) return null
+            val u = E_TO_U[text[text.length - 2]] ?: return null
+            return text.dropLast(2) + u
+        }
 
         /** Loading the IPADIC dictionary takes a moment, so it happens once, on first use. */
         val tokenizer: Tokenizer by lazy { Tokenizer() }
@@ -339,6 +430,7 @@ class Reader(private val lexicon: Lexicon) {
         /** What a conjugated word's attached pieces do, in order and without repeats. */
         internal fun labels(group: List<Morpheme>): List<String> {
             val out = LinkedHashSet<String>()
+            val head = group[0]
             val rest = group.drop(1)
             val chain = rest.joinToString("") { it.surface }
             if (MUST.any { chain.contains(it) }) out += "must"
@@ -349,8 +441,10 @@ class Reader(private val lexicon: Lexicon) {
                         MUST.any { chain.contains(it) } -> {}
                     t.pos == "動詞" && t.pos2 == "接尾" -> when (t.base) {
                         "させる", "せる", "す", "さす" -> out += "causative"
-                        "れる" -> out += "passive"
-                        "られる" -> out += "passive or potential"
+                        // On る verbs (and 来る) it's "can": 食べられる, and 食べれる in speech.
+                        "れる", "られる" -> (if (i == 0) head else rest[i - 1]).let { prev ->
+                            out += if (prev.pos2 != "接尾" && (prev.type.startsWith("一段") || prev.type.startsWith("カ変"))) "potential" else "passive"
+                        }
                     }
                     t.pos == "助動詞" -> when (t.base) {
                         "ます" -> out += "polite"
@@ -375,13 +469,17 @@ class Reader(private val lexicon: Lexicon) {
                         "らしい" -> out += "seems"
                     }
                     t.pos == "助詞" -> when (t.base) {
-                        "て", "で" -> if (next == null) out += "te-form"
+                        "て", "で" -> when {
+                            next == null -> out += "te-form"
+                            // ～てた, ～ていた with the い dropped.
+                            next.pos == "助動詞" && next.type == "特殊・タ" -> out += "ongoing or resulting state"
+                        }
                         "ば" -> out += "conditional (if)"
                         "ながら" -> out += "while"
                         "つつ" -> out += "while"
                         "たり" -> out += "things like"
                     }
-                    t.pos == "動詞" && t.pos2 == "非自立" -> {
+                    t.pos == "動詞" && (t.pos2 == "非自立" || t.base in CONTRACTIONS) -> {
                         val meaning = AUXILIARY_VERBS[t.base]
                         if (meaning != null) out += meaning
                         if (t.form.startsWith("命令") && t.base != "くださる") out += "imperative"
@@ -394,7 +492,6 @@ class Reader(private val lexicon: Lexicon) {
                     t.pos == "名詞" && t.base == "そう" -> out += "looks like"
                 }
             }
-            val head = group[0]
             if (head.form.startsWith("命令")) out.add("imperative")
             if (rest.isEmpty()) {
                 when {

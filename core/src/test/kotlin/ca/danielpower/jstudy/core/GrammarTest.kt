@@ -78,6 +78,45 @@ class GrammarTest {
     }
 
     @Test
+    fun `casual endings are grammar points`() {
+        assertEquals(listOf("na-final"), points("大きいな。"))
+        assertEquals(listOf("kana"), points("行くかな。"))
+        assertEquals(listOf("jan"), points("いいじゃん。"))
+        assertEquals(listOf("desu", "kke"), points("何だっけ？"))
+        assertEquals(listOf("tte"), points("それって何？"))
+        assertEquals(listOf("no-question"), points("行くの？"))
+        assertEquals(listOf("mon"), points("眠いもん。"))
+        assertEquals(listOf("volitional", "zo-ze"), points("行こうぜ。"))
+    }
+
+    @Test
+    fun `an adverb's く is its own point, but not in くて, くない or くなる`() {
+        assertEquals(listOf("ku-adverb"), points("早く起きる。"))
+        assertEquals(listOf("te"), points("安くて、うまい。"))
+        assertEquals(listOf("nai"), points("高くない。"))
+        assertEquals(listOf("naru"), points("寒くなる。"))
+        assertEquals(listOf("imperative"), points("行け！"))
+        assertEquals(listOf("te-kudasai"), points("待ってください。"))
+    }
+
+    @Test
+    fun `spoken contractions keep their point`() {
+        assertEquals(listOf("te-iru"), points("読んでた。"))
+        assertEquals(listOf("te-shimau", "no-question"), points("帰っちゃうの？"))
+        assertEquals(listOf("kamoshirenai"), points("雨かも。"))
+        assertEquals(listOf("nakereba"), points("行かなきゃいけない。"))
+        assertEquals(listOf("ga", "n-desu"), points("これがいいんじゃない？"))
+    }
+
+    @Test
+    fun `られる on a る verb is can, on a う verb it's the passive`() {
+        assertEquals(listOf("potential"), points("食べられる？"))
+        assertEquals(listOf("potential"), points("食べれる？"))
+        assertEquals(listOf("ni", "passive"), points("先生に呼ばれた。"))
+        assertEquals(listOf("causative", "passive"), points("食べさせられた。"))
+    }
+
+    @Test
     fun `before needs a verb in front of it`() {
         assertEquals(listOf("mae-ni"), points("寝る前に"))
         assertEquals(listOf("no"), points("駅の前に").filter { it != "ni" })

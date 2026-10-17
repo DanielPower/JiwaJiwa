@@ -8,7 +8,11 @@ import ca.danielpower.jstudy.core.Kana
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.Lexicon
 import ca.danielpower.jstudy.core.LexiconMatch
+import ca.danielpower.jstudy.core.SenseRow
+import ca.danielpower.jstudy.core.VERBS_SQL
+import ca.danielpower.jstudy.core.VerbEntry
 import ca.danielpower.jstudy.core.bestHomograph
+import ca.danielpower.jstudy.core.verbEntries
 import org.json.JSONArray
 import java.io.File
 
@@ -236,6 +240,16 @@ class Dictionary(context: Context) : Lexicon {
         }
         return bestHomograph(homographs, reading) { forms(it) }
     }
+
+    override fun verbs(text: String): List<VerbEntry> = verbEntries(
+        db.rawQuery(VERBS_SQL, arrayOf(text)).use { c ->
+            buildList {
+                while (c.moveToNext()) {
+                    add(SenseRow(c.getLong(0), c.getString(1), c.getInt(2) == 1, c.getString(3), c.getString(4), if (c.isNull(5)) null else c.getString(5)))
+                }
+            }
+        },
+    )
 
     /** A kanji's entry, or null for a character KANJIDIC2 doesn't have. */
     fun kanji(literal: String): Kanji? = kanjiRows("literal = ?", arrayOf(literal)).firstOrNull()

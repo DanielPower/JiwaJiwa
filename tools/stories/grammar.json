@@ -47,13 +47,15 @@
     ]
   },
   {
-    "id": "yo-ne", "title": "よ / ね / でしょ", "title_en": "You know / right?", "points": ["yo", "ne", "deshou"],
-    "summary": "よ at the end tells someone something they don't know yet. ね looks for agreement, like \"right?\" or \"huh\". でしょ? is surer: \"told you\".",
+    "id": "yo-ne", "title": "よ / ね / な / でしょ", "title_en": "You know / right? / huh", "points": ["yo", "ne", "na-final", "deshou"],
+    "summary": "よ at the end tells someone something they don't know yet. ね looks for agreement, like \"right?\" or \"huh\". な is said half to yourself. でしょ? is surer: \"told you\".",
     "parts": [
       ["ユキだよ。", "I'm Yuki."],
       "よ is friendly emphasis: you're filling the listener in.",
       ["いい部屋だね。", "It's a nice room, huh."],
       "ね assumes the listener sees it the same way.",
+      ["大きいな。", "It's big, huh."],
+      "な is ね said to yourself: a thought out loud, not a question for anyone.",
       ["大きいでしょ？", "Big, right?"],
       "でしょ? expects a yes: you knew it, and you're checking they see it too. Said flat, でしょう is a polite guess, \"probably\"."
     ]
