@@ -86,9 +86,10 @@ class StoryPathTest {
      * Checks the bundled stories against the real dictionary: every chapter
      * and grammar page has English for each sentence, every counted word is
      * in the dictionary, topics name real grammar points, each story read in
-     * order (after the stories it follows) opens chapter by chapter, the
-     * solver reaches every chapter from knowing nothing, and the index and
-     * summaries the story tools write are up to date.
+     * order (after the stories it follows) opens chapter by chapter, with
+     * its cast speaking only once introduced and no chapter under half the
+     * length of those before it, the solver reaches every chapter from
+     * knowing nothing, and the files the story tools write are up to date.
      * Needs the dictionary built (python3 tools/dictionary/build_dictionary.py),
      * so it's skipped where it isn't. Writes build/reports/story-path.txt.
      */
@@ -124,13 +125,25 @@ class StoryPathTest {
                 if (catalog.teaching(t.id).isEmpty()) problems += "${t.id}: no chapter teaches it"
             }
 
+            // Anyone in a story's cast. Any other speaker is a description (店員, 男の人), fine anywhere.
+            val cast = catalog.chapters.flatMap { it.second.meets.map { m -> m.name } }.toSet()
             // Each story read in order, after the ones it follows, opens one chapter at a time.
             // A side story opens with nothing new at all. The stories it follows are checked on their own turn.
             for (series in catalog.series) {
-                for (step in tools.walk(series) { problems += "${series.id}: no story or chapter $it" }.filter { it.own }) {
+                val steps = tools.walk(series) { problems += "${series.id}: no story or chapter $it" }
+                val met = HashSet<String>()
+                for ((i, step) in steps.withIndex()) {
                     val c = step.chapter
+                    met += c.meets.map { it.name }
+                    if (!step.own) continue
                     val gap = step.gap
                     val id = c.story.id
+                    val early = Speech.speakers(c.story.body).filterNotNull().filter { it in cast && it !in met }.distinct()
+                    if (early.isNotEmpty()) problems += "$id: ${early.joinToString()} ${if (early.size == 1) "speaks" else "speak"} before they're introduced"
+                    // Chapters grow as the words do; a short one now and then is fine, but not half the length of what came before.
+                    val recent = steps.subList(maxOf(0, i - 5), i).map { it.needs.running }.sorted()
+                    if (recent.isNotEmpty() && step.needs.running * 2 < recent[recent.size / 2])
+                        problems += "$id: ${step.needs.running} words, under half the ${recent[recent.size / 2]} of the chapters before it"
                     if (gap.words.size > gap.allowance) problems += "$id: ${gap.words.size} new words, ${gap.allowance} allowed"
                     if (gap.grammar.isNotEmpty()) problems += "$id: grammar not taught yet: ${gap.grammar}"
                     if (series.side && (gap.words.isNotEmpty() || c.topic != null))

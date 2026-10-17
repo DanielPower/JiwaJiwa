@@ -23,8 +23,10 @@ tools (core `src/stories`).
   do. Staff and strangers are polite, and です/ます come in as their own topic.
 - A quote from one of the cast starts with their name and a bar,
   `ユキ|「でしょ？」`, and is shown with the name before it, script style; it
-  goes on a line of its own. Unnamed staff and strangers, and thinking
-  aloud, have no name.
+  goes on a line of its own. Someone in the cast speaks only from the
+  chapter that introduces them (`meets`) on. Staff and strangers can go
+  unnamed, or take a description as their label (`店員|「…」`,
+  `男の人|「…」`), which may be used anywhere. Thinking aloud has no name.
 - English quotes are escaped in JSON: `"\"Morning!\""`.
 - When the reader picks the wrong word, pin it in the chapter's `readings`:
   the word as the text writes it, and its reading (`"readings": {"方":
@@ -44,6 +46,11 @@ last chapter or two, and the conventions above. The summary's "Known at
 the end" is what a reader has by then. Use those words freely and bring
 back ones met only once or twice. Pick new words from `COVERAGE.md`, most
 common first, so the stories work through N5 and then N4.
+
+Chapters grow as the reader's words do: the allowance grows with length,
+and the rest of N5 needs chapters of 150 to 300 words. A short chapter now
+and then is fine, but one under half as long as the chapters before it
+fails the check.
 
 A chapter's new words must fit its allowance (3% of its running words, from
 3 to 10), it may teach one grammar topic (and should usually teach none,
