@@ -34,6 +34,12 @@ class HorizontalTextTest {
     }
 
     @Test
+    fun `carries a word over rather than start a line with a glued one`() {
+        val words = "あいう".map { FlowWord(it.toString(), 1f) } + FlowWord("注", 1f, glued = true)
+        assertEquals(listOf(0..1, 2..3), HorizontalText.lines(words, 3f))
+    }
+
+    @Test
     fun `gives up on the rule rather than empty a line`() {
         assertEquals(listOf("あ", "。", "。"), lines("あ。。", 1))
     }

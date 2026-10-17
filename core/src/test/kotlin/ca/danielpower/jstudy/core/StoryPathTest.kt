@@ -69,6 +69,11 @@ class StoryPathTest {
         val ids = catalog.chapters.map { it.second.story.id } + catalog.grammar.map { it.page.id }
         assertEquals(ids.size, ids.toSet().size, "ids are unique")
         assertEquals(catalog.series.size, catalog.series.map { it.id }.toSet().size, "story ids are unique")
+        // A chapter's note follows a paragraph, whose end has its marker.
+        for ((_, c) in catalog.chapters) for (note in c.story.notes) {
+            assertTrue(note.before in 1..paragraphs(c.story.body).size, "${c.story.id}: note before paragraph ${note.before}")
+        }
+        assertTrue(catalog.chapters.any { it.second.story.notes.isNotEmpty() }, "chapter notes are read")
     }
 
     /** path.json is put together from tools/stories; this catches a chapter changed without rewriting it. */

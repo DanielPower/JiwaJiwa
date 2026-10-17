@@ -4,13 +4,15 @@ package ca.danielpower.jstudy.core
  * Characters set together in vertical text, such as a kanji run with its
  * furigana, which shouldn't break across columns. A paragraph's first run
  * says where the paragraph starts: [indent] cells down its first column, and
- * [wrapIndent] cells down the columns it runs on to.
+ * [wrapIndent] cells down the columns it runs on to. A [glued] run never
+ * starts a column, like closing punctuation (a note's marker).
  */
 class VerticalRun(
     val chars: List<String>,
     val paragraphStart: Boolean = false,
     val indent: Int = 1,
     val wrapIndent: Int = 0,
+    val glued: Boolean = false,
 )
 
 /** A run's column (0 is the first, rightmost one) and the row its first character sits in. */
@@ -43,7 +45,7 @@ object VerticalText {
                 var start = k
                 while (
                     start > 0 && spots[start - 1].col == col &&
-                    (runs[start].chars.first() in Kinsoku.CLOSING || runs[start - 1].chars.last() in Kinsoku.OPENING)
+                    (runs[start].glued || runs[start].chars.first() in Kinsoku.CLOSING || runs[start - 1].chars.last() in Kinsoku.OPENING)
                 ) {
                     start--
                 }

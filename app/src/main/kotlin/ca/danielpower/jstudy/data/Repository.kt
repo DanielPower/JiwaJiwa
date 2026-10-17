@@ -108,6 +108,8 @@ data class StoryReading(
     val coverage: Coverage,
     /** For a grammar topic's page: its English notes between the examples. */
     val lesson: PathStory? = null,
+    /** A chapter's English notes, by the paragraph whose end has their marker. */
+    val notes: Map<Int, String> = emptyMap(),
     /** The saved page of the grammar topic each grammar point belongs to, by point id. */
     val lessons: Map<String, Long> = emptyMap(),
 ) {
@@ -601,9 +603,16 @@ class Repository(context: Context) {
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),
             lesson = topicOfPage(story)?.page,
+            notes = notes(story),
             lessons = lessons(),
         )
     }
+
+    /** A chapter's notes, each shown from the end of the paragraph before it; two after one paragraph share its marker. */
+    private fun notes(story: SavedStory): Map<Int, String> =
+        catalog.chapters.firstOrNull { it.second.story.id == story.pathId }?.second?.story?.notes.orEmpty()
+            .groupBy({ it.before - 1 }, { it.text })
+            .mapValues { it.value.joinToString("\n\n") }
 
     /** Each grammar point's topic page, saved when the path was. */
     private fun lessons(): Map<String, Long> {

@@ -1,7 +1,10 @@
 package ca.danielpower.jstudy.core
 
-/** A word to set in horizontal text: its text, and how wide it is drawn. */
-class FlowWord(val text: String, val width: Float)
+/**
+ * A word to set in horizontal text: its text, and how wide it is drawn.
+ * A [glued] word never starts a line, like closing punctuation (a note's marker).
+ */
+class FlowWord(val text: String, val width: Float, val glued: Boolean = false)
 
 /** The words of paragraph [paragraph] that make up one line. */
 data class TextLine(val paragraph: Int, val words: IntRange)
@@ -23,7 +26,7 @@ object HorizontalText {
             if (k == 0) {
                 starts += 0
             } else if (x + word.width > width) {
-                fun bad(i: Int) = words[i].text.take(1) in Kinsoku.CLOSING || words[i - 1].text.takeLast(1) in Kinsoku.OPENING
+                fun bad(i: Int) = words[i].glued || words[i].text.take(1) in Kinsoku.CLOSING || words[i - 1].text.takeLast(1) in Kinsoku.OPENING
                 val lineStart = starts.last()
                 var start = k
                 while (start > lineStart + 1 && bad(start)) start--

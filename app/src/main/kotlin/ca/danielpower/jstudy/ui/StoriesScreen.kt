@@ -542,6 +542,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     var menu by remember { mutableStateOf(false) }
     // What the pane shows: a word, or the sentence around it.
     var open by remember(reading.story.id) { mutableStateOf<Opened?>(null) }
+    // Or a chapter's note, by the paragraph whose marker opened it.
+    var note by remember(reading.story.id) { mutableStateOf<Int?>(null) }
     val openWord = open?.let { reading.word(it.p, it.i) }
     val openSentence = open?.takeIf { it.sentence }?.let { reading.sentence(it.p, it.i) }
     // Shaded along with the open word: the rest of its grammar patterns, or the whole sentence.
@@ -556,10 +558,12 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val selected = open?.takeIf { !it.sentence }?.key
     val close = {
         open = null
+        note = null
         menu = false
     }
     val tap = { key: Pair<Int, Int> ->
         menu = false
+        note = null
         open = if (selected == key) null else Opened(key.first, key.second, sentence = false)
         // Looking a word up means reading it doesn't count towards its mastery.
         val id = reading.word(key.first, key.second)?.takeIf { it.kind == WordKind.WORD }?.wordId
@@ -567,12 +571,18 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     }
     val hold = { key: Pair<Int, Int> ->
         menu = false
+        note = null
         open = Opened(key.first, key.second, sentence = true)
     }
-    BackHandler(enabled = open != null || menu, onBack = close)
+    val tapNote = { p: Int ->
+        menu = false
+        open = null
+        note = if (note == p) null else p
+    }
+    BackHandler(enabled = open != null || note != null || menu, onBack = close)
 
     // A tap in the story that isn't on a word clears the pane.
-    val tapToClear = if (open != null || menu) Modifier.pointerInput(Unit) { detectTapGestures { close() } } else Modifier
+    val tapToClear = if (open != null || note != null || menu) Modifier.pointerInput(Unit) { detectTapGestures { close() } } else Modifier
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::storyBackPressed)
@@ -583,6 +593,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             CompositionLocalProvider(LocalContentColor provides if (menu) MaterialTheme.colorScheme.primary else LocalContentColor.current) {
                 WashiIconButton(WashiIcons.Settings, "Reader settings", {
                     open = null
+                    note = null
                     menu = !menu
                 })
             }
@@ -590,8 +601,10 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         // Always there, with the story below it, so it never covers the text and nothing moves when it fills.
         Box(Modifier.fillMaxWidth().height(PANE_HEIGHT).background(MaterialTheme.colorScheme.surfaceContainerLow)) {
             val o = open
+            val n = note?.let { reading.notes[it] }
             when {
                 menu -> ReaderMenu(style, vm::setReaderStyle)
+                n != null -> NoteCard(n)
                 o == null -> Text(
                     "Tap a word to see what it means. Hold one to read its sentence in English.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -639,6 +652,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     lit = lit,
                     onTap = { p, i -> tap(p to i) },
                     onHold = { p, i -> hold(p to i) },
+                    openNote = note,
+                    onNote = tapNote,
                     onBlank = close,
                     onFinish = vm::finishStory,
                     startPage = state.startPage,
@@ -654,6 +669,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     lit = lit,
                     onTap = { p, i -> tap(p to i) },
                     onHold = { p, i -> hold(p to i) },
+                    openNote = note,
+                    onNote = tapNote,
                     onBlank = close,
                     onFinish = vm::finishStory,
                     startPage = state.startPage,
@@ -678,6 +695,8 @@ private fun HorizontalStory(
     lit: Set<Pair<Int, Int>>,
     onTap: (p: Int, i: Int) -> Unit,
     onHold: (p: Int, i: Int) -> Unit,
+    openNote: Int?,
+    onNote: (p: Int) -> Unit,
     onBlank: () -> Unit,
     onFinish: () -> Unit,
     startPage: Int,
@@ -688,10 +707,15 @@ private fun HorizontalStory(
     val density = LocalDensity.current
     // Words measured as StoryWord draws them: each piece as wide as its text or its furigana, shown or not.
     val rubySize = size * RUBY_RATIO
+    // A note's marker, with a little room before it, ends its paragraph and never starts a line.
+    val markerWidth = remember(density, size, family) {
+        val style = TextStyle(fontSize = (size * MARKER_RATIO).sp, fontFamily = family, fontWeight = FontWeight.Bold)
+        measurer.measure("注", style, softWrap = false).size.width + with(density) { (MARKER_PADDING * 2 + MARKER_BORDER * 2).toPx() + (size * 0.4f).sp.toPx() }
+    }
     val flows = remember(reading, density, size, family) {
         val base = TextStyle(fontSize = size.sp, fontFamily = family)
         val ruby = TextStyle(fontSize = rubySize.sp, fontFamily = family)
-        reading.paragraphs.map { words ->
+        reading.paragraphs.mapIndexed { p, words ->
             words.map { word ->
                 val width = word.ruby.sumOf { piece ->
                     maxOf(
@@ -700,7 +724,7 @@ private fun HorizontalStory(
                     )
                 }
                 FlowWord(word.surface, width.toFloat())
-            }
+            } + listOfNotNull(FlowWord("注", markerWidth, glued = true).takeIf { p in reading.notes })
         }
     }
     // Script style: a line of dialogue starts with its speaker's name, and the
@@ -757,7 +781,18 @@ private fun HorizontalStory(
                         }
                         for (i in line.words) {
                             val p = line.paragraph
-                            val word = reading.paragraphs[p][i]
+                            val word = reading.paragraphs[p].getOrNull(i)
+                            if (word == null) {
+                                // Past the paragraph's words: its note's marker.
+                                NoteMarker(
+                                    textSize = size.sp,
+                                    family = family,
+                                    open = openNote == p,
+                                    onClick = { onNote(p) },
+                                    modifier = Modifier.width(with(density) { markerWidth.toDp() }).height(with(density) { (size * 1.5f).sp.toDp() }),
+                                )
+                                continue
+                            }
                             StoryWord(
                                 word = word,
                                 reading = reading,
@@ -889,6 +924,11 @@ internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.
 
 /** Furigana's size against the text it sits on. */
 internal const val RUBY_RATIO = 10f / 22f
+
+/** A note's 注 marker against the text it follows. */
+internal const val MARKER_RATIO = 0.62f
+private val MARKER_PADDING = 2.dp
+private val MARKER_BORDER = 1.5.dp
 
 /** A speaker's name against the text of their line: smaller, as a label. */
 internal const val NAME_RATIO = 0.8f
@@ -1072,6 +1112,46 @@ private fun SentenceCard(translation: String?) {
                 color = if (translation == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
             )
         }
+    }
+}
+
+/** A chapter's note, opened from its marker: English the reader might want beside the story. */
+@Composable
+private fun NoteCard(text: String) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+        ) {
+            Tag("注 · Note", MaterialTheme.colorScheme.secondary)
+            Text(text, fontSize = 16.sp, lineHeight = 22.sp)
+        }
+    }
+}
+
+/**
+ * A note's 注 marker, at the end of the paragraph before the note, in
+ * indigo so it doesn't read as a new word. It fills [modifier]'s room,
+ * which is all tappable, and is shaded while its note is open.
+ */
+@Composable
+internal fun NoteMarker(textSize: TextUnit, family: FontFamily, open: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val indigo = MaterialTheme.colorScheme.secondary
+    val shape = RoundedCornerShape(3.dp)
+    Box(modifier.clickable(interactionSource = null, indication = null, onClickLabel = "Show note", onClick = onClick), contentAlignment = Alignment.Center) {
+        Text(
+            "注",
+            fontSize = textSize * MARKER_RATIO,
+            lineHeight = textSize * MARKER_RATIO * 1.25f,
+            fontFamily = family,
+            fontWeight = FontWeight.Bold,
+            color = indigo,
+            softWrap = false,
+            modifier = Modifier
+                .background(if (open) indigo.copy(alpha = 0.18f) else Color.Transparent, shape)
+                .border(MARKER_BORDER, indigo, shape)
+                .padding(horizontal = MARKER_PADDING),
+        )
     }
 }
 

@@ -15,7 +15,12 @@ import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 
-/** English in a grammar topic's page, shown before Japanese line [before] (after the last line when it's the line count). */
+/**
+ * English beside the Japanese, shown before paragraph [before] (after the
+ * last one when it's the paragraph count). In a grammar topic's page, a
+ * paragraph is a line, and the note sits between them; in a chapter, it
+ * opens from a marker at the end of the paragraph before.
+ */
 data class LessonNote(val before: Int, val text: String)
 
 /**
@@ -32,7 +37,7 @@ data class PathStory(
     val translations: List<String>,
     /** The grammar points it teaches (ids from [grammarPoint]): a chapter's topic, before you read it. */
     val teaches: List<String> = emptyList(),
-    /** For a grammar topic's page, its English explanations between the Japanese lines. */
+    /** English between the paragraphs: a grammar topic's explanations, or a chapter's culture notes. */
     val notes: List<LessonNote> = emptyList(),
     /** A grammar topic's page, rather than a chapter. */
     val lesson: Boolean = false,
@@ -148,6 +153,10 @@ object StoryPath {
         val root = Json.parseToJsonElement(json).jsonObject
         fun JsonObject.text(key: String) = getValue(key).jsonPrimitive.content
         fun JsonObject.texts(key: String) = this[key]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
+        fun JsonObject.notes() = this["notes"]?.jsonArray.orEmpty().map { n ->
+            val note = n.jsonObject
+            LessonNote(note.getValue("before").jsonPrimitive.int, note.text("text"))
+        }
         val grammar = root["grammar"]?.jsonArray.orEmpty().map { e ->
             val o = e.jsonObject
             val id = o.text("id")
@@ -162,10 +171,7 @@ object StoryPath {
                     title = o.text("title"),
                     body = o.text("body"),
                     translations = o.texts("translations"),
-                    notes = o["notes"]?.jsonArray.orEmpty().map { n ->
-                        val note = n.jsonObject
-                        LessonNote(note.getValue("before").jsonPrimitive.int, note.text("text"))
-                    },
+                    notes = o.notes(),
                     lesson = true,
                 ),
             )
@@ -189,6 +195,7 @@ object StoryPath {
                             body = ch.text("body"),
                             translations = ch.texts("translations"),
                             teaches = topic?.let { topics[it]?.points }.orEmpty(),
+                            notes = ch.notes(),
                         ),
                         number = i + 1,
                         topic = topic,

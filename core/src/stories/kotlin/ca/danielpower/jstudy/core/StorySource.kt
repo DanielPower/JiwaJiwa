@@ -61,15 +61,28 @@ object StorySource {
         }
     }
 
+    /** A chapter: its paragraphs are lists of sentences with their English, and notes (`{"note": …}`) between them. */
     private fun chapter(id: String, c: JsonObject): JsonObject {
-        val paragraphs = c.getValue("paragraphs").jsonArray.map { p -> p.jsonArray.map { pair(it) } }
         require(c["plot"]?.jsonPrimitive?.content.orEmpty().isNotBlank()) { "$id: give it a one-line \"plot\"" }
+        val paragraphs = ArrayList<List<Pair<String, String>>>()
+        val notes = buildJsonArray {
+            for (block in c.getValue("paragraphs").jsonArray) {
+                if (block is JsonObject) {
+                    // Shown from a marker after the paragraph before it, so it can't open the chapter.
+                    require(paragraphs.isNotEmpty()) { "$id: a note goes after the paragraph it's about, not first" }
+                    addJsonObject { put("before", paragraphs.size); put("text", block.text("note")) }
+                } else {
+                    paragraphs += lines(listOf(block.jsonArray.map { pair(it) }))
+                }
+            }
+        }
         return buildJsonObject {
             put("id", id)
             put("title", c.text("title"))
             put("plot", c.text("plot"))
-            put("body", lines(paragraphs).joinToString("\n\n") { p -> p.joinToString("") { it.first } })
+            put("body", paragraphs.joinToString("\n\n") { p -> p.joinToString("") { it.first } })
             putJsonArray("translations") { for (p in paragraphs) for ((_, en) in p) add(en) }
+            if (notes.isNotEmpty()) put("notes", notes)
             c["topic"]?.let { put("topic", it) }
             c["meets"]?.let { put("meets", it) }
         }
