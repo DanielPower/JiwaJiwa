@@ -105,7 +105,14 @@ class GrammarTest {
         assertEquals(listOf("te-shimau", "no-question"), points("帰っちゃうの？"))
         assertEquals(listOf("kamoshirenai"), points("雨かも。"))
         assertEquals(listOf("nakereba"), points("行かなきゃいけない。"))
+        assertEquals(listOf("nakereba"), points("もう行かなきゃ。"))
         assertEquals(listOf("ga", "n-desu"), points("これがいいんじゃない？"))
+    }
+
+    @Test
+    fun `a conditional after another point keeps its own point`() {
+        assertEquals(listOf("potential", "tara"), points("出られたら、うれしい。"))
+        assertEquals(listOf("potential", "nakereba"), points("出られなきゃ。"))
     }
 
     @Test

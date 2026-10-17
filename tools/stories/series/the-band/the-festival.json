@@ -1,7 +1,7 @@
 {
   "title": "The festival",
   "plot": "Evening at the festival in the park: everyone turns up, Kenta included, the other bands are good, and at last Summer Snow's name is called.",
-  "readings": {"弦": "げん"},
+  "readings": {"描く": "かく", "弦": "げん"},
   "paragraphs": [
     [["夜になった。", "Night fell."], ["祭りが始まった。", "The festival began."]],
     [["公園は、人が本当に多い。", "The park is seriously packed."], ["みんな、楽しそうだ。", "Everyone looks happy."]],

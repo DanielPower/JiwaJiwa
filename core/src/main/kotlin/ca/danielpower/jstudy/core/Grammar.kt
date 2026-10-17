@@ -49,8 +49,9 @@ internal object Grammar {
                 if (end <= start) continue
                 if (rule.after != null && !rule.after.invoke(tokens.getOrNull(end))) continue
                 val core = end - start
-                // Take in the endings that follow (いけ + ない, つもり + です) so the whole phrase lights up.
-                while (end < tokens.size && tokens[end].pos == "助動詞" && tokens[end].base in ENDINGS) end++
+                // Take in the endings that follow (いけ + ない, つもり + です) so the whole phrase lights up,
+                // but not a conditional (たら, なきゃ), which is a point of its own.
+                while (end < tokens.size && tokens[end].pos == "助動詞" && tokens[end].base in ENDINGS && !tokens[end].form.startsWith("仮定")) end++
                 found += Match(rule.point, start, end, core)
             }
         }
@@ -493,7 +494,8 @@ internal object Grammar {
             "nai", "～ない", 5, "not (plain)",
             "The plain negative of a verb, as friends say it: 食べる, 食べない.",
             "肉は食べない。", "I don't eat meat.",
-            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ナイ" }),
+            // Not なきゃ, which is ～なければ.
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ナイ" && !it.form.startsWith("仮定縮約") }),
         )
         point(
             "ta", "～た", 5, "did (plain past)",

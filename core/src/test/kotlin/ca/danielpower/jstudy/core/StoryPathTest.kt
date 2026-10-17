@@ -120,10 +120,11 @@ class StoryPathTest {
                 unexplained(s)?.let { problems += "${s.id}: $it" }
                 // A pinned reading must be needed, and must take: the reader agrees once it's pinned.
                 for ((text, reading) in s.readings) {
-                    fun read(pins: Map<String, String>) = reader.read(s.body, pins).flatten().filter { it.surface == text }
+                    // A dictionary form pins its conjugations too (描く pins 描いた).
+                    fun read(pins: Map<String, String>) = reader.read(s.body, pins).flatten().filter { it.surface == text || (it.kind == WordKind.WORD && it.lemma == text) }
                     val pinned = read(s.readings)
                     if (pinned.isEmpty()) problems += "${s.id}: readings: no word written $text"
-                    else if (pinned.any { it.reading != reading || it.wordId == null }) problems += "${s.id}: readings: the dictionary has no $text read $reading"
+                    else if (pinned.any { (it.surface == text && it.reading != reading) || it.wordId == null }) problems += "${s.id}: readings: the dictionary has no $text read $reading"
                     else if (read(emptyMap()) == pinned) problems += "${s.id}: readings: $text is already read $reading"
                 }
             }

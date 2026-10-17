@@ -2772,7 +2772,10 @@
       "\"…A manga's a bit…\"",
       "But the me in Miho's drawing is smiling.",
       "It's a good drawing."
-     ]
+     ],
+     "readings": {
+      "描く": "かく"
+     }
     },
     {
      "id": "the-band/rinas-song",
@@ -3184,7 +3187,10 @@
       "We all laughed.",
       "The park at night.",
       "Three days until the festival."
-     ]
+     ],
+     "readings": {
+      "描く": "かく"
+     }
     },
     {
      "id": "the-band/the-night-before",
@@ -3370,6 +3376,7 @@
       "The three of us went up onto the stage."
      ],
      "readings": {
+      "描く": "かく",
       "弦": "げん"
      }
     },

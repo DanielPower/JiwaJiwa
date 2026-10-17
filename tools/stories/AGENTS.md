@@ -31,7 +31,9 @@ tools (core `src/stories`).
 - English quotes are escaped in JSON: `"\"Morning!\""`.
 - When the reader picks the wrong word, pin it in the chapter's `readings`:
   the word as the text writes it, and its reading (`"readings": {"方":
-  "かた"}` for あの方, where the reader sees the ほう of ～のほうが).
+  "かた"}` for あの方, where the reader sees the ほう of ～のほうが). A
+  pinned dictionary form pins its conjugations too: `{"描く": "かく"}`
+  makes 描いた かいた and 描けたら かけたら.
   Check the new words in the report: a wrong reading there means a wrong
   card. `StoryPathTest` fails if a pin isn't needed, or doesn't take.
 - Notes are rare: an aid for the odd spot where the reader needs cultural
@@ -74,7 +76,10 @@ as the passive. For a passive on a る verb, reword. It writes 来られる
 in kanji poorly (as 来る きたる), so use 来れる.
 
 Known misreadings to pin (`readings`) or reword around: 何時 reads as いつ
-(pin `"何時": "なんじ"`), よし as 葦, いつか as 五日, いい straight after ！ as
+(pin `"何時": "なんじ"`), 描く as えがく (pin `"描く": "かく"` when it means
+drawing), 弦 as つる (pin `"弦": "げん"`), 弾ける as はじける (reword: 弾けない,
+弾けた are fine), 勝ったら opening a sentence as 勝る (put a subject or もし
+first), よし as 葦, いつか as 五日, いい straight after ！ as
 言う, and the ます of a quoted 「です、ます」 as
 増す. な before a noun (きれいな部屋) and before ん / の (そうなんだ) is taught
 with だ / です, so it's fine anywhere. ただいま, おかえり(なさい), いってきます

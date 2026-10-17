@@ -175,7 +175,8 @@ class Reader(private val lexicon: Lexicon) {
      * [readings] maps a word, written as the text writes it, to its reading,
      * for the odd word the reader gets wrong: 方 in あの方 is かた, not the
      * ほう of ～のほうが. A pinned word is looked up by that reading, and
-     * left as it was if the dictionary doesn't have it.
+     * left as it was if the dictionary doesn't have it. A pinned dictionary
+     * form pins its conjugations too: 描く read かく makes 描いた かいた.
      */
     fun words(paragraph: String, readings: Map<String, String> = emptyMap()): List<ReadingWord> {
         val tokens = tokenizer.tokenize(paragraph).map(::Morpheme)
@@ -237,10 +238,24 @@ class Reader(private val lexicon: Lexicon) {
 
     /** [word] as [readings] reads it, if it pins it and the dictionary has it with that reading. */
     private fun pinned(word: ReadingWord, readings: Map<String, String>): ReadingWord {
-        val reading = readings[word.surface] ?: return word
+        val reading = readings[word.surface] ?: return conjugationPinned(word, readings)
         val match = (lexicon.find(word.surface, reading) ?: lexicon.find(word.lemma, reading))?.takeIf { it.reading == reading }
             ?: return word
         return word.copy(kind = WordKind.WORD, wordId = match.wordId, reading = reading, ruby = ruby(word.surface, reading))
+    }
+
+    /** A conjugated [word] whose dictionary form [readings] pins, read the pinned way: 描いた as かいた for 描く read かく. */
+    private fun conjugationPinned(word: ReadingWord, readings: Map<String, String>): ReadingWord {
+        if (word.kind != WordKind.WORD || word.lemma == word.surface) return word
+        val reading = readings[word.lemma] ?: return word
+        val match = lexicon.find(word.lemma, reading)?.takeIf { it.reading == reading } ?: return word
+        // The kanji the two share keep the pinned reading; the kana after them are read as written.
+        val stem = word.lemma.takeWhile { !Kana.isKana(it.toString()) }
+        val lemmaTail = Kana.toHiragana(word.lemma.drop(stem.length))
+        val tail = word.surface.removePrefix(stem)
+        if (stem.isEmpty() || tail == word.surface || !Kana.isKana(tail) || !reading.endsWith(lemmaTail)) return word
+        val surfaceReading = reading.dropLast(lemmaTail.length) + Kana.toHiragana(tail)
+        return word.copy(wordId = match.wordId, reading = surfaceReading, ruby = ruby(word.surface, surfaceReading))
     }
 
     private fun withGrammar(words: List<ReadingWord>, spans: List<IntRange>, tokens: List<Morpheme>): List<ReadingWord> {

@@ -36,6 +36,18 @@ class ReadingTest {
     }
 
     @Test
+    fun aPinnedDictionaryFormPinsItsConjugations() {
+        // 描く is えがく or かく; the tokenizer reads it えがく.
+        val kaku = LexiconMatch(50, "かく")
+        val reader = Reader { text, reading -> if (text == "描く") (if (reading == "かく") kaku else LexiconMatch(51, "えがく")) else null }
+        val w = reader.words("絵を描いた。", mapOf("描く" to "かく")).first { it.lemma == "描く" }
+        assertEquals("描いた", w.surface)
+        assertEquals(50L, w.wordId)
+        assertEquals("かいた", w.reading)
+        assertEquals(listOf(Ruby("描", "か"), Ruby("いた", null)), w.ruby)
+    }
+
+    @Test
     fun aConjunctionOpeningASentenceIsAWord() {
         val reader = Reader { text, reading -> if (text == "でも") LexiconMatch(40, "でも") else null }
         val demo = reader.words("うるさい！でも、いい！").first { it.surface == "でも" }
