@@ -225,8 +225,13 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   colour. In a run of labelled lines the quotes start level, after that
   run's longest name (a long name only widens its own run); a quote that
   wraps carries on one character further in. Same in vertical text, names
-  at the top of the column. Unnamed staff, strangers and thinking aloud
-  have no name. Names aren't words: not tappable, not counted.
+  at the top of the column. The cast speaks only once introduced; staff
+  and strangers go unnamed or take a description (店員, 男の人), and
+  thinking aloud has no name. Names and labels aren't words: not
+  tappable, not counted (Daniel, 2026-10-17: fine for now).
+- Numbers in kanji and counters are words (三, 時, 円); a number taught
+  with its counter is one word (一つ, 二人, 二十歳), the rest are read a
+  piece at a time. Numbers in digits are names.
 - Grammar pace (Daniel, 2026-10-17): don't teach too much too fast. Keep
   chapters with no new grammar, using what came before, between the ones
   that teach a topic, and reuse each topic in the chapters after it.
