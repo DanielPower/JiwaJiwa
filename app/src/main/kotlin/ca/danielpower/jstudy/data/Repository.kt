@@ -18,6 +18,7 @@ import ca.danielpower.jstudy.core.LocalWord
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.ReadLevel
 import ca.danielpower.jstudy.core.RenshuuImport
+import ca.danielpower.jstudy.core.Speech
 import ca.danielpower.jstudy.core.RenshuuTerm
 import ca.danielpower.jstudy.core.Reviewer
 import ca.danielpower.jstudy.core.StudyAhead
@@ -99,6 +100,8 @@ data class Undo(
 data class StoryReading(
     val story: SavedStory,
     val paragraphs: List<List<ReadingWord>>,
+    /** Who says each paragraph, when it's a line of dialogue. */
+    val speakers: List<String?> = paragraphs.map { null },
     /** Dictionary entries for the story's words. */
     val words: Map<Long, Word>,
     val statuses: Map<Long, WordStatus>,
@@ -593,6 +596,7 @@ class Repository(context: Context) {
         return StoryReading(
             story = story,
             paragraphs = paragraphs,
+            speakers = Speech.speakers(story.body),
             words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),

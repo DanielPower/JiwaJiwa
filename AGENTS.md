@@ -211,6 +211,14 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   night) and the long series (**The Share House**, 20+ chapters planned)
   follow it (`after`, which can also name a chapter to mean the story up
   to there). Formal speech comes later as its own topic.
+- Dialogue shows who's speaking, script style (台本形式, Daniel 2026-10-17):
+  a cast member's quote is written `ユキ|「でしょ？」` in the story and
+  shown with the name before it (core `Speech`), at 80% size in a quieter
+  colour. In a run of labelled lines the quotes start level, after that
+  run's longest name (a long name only widens its own run); a quote that
+  wraps carries on one character further in. Same in vertical text, names
+  at the top of the column. Unnamed staff, strangers and thinking aloud
+  have no name. Names aren't words: not tappable, not counted.
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.

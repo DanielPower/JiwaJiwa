@@ -27,6 +27,13 @@ class HorizontalTextTest {
     }
 
     @Test
+    fun `leaves room for a first line's indent and the wrapped lines' own`() {
+        val words = "あいうえおかき".map { FlowWord(it.toString(), 1f) }
+        val lines = HorizontalText.lines(words, 5f, indent = 2f, wrapIndent = 3f)
+        assertEquals(listOf("あいう", "えお", "かき"), lines.map { r -> r.joinToString("") { words[it].text } })
+    }
+
+    @Test
     fun `gives up on the rule rather than empty a line`() {
         assertEquals(listOf("あ", "。", "。"), lines("あ。。", 1))
     }

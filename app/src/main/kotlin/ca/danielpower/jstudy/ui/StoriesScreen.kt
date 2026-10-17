@@ -57,6 +57,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
@@ -79,6 +81,7 @@ import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.ReadingWord
+import ca.danielpower.jstudy.core.Speech
 import ca.danielpower.jstudy.core.WordKind
 import ca.danielpower.jstudy.core.readStats
 import ca.danielpower.jstudy.data.ChapterEntry
@@ -163,7 +166,7 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
             Text(entry.series.title, style = MaterialTheme.typography.titleLarge)
             val shownChapter = entry.next ?: entry.chapters.first()
             Text(
-                shownChapter.story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
+                Speech.firstLine(shownChapter.story.body),
                 style = MaterialTheme.typography.bodyMedium,
                 fontFamily = Gothic,
                 maxLines = 1,
@@ -284,7 +287,7 @@ private fun NothingNewRow(entry: ChapterEntry, onClick: () -> Unit) {
         if (!entry.series.single) Tag("${entry.series.title} · chapter ${entry.chapter.number}", MaterialTheme.colorScheme.primary)
         Text(entry.chapter.story.title, style = MaterialTheme.typography.titleLarge)
         Text(
-            entry.story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
+            Speech.firstLine(entry.story.body),
             style = MaterialTheme.typography.bodyMedium,
             fontFamily = Gothic,
             maxLines = 1,
@@ -406,7 +409,7 @@ private fun ChapterRow(entry: ChapterEntry, next: Boolean, onClick: () -> Unit) 
                     Text(lockReason(entry), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     Text(
-                        entry.story.body.lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
+                        Speech.firstLine(entry.story.body),
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = Gothic,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -700,15 +703,31 @@ private fun HorizontalStory(
             }
         }
     }
+    // Script style: a line of dialogue starts with its speaker's name, and the
+    // quotes in a run of dialogue all start in line, after its widest name.
+    // A quote that wraps carries on a character further in.
+    // The name keeps the text's line height, so it sits on about the same baseline.
+    val nameStyle = TextStyle(fontSize = (size * NAME_RATIO).sp, lineHeight = (size * 1.5f).sp, fontFamily = family)
+    val nameColumns = remember(reading, density, size, family) {
+        val space = with(density) { (size * NAME_GAP).sp.toPx() }
+        Speech.columns(reading.speakers) { measurer.measure(it, nameStyle, softWrap = false).size.width.toFloat() }
+            .map { it?.plus(space) }
+    }
+    val charWidth = with(density) { size.sp.toPx() }
     BoxWithConstraints(modifier) {
         val lineHeight = with(density) { (rubySize * 1.2f).sp.toPx() + (size * 1.5f).sp.toPx() }
         val gap = with(density) { PARAGRAPH_GAP.toPx() }
         // A pixel or two spare, so rounding never pushes a word past the edge.
         val width = constraints.maxWidth - with(density) { (PAGE_PADDING_H * 2 + 2.dp).toPx() }
         val height = constraints.maxHeight - with(density) { (PAGE_PADDING * 2 + PAGE_LABEL_HEIGHT).toPx() }
-        val pages = remember(flows, width, height, lineHeight, gap) {
-            HorizontalText.pages(flows.map { HorizontalText.lines(it, width) }, lineHeight, gap, height)
+        val pages = remember(flows, nameColumns, width, height, lineHeight, gap) {
+            val lines = flows.mapIndexed { p, flow ->
+                val column = nameColumns[p] ?: 0f
+                HorizontalText.lines(flow, width, indent = column, wrapIndent = if (column > 0f) column + charWidth else 0f)
+            }
+            HorizontalText.pages(lines, lineHeight, gap, height)
         }
+        val nameColor = speakerColor()
         val lineDp = with(density) { lineHeight.toDp() }
         // The finish stamp goes under the last line, or on a page of its own when that's full.
         val used = pages.lastOrNull()?.withIndex()?.sumOf { (n, line) ->
@@ -721,6 +740,21 @@ private fun HorizontalStory(
                 pages.getOrNull(page).orEmpty().forEachIndexed { n, line ->
                     if (n > 0 && line.words.first == 0) Spacer(Modifier.height(PARAGRAPH_GAP))
                     Row(Modifier.height(lineDp), verticalAlignment = Alignment.Bottom) {
+                        val column = nameColumns[line.paragraph]
+                        if (column != null) {
+                            val columnDp = with(density) { column.toDp() }
+                            if (line.words.first == 0) {
+                                Text(
+                                    reading.speakers[line.paragraph].orEmpty(),
+                                    style = nameStyle,
+                                    color = nameColor,
+                                    softWrap = false,
+                                    modifier = Modifier.width(columnDp),
+                                )
+                            } else {
+                                Spacer(Modifier.width(columnDp + with(density) { charWidth.toDp() }))
+                            }
+                        }
                         for (i in line.words) {
                             val p = line.paragraph
                             val word = reading.paragraphs[p][i]
@@ -855,6 +889,20 @@ internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.
 
 /** Furigana's size against the text it sits on. */
 internal const val RUBY_RATIO = 10f / 22f
+
+/** A speaker's name against the text of their line: smaller, as a label. */
+internal const val NAME_RATIO = 0.8f
+
+/** The space after a run of dialogue's widest name, in characters of the text. */
+internal const val NAME_GAP = 0.5f
+
+/** Speakers' names: quieter than the text, and in light theme a little more than onSurfaceVariant. */
+@Composable
+internal fun speakerColor(): Color {
+    val scheme = MaterialTheme.colorScheme
+    val light = scheme.surface.luminance() > 0.5f
+    return if (light) lerp(scheme.onSurfaceVariant, scheme.surface, 0.19f) else scheme.onSurfaceVariant
+}
 internal val PAGE_PADDING = 16.dp
 private val PAGE_PADDING_H = 24.dp
 internal val PAGE_LABEL_HEIGHT = 28.dp
