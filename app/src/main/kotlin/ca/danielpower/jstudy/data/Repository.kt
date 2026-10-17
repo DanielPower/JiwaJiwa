@@ -646,7 +646,7 @@ class Repository(context: Context) {
 
     /** Each grammar point's topic page, saved when the path was. */
     private fun lessons(): Map<String, Long> {
-        val saved = store.pathStories().associate { it.pathId to it.id }
+        val saved = store.pathStories().mapValues { it.value.id }
         return catalog.grammar.flatMap { t -> saved[t.page.id]?.let { id -> t.points.map { it to id } }.orEmpty() }.toMap()
     }
 
