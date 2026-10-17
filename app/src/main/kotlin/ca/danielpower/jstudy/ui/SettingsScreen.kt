@@ -30,7 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.ReadLevel
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
 import java.time.LocalDate
@@ -67,47 +67,34 @@ fun SettingsScreen(
         }
 
         Section(ui("Daily study", "毎日の勉強"))
-        Text("Start new words from", style = MaterialTheme.typography.bodyLarge)
-        // Moving past N5 asks what to do with the easier words, as first-run setup does.
+        Text("Level you can already read", style = MaterialTheme.typography.bodyLarge)
+        // Raising the level fills in mastery, so it asks first; lowering it changes nothing.
         var pendingLevel by remember { mutableStateOf<Int?>(null) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (level in 5 downTo 1) {
-                WashiChip(
-                    selected = state.startLevel == level,
-                    onClick = {
-                        when {
-                            level == state.startLevel -> {}
-                            level < 5 -> pendingLevel = level
-                            else -> vm.setStartLevel(level)
-                        }
-                    },
-                    label = "N$level",
-                )
-            }
+        ReadLevelChips(state.readLevel) { level ->
+            val raises = level != ReadLevel.NONE && (state.readLevel == ReadLevel.NONE || level < state.readLevel)
+            if (raises) pendingLevel = level else vm.setReadLevel(level)
         }
         pendingLevel?.let { level ->
-            val easier = (5 downTo level + 1).joinToString(" and ") { "N$it" }
-            val choose = { mastery: Int ->
-                pendingLevel = null
-                vm.setStartLevel(level, mastery)
-            }
             AlertDialog(
                 onDismissRequest = { pendingLevel = null },
-                title = { Text("Start from N$level") },
+                title = { Text("Read at N$level") },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("What about the words in $easier you haven't started yet? Words you've started keep their progress.")
-                        TextButton(onClick = { choose(0) }) { Text("Learn them later, after the harder levels") }
-                        TextButton(onClick = { choose(MasteryRules.HIDE_AT) }) { Text("Known: review over the next week") }
-                        TextButton(onClick = { choose(MasteryRules.OFF_AT) }) { Text("Mastered: review over the next month") }
-                    }
+                    Text(
+                        "N$level's ${state.levelCounts[level] ?: 0} words become known, and easier levels become mastered. " +
+                            "Words you've studied keep their progress when it's higher.",
+                    )
                 },
-                confirmButton = {},
+                confirmButton = {
+                    TextButton(onClick = {
+                        pendingLevel = null
+                        vm.setReadLevel(level)
+                    }) { Text("Fill in") }
+                },
                 dismissButton = { TextButton(onClick = { pendingLevel = null }) { Text(ui("Cancel", "やめる")) } },
             )
         }
         Text(
-            "New words come from this level first, then the harder ones, then any easier ones.",
+            "Raising it fills in the words of that level and the easier ones. Lowering it changes nothing else.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

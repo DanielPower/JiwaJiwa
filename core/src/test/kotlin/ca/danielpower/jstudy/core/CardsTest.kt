@@ -91,6 +91,20 @@ class CardsTest {
     }
 
     @Test
+    fun `marking known for a stability spreads the first review over the window`() {
+        val now = at("2026-10-10T20:00")
+        val card = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)
+        val dues = (1..50).map { seed ->
+            reviewer.markKnownFor(card, WordProgress(7), 15, 40, now, Random(seed)).card.dueAt
+        }
+        val known = reviewer.markKnownFor(card, WordProgress(7), 15, 40, now, Random(1))
+        assertEquals(15.0, known.card.stability)
+        assertEquals(50, known.progress.mastery)
+        assertTrue(dues.all { it > now && it <= now + 41 * 86_400_000L })
+        assertTrue(dues.any { it > now + 16 * 86_400_000L })
+    }
+
+    @Test
     fun `marking a word known below the production threshold keeps it locked`() {
         val now = at("2026-10-10T20:00")
         val card = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)

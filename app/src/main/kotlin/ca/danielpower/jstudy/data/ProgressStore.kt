@@ -105,7 +105,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
      * unstarted never come up now that stories bring in new words.
      */
     private fun dropRemovedCards(db: SQLiteDatabase) {
-        db.execSQL("DELETE FROM kv WHERE key IN ('kana_known', 'new_kana_per_day')")
+        db.execSQL("DELETE FROM kv WHERE key IN ('kana_known', 'new_kana_per_day', 'start_level')")
         if (!hasColumn(db, "card", "direction")) return
         db.execSQL("DELETE FROM card WHERE state = 0 AND direction = 0 AND reps = 0 AND suspended = 0")
         db.execSQL("DELETE FROM review_log WHERE card_id IN (SELECT id FROM card WHERE direction = 2)")

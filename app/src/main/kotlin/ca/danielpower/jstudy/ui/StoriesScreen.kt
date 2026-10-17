@@ -600,6 +600,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 openWord != null -> WordCard(
                     word = openWord,
                     reading = reading,
+                    forgotten = state.forgotten,
+                    onForgot = vm::toggleForgot,
                     onLesson = vm::openGrammar,
                 )
             }
@@ -1030,6 +1032,8 @@ private fun SentenceCard(translation: String?) {
 private fun WordCard(
     word: ReadingWord,
     reading: StoryReading,
+    forgotten: Set<Long>,
+    onForgot: (Long) -> Unit,
     onLesson: (Long) -> Unit,
 ) {
     val entry = word.wordId?.let { reading.words[it] }
@@ -1071,17 +1075,34 @@ private fun WordCard(
                     MeaningLine(if (senses.size > 1) numeral(i) else null, sense.glosses.joinToString("; "), compact = true)
                 }
                 val status = reading.statuses[entry.id]
-                Text(
-                    levelLabel(entry.jlpt) + "  ·  " + when {
-                        // A story's words you haven't started join your reviews when you finish it; a grammar page has none.
-                        status == null -> ui("New", "新しい") + if (reading.lesson == null) ", joins your reviews when you finish" else ""
-                        status.suspended -> "Suspended"
-                        status.state == CardState.NEW -> "New, in your new-word queue"
-                        else -> "Mastery ${status.mastery}"
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        levelLabel(entry.jlpt) + "  ·  " + when {
+                            // A story's words you haven't started join your reviews when you finish it; a grammar page has none.
+                            status == null -> ui("New", "新しい") + if (reading.lesson == null) ", joins your reviews when you finish" else ""
+                            status.suspended -> "Suspended"
+                            status.state == CardState.NEW -> ui("New", "新しい")
+                            else -> "Mastery ${status.mastery}"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    // A word you're reviewing can be marked forgotten: one Wrong review when you finish, never just for tapping it.
+                    if (status != null && status.state == CardState.REVIEW && !status.suspended && reading.lesson == null) {
+                        Spacer(Modifier.width(8.dp))
+                        if (entry.id in forgotten) {
+                            Text("✓ Forgot", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            TextButton(onClick = { onForgot(entry.id) }) {
+                                Text("Undo", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                            }
+                        } else {
+                            TextButton(onClick = { onForgot(entry.id) }) {
+                                Text("I forgot this", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                            }
+                        }
+                    }
+                }
             }
             for (use in word.grammar.distinctBy { it.point.id }) {
                 // The topic's page, unless that's the page you're on.

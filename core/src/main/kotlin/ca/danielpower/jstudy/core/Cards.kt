@@ -198,11 +198,23 @@ class Reviewer(
      * that interval, so marking many words at once doesn't bunch them up.
      */
     fun markKnown(card: Card, progress: WordProgress, mastery: Int, now: Long, random: Random): Known {
-        require(card.wordId == progress.wordId)
         val newMastery = mastery.coerceIn(0, MasteryRules.MAX)
         val days = MasteryRules.stabilityDays(newMastery)
+        return known(card, progress, newMastery, days, days, now, random)
+    }
+
+    /**
+     * Mark a word known with a stability of [days], as the reading level
+     * does. The first review lands within [firstDueWithin] days, which can
+     * be longer than [days] to spread out a large batch.
+     */
+    fun markKnownFor(card: Card, progress: WordProgress, days: Int, firstDueWithin: Int, now: Long, random: Random): Known =
+        known(card, progress, MasteryRules.fromStability(days.toDouble()), days, maxOf(days, firstDueWithin), now, random)
+
+    private fun known(card: Card, progress: WordProgress, newMastery: Int, days: Int, firstDueWithin: Int, now: Long, random: Random): Known {
+        require(card.wordId == progress.wordId)
         val today = clock.dayOf(now)
-        val firstDue = 1 + random.nextInt(days)
+        val firstDue = 1 + random.nextInt(firstDueWithin)
         val unlock = card.direction == Direction.RECOGNITION &&
             !progress.productionUnlocked &&
             newMastery >= MasteryRules.PRODUCTION_AT

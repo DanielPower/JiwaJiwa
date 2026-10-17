@@ -13,6 +13,7 @@ import ca.danielpower.jstudy.core.ImportPlan
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.Pace
+import ca.danielpower.jstudy.core.ReadLevel
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
@@ -106,18 +107,18 @@ sealed interface Screen {
     data class Settings(
         val settings: StudySettings,
         val attribution: String,
-        val startLevel: Int,
+        /** The JLPT level you can already read, or [ReadLevel.NONE]. */
+        val readLevel: Int,
+        val levelCounts: Map<Int, Int>,
         val reminder: Reminder,
         /** The result of the last backup export or import. */
         val backupMessage: String? = null,
     ) : Screen
 
-    /** First run, a page at a time: where to start, and the reminder. */
+    /** First run, a page at a time: the level you can already read, and the reminder. */
     data class Setup(
         val levelCounts: Map<Int, Int>,
-        val startLevel: Int,
-        /** Mastery for the words below the starting level; 0 leaves them unstarted. */
-        val lowerMastery: Int,
+        val readLevel: Int = ReadLevel.NONE,
         /** The daily reminder's time, if you chose one. */
         val reminderMinute: Int?,
         val page: SetupPage = SetupPage.WELCOME,
@@ -169,6 +170,8 @@ sealed interface Screen {
         val then: NextStep? = null,
         /** The page to open on, when coming back from a grammar page. */
         val startPage: Int = 0,
+        /** Words you said you forgot: each gets a Wrong review when you finish. */
+        val forgotten: Set<Long> = emptySet(),
     ) : Screen
 }
 
@@ -271,7 +274,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             lookUpLabels()
             DailyReminder.schedule(getApplication(), repo.reminder())
             if (repo.needsSetup()) {
-                _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null)
+                _screen.value = Screen.Setup(repo.levelCounts(), reminderMinute = null)
             } else {
                 showHome()
             }
@@ -418,17 +421,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Settings(
             settings = repo.settings(),
             attribution = attribution,
-            startLevel = repo.startLevel(),
+            readLevel = repo.readLevel(),
+            levelCounts = repo.levelCounts(),
             reminder = repo.reminder(),
             backupMessage = backupMessage,
         )
     }
 
-    /** Start new words from [level]; a non-zero [easierMastery] marks the unstarted words below it known. */
-    fun setStartLevel(level: Int, easierMastery: Int = 0) = launchIo {
-        repo.setStartLevel(level)
-        if (easierMastery > 0) repo.markEasierLevelsKnown(level, easierMastery, now())
-        _screen.update { if (it is Screen.Settings) it.copy(startLevel = repo.startLevel()) else it }
+    /** Read at [level] from now on; raising it fills in that level's words and the easier ones. */
+    fun setReadLevel(level: Int) = launchIo {
+        repo.setReadLevel(level, now())
+        refreshLanguage()
+        _screen.update { if (it is Screen.Settings) it.copy(readLevel = repo.readLevel()) else it }
     }
 
     fun setReminder(reminder: Reminder) = launchIo {
@@ -488,7 +492,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             _theme.value = ThemeMode.AUTO
             DailyReminder.schedule(getApplication(), repo.reminder())
             refreshLanguage()
-            _screen.value = Screen.Setup(repo.levelCounts(), 5, 0, null)
+            _screen.value = Screen.Setup(repo.levelCounts(), reminderMinute = null)
         }
     }
 
@@ -503,8 +507,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun finishSetup() = launchIo {
         val setup = _screen.value as? Screen.Setup ?: return@launchIo
         _screen.value = Screen.Loading
-        val lower = setup.lowerMastery.takeIf { setup.startLevel < 5 && it > 0 }
-        repo.finishSetup(setup.startLevel, lower, setup.reminderMinute, now())
+        repo.finishSetup(setup.readLevel, setup.reminderMinute, now())
         DailyReminder.schedule(getApplication(), repo.reminder())
         showHome()
     }
@@ -744,6 +747,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val story = state.reading.story
         repo.markStoryRead(story.id, at, at - readingSince)
         repo.readWords(story, lookedUpWords.toSet(), at)
+        repo.forgetWords(state.forgotten, at)
         val started = repo.startStoryWords(story, at)
         val after = repo.masteries(state.reading.words.keys)
         fun crossed(line: Int) = after.filter { (id, m) -> (masteryAtOpen[id] ?: 0) < line && m >= line }.keys
@@ -761,6 +765,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val pace = repo.pace(at)
         _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
         refreshStory()
+    }
+
+    /** "I forgot this" on a word in the open story, or its Undo. */
+    fun toggleForgot(wordId: Long) {
+        _screen.update {
+            if (it !is Screen.StoryReader) it
+            else it.copy(forgotten = if (wordId in it.forgotten) it.forgotten - wordId else it.forgotten + wordId)
+        }
     }
 
     /** A word tapped in the open story: you looked it up, so reading it doesn't count as recalling it. */

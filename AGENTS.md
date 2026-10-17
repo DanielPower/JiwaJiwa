@@ -128,9 +128,19 @@ Other features (all shipped):
   learn. Linked from the word page, the card's answer side and dictionary
   search. Kanji have no mastery or stats of their own; Daniel saw no use
   for them without kanji cards.
-- First-run setup: start level, optional reminder time. Both can change
-  later in Settings: moving the start level past N5 asks, as setup does, whether unstarted easier words
-  wait or are marked Known or Mastered.
+- First-run setup: "Which level can you already read?" (None, N5..N1) and
+  an optional reminder time; both can change later in Settings. A level
+  pre-fills mastery (`ReadLevel`, Daniel 2026-10-17): the chosen level's
+  words at mastery 50 (15-day stability), one level easier 70 (30 days),
+  two easier 90 days, three or more 365 days. First reviews are spread so
+  the fill adds at most ~100 a day. Words already higher keep their
+  progress. Raising the level in Settings asks first; lowering changes
+  nothing. No random mastery jitter (the random first-due date spreads them).
+- Reader word pane: "I forgot this" on words with a review card (not on
+  grammar pages), shown as "✓ Forgot" with Undo once tapped; each gives one
+  Wrong review when the story is finished. Tapping a word never counts as
+  wrong (Daniel: checking conjugations and accidental taps shouldn't
+  punish). No burning of words; FSRS long intervals handle mature words.
 - Daily reminder has **no default time**; the user picks one. Don't request
   notification permission until they turn it on.
 - Manual backup/restore only (`jiwajiwa-<date>.jstudy`, a copy of the progress

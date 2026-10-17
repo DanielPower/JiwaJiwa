@@ -116,20 +116,13 @@ class Dictionary(context: Context) : Lexicon {
         return word.copy(senses = senses)
     }
 
-    /** JLPT words below [startLevel] (easier levels), in study order. */
-    fun wordsBelow(startLevel: Int): List<Long> =
-        db.rawQuery(
-            "SELECT id FROM word WHERE jlpt > ? AND study_order IS NOT NULL ORDER BY study_order",
-            arrayOf(startLevel.toString()),
-        ).use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }
-
     /** Word count per JLPT level (5 for N5 down to 1 for N1). */
     fun levelCounts(): Map<Int, Int> =
         db.rawQuery("SELECT jlpt, COUNT(*) FROM word WHERE jlpt > 0 GROUP BY jlpt", null).use { c ->
             buildMap { while (c.moveToNext()) put(c.getInt(0), c.getInt(1)) }
         }
 
-    /** JLPT level of each word, for the stats. */
+    /** JLPT level of each word. */
     fun levels(): Map<Long, Int> =
         db.rawQuery("SELECT id, jlpt FROM word WHERE jlpt > 0", null).use { c ->
             buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1)) }

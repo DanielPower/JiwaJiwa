@@ -16,6 +16,7 @@ import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.LocalWord
 import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.ReadLevel
 import ca.danielpower.jstudy.core.RenshuuImport
 import ca.danielpower.jstudy.core.RenshuuTerm
 import ca.danielpower.jstudy.core.Reviewer
@@ -509,13 +510,8 @@ class Repository(context: Context) {
         return RenshuuImport.plan(terms, { it in ids }, local)
     }
 
-    /**
-     * Mark each word known at its mastery, as "I already know this" does, in
-     * one transaction. With [unlockProduction] off, English-to-Japanese cards
-     * wait until each word is next answered right, so a big batch doesn't
-     * crowd out new words.
-     */
-    fun importMastery(updates: Map<Long, Int>, now: Long, unlockProduction: Boolean = true) {
+    /** Mark each word known at its mastery, as "Mark known" does, in one transaction. */
+    fun importMastery(updates: Map<Long, Int>, now: Long) {
         val settings = settings()
         val reviewer = Reviewer(Fsrs(), clock(settings))
         store.transaction { db ->
@@ -526,8 +522,8 @@ class Repository(context: Context) {
                 val card = recognitionCard(wordId) ?: continue
                 val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default)
                 store.updateCard(db, known.card)
-                store.saveProgress(db, if (unlockProduction) known.progress else known.progress.copy(productionUnlocked = false))
-                if (known.unlockedProduction && unlockProduction) {
+                store.saveProgress(db, known.progress)
+                if (known.unlockedProduction) {
                     store.insertNewCard(db, wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
                 }
             }
@@ -736,6 +732,15 @@ class Repository(context: Context) {
         }
     }
 
+    /** Finishing a story: each of [ids] you said you forgot gets a Wrong review. */
+    fun forgetWords(ids: Set<Long>, now: Long) {
+        for (id in ids) {
+            val card = recognitionCard(id) ?: continue
+            if (card.state != CardState.REVIEW || store.isSuspended(id)) continue
+            answer(card, false, now)
+        }
+    }
+
     /**
      * Finishing a story: its words you haven't started, or said you know,
      * start as cards, as though just shown. Returns their ids.
@@ -759,24 +764,50 @@ class Repository(context: Context) {
 
     // ------------------------------------------------------------ first run
 
-    /** The JLPT level new words start from: 5 for N5 down to 1 for N1. */
-    fun startLevel(): Int = store.getValue("start_level")?.toIntOrNull()?.coerceIn(1, 5) ?: 5
+    /** The JLPT level you can already read: 5 for N5 down to 1 for N1, or [ReadLevel.NONE]. */
+    fun readLevel(): Int = store.getValue("read_level")?.toIntOrNull()?.takeIf { it in 1..5 } ?: ReadLevel.NONE
 
-    fun setStartLevel(level: Int) {
-        store.setValues(mapOf("start_level" to level.coerceIn(1, 5).toString()))
+    /**
+     * Read at [level] from now on. Raising it fills in its words and every
+     * easier level's ([ReadLevel]); lowering it changes nothing else.
+     */
+    fun setReadLevel(level: Int, now: Long) {
+        val before = readLevel()
+        store.setValues(mapOf("read_level" to level.toString()))
+        val raised = level != ReadLevel.NONE && (before == ReadLevel.NONE || level < before)
+        if (raised) fillReadLevel(level, now)
     }
 
     /**
-     * Mark the words in levels easier than [level] that you haven't started
-     * as known at [mastery], as first-run setup does. Words you've started keep their mastery.
+     * Start the words of [level] and easier as known, each at its
+     * [ReadLevel] stability. Words you've studied keep their progress where
+     * it's higher, and suspended words are left alone. English-to-Japanese
+     * cards wait until each word is next answered right, so the batch
+     * doesn't crowd reviews with new cards.
      */
-    fun markEasierLevelsKnown(level: Int, mastery: Int, now: Long) {
-        val started = store.wordStatuses().filterValues { it.state != CardState.NEW || it.suspended }.keys
-        val words = dictionary.wordsBelow(level).filter { it !in started }
-        importMastery(words.associateWith { mastery }, now, unlockProduction = false)
+    private fun fillReadLevel(level: Int, now: Long) {
+        val statuses = store.wordStatuses()
+        val fill = dictionary.levels().mapNotNull { (id, jlpt) ->
+            val days = ReadLevel.stabilityDays(level, jlpt) ?: return@mapNotNull null
+            val status = statuses[id]
+            val skip = status != null && (status.suspended || status.mastery >= MasteryRules.fromStability(days.toDouble()))
+            if (skip) null else id to days
+        }
+        val reviewer = Reviewer(Fsrs(), clock())
+        store.transaction { db ->
+            for ((id, days) in fill) {
+                if (recognitionCard(id) == null) store.insertNewCard(db, id, Direction.RECOGNITION, 0)
+                val card = recognitionCard(id) ?: continue
+                val before = store.progress(id)
+                val within = ReadLevel.firstDueWithin(days, fill.size)
+                val known = reviewer.markKnownFor(card, before, days, within, now, Random.Default)
+                store.updateCard(db, known.card)
+                store.saveProgress(db, known.progress.copy(productionUnlocked = before.productionUnlocked))
+            }
+        }
     }
 
-    /** True on a fresh install, before you've picked a starting level. Existing progress counts as set up. */
+    /** True on a fresh install, before you've been through setup. Existing progress counts as set up. */
     fun needsSetup(): Boolean {
         if (store.getValue("setup_done") == "1") return false
         val started = store.count("SELECT COUNT(*) FROM card WHERE state != ?", CardState.NEW.value) +
@@ -790,17 +821,10 @@ class Repository(context: Context) {
 
     fun levelCounts(): Map<Int, Int> = dictionary.levelCounts()
 
-    /**
-     * Finish the first run: start new words at [startLevel], and if
-     * [lowerMastery] is set, mark every word of the easier levels known at it.
-     */
-    fun finishSetup(startLevel: Int, lowerMastery: Int?, reminderMinute: Int?, now: Long) {
+    /** Finish the first run: the level you read at, filled in, and the reminder. */
+    fun finishSetup(readLevel: Int, reminderMinute: Int?, now: Long) {
         if (reminderMinute != null) saveReminder(Reminder(enabled = true, minuteOfDay = reminderMinute))
-        setStartLevel(startLevel)
-        if (lowerMastery != null && lowerMastery > 0) {
-            val words = dictionary.wordsBelow(startLevel)
-            importMastery(words.associateWith { lowerMastery }, now, unlockProduction = false)
-        }
+        setReadLevel(readLevel, now)
         store.setValues(mapOf("setup_done" to "1"))
     }
 
