@@ -33,25 +33,6 @@ class RenshuuImportTest {
     }
 
     @Test
-    fun `kana without an entry number go to jstudy's kana cards`() {
-        val ka = KanaCourse.idOf("か")
-        val kya = KanaCourse.idOf("キャ")
-        val p = plan(
-            listOf(
-                RenshuuTerm(null, 44, "か"),
-                RenshuuTerm(null, 41, "キャ"),
-                RenshuuTerm(null, 30, "勉強する"),
-                // A word with an entry number is never taken for a kana, even one jstudy lacks.
-                RenshuuTerm(99, 50, "か"),
-            ),
-            mapOf(ka to LocalWord(60, started = true, suspended = false)),
-        )
-        assertEquals(mapOf(kya to 41), p.updates)
-        assertEquals(1, p.unchanged)
-        assertEquals(2, p.notInJstudy)
-    }
-
-    @Test
     fun `leaves suspended words and zero mastery alone`() {
         val p = plan(
             listOf(RenshuuTerm(4, 90), RenshuuTerm(5, 0)),

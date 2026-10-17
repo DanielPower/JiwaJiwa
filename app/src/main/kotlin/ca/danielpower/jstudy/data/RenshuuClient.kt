@@ -31,7 +31,6 @@ class RenshuuClient(private val apiKey: String) {
                 terms += RenshuuTerm(
                     jmdictId = term.optString("edict_ent").toLongOrNull(),
                     mastery = term.optJSONObject("user_data")?.optInt("mastery_avg_perc", 0) ?: 0,
-                    text = term.optString("kanji_full").ifBlank { term.optString("hiragana_full") },
                 )
             }
             onPage(page, pages)

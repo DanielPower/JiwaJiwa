@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -40,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -50,6 +53,7 @@ import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudyClock
+import ca.danielpower.jstudy.data.GrammarRow
 import ca.danielpower.jstudy.data.levelLabel
 import java.time.Instant
 import java.time.LocalDate
@@ -75,81 +79,134 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 4.dp),
         )
-        OutlinedTextField(
-            value = state.query,
-            onValueChange = vm::search,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            placeholder = { Text("Kana, kanji, romaji or English") },
-            leadingIcon = { Icon(WashiIcons.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
-            singleLine = true,
-            trailingIcon = {
-                if (state.query.isNotEmpty()) WashiIconButton(WashiIcons.Close, "Clear", { vm.search("") })
-            },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            // 0 is "Other": words off the JLPT lists, shown once searched for or started.
-            for (level in listOf(5, 4, 3, 2, 1, 0)) {
-                WashiChip(
-                    selected = level in state.levels,
-                    onClick = { vm.toggleLevel(level) },
-                    label = levelLabel(level),
-                )
-            }
+        Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            WashiChip(selected = state.grammar == null, onClick = { vm.showGrammar(false) }, label = ui("Words", "言葉"))
+            WashiChip(selected = state.grammar != null, onClick = { vm.showGrammar(true) }, label = ui("Grammar", "文法"))
         }
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            for (filter in StatusFilter.entries) {
-                WashiChip(
-                    selected = state.status == filter,
-                    onClick = { vm.setStatusFilter(filter) },
-                    label = ui(filter.label),
-                )
-            }
-        }
-        val kanji = Kanjis.inText(state.query)
-        if (kanji.isNotEmpty()) {
-            // Searching with kanji: their own pages, ahead of the words.
+        val grammar = state.grammar
+        if (grammar != null) {
+            GrammarList(grammar, vm)
+        } else {
+            OutlinedTextField(
+                value = state.query,
+                onValueChange = vm::search,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Kana, kanji, romaji or English") },
+                leadingIcon = { Icon(WashiIcons.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                singleLine = true,
+                trailingIcon = {
+                    if (state.query.isNotEmpty()) WashiIconButton(WashiIcons.Close, "Clear", { vm.search("") })
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
+            )
             Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(ui("Kanji", "漢字"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                for (k in kanji) {
-                    Box(
-                        Modifier.size(40.dp).border(1.dp, MaterialTheme.colorScheme.outline, WashiShape).clickable {
-                            keyboard?.hide()
-                            vm.openKanji(k)
-                        },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(k, fontFamily = Gothic, fontSize = 22.sp, lineHeight = 26.sp)
+                // 0 is "Other": words off the JLPT lists, shown once searched for or started.
+                for (level in listOf(5, 4, 3, 2, 1, 0)) {
+                    WashiChip(
+                        selected = level in state.levels,
+                        onClick = { vm.toggleLevel(level) },
+                        label = levelLabel(level),
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                for (filter in StatusFilter.entries) {
+                    WashiChip(
+                        selected = state.status == filter,
+                        onClick = { vm.setStatusFilter(filter) },
+                        label = ui(filter.label),
+                    )
+                }
+            }
+            val kanji = Kanjis.inText(state.query)
+            if (kanji.isNotEmpty()) {
+                // Searching with kanji: their own pages, ahead of the words.
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(ui("Kanji", "漢字"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    for (k in kanji) {
+                        Box(
+                            Modifier.size(40.dp).border(1.dp, MaterialTheme.colorScheme.outline, WashiShape).clickable {
+                                keyboard?.hide()
+                                vm.openKanji(k)
+                            },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(k, fontFamily = Gothic, fontSize = 22.sp, lineHeight = 26.sp)
+                        }
                     }
                 }
             }
-        }
-        Text(
-            if (state.rows.size == 1) "1 word" else "${state.rows.size} words",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-        )
-        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 24.dp))
-        LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
-            items(state.rows, key = { it.entry.id }) { row ->
-                DictionaryRowItem(row) {
-                    keyboard?.hide()
-                    vm.openWord(row.entry.id)
+            Text(
+                if (state.rows.size == 1) "1 word" else "${state.rows.size} words",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(horizontal = 24.dp))
+            LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
+                items(state.rows, key = { it.entry.id }) { row ->
+                    DictionaryRowItem(row) {
+                        keyboard?.hide()
+                        vm.openWord(row.entry.id)
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 24.dp))
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 24.dp))
             }
+        }
+    }
+}
+
+/**
+ * Every grammar topic: the ones you've met, newest first, each with where
+ * it's taught, then the rest greyed. A topic you've met opens its page.
+ */
+@Composable
+private fun ColumnScope.GrammarList(rows: List<GrammarRow>, vm: AppViewModel) {
+    val met = rows.count { it.seen }
+    LazyColumn(Modifier.weight(1f)) {
+        item {
+            SectionLabel("Met · $met of ${rows.size}", Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 4.dp))
+        }
+        items(rows, key = { it.topic.id }) { row ->
+            if (!row.seen && rows.indexOf(row) == met) {
+                SectionLabel("Not yet", Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp))
+            }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = row.seen) { vm.openGrammar(row.pageId) }
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    row.topic.title,
+                    fontFamily = Gothic,
+                    fontWeight = if (row.seen) FontWeight.Bold else FontWeight.Normal,
+                    fontSize = 18.sp,
+                    color = if (row.seen) LocalContentColor.current else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                val where = row.taughtIn?.let { c -> if (c.series.single) c.series.title else "${c.series.title} ${c.chapter.number}" }
+                Text(
+                    listOfNotNull(where.takeIf { row.seen }, row.topic.titleEn.lowercase()).joinToString(" · "),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                )
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(horizontal = 24.dp))
         }
     }
 }
@@ -267,9 +324,8 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         when {
                             detail.suspended -> Text(ui("Suspended", "保留中"), style = MaterialTheme.typography.bodyLarge)
-                            recognition == null -> Text(ui("Not started", "未学習"), style = MaterialTheme.typography.bodyLarge)
-                            recognition.state == CardState.NEW ->
-                                Text("Waiting in the new-word queue", style = MaterialTheme.typography.bodyLarge)
+                            recognition == null || recognition.state == CardState.NEW ->
+                                Text(ui("Not started", "未学習"), style = MaterialTheme.typography.bodyLarge)
                             else -> {
                                 CardLine(ui("Japanese → English", "日本語から英語"), recognition, state.clock)
                                 production?.let { CardLine(ui("English → Japanese", "英語から日本語"), it, state.clock) }
@@ -286,9 +342,6 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel(ui("Actions", "操作"))
-                if (!started) {
-                    PrimaryButton(onClick = vm::learnNext, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(ui("Learn next", "次に覚える", "次", "覚える")) }
-                }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SecondaryButton(onClick = { vm.markKnown(MasteryRules.HIDE_AT) }, modifier = Modifier.weight(1f).height(48.dp)) {
                         Text(if (started) ui("Set as known", "知っている") else ui("Mark known", "知っている"))
@@ -308,8 +361,8 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                     }
                 }
                 Text(
-                    "Suspended words never come up for review or as new words. Reset forgets the word's progress and " +
-                        "history, and it comes back as a new word in its usual place.",
+                    "Suspended words never come up for review, and count as known in stories. Reset forgets the " +
+                        "word's progress and history.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

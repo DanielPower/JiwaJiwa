@@ -3,16 +3,34 @@ package ca.danielpower.jstudy.core
 import kotlin.random.Random
 
 data class StudySettings(
-    val newPerDay: Int = 10,
-    /** New kana cards a day, while there are kana to learn. Both scripts of a sound count separately. */
-    val newKanaPerDay: Int = 10,
+    /**
+     * New words and kana a day before the app suggests reading something with
+     * nothing new, or reviewing. A suggestion, never a lock. Unlocked
+     * production cards in reviews fill what's left of it.
+     */
+    val newPerDay: Int = 20,
+    /** Reviews due before the app suggests catching up; 0 for never. */
+    val reviewNudge: Int = 50,
     val reviewCap: Int = 200,
     val rolloverHour: Int = 4,
 ) {
     init {
-        require(newPerDay >= 0 && newKanaPerDay >= 0 && reviewCap >= 0)
+        require(newPerDay >= 0 && reviewNudge >= 0 && reviewCap >= 0)
         require(rolloverHour in 0..23)
     }
+}
+
+/**
+ * Today's new words against the daily limit, and the reviews
+ * waiting. It only shapes suggestions: nothing is locked by it.
+ */
+data class Pace(val newToday: Int, val limit: Int, val reviewsDue: Int, val reviewNudge: Int) {
+    val atLimit get() = newToday >= limit
+    val backlog get() = reviewNudge > 0 && reviewsDue >= reviewNudge
+    val nudge get() = atLimit || backlog
+
+    /** Whether learning [adding] more new words now would take you past the limit. */
+    fun over(adding: Int) = adding > 0 && newToday + adding > limit
 }
 
 /**
@@ -37,7 +55,6 @@ data class DailyLimits(
     val reviewDueBefore: Long,
     val newCards: Int,
     val reviews: Int,
-    val newKana: Int = 0,
 ) {
     companion object {
         fun of(
@@ -47,7 +64,6 @@ data class DailyLimits(
             now: Long,
             newIntroducedToday: Int,
             reviewsDoneToday: Int,
-            newKanaIntroducedToday: Int = 0,
         ): DailyLimits {
             val today = clock.dayOf(now)
             val days = 1 + ahead.extraOn(today)
@@ -55,7 +71,6 @@ data class DailyLimits(
                 reviewDueBefore = clock.startOf(today + 1 + ahead.daysAhead),
                 newCards = (settings.newPerDay * days - newIntroducedToday).coerceAtLeast(0),
                 reviews = (settings.reviewCap * days - reviewsDoneToday).coerceAtLeast(0),
-                newKana = (settings.newKanaPerDay * days - newKanaIntroducedToday).coerceAtLeast(0),
             )
         }
     }
@@ -69,8 +84,7 @@ data class DailyLimits(
  * next one is shown early if it is due within [learnAheadMillis], as Anki does.
  *
  * With [random], reviews and new words come in a shuffled order, so cards
- * aren't always met in the same order or next to the same neighbours. New
- * kana keep their order, so each sound's hiragana comes before its katakana.
+ * aren't always met in the same order or next to the same neighbours.
  */
 class StudySession(
     reviews: List<Card>,
@@ -83,8 +97,7 @@ class StudySession(
         if (random == null) {
             interleave(reviews, newCards)
         } else {
-            val (kana, words) = newCards.partition { it.direction == Direction.KANA }
-            interleave(reviews.shuffled(random), kana + words.shuffled(random))
+            interleave(reviews.shuffled(random), newCards.shuffled(random))
         },
     )
     private val learning = learning.sortedBy { it.dueAt }.toMutableList()

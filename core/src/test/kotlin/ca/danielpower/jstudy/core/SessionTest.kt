@@ -6,6 +6,7 @@ import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -57,10 +58,10 @@ class SessionTest {
     fun `settings reject values the app can't use`() {
         assertFailsWith<IllegalArgumentException> { StudyClock(zone, rolloverHour = 24) }
         assertFailsWith<IllegalArgumentException> { StudySettings(newPerDay = -1) }
-        assertFailsWith<IllegalArgumentException> { StudySettings(newKanaPerDay = -1) }
+        assertFailsWith<IllegalArgumentException> { StudySettings(reviewNudge = -1) }
         assertFailsWith<IllegalArgumentException> { StudySettings(reviewCap = -1) }
         assertFailsWith<IllegalArgumentException> { StudySettings(rolloverHour = -1) }
-        StudySettings(newPerDay = 0, newKanaPerDay = 0, reviewCap = 0, rolloverHour = 0)
+        StudySettings(newPerDay = 0, reviewNudge = 0, reviewCap = 0, rolloverHour = 0)
     }
 
     // ------------------------------------------------------------ daily limits
@@ -68,23 +69,21 @@ class SessionTest {
     @Test
     fun `limits never go negative`() {
         val now = at("2026-10-10T20:00")
-        val limits = DailyLimits.of(StudySettings(), StudyAhead(), clock, now, newIntroducedToday = 25, reviewsDoneToday = 500, newKanaIntroducedToday = 12)
+        val limits = DailyLimits.of(StudySettings(), StudyAhead(), clock, now, newIntroducedToday = 25, reviewsDoneToday = 500)
         assertEquals(0, limits.newCards)
         assertEquals(0, limits.reviews)
-        assertEquals(0, limits.newKana)
     }
 
     @Test
-    fun `kana have their own daily allowance and study more adds to it`() {
-        val now = at("2026-10-10T20:00")
-        val today = clock.dayOf(now)
-        val settings = StudySettings(newPerDay = 5, newKanaPerDay = 8)
-        val normal = DailyLimits.of(settings, StudyAhead(), clock, now, 0, 0, newKanaIntroducedToday = 3)
-        assertEquals(5, normal.newCards)
-        assertEquals(5, normal.newKana)
-        val more = DailyLimits.of(settings, StudyAhead().studyMore(today), clock, now, 0, 0, newKanaIntroducedToday = 3)
-        assertEquals(10, more.newCards)
-        assertEquals(13, more.newKana)
+    fun `the daily limit only suggests, and counts what you'd add`() {
+        val pace = Pace(newToday = 18, limit = 20, reviewsDue = 10, reviewNudge = 50)
+        assertFalse(pace.nudge)
+        assertFalse(pace.over(2))
+        assertTrue(pace.over(3))
+        assertFalse(pace.over(0), "nothing new never goes over")
+        assertTrue(pace.copy(newToday = 20).atLimit)
+        assertTrue(pace.copy(reviewsDue = 50).backlog)
+        assertFalse(pace.copy(reviewsDue = 500, reviewNudge = 0).backlog, "0 turns the review nudge off")
     }
 
     @Test
@@ -119,17 +118,13 @@ class SessionTest {
     }
 
     @Test
-    fun `a shuffled sitting mixes up reviews and new words but keeps new kana in order`() {
-        val kana = (101L..104L).map { Card(id = it, wordId = -it, direction = Direction.KANA) }
+    fun `a shuffled sitting mixes up reviews and new words`() {
         val reviews = (1L..20L).map(::review)
         val words = (21L..30L).map(::newCard)
         val orders = (1..5).map { seed ->
-            order(StudySession(reviews, kana + words, emptyList(), random = kotlin.random.Random(seed)))
+            order(StudySession(reviews, words, emptyList(), random = kotlin.random.Random(seed)))
         }
-        for (o in orders) {
-            assertEquals((reviews + kana + words).map { it.id }.toSet(), o.toSet())
-            assertEquals(kana.map { it.id }, o.filter { it > 100 })
-        }
+        for (o in orders) assertEquals((reviews + words).map { it.id }.toSet(), o.toSet())
         assertTrue(orders.any { o -> o.filter { it <= 20 } != reviews.map { it.id } })
         assertTrue(orders.any { o -> o.filter { it in 21..30 } != words.map { it.id } })
         assertTrue(orders.distinct().size > 1)

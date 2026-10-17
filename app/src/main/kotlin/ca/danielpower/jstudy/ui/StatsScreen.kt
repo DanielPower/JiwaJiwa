@@ -87,12 +87,6 @@ fun StatsScreen(state: Screen.StatsPage, vm: AppViewModel) {
                     if (total > 0) ", $right right" else "",
             )
 
-            if (s.kana.isNotEmpty()) {
-                Heading(ui("Kana", "かな", "仮名"))
-                for (script in s.kana) LevelRow(script)
-                Legend(listOf(ui("Mastered", "覚えた") to 1f, ui("Known", "知っている") to 0.6f, ui("Started", "始めた") to 0.3f))
-            }
-
             Heading(ui("Words by level", "レベル別の単語"))
             for (level in s.levels) LevelRow(level)
             Legend(listOf(ui("Mastered", "覚えた") to 1f, ui("Known", "知っている") to 0.6f, ui("Started", "始めた") to 0.3f))

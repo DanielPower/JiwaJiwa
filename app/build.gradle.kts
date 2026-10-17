@@ -28,11 +28,6 @@ android {
         targetSdk = 36
         versionCode = buildNumber
         versionName = "0.1.$buildNumber"
-
-        // The story server and the Google OAuth web client it accepts sign-ins for
-        // (see server/README.md). Neither is secret. Blank leaves stories unavailable.
-        buildConfigField("String", "STORY_SERVER_URL", "\"${providers.gradleProperty("storyServerUrl").getOrElse("")}\"")
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${providers.gradleProperty("googleWebClientId").getOrElse("")}\"")
     }
 
     signingConfigs {
@@ -69,7 +64,6 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     packaging {
@@ -97,11 +91,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-
-    // Sign in with Google, for the story server.
-    implementation("androidx.credentials:credentials:1.3.0")
-    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 
     // Unit tests run on the JVM; Robolectric stands in for Android (SQLite, Context).
     testImplementation("junit:junit:4.13.2")

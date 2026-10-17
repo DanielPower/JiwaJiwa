@@ -3,7 +3,6 @@ package ca.danielpower.jstudy.data
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import java.io.File
-import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import ca.danielpower.jstudy.core.Answer
@@ -13,45 +12,36 @@ import ca.danielpower.jstudy.core.DailyLimits
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.Fsrs
 import ca.danielpower.jstudy.core.ImportPlan
-import ca.danielpower.jstudy.core.KanaCourse
-import ca.danielpower.jstudy.core.KanaKnown
-import ca.danielpower.jstudy.core.KanaUnit
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.LocalWord
 import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.ReadLevel
 import ca.danielpower.jstudy.core.RenshuuImport
+import ca.danielpower.jstudy.core.Speech
 import ca.danielpower.jstudy.core.RenshuuTerm
 import ca.danielpower.jstudy.core.Reviewer
-import ca.danielpower.jstudy.core.Script
 import ca.danielpower.jstudy.core.StudyAhead
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.core.WordProgress
-import ca.danielpower.jstudy.BuildConfig
-import ca.danielpower.jstudy.core.ClaudeException
 import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.Reader
 import ca.danielpower.jstudy.core.ReadingWord
+import ca.danielpower.jstudy.core.CastMember
+import ca.danielpower.jstudy.core.Chapter
+import ca.danielpower.jstudy.core.GrammarTopic
+import ca.danielpower.jstudy.core.Pace
+import ca.danielpower.jstudy.core.PathSeries
 import ca.danielpower.jstudy.core.PathStory
-import ca.danielpower.jstudy.core.Story
 import ca.danielpower.jstudy.core.StepGap
 import ca.danielpower.jstudy.core.StepNeeds
 import ca.danielpower.jstudy.core.StoryPath
-import ca.danielpower.jstudy.core.StoryDifficulty
-import ca.danielpower.jstudy.core.StoryLength
-import ca.danielpower.jstudy.core.StoryRequest
-import ca.danielpower.jstudy.core.StoryServer
-import ca.danielpower.jstudy.core.StoryTranslator
-import ca.danielpower.jstudy.core.StoryUsage
-import ca.danielpower.jstudy.core.StoryWriter
 import ca.danielpower.jstudy.core.UiLabel
 import ca.danielpower.jstudy.core.UiLabels
 import ca.danielpower.jstudy.core.coverage
-import ca.danielpower.jstudy.core.newWordBudget
 import ca.danielpower.jstudy.core.sentenceRanges
-import ca.danielpower.jstudy.core.sentenceTexts
 import kotlin.random.Random
 
 data class Summary(
@@ -67,9 +57,6 @@ data class Summary(
     val today: Long,
     /** Cards answered per study day over the last year. */
     val answersPerDay: Map<Long, Int>,
-    /** Kana learned and still to learn; both 0 when you read all kana. */
-    val kanaLearned: Int = 0,
-    val kanaTotal: Int = 0,
 ) {
     val anythingDue get() = newCards + learning + reviews > 0
 }
@@ -105,62 +92,90 @@ data class KanjiWordRow(val entry: Entry, val mastery: Int, val reading: String?
 data class Undo(
     val cardBefore: Card,
     val progressBefore: WordProgress,
-    /** Null when the action wasn't a review (marking a word known). */
-    val logId: Long?,
+    val logId: Long,
     val productionCardId: Long?,
 )
 
-/** All reads and writes go through here; call it off the main thread. */
-/** A saved story split into words, with what's needed to show each one. */
+/** A saved story split into words, with what's needed to show each one. Its English title isn't read. */
 data class StoryReading(
     val story: SavedStory,
-    /** The title's words, tappable like the story's. */
-    val title: List<ReadingWord>,
     val paragraphs: List<List<ReadingWord>>,
+    /** Who says each paragraph, when it's a line of dialogue. */
+    val speakers: List<String?> = paragraphs.map { null },
     /** Dictionary entries for the story's words. */
     val words: Map<Long, Word>,
     val statuses: Map<Long, WordStatus>,
     val coverage: Coverage,
-    /** The sequel, once one is written. */
-    val next: Long?,
-    /** For a lesson on the path: its English and the grammar it teaches. */
+    /** For a grammar topic's page: its English notes between the examples. */
     val lesson: PathStory? = null,
+    /** The saved page of the grammar topic each grammar point belongs to, by point id. */
+    val lessons: Map<String, Long> = emptyMap(),
 ) {
-    /** New words with a dictionary entry, in the order they first appear, with where: the end page lists these. */
-    val newWords: List<Pair<Pair<Int, Int>, Word>> by lazy {
-        coverage.newWords.mapNotNull { w ->
-            val entry = w.wordId?.let { words[it] } ?: return@mapNotNull null
-            val p = paragraphs.indexOfFirst { para -> para.any { it.key == w.key } }
-            (p to paragraphs[p].indexOfFirst { it.key == w.key }) to entry
-        }
-    }
+    /** The word at [i] in paragraph [p]. */
+    fun word(p: Int, i: Int): ReadingWord? = paragraphs.getOrNull(p)?.getOrNull(i)
 
-    /** The word at [i] in paragraph [p], where paragraph [TITLE] is the title. */
-    fun word(p: Int, i: Int): ReadingWord? = (if (p == TITLE) title else paragraphs.getOrNull(p))?.getOrNull(i)
-
-    /** Each paragraph's sentences, the title's first; the translations follow this order. */
-    private val sentences = (listOf(title) + paragraphs).map(::sentenceRanges)
+    /** Each paragraph's sentences; the translations follow this order. */
+    private val sentences = paragraphs.map(::sentenceRanges)
 
     /** The sentence holding word [i] of paragraph [p]. */
     fun sentence(p: Int, i: Int): StorySentence? {
-        val k = if (p == TITLE) 0 else p + 1
-        val j = sentences.getOrNull(k)?.indexOfFirst { i in it }?.takeIf { it >= 0 } ?: return null
+        val j = sentences.getOrNull(p)?.indexOfFirst { i in it }?.takeIf { it >= 0 } ?: return null
         val translations = story.translations.takeIf { it.size == sentences.sumOf { s -> s.size } }
-        return StorySentence(sentences[k][j], translations?.get(sentences.take(k).sumOf { it.size } + j))
-    }
-
-    companion object {
-        const val TITLE = -1
+        return StorySentence(sentences[p][j], translations?.get(sentences.take(p).sumOf { it.size } + j))
     }
 }
 
-/** What to learn before reading a path story or lesson. */
-data class StepToLearn(val lesson: Boolean, val kana: List<KanaUnit>, val words: List<Word>)
+/** What a chapter brings that you haven't learned: how many new words, and the grammar topic it brings in. */
+data class StepToLearn(val newWords: Int, val topic: GrammarTopic?)
 
-/** A story or lesson on the path, and what of it you haven't learned. */
-data class PathEntry(val story: SavedStory, val lesson: Boolean, val gap: StepGap) {
+/** A chapter of a story that comes with the app, and what of it you haven't learned. */
+data class ChapterEntry(
+    val series: PathSeries,
+    val chapter: Chapter,
+    val story: SavedStory,
+    val gap: StepGap,
+    /** The grammar topic it teaches, when you haven't seen it yet. */
+    val newTopic: GrammarTopic?,
+) {
     val ready get() = gap.ready
+    val read get() = story.readAt != null
+
+    /** Open, with no new words or grammar: something new to read with nothing to learn. */
+    val nothingNew get() = ready && gap.words.isEmpty() && newTopic == null
 }
+
+/** A story that comes with the app, with each of its chapters. */
+data class SeriesEntry(val series: PathSeries, val chapters: List<ChapterEntry>) {
+    val readCount get() = chapters.count { it.read }
+
+    /** The first chapter that's open and unread. */
+    val next get() = chapters.firstOrNull { it.ready && !it.read }
+
+    /** On the list once something in it is open, or read. */
+    val shown get() = chapters.any { it.ready || it.read }
+
+    /** The people you've met in the chapters you've read, in order. */
+    val cast: List<CastMember> get() = chapters.filter { it.read }.flatMap { it.chapter.meets }.distinctBy { it.name }
+
+    /** Whether chapters you haven't read introduce anyone else. */
+    val moreCast get() = chapters.any { !it.read && it.chapter.meets.isNotEmpty() }
+}
+
+/** Why a chapter is locked, and what would open it. */
+data class LockInfo(
+    val entry: ChapterEntry,
+    /** New words with dictionary entries, and how many it allows. */
+    val words: List<Word>,
+    /** Grammar it uses that you haven't seen, with the chapters that teach it. */
+    val grammar: List<Pair<GrammarTopic, List<ChapterEntry>>>,
+    /** Open, unread chapters that have some of the new words, most first, with how many. */
+    val sources: List<Pair<ChapterEntry, Int>>,
+    /** Reading this story's earlier chapters gives you every one of the new words. */
+    val earlierCover: Boolean,
+)
+
+/** A grammar topic for the Words tab: whether you've met it, where it's taught, and its page. */
+data class GrammarRow(val topic: GrammarTopic, val seen: Boolean, val taughtIn: ChapterEntry?, val pageId: Long)
 
 /** A sentence of a story: its words in their paragraph, and its English if the story has translations. */
 /** The story reader's typefaces: two sans serifs and a serif, all bundled under the OFL. */
@@ -168,13 +183,13 @@ enum class ReaderFont { SANS, SERIF, ROUNDED }
 
 /** How stories are set: text size in sp, typeface, and whether columns run top to bottom. */
 data class ReaderStyle(
-    val size: Int = 22,
+    val size: Int = 26,
     val font: ReaderFont = ReaderFont.SANS,
     /** Set top to bottom, right to left, as Japanese books are. */
     val vertical: Boolean = false,
 ) {
     companion object {
-        val SIZES = listOf(18, 22, 26, 30)
+        val SIZES = listOf(22, 26, 30, 34)
     }
 }
 
@@ -191,14 +206,12 @@ data class Stats(
     val recall30: Pair<Int, Int>,
     val recallAll: Pair<Int, Int>,
     val levels: List<LevelStats>,
-    /** Hiragana and katakana you're learning here; empty when you read them already. */
-    val kana: List<LevelStats>,
     val wordsStarted: Int,
     val totalAnswers: Int,
     val studyDays: Int,
 )
 
-/** Words of one JLPT level, or kana of one script, by how far along they are. Each count includes the ones after it. */
+/** Words of one JLPT level by how far along they are. Each count includes the ones after it. */
 data class LevelStats(val label: String, val total: Int, val started: Int, val known: Int, val mastered: Int)
 
 /** The daily reminder. There's no default time: [minuteOfDay] is null until you pick one. */
@@ -211,14 +224,11 @@ class BackupException(message: String) : Exception(message)
 class Repository(context: Context) {
     private val appContext = context.applicationContext
     val dictionary = Dictionary(context)
-    private val store = ProgressStore(context)
-
-    /** The story server sign-in. Kept out of the progress database so a backup doesn't carry it. */
-    private val secrets = context.getSharedPreferences("secrets", Context.MODE_PRIVATE).also {
-        // Stories used to need your own Claude API key; don't leave one lying around.
-        it.edit().remove("claude_api_key").apply()
+    private val store = ProgressStore(context).also {
+        // Where the story server sign-in was kept, before Claude stories were removed.
+        context.deleteSharedPreferences("secrets")
     }
-    private val storyServer = StoryServer(BuildConfig.STORY_SERVER_URL)
+
     private val reader by lazy { Reader(dictionary) }
 
     /**
@@ -234,8 +244,8 @@ class Repository(context: Context) {
         fun int(key: String, default: Int) = store.getValue(key)?.toIntOrNull() ?: default
         return runCatching {
             StudySettings(
-                newPerDay = int("new_per_day", d.newPerDay),
-                newKanaPerDay = int("new_kana_per_day", d.newKanaPerDay),
+                newPerDay = int("daily_new", d.newPerDay),
+                reviewNudge = int("review_nudge", d.reviewNudge),
                 reviewCap = int("review_cap", d.reviewCap),
                 rolloverHour = int("rollover_hour", d.rolloverHour),
             )
@@ -245,8 +255,8 @@ class Repository(context: Context) {
     fun saveSettings(s: StudySettings) {
         store.setValues(
             mapOf(
-                "new_per_day" to s.newPerDay.toString(),
-                "new_kana_per_day" to s.newKanaPerDay.toString(),
+                "daily_new" to s.newPerDay.toString(),
+                "review_nudge" to s.reviewNudge.toString(),
                 "review_cap" to s.reviewCap.toString(),
                 "rollover_hour" to s.rolloverHour.toString(),
             ),
@@ -280,16 +290,8 @@ class Repository(context: Context) {
             ahead = ahead(),
             clock = clock,
             now = now,
-            newIntroducedToday = store.count(
-                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND direction != ?",
-                today,
-                Direction.KANA.value,
-            ),
-            newKanaIntroducedToday = store.count(
-                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND direction = ?",
-                today,
-                Direction.KANA.value,
-            ),
+            // Production cards fill what today's new words leave of the daily limit.
+            newIntroducedToday = store.count("SELECT COUNT(*) FROM card WHERE introduced_day = ?", today),
             reviewsDoneToday = store.count(
                 "SELECT COUNT(*) FROM review_log WHERE day = ? AND state_before = ?",
                 today,
@@ -313,7 +315,7 @@ class Repository(context: Context) {
             "due_at, id",
             limits.reviews,
         )
-        // New words and kana come from the story path, not reviews; only unlocked production cards are new here.
+        // New words come from the story path, not reviews; only unlocked production cards are new here.
         val newWords = store.cards(
             "state = ? AND direction = ? AND suspended = 0",
             arrayOf(CardState.NEW.value.toString(), Direction.PRODUCTION.value.toString()),
@@ -321,6 +323,31 @@ class Repository(context: Context) {
             limits.newCards,
         )
         return StudySession(reviews, newWords, learning, random = Random.Default)
+    }
+
+    /**
+     * The new words you've started today, against the daily limit,
+     * and the reviews due today. "I know these" and imports start nothing,
+     * so they don't count.
+     */
+    fun pace(now: Long): Pace {
+        val settings = settings()
+        val clock = clock(settings)
+        val today = clock.dayOf(now)
+        return Pace(
+            newToday = store.count(
+                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND direction != ?",
+                today,
+                Direction.PRODUCTION.value,
+            ),
+            limit = settings.newPerDay,
+            reviewsDue = store.count(
+                "SELECT COUNT(*) FROM card WHERE state = ? AND due_at < ? AND suspended = 0",
+                CardState.REVIEW.value,
+                clock.startOf(today + 1),
+            ),
+            reviewNudge = settings.reviewNudge,
+        )
     }
 
     fun endOfToday(now: Long): Long {
@@ -355,31 +382,23 @@ class Repository(context: Context) {
         }
 
     /** First sight of a word you don't know yet: start learning it, ungraded. */
-    fun introduce(card: Card, now: Long): Pair<Card, Undo> {
-        val settings = settings()
-        val reviewer = Reviewer(Fsrs(), clock(settings))
-        val before = store.progress(card.wordId)
-        val introduced = reviewer.introduce(card, now)
-        store.transaction { db -> store.updateCard(db, introduced) }
-        return introduced to Undo(card, before, null, null)
+    private fun introduce(card: Card, now: Long) {
+        val reviewer = Reviewer(Fsrs(), clock(settings()))
+        store.transaction { db -> store.updateCard(db, reviewer.introduce(card, now)) }
     }
 
-    /** Mark a word you already know at [mastery]. Returns the review interval in days. */
-    fun markKnown(card: Card, mastery: Int, now: Long): Pair<Int, Undo> {
+    /** Mark a word you already know at [mastery]. */
+    private fun markKnown(card: Card, mastery: Int, now: Long) {
         val settings = settings()
         val reviewer = Reviewer(Fsrs(), clock(settings))
         val before = store.progress(card.wordId)
         val known = reviewer.markKnown(card, before, mastery, now, Random.Default)
-        return store.transaction { db ->
+        store.transaction { db ->
             store.updateCard(db, known.card)
             store.saveProgress(db, known.progress)
-            val production = if (known.unlockedProduction) {
+            if (known.unlockedProduction) {
                 store.insertNewCard(db, card.wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
-                    .takeIf { it > 0 }
-            } else {
-                null
             }
-            known.intervalDays to Undo(card, before, null, production)
         }
     }
 
@@ -387,7 +406,7 @@ class Repository(context: Context) {
         store.transaction { db ->
             store.updateCard(db, undo.cardBefore)
             store.saveProgress(db, undo.progressBefore)
-            undo.logId?.let { store.deleteLog(db, it) }
+            store.deleteLog(db, undo.logId)
             undo.productionCardId?.let { store.deleteCard(db, it) }
         }
     }
@@ -416,42 +435,26 @@ class Repository(context: Context) {
         )
     }
 
-    private fun recognitionCard(wordId: Long): Card? = mainCard(wordId, Direction.RECOGNITION)
-
-    /** The card mastery follows: recognition for a word, the kana card for a kana. */
-    private fun mainCard(wordId: Long, direction: Direction): Card? =
+    /** The card mastery follows. */
+    private fun recognitionCard(wordId: Long): Card? =
         store.cards(
             "word_id = ? AND direction = ?",
-            arrayOf(wordId.toString(), direction.value.toString()),
+            arrayOf(wordId.toString(), Direction.RECOGNITION.value.toString()),
             "id",
         ).firstOrNull()
 
-    /** Put a word at the front of the new-word queue. */
-    fun learnNext(wordId: Long, now: Long) {
-        store.transaction { db ->
-            store.setSuspended(db, wordId, false)
-            val card = recognitionCard(wordId)
-            if (card == null) {
-                store.insertNewCard(db, wordId, Direction.RECOGNITION, now / 1000 - LEARN_NEXT_FIRST)
-            } else if (card.state == CardState.NEW) {
-                store.setSortKey(db, card.id, now / 1000 - LEARN_NEXT_FIRST)
-            }
-        }
-    }
-
-    /** Mark a word from the dictionary, or a kana, as known at [mastery], starting it if needed. */
+    /** Mark a word from the dictionary as known at [mastery], starting it if needed. */
     fun markKnown(wordId: Long, mastery: Int, now: Long) {
-        val direction = if (KanaCourse.isKanaId(wordId)) Direction.KANA else Direction.RECOGNITION
         store.transaction { db ->
             store.setSuspended(db, wordId, false)
-            if (mainCard(wordId, direction) == null) {
-                store.insertNewCard(db, wordId, direction, now / 1000 - LEARN_NEXT_FIRST)
+            if (recognitionCard(wordId) == null) {
+                store.insertNewCard(db, wordId, Direction.RECOGNITION, 0)
             }
         }
-        markKnown(mainCard(wordId, direction) ?: return, mastery, now)
+        markKnown(recognitionCard(wordId) ?: return, mastery, now)
     }
 
-    /** Forget a word: its cards, mastery and history. It returns to its place in the study order. */
+    /** Forget a word: its cards, mastery and history. */
     fun reset(wordId: Long) {
         store.transaction { db -> store.deleteWord(db, wordId) }
     }
@@ -459,12 +462,12 @@ class Repository(context: Context) {
     fun setSuspended(wordId: Long, suspended: Boolean) {
         store.transaction { db ->
             if (suspended && recognitionCard(wordId) == null) {
-                // Keeps an unstarted word out of the new-word queue.
+                // Suspension lives on the card, so an unstarted word gets one.
                 store.insertNewCard(db, wordId, Direction.RECOGNITION, 0, suspended = true)
             }
             store.setSuspended(db, wordId, suspended)
             if (!suspended) {
-                // An unstarted word goes back to its usual place in the study order.
+                // An unstarted word goes back to having no card.
                 val card = recognitionCard(wordId)
                 if (card != null && card.state == CardState.NEW && card.reps == 0) store.deleteCard(db, card.id)
             }
@@ -504,35 +507,26 @@ class Repository(context: Context) {
     /** What importing [terms] would change. */
     fun renshuuPlan(terms: List<RenshuuTerm>): ImportPlan {
         val ids = dictionary.wordIds()
-        val local = (store.wordStatuses() + store.kanaStatuses()).mapValues { (_, s) ->
+        val local = store.wordStatuses().mapValues { (_, s) ->
             LocalWord(s.mastery, started = s.state != CardState.NEW, suspended = s.suspended)
         }
         return RenshuuImport.plan(terms, { it in ids }, local)
     }
 
-    /**
-     * Mark each word known at its mastery, as "I already know this" does, in
-     * one transaction. With [unlockProduction] off, English-to-Japanese cards
-     * wait until each word is next answered right, so a big batch doesn't
-     * crowd out new words.
-     */
-    fun importMastery(updates: Map<Long, Int>, now: Long, unlockProduction: Boolean = true) {
+    /** Mark each word known at its mastery, as "Mark known" does, in one transaction. */
+    fun importMastery(updates: Map<Long, Int>, now: Long) {
         val settings = settings()
         val reviewer = Reviewer(Fsrs(), clock(settings))
         store.transaction { db ->
             for ((wordId, mastery) in updates) {
-                // Kana from Renshuu go to kana cards, which stay set aside for a script you've said you read.
-                val kana = KanaCourse.unit(wordId)
-                val direction = if (kana != null) Direction.KANA else Direction.RECOGNITION
-                if (mainCard(wordId, direction) == null) {
-                    store.insertNewCard(db, wordId, direction, now / 1000 - LEARN_NEXT_FIRST)
-                    if (kana != null && kanaKnown().covers(kana.script)) store.setSuspended(db, wordId, true)
+                if (recognitionCard(wordId) == null) {
+                    store.insertNewCard(db, wordId, Direction.RECOGNITION, 0)
                 }
-                val card = mainCard(wordId, direction) ?: continue
+                val card = recognitionCard(wordId) ?: continue
                 val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default)
                 store.updateCard(db, known.card)
-                store.saveProgress(db, if (unlockProduction) known.progress else known.progress.copy(productionUnlocked = false))
-                if (known.unlockedProduction && unlockProduction) {
+                store.saveProgress(db, known.progress)
+                if (known.unlockedProduction) {
                     store.insertNewCard(db, wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
                 }
             }
@@ -584,46 +578,7 @@ class Repository(context: Context) {
         )
     }
 
-    // ------------------------------------------------------------ story server sign-in
-
-    private fun storyToken(): String? = secrets.getString("story_token", null)
-
-    /** The Google account signed in to write stories, or null. */
-    fun storyAccount(): String? = storyToken()?.let { secrets.getString("story_email", null).orEmpty() }
-
-    /** Sign in to the story server with a Google ID token from Credential Manager. */
-    fun signInToStories(googleIdToken: String) {
-        val session = storyServer.signIn(googleIdToken)
-        secrets.edit().putString("story_token", session.token).putString("story_email", session.email).apply()
-    }
-
-    fun signOutOfStories() {
-        val token = storyToken() ?: return
-        secrets.edit().remove("story_token").remove("story_email").apply()
-        // Ending the session on the server is tidy, not essential; forgetting it here is what signs you out.
-        runCatching { storyServer.signOut(token) }
-    }
-
-    /** How much of today's story allowance is spent, or null if it can't be fetched. */
-    fun storyUsage(): StoryUsage? {
-        val token = storyToken() ?: return null
-        return try {
-            storyServer.usage(token)
-        } catch (e: ClaudeException) {
-            if (e.signInNeeded) forgetStorySession()
-            null
-        }
-    }
-
-    private fun forgetStorySession() {
-        secrets.edit().remove("story_token").remove("story_email").apply()
-    }
-
-    fun stories(): List<SavedStory> = store.stories()
-
     fun story(id: Long): SavedStory? = store.story(id)
-
-    fun deleteStory(id: Long) = store.deleteStory(id)
 
     /** Words you've started, or suspended to leave alone, count as known while reading. */
     private fun known(statuses: Map<Long, WordStatus>): (Long) -> Boolean = { id ->
@@ -631,148 +586,134 @@ class Repository(context: Context) {
         s != null && (s.state != CardState.NEW || s.suspended)
     }
 
-    fun knownWordCount(): Int = wordStatuses().values.count { it.state != CardState.NEW }
-
-    /** What to ask for: your started words, the shakiest of them to practise, and the next new words. */
-    fun storyRequest(prompt: String, length: StoryLength, difficulty: StoryDifficulty): StoryRequest {
-        val statuses = store.wordStatuses()
-        val started = statuses.filterValues { it.state != CardState.NEW }
-        val known = dictionary.vocab(started.keys)
-        val shaky = started.filterValues { !it.suspended && it.mastery < MasteryRules.HIDE_AT }.entries
-            .sortedBy { it.value.mastery }.take(PRACTICE_POOL).map { it.key }.shuffled().take(PRACTICE)
-        val budget = newWordBudget(length, difficulty)
-        val queued = store.cards(
-            "state = ? AND direction = ? AND suspended = 0",
-            arrayOf(CardState.NEW.value.toString(), Direction.RECOGNITION.value.toString()),
-            "sort_key, id",
-        ).map { it.wordId }
-        val introduceCount = maxOf(1, budget / 2)
-        val next = (queued + dictionary.nextWords(statuses.keys, introduceCount, startLevel(), canRead()).map { it.first })
-            .distinct().take(introduceCount)
-        val frontier = dictionary.nextWords(statuses.keys, 1, startLevel()).firstOrNull()?.first
-        return StoryRequest(
-            prompt = prompt,
-            length = length,
-            difficulty = difficulty,
-            grammarLevel = frontier?.let { dictionary.level(it) }?.takeIf { it in 1..5 } ?: 1,
-            known = known,
-            practice = dictionary.vocab(shaky),
-            introduce = dictionary.vocab(next).sortedBy { next.indexOf(it.wordId) },
-        )
-    }
-
-    /**
-     * Have Claude write a story and save it. Its new words aren't queued;
-     * the reader adds the ones the learner picks. Returns the story's id.
-     */
-    fun writeStory(request: StoryRequest, now: Long, sequelTo: SavedStory? = null, progress: (String) -> Unit): Long {
-        val token = storyToken() ?: throw ClaudeException("Sign in with Google to write stories.", signInNeeded = true)
-        val writer = StoryWriter(storyServer.conversation(token), reader)
-        val written = try {
-            writer.write(request, known(store.wordStatuses()), progress)
-        } catch (e: ClaudeException) {
-            if (e.signInNeeded) forgetStorySession()
-            throw e
-        }
-        // Every part of a series keeps the first part's title.
-        val title = sequelTo?.title ?: written.story.title
-        progress("Translating")
-        val sentences = sentenceTexts(listOf(reader.read(title).flatten()) + reader.read(written.story.body))
-        // The story is worth keeping without its translations if they fail.
-        val translations = try {
-            StoryTranslator(storyServer.conversation(token, effort = "low")).translate(sentences)
-        } catch (e: IOException) {
-            null
-        }
-        progress("Saving")
-        val story = SavedStory(
-            id = 0,
-            createdAt = now,
-            title = title,
-            body = written.story.body,
-            prompt = request.prompt.trim(),
-            length = request.length.name,
-            difficulty = request.difficulty.name,
-            translations = translations.orEmpty(),
-        )
-        return if (sequelTo == null) store.insertStory(story) else store.insertSequel(sequelTo, story)
-    }
-
-    /** What to ask for in a sequel to [story]: the same settings as it, and every part so far. */
-    fun sequelRequest(story: SavedStory): StoryRequest {
-        val parts = generateSequence(story) { s -> s.previousId?.let { store.story(it) } }.toList().asReversed()
-        return storyRequest(
-            story.prompt,
-            StoryLength.entries.firstOrNull { it.name == story.length } ?: StoryLength.SHORT,
-            StoryDifficulty.entries.firstOrNull { it.name == story.difficulty } ?: StoryDifficulty.NORMAL,
-        ).copy(previous = parts.map { Story(it.title, it.body) })
-    }
-
     fun markStoryRead(id: Long, now: Long, millis: Long) = store.markStoryRead(id, now, millis)
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
-        val title = reader.read(story.title).flatten()
         val paragraphs = reader.read(story.body)
-        val ids = (title + paragraphs.flatten()).mapNotNull { it.wordId }.toSet()
+        val ids = paragraphs.flatten().mapNotNull { it.wordId }.toSet()
         val statuses = store.wordStatuses()
         return StoryReading(
             story = story,
-            title = title,
             paragraphs = paragraphs,
+            speakers = Speech.speakers(story.body),
             words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),
-            next = store.nextPart(id),
-            lesson = pathStep(story)?.first?.takeIf { it.isLesson },
+            lesson = topicOfPage(story)?.page,
+            lessons = lessons(),
         )
     }
 
+    /** Each grammar point's topic page, saved when the path was. */
+    private fun lessons(): Map<String, Long> {
+        val saved = store.pathStories().mapValues { it.value.id }
+        return catalog.grammar.flatMap { t -> saved[t.page.id]?.let { id -> t.points.map { it to id } }.orEmpty() }.toMap()
+    }
+
+    /** The grammar topic whose page [story] is, if it's one. */
+    fun topicOfPage(story: SavedStory): GrammarTopic? = catalog.grammar.firstOrNull { it.page.id == story.pathId }
+
     // ------------------------------------------------------------ story path
 
-    /** The stories and lessons that come with the app, in path order, with what each asks of you. */
-    private val path: List<Pair<PathStory, StepNeeds>> by lazy {
-        val json = appContext.assets.open("stories/path.json").bufferedReader().use { it.readText() }
-        StoryPath.parse(json).map { it to StoryPath.needs(reader, it) }
+    /** The stories and grammar topics that come with the app. */
+    private val catalog by lazy {
+        StoryPath.parse(appContext.assets.open("stories/path.json").bufferedReader().use { it.readText() })
+    }
+
+    /** What each chapter asks of you, by its id. */
+    private val needs: Map<String, StepNeeds> by lazy {
+        catalog.chapters.associate { (_, c) -> c.story.id to StoryPath.needs(reader, c.story) }
     }
     private var pathSynced = false
 
-    /** The path step a saved story was made from. */
-    private fun pathStep(story: SavedStory) = story.pathId?.let { id -> path.firstOrNull { it.first.id == id } }
-
-    /** What's left of a step to learn: words and kana you haven't started, and grammar you haven't seen. */
-    private fun gaps(): (StepNeeds) -> StepGap {
-        val isKnown = known(store.wordStatuses())
-        val readable = kanaKnown()
-        val kana = store.kanaStatuses()
-        val knowsKana = { unit: KanaUnit -> readable.covers(unit.script) || kana[unit.id]?.let { it.state != CardState.NEW || it.suspended } == true }
-        val grammar = seenGrammar()
-        return { needs -> StoryPath.gap(needs, isKnown, knowsKana, grammar) }
-    }
-
-    /** Every path story and lesson, in order, with what you haven't learned of it. Saves them on first use. */
-    fun storyPath(now: Long): List<PathEntry> {
+    /** Saves the chapters and grammar pages on first use, so they can be opened like any story. */
+    private fun savedPath(now: Long): Map<String, SavedStory> {
         if (!pathSynced) {
-            store.syncPathStories(
-                path.map { (p, _) -> SavedStory(0, now, p.title, p.body, "", "", "", p.translations, pathId = p.id) },
-            )
+            val stories = catalog.chapters.map { it.second.story } + catalog.grammar.map { it.page }
+            store.syncPathStories(stories.map { p -> SavedStory(0, p.id, p.title, p.body, p.translations) })
             pathSynced = true
         }
-        val saved = store.pathStories()
+        return store.pathStories()
+    }
+
+    /** What's left of a step to learn: words you haven't started, and grammar you haven't seen. */
+    private fun gaps(): (StepNeeds) -> StepGap {
+        val isKnown = known(store.wordStatuses())
+        val grammar = seenGrammar()
+        return { needs -> StoryPath.gap(needs, isKnown, grammar) }
+    }
+
+    /** Every story that comes with the app, in order, with each chapter and what you haven't learned of it. */
+    fun storyPath(now: Long): List<SeriesEntry> {
+        val saved = savedPath(now)
         val gap = gaps()
-        return path.mapNotNull { (p, needs) ->
-            saved[p.id]?.let { PathEntry(it, p.isLesson, gap(needs)) }
+        val seen = seenGrammar()
+        return catalog.series.map { series ->
+            SeriesEntry(series, series.chapters.mapNotNull { c ->
+                val story = saved[c.story.id] ?: return@mapNotNull null
+                val topic = catalog.topic(c.topic)?.takeIf { !seen.containsAll(it.points) }
+                ChapterEntry(series, c, story, gap(needs.getValue(c.story.id)), topic)
+            })
         }
     }
 
-    /** The kana and words (with dictionary entries) in a path story you haven't learned yet, or null off the path. */
-    fun stepToLearn(story: SavedStory): StepToLearn? {
-        val (step, needs) = pathStep(story) ?: return null
-        val gap = gaps()(needs)
-        return StepToLearn(step.isLesson, gap.kana, gap.words.mapNotNull { w -> w.wordId?.let { dictionary.word(it) } })
+    /** The story a saved chapter belongs to, and the chapter. */
+    fun chapterOf(story: SavedStory, now: Long): ChapterEntry? =
+        storyPath(now).flatMap { it.chapters }.firstOrNull { it.chapter.story.id == story.pathId }
+
+    /** How many words in a chapter you haven't learned yet, and its new grammar, or null off the path. */
+    fun stepToLearn(story: SavedStory, now: Long): StepToLearn? {
+        val entry = chapterOf(story, now) ?: return null
+        return StepToLearn(entry.gap.words.count { it.wordId != null }, entry.newTopic)
     }
 
-    /** Grammar points you've had a lesson on, or skipped one for. */
+    /** Why [chapterId] is locked: what it's missing, and where to pick that up. */
+    fun lockInfo(chapterId: String, now: Long): LockInfo? {
+        val path = storyPath(now)
+        val chapters = path.flatMap { it.chapters }
+        val entry = chapters.firstOrNull { it.chapter.story.id == chapterId } ?: return null
+        val missing = entry.gap.words.mapNotNull { it.wordId }.toSet()
+        val grammar = entry.gap.grammar.mapNotNull { catalog.topicOf(it) }.distinct().map { topic ->
+            topic to chapters.filter { it.chapter.topic == topic.id }
+        }
+        val sources = chapters
+            .filter { it.ready && !it.read && it !== entry }
+            .map { c -> c to needs.getValue(c.chapter.story.id).words.count { it.wordId in missing } }
+            .filter { it.second > 0 }
+            .sortedByDescending { it.second }
+            .take(3)
+        val earlier = entry.series.chapters.takeWhile { it !== entry.chapter }
+            .filter { c -> chapters.firstOrNull { it.chapter === c }?.read == false }
+            .flatMap { c -> needs.getValue(c.story.id).words.mapNotNull { it.wordId } }
+            .toSet()
+        return LockInfo(
+            entry = entry,
+            words = entry.gap.words.mapNotNull { w -> w.wordId?.let { dictionary.word(it) } },
+            grammar = grammar,
+            sources = sources,
+            earlierCover = missing.isNotEmpty() && earlier.containsAll(missing),
+        )
+    }
+
+    /** Every grammar topic, newest you've met first, then the ones you haven't, in the order they come. */
+    fun grammarRows(now: Long): List<GrammarRow> {
+        val saved = savedPath(now)
+        val seen = seenGrammar()
+        val chapters = storyPath(now).flatMap { it.chapters }
+        val rows = catalog.grammar.mapNotNull { topic ->
+            val page = saved[topic.page.id] ?: return@mapNotNull null
+            val taughtIn = chapters.filter { it.chapter.topic == topic.id }.let { c -> c.firstOrNull { it.read } ?: c.firstOrNull() }
+            GrammarRow(topic, seen.containsAll(topic.points), taughtIn, page.id)
+        }
+        val (met, unmet) = rows.partition { it.seen }
+        return met.reversed() + unmet
+    }
+
+    /** The saved story holding [topic]'s page. */
+    fun grammarPageId(topic: GrammarTopic, now: Long): Long? = savedPath(now)[topic.page.id]?.id
+
+    /** Grammar points you've been taught, or said you knew. */
     fun seenGrammar(): Set<String> =
         store.getValue("grammar_seen")?.split(',')?.filter { it.isNotEmpty() }?.toSet().orEmpty()
 
@@ -786,7 +727,7 @@ class Repository(context: Context) {
      */
     fun readWords(story: SavedStory, lookedUp: Set<Long>, now: Long) {
         val reviewer = Reviewer(Fsrs(), clock())
-        val ids = StoryPath.words(reader, PathStory("", story.title, story.body, emptyList())).mapNotNull { it.wordId }
+        val ids = StoryPath.words(reader, story.body).mapNotNull { it.wordId }
         for (id in ids.distinct() - lookedUp) {
             val card = recognitionCard(id) ?: continue
             if (card.state != CardState.REVIEW || card.dueAt > now || store.isSuspended(id)) continue
@@ -795,82 +736,82 @@ class Repository(context: Context) {
         }
     }
 
+    /** Finishing a story: each of [ids] you said you forgot gets a Wrong review. */
+    fun forgetWords(ids: Set<Long>, now: Long) {
+        for (id in ids) {
+            val card = recognitionCard(id) ?: continue
+            if (card.state != CardState.REVIEW || store.isSuspended(id)) continue
+            answer(card, false, now)
+        }
+    }
+
+    /**
+     * Finishing a story: its words you haven't started, or said you know,
+     * start as cards, as though just shown. Returns their ids.
+     */
+    fun startStoryWords(story: SavedStory, now: Long): List<Long> {
+        val isKnown = known(store.wordStatuses())
+        val ids = StoryPath.words(reader, story.body).mapNotNull { it.wordId }.distinct()
+            .filter { !isKnown(it) && dictionary.word(it) != null }
+        for (id in ids) {
+            store.transaction { db -> if (recognitionCard(id) == null) store.insertNewCard(db, id, Direction.RECOGNITION, 0) }
+            recognitionCard(id)?.takeIf { it.state == CardState.NEW }?.let { introduce(it, now) }
+        }
+        return ids
+    }
+
     /** Mastery of each of [ids] you've started. */
     fun masteries(ids: Collection<Long>): Map<Long, Int> {
         val statuses = store.wordStatuses()
         return ids.mapNotNull { id -> statuses[id]?.takeIf { it.state != CardState.NEW }?.let { id to it.mastery } }.toMap()
     }
 
-    /** Start [kana] and [wordIds] as new cards, to learn before reading: kana first, then words, in order. */
-    fun cardsToLearn(wordIds: List<Long>, kana: List<KanaUnit>, now: Long): List<Card> {
-        store.transaction { db ->
-            kana.forEachIndexed { i, unit ->
-                store.setSuspended(db, unit.id, false)
-                if (mainCard(unit.id, Direction.KANA) == null) store.insertNewCard(db, unit.id, Direction.KANA, i.toLong())
-            }
-        }
-        for (id in wordIds) learnNext(id, now)
-        val kanaCards = kana.mapNotNull { mainCard(it.id, Direction.KANA) }
-        return (kanaCards + wordIds.mapNotNull { recognitionCard(it) }).filter { it.state == CardState.NEW }
-    }
-
-    // ------------------------------------------------------------ kana
-
-    /** Which kana you read without studying them here. Installs from before kana lessons read both. */
-    fun kanaKnown(): KanaKnown = KanaKnown.of(store.getValue("kana_known"))
-
-    /**
-     * Change which kana you read already. Kana and words queued but not yet
-     * shown are dropped, so both queues are rebuilt for what you can read.
-     * Kana cards you've started for a script you now read are set aside, so
-     * they stop coming up for review, and come back if you change your mind.
-     */
-    fun setKanaKnown(known: KanaKnown) {
-        store.setValues(mapOf("kana_known" to known.value))
-        val started = store.wordIdsWithCards(Direction.KANA)
-        store.transaction { db ->
-            store.deleteUnstartedKana(db)
-            store.deleteQueuedNewCards(db)
-            for (id in started) {
-                val unit = KanaCourse.unit(id) ?: continue
-                store.setSuspended(db, id, known.covers(unit.script))
-            }
-        }
-    }
-
-    /**
-     * Whether a word's kana spelling can be read with the kana you know, or
-     * null when you read all kana.
-     */
-    private fun canRead(): ((String) -> Boolean)? {
-        val known = kanaKnown()
-        if (known == KanaKnown.BOTH) return null
-        val learned = store.kanaInReview()
-        return { kana -> KanaCourse.canRead(kana, known, learned) }
-    }
-
     // ------------------------------------------------------------ first run
 
-    /** The JLPT level new words start from: 5 for N5 down to 1 for N1. */
-    fun startLevel(): Int = store.getValue("start_level")?.toIntOrNull()?.coerceIn(1, 5) ?: 5
+    /** The JLPT level you can already read: 5 for N5 down to 1 for N1, or [ReadLevel.NONE]. */
+    fun readLevel(): Int = store.getValue("read_level")?.toIntOrNull()?.takeIf { it in 1..5 } ?: ReadLevel.NONE
 
-    /** Start new words from another level. Words already queued in the old order are re-queued. */
-    fun setStartLevel(level: Int) {
-        store.setValues(mapOf("start_level" to level.coerceIn(1, 5).toString()))
-        store.transaction { db -> store.deleteQueuedNewCards(db) }
+    /**
+     * Read at [level] from now on. Raising it fills in its words and every
+     * easier level's ([ReadLevel]); lowering it changes nothing else.
+     */
+    fun setReadLevel(level: Int, now: Long) {
+        val before = readLevel()
+        store.setValues(mapOf("read_level" to level.toString()))
+        val raised = level != ReadLevel.NONE && (before == ReadLevel.NONE || level < before)
+        if (raised) fillReadLevel(level, now)
     }
 
     /**
-     * Mark the words in levels easier than [level] that you haven't started
-     * as known at [mastery], as first-run setup does. Words you've started keep their mastery.
+     * Start the words of [level] and easier as known, each at its
+     * [ReadLevel] stability. Words you've studied keep their progress where
+     * it's higher, and suspended words are left alone. English-to-Japanese
+     * cards wait until each word is next answered right, so the batch
+     * doesn't crowd reviews with new cards.
      */
-    fun markEasierLevelsKnown(level: Int, mastery: Int, now: Long) {
-        val started = store.wordStatuses().filterValues { it.state != CardState.NEW || it.suspended }.keys
-        val words = dictionary.wordsBelow(level).filter { it !in started }
-        importMastery(words.associateWith { mastery }, now, unlockProduction = false)
+    private fun fillReadLevel(level: Int, now: Long) {
+        val statuses = store.wordStatuses()
+        val fill = dictionary.levels().mapNotNull { (id, jlpt) ->
+            val days = ReadLevel.stabilityDays(level, jlpt) ?: return@mapNotNull null
+            val status = statuses[id]
+            val skip = status != null && (status.suspended || status.mastery >= MasteryRules.fromStability(days.toDouble()))
+            if (skip) null else id to days
+        }
+        val reviewer = Reviewer(Fsrs(), clock())
+        store.transaction { db ->
+            for ((id, days) in fill) {
+                if (recognitionCard(id) == null) store.insertNewCard(db, id, Direction.RECOGNITION, 0)
+                val card = recognitionCard(id) ?: continue
+                val before = store.progress(id)
+                val within = ReadLevel.firstDueWithin(days, fill.size)
+                val known = reviewer.markKnownFor(card, before, days, within, now, Random.Default)
+                store.updateCard(db, known.card)
+                store.saveProgress(db, known.progress.copy(productionUnlocked = before.productionUnlocked))
+            }
+        }
     }
 
-    /** True on a fresh install, before you've picked a starting level. Existing progress counts as set up. */
+    /** True on a fresh install, before you've been through setup. Existing progress counts as set up. */
     fun needsSetup(): Boolean {
         if (store.getValue("setup_done") == "1") return false
         val started = store.count("SELECT COUNT(*) FROM card WHERE state != ?", CardState.NEW.value) +
@@ -884,18 +825,10 @@ class Repository(context: Context) {
 
     fun levelCounts(): Map<Int, Int> = dictionary.levelCounts()
 
-    /**
-     * Finish the first run: start new words at [startLevel], and if
-     * [lowerMastery] is set, mark every word of the easier levels known at it.
-     */
-    fun finishSetup(startLevel: Int, lowerMastery: Int?, kana: KanaKnown, reminderMinute: Int?, now: Long) {
-        setKanaKnown(kana)
+    /** Finish the first run: the level you read at, filled in, and the reminder. */
+    fun finishSetup(readLevel: Int, reminderMinute: Int?, now: Long) {
         if (reminderMinute != null) saveReminder(Reminder(enabled = true, minuteOfDay = reminderMinute))
-        setStartLevel(startLevel)
-        if (lowerMastery != null && lowerMastery > 0) {
-            val words = dictionary.wordsBelow(startLevel)
-            importMastery(words.associateWith { lowerMastery }, now, unlockProduction = false)
-        }
+        setReadLevel(readLevel, now)
         store.setValues(mapOf("setup_done" to "1"))
     }
 
@@ -947,15 +880,13 @@ class Repository(context: Context) {
 
     /**
      * Erase everything you've done here: cards, mastery, history, settings
-     * and stories, and sign out of stories. The next query recreates an empty
-     * database, so the app starts again at first-run setup.
+     * and stories read. The next query recreates an empty database, so the
+     * app starts again at first-run setup.
      */
     fun resetAll() {
         store.close()
         val target = appContext.getDatabasePath(ProgressStore.NAME)
         SQLiteDatabase.deleteDatabase(target)
-        signOutOfStories()
-        secrets.edit().clear().commit()
         store.count("SELECT COUNT(*) FROM card")
     }
 
@@ -1005,20 +936,6 @@ class Repository(context: Context) {
                 mastered = mine.count { it.mastery >= MasteryRules.OFF_AT },
             )
         }
-        val kanaStatuses = store.kanaStatuses()
-        val toTeach = KanaCourse.toTeach(kanaKnown())
-        val kana = listOf(Script.HIRAGANA to "あ", Script.KATAKANA to "ア").mapNotNull { (script, label) ->
-            val units = toTeach.filter { it.script == script }
-            if (units.isEmpty()) return@mapNotNull null
-            val mine = units.mapNotNull { kanaStatuses[it.id] }.filter { it.state != CardState.NEW && !it.suspended }
-            LevelStats(
-                label = label,
-                total = units.size,
-                started = mine.size,
-                known = mine.count { it.mastery >= MasteryRules.HIDE_AT },
-                mastered = mine.count { it.mastery >= MasteryRules.OFF_AT },
-            )
-        }
         return Stats(
             today = today,
             forecast = forecast.toList(),
@@ -1026,7 +943,6 @@ class Repository(context: Context) {
             recall30 = store.reviewRecall(today - (HISTORY_DAYS - 1)),
             recallAll = store.reviewRecall(Long.MIN_VALUE),
             levels = levels,
-            kana = kana,
             wordsStarted = statuses.values.count { it.state != CardState.NEW },
             totalAnswers = store.count("SELECT COUNT(*) FROM review_log"),
             studyDays = store.studyDays().size,
@@ -1047,15 +963,12 @@ class Repository(context: Context) {
         )
         val started = store.count("SELECT COUNT(*) FROM card WHERE direction = ?", Direction.RECOGNITION.value)
         val total = dictionary.wordCount()
-        val known = kanaKnown()
         // New words come from the story path, so only unlocked production cards wait here.
         val newWaiting = store.count(
             "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ? AND suspended = 0",
             CardState.NEW.value,
             Direction.PRODUCTION.value,
         )
-        val toTeach = KanaCourse.toTeach(known)
-        val learned = store.kanaInReview()
         return Summary(
             newCards = minOf(limits.newCards, newWaiting),
             learning = store.count(
@@ -1076,8 +989,6 @@ class Repository(context: Context) {
             wordsTotal = total,
             today = today,
             answersPerDay = store.answersPerDay(today - 370),
-            kanaLearned = toTeach.count { it.id in learned },
-            kanaTotal = toTeach.size,
         )
     }
 
@@ -1088,9 +999,6 @@ class Repository(context: Context) {
 
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12
-        private const val LEARN_NEXT_FIRST = 20_000_000_000L
-        private const val PRACTICE_POOL = 20
-        private const val PRACTICE = 8
 
         /** Never a label key, which is Japanese text. */
         private const val LABELS_VERSION = "@dictionary"

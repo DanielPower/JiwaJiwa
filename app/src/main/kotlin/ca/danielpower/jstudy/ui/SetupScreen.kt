@@ -1,6 +1,8 @@
 package ca.danielpower.jstudy.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,15 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.MasteryRules
-import ca.danielpower.jstudy.core.UiLabel
+import ca.danielpower.jstudy.core.ReadLevel
 
-/** First run, a page at a time: welcome, kana, starting level (if you read kana), reminder. */
+/** First run, a page at a time: welcome, your level, reminder. */
 @Composable
 fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
-    val pages = state.pages
-    val index = pages.indexOf(state.page)
+    val pages = SetupPage.entries
+    val index = state.page.ordinal
     val last = index == pages.lastIndex
 
     Column(Modifier.fillMaxSize()) {
@@ -42,7 +44,6 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
             )
             when (state.page) {
                 SetupPage.WELCOME -> WelcomePage()
-                SetupPage.KANA -> KanaPage(state, vm)
                 SetupPage.LEVEL -> LevelPage(state, vm)
                 SetupPage.REMINDER -> ReminderPage(state, vm)
             }
@@ -58,7 +59,6 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
             }
             PrimaryButton(
                 onClick = if (last) vm::finishSetup else vm::setupNext,
-                enabled = state.page != SetupPage.KANA || state.kana != null,
                 modifier = Modifier.weight(1f).height(58.dp),
             ) {
                 Text(if (last) ui("Start", "始める") else ui("Next", "次へ"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -104,90 +104,57 @@ private fun Example(japanese: String, name: String, description: String) {
 private fun ColumnScope.WelcomePage() {
     Title(ui("Welcome", "ようこそ"))
     Body(
-        "Jiwa Jiwa teaches Japanese words with flashcards. Each day brings a few new words, and reviews of " +
-            "earlier ones timed for just before you'd forget them.",
+        "Jiwa Jiwa teaches Japanese through stories written for learners. Each one brings a few new words " +
+            "and some grammar, and the words you meet come back as flashcards, just before you'd forget them.",
     )
     Body("A couple of questions first, so it starts at the right place for you.")
 }
 
 @Composable
-private fun ColumnScope.KanaPage(state: Screen.Setup, vm: AppViewModel) {
-    Title(ui("Kana", "かな", "仮名"))
-    Body("Japanese is written with three scripts, often mixed in one sentence.")
-    Example("ひらがな", "Hiragana", "Grammar and native words, like たべる (to eat).")
-    Example("カタカナ", "Katakana", "Words borrowed from other languages, like テレビ (television).")
-    Example("漢字", "Kanji", "Characters from Chinese, each with a meaning, like 山 (mountain).")
-    Body(
-        "Hiragana and katakana are the kana. Each has 46 basic characters, one per sound, and the two " +
-            "share the same sounds. Kanji take years, so every card here shows the reading in hiragana " +
-            "above the kanji until you know the word. Reading kana comes first.",
-    )
-
-    SectionLabel("Which can you read?", Modifier.padding(top = 8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for ((known, label) in KANA_CHOICES) {
-            WashiChip(
-                selected = state.kana == known,
-                onClick = { vm.editSetup { it.copy(kana = known) } },
-                label = ui(label),
-            )
-        }
-    }
-    // Anyone still learning kana starts at N5, so the level page is skipped.
-    state.kana?.let { Help(kanaHelp(it) + if (it == KanaKnown.BOTH) "" else " Words start at N5, the first level.") }
-}
-
-@Composable
 private fun ColumnScope.LevelPage(state: Screen.Setup, vm: AppViewModel) {
-    val below = (5 downTo state.startLevel + 1).toList()
-    val belowCount = below.sumOf { state.levelCounts[it] ?: 0 }
-    val belowNames = below.joinToString(" and ") { "N$it" }
-
-    Title(ui("Starting level", "始めるレベル"))
-    Body(
-        "Words here are grouped by the levels of the JLPT, the Japanese-Language Proficiency Test. " +
+    Title(ui("Your level", "レベル"))
+    Help(
+        "Words are grouped by the levels of the JLPT, the Japanese-Language Proficiency Test. " +
             "N5 is the first level and N1 the last.",
     )
     Example("N5", "Beginner", "Everyday basics, like 水 (water) and 行く (to go).")
     Example("N3", "Intermediate", "Ordinary conversation and simple reading.")
-    Example("N1", "Advanced", "Newspapers, books and abstract topics.")
-    Body(
-        "New words come from your starting level first, most common first, then the harder levels, then " +
-            "any easier ones. Start where words begin to feel unfamiliar.",
-    )
 
-    SectionLabel("Start from", Modifier.padding(top = 8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    SectionLabel("Which level can you already read?", Modifier.padding(top = 8.dp))
+    ReadLevelChips(state.readLevel) { level -> vm.editSetup { it.copy(readLevel = level) } }
+    if (state.readLevel == ReadLevel.NONE) {
+        Help("You start from the first story, and every word is new.")
+    } else {
+        ReadLevelSummary(state.readLevel, state.levelCounts)
+        Help("They come back for review now and then, spread out. Stories start where you are.")
+    }
+}
+
+/** None, then N5 to N1. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun ReadLevelChips(selected: Int, onSelect: (Int) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        WashiChip(selected = selected == ReadLevel.NONE, onClick = { onSelect(ReadLevel.NONE) }, label = ui("None", "なし"))
         for (level in 5 downTo 1) {
-            WashiChip(
-                selected = state.startLevel == level,
-                onClick = { vm.editSetup { it.copy(startLevel = level) } },
-                label = "N$level",
-            )
+            WashiChip(selected = selected == level, onClick = { onSelect(level) }, label = "N$level")
         }
     }
-    Help("${state.levelCounts[state.startLevel] ?: 0} words at N${state.startLevel}")
+}
 
-    if (below.isNotEmpty()) {
-        SectionLabel("The $belowCount words in $belowNames", Modifier.padding(top = 8.dp))
-        val options = listOf(
-            Triple(0, "Learn later", "They come after the harder levels, as new words."),
-            Triple(MasteryRules.HIDE_AT, "Known", "Reviewed over the next week, furigana hidden but tappable."),
-            Triple(MasteryRules.OFF_AT, "Mastered", "Reviewed over the next month, no furigana."),
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for ((mastery, label, _) in options) {
-                WashiChip(
-                    selected = state.lowerMastery == mastery,
-                    onClick = { vm.editSetup { it.copy(lowerMastery = mastery) } },
-                    label = label,
-                )
+/** What each level's words start as, for someone who reads at [readLevel]: hardest first. */
+@Composable
+private fun ReadLevelSummary(readLevel: Int, levelCounts: Map<Int, Int>) {
+    Column {
+        for (level in readLevel..5) {
+            val days = ReadLevel.stabilityDays(readLevel, level) ?: continue
+            val mastery = MasteryRules.fromStability(days.toDouble())
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("N$level · ${levelCounts[level] ?: 0} words", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Help(if (mastery >= MasteryRules.OFF_AT) "Mastered, no furigana" else "Known, furigana on tap")
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
-        Help(
-            options.first { it.first == state.lowerMastery }.third +
-                if (state.lowerMastery > 0) " Any you miss go back to learning." else "",
-        )
     }
 }
 
@@ -213,20 +180,7 @@ private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
         }
     }
     Help(
-        "You can change kana, the starting level and the reminder later in Settings, and mark single " +
+        "You can change your level and the reminder later in Settings, and mark single " +
             "words from the dictionary.",
     )
-}
-
-/** The kana choices, as chips. */
-internal val KANA_CHOICES = listOf(
-    KanaKnown.BOTH to UiLabel("Both", "両方"),
-    KanaKnown.HIRAGANA to UiLabel("Hiragana only", "ひらがなだけ", listOf("ひらがな")),
-    KanaKnown.NONE to UiLabel("Neither", "どちらも"),
-)
-
-internal fun kanaHelp(known: KanaKnown) = when (known) {
-    KanaKnown.BOTH -> "Straight to vocabulary."
-    KanaKnown.HIRAGANA -> "Stories teach katakana as they use them, a few at a time, before you read."
-    KanaKnown.NONE -> "Stories teach kana as they use them, a few at a time, before you read. Hiragana comes first."
 }

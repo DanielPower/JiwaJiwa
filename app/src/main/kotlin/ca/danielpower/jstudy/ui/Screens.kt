@@ -28,18 +28,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,9 +51,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.FuriganaMode
-import ca.danielpower.jstudy.core.KanaUnit
-import ca.danielpower.jstudy.core.MasteryRules
-import ca.danielpower.jstudy.core.Script
 import ca.danielpower.jstudy.data.Sense
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Word
@@ -64,7 +60,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun App(vm: AppViewModel, screen: Screen) {
     // Kept here so the list keeps its place while a word is open.
@@ -73,7 +69,7 @@ fun App(vm: AppViewModel, screen: Screen) {
     val tab = when (screen) {
         is Screen.Home -> Tab.HOME
         is Screen.Dictionary -> Tab.DICTIONARY
-        is Screen.Stories, is Screen.BeforeReading -> Tab.STORIES
+        is Screen.Stories, is Screen.Series -> Tab.STORIES
         is Screen.Settings -> Tab.SETTINGS
         else -> null
     }
@@ -110,8 +106,8 @@ fun App(vm: AppViewModel, screen: Screen) {
                     is Screen.KanjiPage -> KanjiScreen(screen, vm)
                     is Screen.RenshuuImport -> RenshuuImportScreen(screen.step, vm)
                     is Screen.Stories -> StoriesScreen(screen, vm)
+                    is Screen.Series -> SeriesScreen(screen, vm)
                     is Screen.StoryReader -> StoryReaderScreen(screen, vm)
-                    is Screen.BeforeReading -> BeforeReadingScreen(screen, vm)
                 }
             }
             if (navTab != null) {
@@ -124,6 +120,12 @@ fun App(vm: AppViewModel, screen: Screen) {
                     }
                 }
             }
+        }
+    }
+    val limit by vm.limit.collectAsStateWithLifecycle()
+    limit?.let { prompt ->
+        ModalBottomSheet(onDismissRequest = vm::closeLimit, containerColor = MaterialTheme.colorScheme.surface) {
+            LimitSheet(prompt, vm)
         }
     }
 }
@@ -216,19 +218,12 @@ private fun HomeScreen(summary: Summary, vm: AppViewModel) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            // New words and kana come from the story path, not from reviews.
+            // New words come from the story path, not from reviews.
             Text(
-                "New words and kana come from stories. Read the next story to learn more.",
+                "New words come from stories. Read the next story to learn more.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (summary.kanaLearned < summary.kanaTotal) {
-                Text(
-                    "${summary.kanaLearned} of ${summary.kanaTotal} kana learned.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
 
         Spacer(Modifier.weight(1f))
@@ -262,11 +257,8 @@ private fun Count(label: String, value: Int, color: Color, modifier: Modifier) {
 @Composable
 private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
     val word = state.current.word
-    val kana = state.current.kana
     val production = state.current.card.direction == Direction.PRODUCTION
-    // First sight of a new word: show everything, with Continue to start learning it.
-    val intro = !production && state.current.card.state == CardState.NEW
-    val revealed = state.revealed || intro
+    val revealed = state.revealed
     val noRipple = remember { MutableInteractionSource() }
 
     Column(Modifier.fillMaxSize()) {
@@ -297,27 +289,20 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                 },
         ) {
             CardTopper(
-                when {
-                    intro && kana != null -> ui("新 New kana", "新しいかな", "新しい", "仮名")
-                    intro -> ui("新 New word", "新しい単語")
-                    else -> stageMark(state.current.card.state) + " " + when {
-                        kana != null -> ui("Kana → reading", "仮名 → 読み方", "仮名", "読み方")
-                        production -> ui("English → Japanese", "英語 → 日本語", "英語", "日本語")
-                        else -> ui("Japanese → English", "日本語 → 英語", "日本語", "英語")
-                    }
+                stageMark(state.current.card.state) + " " + if (production) {
+                    ui("English → Japanese", "英語 → 日本語", "英語", "日本語")
+                } else {
+                    ui("Japanese → English", "日本語 → 英語", "日本語", "英語")
                 },
                 production,
             )
             Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Spacer(Modifier.weight(1f))
-                    if (word != null) LevelSeal(levelLabel(word.jlpt), tilted = true)
-                    if (kana != null) LevelSeal(if (kana.script == Script.HIRAGANA) "ひら" else "カナ", tilted = true)
+                    LevelSeal(levelLabel(word.jlpt), tilted = true)
                 }
 
-                if (kana != null) {
-                    KanaFace(kana, revealed)
-                } else if (word != null && production) {
+                if (production) {
                     Box(Modifier.fillMaxWidth().heightIn(min = 160.dp), contentAlignment = Alignment.Center) {
                         Meanings(word.senses, limit = 3, large = true)
                     }
@@ -327,7 +312,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                             WordFace(word, showFurigana = true)
                         }
                     }
-                } else if (word != null) {
+                } else {
                     Column(
                         Modifier.fillMaxWidth().heightIn(min = 200.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -361,7 +346,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                     }
                 }
 
-                if (!intro && state.revealed) {
+                if (state.revealed) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -373,11 +358,6 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                     }
                 }
             }
-        }
-
-        if (intro) {
-            IntroActions(state.current.card.id, MasteryRules.HIDE_AT, MasteryRules.OFF_AT, vm)
-            return@Column
         }
 
         Row(
@@ -395,78 +375,6 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                 SecondaryButton(onClick = vm::reveal, modifier = Modifier.fillMaxWidth().height(72.dp)) {
                     Text(ui("Show answer", "答えを見る"), fontSize = 18.sp)
                 }
-            }
-        }
-    }
-}
-
-/**
- * The first sight of a new word or kana. Most of the time it's new to the
- * learner, so "Continue" is the main action. "I know this" is a quiet link
- * that opens the two ways to skip it as already known.
- */
-@Composable
-private fun IntroActions(cardId: Long, knownAt: Int, masteredAt: Int, vm: AppViewModel) {
-    var knows by remember(cardId) { mutableStateOf(false) }
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (knows) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                SecondaryButton(onClick = { vm.introduce(knownAt) }, modifier = Modifier.weight(1f).height(48.dp)) {
-                    Text(ui("I know it well", "よく知っている"))
-                }
-                SecondaryButton(onClick = { vm.introduce(masteredAt) }, modifier = Modifier.weight(1f).height(48.dp)) {
-                    Text(ui("Mastered", "覚えた"))
-                }
-            }
-            TextButton(onClick = { knows = false }) {
-                Text(ui("Never mind", "やめる"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else {
-            TextButton(onClick = { knows = true }) {
-                Text(ui("I know this", "知っている"), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        PrimaryButton(onClick = { vm.introduce(0) }, modifier = Modifier.fillMaxWidth().height(72.dp)) {
-            Text(ui("Continue", "続ける"), fontSize = 18.sp)
-        }
-    }
-}
-
-/** A kana card: the kana, then its sound and its twin in the other script. */
-@Composable
-private fun KanaFace(kana: KanaUnit, revealed: Boolean) {
-    Box(Modifier.fillMaxWidth().heightIn(min = 200.dp), contentAlignment = Alignment.Center) {
-        Text(kana.text, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 96.sp, lineHeight = 112.sp)
-    }
-    if (revealed) {
-        HorizontalDivider(Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurface)
-        Column(
-            Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(kana.romaji, fontSize = 34.sp, fontWeight = FontWeight.Bold)
-            val twin = kana.twin
-            if (twin != null) {
-                Text(
-                    (if (kana.script == Script.HIRAGANA) ui("Katakana", "カタカナ") else ui("Hiragana", "ひらがな", "ひらがな")) + " " + twin,
-                    fontFamily = Gothic,
-                    fontSize = 22.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            val note = kana.note
-            if (note != null) {
-                Text(
-                    note,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
             }
         }
     }

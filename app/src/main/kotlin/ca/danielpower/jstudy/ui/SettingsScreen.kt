@@ -30,13 +30,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ca.danielpower.jstudy.core.KanaKnown
-import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.ReadLevel
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
 import java.time.LocalDate
 import java.util.Locale
-import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(
@@ -68,67 +66,54 @@ fun SettingsScreen(
             }
         }
 
-        Section(ui("Kana", "かな", "仮名"))
-        Text("Kana you could read already", style = MaterialTheme.typography.bodyLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for ((known, label) in KANA_CHOICES) {
-                WashiChip(selected = state.kanaKnown == known, onClick = { vm.setKanaKnown(known) }, label = ui(label))
-            }
-        }
-        Text(
-            kanaHelp(state.kanaKnown),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
         Section(ui("Daily study", "毎日の勉強"))
-        Text("Start new words from", style = MaterialTheme.typography.bodyLarge)
-        // Moving past N5 asks what to do with the easier words, as first-run setup does.
+        Text("Level you can already read", style = MaterialTheme.typography.bodyLarge)
+        // Raising the level fills in mastery, so it asks first; lowering it changes nothing.
         var pendingLevel by remember { mutableStateOf<Int?>(null) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (level in 5 downTo 1) {
-                WashiChip(
-                    selected = state.startLevel == level,
-                    onClick = {
-                        when {
-                            level == state.startLevel -> {}
-                            level < 5 -> pendingLevel = level
-                            else -> vm.setStartLevel(level)
-                        }
-                    },
-                    label = "N$level",
-                )
-            }
+        ReadLevelChips(state.readLevel) { level ->
+            val raises = level != ReadLevel.NONE && (state.readLevel == ReadLevel.NONE || level < state.readLevel)
+            if (raises) pendingLevel = level else vm.setReadLevel(level)
         }
         pendingLevel?.let { level ->
-            val easier = (5 downTo level + 1).joinToString(" and ") { "N$it" }
-            val choose = { mastery: Int ->
-                pendingLevel = null
-                vm.setStartLevel(level, mastery)
-            }
             AlertDialog(
                 onDismissRequest = { pendingLevel = null },
-                title = { Text("Start from N$level") },
+                title = { Text("Read at N$level") },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("What about the words in $easier you haven't started yet? Words you've started keep their progress.")
-                        TextButton(onClick = { choose(0) }) { Text("Learn them later, after the harder levels") }
-                        TextButton(onClick = { choose(MasteryRules.HIDE_AT) }) { Text("Known: review over the next week") }
-                        TextButton(onClick = { choose(MasteryRules.OFF_AT) }) { Text("Mastered: review over the next month") }
-                    }
+                    Text(
+                        "N$level's ${state.levelCounts[level] ?: 0} words become known, and easier levels become mastered. " +
+                            "Words you've studied keep their progress when it's higher.",
+                    )
                 },
-                confirmButton = {},
+                confirmButton = {
+                    TextButton(onClick = {
+                        pendingLevel = null
+                        vm.setReadLevel(level)
+                    }) { Text("Fill in") }
+                },
                 dismissButton = { TextButton(onClick = { pendingLevel = null }) { Text(ui("Cancel", "やめる")) } },
             )
         }
         Text(
-            "New words come from this level first, then the harder ones, then any easier ones.",
+            "Raising it fills in the words of that level and the easier ones. Lowering it changes nothing else.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Stepper(ui("New words per day", "一日の新しい単語"), "${s.newPerDay}") { d ->
-            update { s.copy(newPerDay = (s.newPerDay + d).coerceIn(0, 100)) }
+        Stepper(ui("New words per day", "一日の新しい言葉"), "${s.newPerDay}") { d ->
+            update { s.copy(newPerDay = (s.newPerDay + d * 5).coerceIn(5, 100)) }
         }
+        Text(
+            "A suggestion, never a lock. Past it, stories with nothing new come first, and you can always learn more.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Stepper("Remind me to review at", if (s.reviewNudge == 0) "Off" else "${s.reviewNudge}") { d ->
+            update { s.copy(reviewNudge = (s.reviewNudge + d * 10).coerceIn(0, 500)) }
+        }
+        Text(
+            "Reviews due before the app suggests catching up.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Stepper("Review limit per day", "${s.reviewCap}") { d ->
             update { s.copy(reviewCap = (s.reviewCap + d * 50).coerceIn(50, 2000)) }
         }
@@ -158,37 +143,6 @@ fun SettingsScreen(
                 Text(ui("Remind me at", "時間"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                 SecondaryButton(onClick = { pickReminder(r.minuteOfDay) }) { Text(reminderTime(r.minuteOfDay)) }
             }
-        }
-
-        Section(ui("Stories", "物語"))
-        val account = state.storyAccount
-        if (account == null) {
-            Text(
-                "Claude writes short stories using mostly words you know. Sign in with Google to start.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SignInWithGoogleButton(vm)
-        } else {
-            Text("Signed in as", style = MaterialTheme.typography.bodyLarge)
-            Text(account, style = MaterialTheme.typography.bodyMedium)
-            state.storyUsage?.let { used ->
-                val percent = (used * 100).roundToInt()
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Today's stories", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                    Text("$percent% used", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                MasteryBar(percent, Modifier.fillMaxWidth())
-            }
-            Text(
-                "Each account can write a limited number of stories a day.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SecondaryButton(onClick = vm::signOutOfStories) { Text("Sign out") }
-        }
-        state.storyError?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
         }
 
         Section(ui("Import", "インポート"))

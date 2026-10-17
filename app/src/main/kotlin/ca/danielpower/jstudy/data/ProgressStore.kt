@@ -16,26 +16,18 @@ data class WordStatus(val state: CardState, val suspended: Boolean, val mastery:
 
 data class ReviewEntry(val at: Long, val correct: Boolean, val masteryAfter: Int)
 
-/** A story written for you, as saved. */
+/** A story that comes with the app (a chapter or a grammar topic's page), as saved with whether you've read it. */
 data class SavedStory(
     val id: Long,
-    val createdAt: Long,
+    /** Its id in the bundled stories file. */
+    val pathId: String,
     val title: String,
     val body: String,
-    val prompt: String,
-    val length: String,
-    val difficulty: String,
-    /** English for each sentence of the title and body, in order; empty if there are none. */
+    /** English for each sentence of the body, in order. */
     val translations: List<String> = emptyList(),
-    /** Its number in a series, once it has a sequel or is one; null for a story on its own. */
-    val part: Int? = null,
-    /** The story this one follows on from. */
-    val previousId: Long? = null,
     /** When you last reached its end, and how long that reading took. */
     val readAt: Long? = null,
     val readMillis: Long? = null,
-    /** For a story that comes with the app, its id on the story path; null for one written for you. */
-    val pathId: String? = null,
 )
 
 /** Your cards, mastery and review history. This is what a backup saves. */
@@ -102,19 +94,41 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) db.execSQL("ALTER TABLE card ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0")
-        if (oldVersion < 3) createStories(db)
         if (oldVersion < 4) deriveMastery(db)
-        if (oldVersion < 5 && !hasColumn(db, "story", "translations")) {
-            db.execSQL("ALTER TABLE story ADD COLUMN translations TEXT NOT NULL DEFAULT ''")
+        if (oldVersion < 8) keepOnlyBundledStories(db)
+        if (oldVersion < 9) dropRemovedCards(db)
+    }
+
+    /**
+     * Version 9 dropped kana cards (direction 2, negative word ids), their
+     * history and settings, and the new-word queue: words waiting there
+     * unstarted never come up now that stories bring in new words.
+     */
+    private fun dropRemovedCards(db: SQLiteDatabase) {
+        db.execSQL("DELETE FROM kv WHERE key IN ('kana_known', 'new_kana_per_day', 'start_level')")
+        if (!hasColumn(db, "card", "direction")) return
+        db.execSQL("DELETE FROM card WHERE state = 0 AND direction = 0 AND reps = 0 AND suspended = 0")
+        db.execSQL("DELETE FROM review_log WHERE card_id IN (SELECT id FROM card WHERE direction = 2)")
+        db.execSQL("DELETE FROM card WHERE direction = 2")
+        db.execSQL("DELETE FROM word_progress WHERE word_id < 0")
+    }
+
+    /**
+     * Version 8 dropped stories written by Claude. The bundled stories are
+     * saved again from the app, so all that carries over is when you read them.
+     */
+    private fun keepOnlyBundledStories(db: SQLiteDatabase) {
+        val hadStories = hasColumn(db, "story", "id")
+        val hadPath = hasColumn(db, "story", "path_id")
+        if (hadStories) db.execSQL("ALTER TABLE story RENAME TO old_story")
+        createStories(db)
+        if (hadPath) {
+            db.execSQL(
+                "INSERT INTO story (path_id, title, body, translations, read_at, read_ms) " +
+                    "SELECT path_id, title, body, translations, read_at, read_ms FROM old_story WHERE path_id IS NOT NULL",
+            )
         }
-        if (oldVersion < 6 && !hasColumn(db, "story", "part")) {
-            for (column in listOf("part", "previous_id", "read_at", "read_ms")) {
-                db.execSQL("ALTER TABLE story ADD COLUMN $column INTEGER")
-            }
-        }
-        if (oldVersion < 7 && !hasColumn(db, "story", "path_id")) {
-            db.execSQL("ALTER TABLE story ADD COLUMN path_id TEXT")
-        }
+        if (hadStories) db.execSQL("DROP TABLE old_story")
     }
 
     private fun hasColumn(db: SQLiteDatabase, table: String, column: String): Boolean =
@@ -145,19 +159,13 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             """
             CREATE TABLE story (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                created_at INTEGER NOT NULL,
+                path_id TEXT NOT NULL UNIQUE,
                 title TEXT NOT NULL,
                 body TEXT NOT NULL,
-                prompt TEXT NOT NULL,
-                length TEXT NOT NULL,
-                difficulty TEXT NOT NULL,
                 -- One line per sentence.
                 translations TEXT NOT NULL DEFAULT '',
-                part INTEGER,
-                previous_id INTEGER,
                 read_at INTEGER,
-                read_ms INTEGER,
-                path_id TEXT
+                read_ms INTEGER
             )
             """,
         )
@@ -165,34 +173,29 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     // ------------------------------------------------------------ stories
 
-    fun insertStory(story: SavedStory): Long {
+    private fun insertStory(db: SQLiteDatabase, story: SavedStory): Long {
         val values = ContentValues().apply {
-            put("created_at", story.createdAt)
+            put("path_id", story.pathId)
             put("title", story.title)
             put("body", story.body)
-            put("prompt", story.prompt)
-            put("length", story.length)
-            put("difficulty", story.difficulty)
             put("translations", story.translations.joinToString("\n"))
-            story.part?.let { put("part", it) }
-            story.previousId?.let { put("previous_id", it) }
-            story.readAt?.let { put("read_at", it) }
-            story.readMillis?.let { put("read_ms", it) }
-            story.pathId?.let { put("path_id", it) }
         }
-        return writableDatabase.insert("story", null, values)
+        return db.insert("story", null, values)
     }
 
     /**
      * Add the stories that come with the app, or update their text when an
-     * update changes it, keeping whether you've read them.
+     * update changes it, keeping whether you've read them. Ones the app no
+     * longer has are removed.
      */
     fun syncPathStories(stories: List<SavedStory>) = transaction { db ->
-        val saved = storyRows("path_id IS NOT NULL", null).associateBy { it.pathId }
+        val saved = storyRows(null, null).associateBy { it.pathId }
+        val ids = stories.mapTo(HashSet()) { it.pathId }
+        for (old in saved.values) if (old.pathId !in ids) db.delete("story", "id = ?", arrayOf(old.id.toString()))
         for (story in stories) {
             val old = saved[story.pathId]
             if (old == null) {
-                insertStory(story)
+                insertStory(db, story)
             } else if (old.title != story.title || old.body != story.body || old.translations != story.translations) {
                 val values = ContentValues().apply {
                     put("title", story.title)
@@ -204,15 +207,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         }
     }
 
-    /** Save a sequel and number both parts; the first part becomes Part 1 when its first sequel is written. */
-    fun insertSequel(previous: SavedStory, sequel: SavedStory): Long = transaction { db ->
-        val part = previous.part ?: 1
-        if (previous.part == null) {
-            db.update("story", ContentValues().apply { put("part", part) }, "id = ?", arrayOf(previous.id.toString()))
-        }
-        insertStory(sequel.copy(part = part + 1, previousId = previous.id))
-    }
-
     fun markStoryRead(id: Long, at: Long, millis: Long) {
         val values = ContentValues().apply {
             put("read_at", at)
@@ -221,42 +215,21 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         writableDatabase.update("story", values, "id = ?", arrayOf(id.toString()))
     }
 
-    /** The story written as the sequel to [id], if there is one. */
-    fun nextPart(id: Long): Long? =
-        readableDatabase.rawQuery("SELECT id FROM story WHERE previous_id = ? ORDER BY id LIMIT 1", arrayOf(id.toString())).use { c ->
-            if (c.moveToFirst()) c.getLong(0) else null
-        }
-
-    /** The stories written for you, newest first. */
-    fun stories(): List<SavedStory> = storyRows("path_id IS NULL", null)
-
     /** The stories that come with the app, keyed by path id. */
-    fun pathStories(): Map<String, SavedStory> = storyRows("path_id IS NOT NULL", null).associateBy { it.pathId!! }
+    fun pathStories(): Map<String, SavedStory> = storyRows(null, null).associateBy { it.pathId }
 
     fun story(id: Long): SavedStory? = storyRows("id = ?", arrayOf(id.toString())).firstOrNull()
 
-    fun deleteStory(id: Long) {
-        // Stories that come with the app stay.
-        writableDatabase.delete("story", "id = ? AND path_id IS NULL", arrayOf(id.toString()))
-    }
-
     private fun storyRows(where: String?, args: Array<String>?): List<SavedStory> =
         readableDatabase.rawQuery(
-            "SELECT id, created_at, title, body, prompt, length, difficulty, translations, part, previous_id, read_at, read_ms, path_id FROM story" +
-                (where?.let { " WHERE $it" } ?: "") + " ORDER BY created_at DESC",
+            "SELECT id, path_id, title, body, translations, read_at, read_ms FROM story" + (where?.let { " WHERE $it" } ?: ""),
             args,
         ).use { c ->
             buildList {
                 while (c.moveToNext()) {
-                    val translations = c.getString(7).takeIf { it.isNotEmpty() }?.split('\n').orEmpty()
+                    val translations = c.getString(4).takeIf { it.isNotEmpty() }?.split('\n').orEmpty()
                     fun long(i: Int) = if (c.isNull(i)) null else c.getLong(i)
-                    add(
-                        SavedStory(
-                            c.getLong(0), c.getLong(1), c.getString(2), c.getString(3), c.getString(4), c.getString(5), c.getString(6),
-                            translations, part = long(8)?.toInt(), previousId = long(9), readAt = long(10), readMillis = long(11),
-                            pathId = if (c.isNull(12)) null else c.getString(12),
-                        ),
-                    )
+                    add(SavedStory(c.getLong(0), c.getString(1), c.getString(2), c.getString(3), translations, long(5), long(6)))
                 }
             }
         }
@@ -270,12 +243,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         ).use { c -> buildList { while (c.moveToNext()) add(card(c)) } }
 
     fun card(id: Long): Card? = cards("id = ?", arrayOf(id.toString()), "id").firstOrNull()
-
-    fun wordIdsWithCards(direction: Direction): Set<Long> =
-        readableDatabase.rawQuery(
-            "SELECT word_id FROM card WHERE direction = ?",
-            arrayOf(direction.value.toString()),
-        ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
 
     fun insertNewCard(
         db: SQLiteDatabase,
@@ -312,10 +279,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         db.update("card", values, "id = ?", arrayOf(card.id.toString()))
     }
 
-    fun setSortKey(db: SQLiteDatabase, id: Long, sortKey: Long) {
-        db.update("card", ContentValues().apply { put("sort_key", sortKey) }, "id = ?", arrayOf(id.toString()))
-    }
-
     fun setSuspended(db: SQLiteDatabase, wordId: Long, suspended: Boolean) {
         val values = ContentValues().apply { put("suspended", if (suspended) 1 else 0) }
         db.update("card", values, "word_id = ?", arrayOf(wordId.toString()))
@@ -325,19 +288,14 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         count("SELECT COUNT(*) FROM card WHERE word_id = ? AND suspended = 1", wordId) > 0
 
     /** Recognition state, suspension and mastery for every word with a card. */
-    fun wordStatuses(): Map<Long, WordStatus> = statuses(Direction.RECOGNITION)
-
-    /** The same for kana, keyed by kana unit id. */
-    fun kanaStatuses(): Map<Long, WordStatus> = statuses(Direction.KANA)
-
-    private fun statuses(direction: Direction): Map<Long, WordStatus> =
+    fun wordStatuses(): Map<Long, WordStatus> =
         readableDatabase.rawQuery(
             """
             SELECT c.word_id, c.state, c.suspended, COALESCE(p.mastery, 0)
             FROM card c LEFT JOIN word_progress p ON p.word_id = c.word_id
             WHERE c.direction = ?
             """,
-            arrayOf(direction.value.toString()),
+            arrayOf(Direction.RECOGNITION.value.toString()),
         ).use { c ->
             buildMap {
                 while (c.moveToNext()) {
@@ -390,10 +348,10 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             if (c.moveToFirst()) WordProgress(wordId, c.getInt(0), c.getInt(1) != 0) else WordProgress(wordId)
         }
 
-    /** The words (not kana) at [mastery] or higher. */
+    /** The words at [mastery] or higher. */
     fun wordsAtMastery(mastery: Int): Set<Long> =
         readableDatabase.rawQuery(
-            "SELECT word_id FROM word_progress WHERE mastery >= ? AND word_id > 0",
+            "SELECT word_id FROM word_progress WHERE mastery >= ?",
             arrayOf(mastery.toString()),
         ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
 
@@ -404,10 +362,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             put("production_unlocked", if (progress.productionUnlocked) 1 else 0)
         }
         db.insertWithOnConflict("word_progress", null, values, SQLiteDatabase.CONFLICT_REPLACE)
-    }
-
-    fun deleteProgress(db: SQLiteDatabase, wordId: Long) {
-        db.delete("word_progress", "word_id = ?", arrayOf(wordId.toString()))
     }
 
     // ------------------------------------------------------------ history
@@ -464,34 +418,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             "SELECT due_at FROM card WHERE state = ? AND suspended = 0 AND due_at < ?",
             arrayOf(CardState.REVIEW.value.toString(), before.toString()),
         ).use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }
-
-    /**
-     * Drop unstarted cards that were queued in study order, so the queue is
-     * rebuilt in a new order. Words queued with Learn next, or suspended, stay.
-     */
-    fun deleteQueuedNewCards(db: SQLiteDatabase) {
-        db.delete(
-            "card",
-            "state = ? AND direction = ? AND reps = 0 AND suspended = 0 AND sort_key >= 0",
-            arrayOf(CardState.NEW.value.toString(), Direction.RECOGNITION.value.toString()),
-        )
-    }
-
-    /** Kana units whose cards have finished learning, so their kana count as readable. */
-    fun kanaInReview(): Set<Long> =
-        readableDatabase.rawQuery(
-            "SELECT word_id FROM card WHERE direction = ? AND state = ?",
-            arrayOf(Direction.KANA.value.toString(), CardState.REVIEW.value.toString()),
-        ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
-
-    /** Drop kana cards that haven't been shown yet, so the kana queue is rebuilt. */
-    fun deleteUnstartedKana(db: SQLiteDatabase) {
-        db.delete(
-            "card",
-            "state = ? AND direction = ? AND reps = 0",
-            arrayOf(CardState.NEW.value.toString(), Direction.KANA.value.toString()),
-        )
-    }
 
     // ------------------------------------------------------------ backup
 
@@ -573,7 +499,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 7
+        const val VERSION = 9
         private const val CARD_COLUMNS =
             "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day"
     }

@@ -35,6 +35,9 @@ class ProgressStoreTest {
         store.close()
     }
 
+    private fun wordIds(direction: Direction) =
+        store.cards("direction = ?", arrayOf(direction.value.toString()), "id").map { it.wordId }.toSet()
+
     private fun log(cardId: Long, day: Long, correct: Boolean, before: CardState = CardState.REVIEW) = ReviewLog(
         cardId = cardId, reviewedAt = day * 86_400_000L, day = day, correct = correct,
         stateBefore = before, stateAfter = CardState.REVIEW, elapsedDays = 3,
@@ -67,9 +70,8 @@ class ProgressStoreTest {
             assertEquals(-1L, store.insertNewCard(it, 7, Direction.RECOGNITION, 2))
             assertTrue(store.insertNewCard(it, 7, Direction.PRODUCTION, 3) > 0)
         }
-        assertEquals(setOf(7L), store.wordIdsWithCards(Direction.RECOGNITION))
-        assertEquals(setOf(7L), store.wordIdsWithCards(Direction.PRODUCTION))
-        assertEquals(emptySet<Long>(), store.wordIdsWithCards(Direction.KANA))
+        assertEquals(setOf(7L), wordIds(Direction.RECOGNITION))
+        assertEquals(setOf(7L), wordIds(Direction.PRODUCTION))
     }
 
     @Test
@@ -77,14 +79,12 @@ class ProgressStoreTest {
         store.transaction {
             store.insertNewCard(it, 7, Direction.RECOGNITION, 1)
             store.insertNewCard(it, 8, Direction.RECOGNITION, 2, suspended = true)
-            store.insertNewCard(it, -1, Direction.KANA, 3)
             store.saveProgress(it, WordProgress(7, mastery = 55, productionUnlocked = true))
         }
         assertEquals(
             mapOf(7L to WordStatus(CardState.NEW, false, 55), 8L to WordStatus(CardState.NEW, true, 0)),
             store.wordStatuses(),
         )
-        assertEquals(mapOf(-1L to WordStatus(CardState.NEW, false, 0)), store.kanaStatuses())
         assertTrue(store.isSuspended(8))
         store.transaction { store.setSuspended(it, 8, false) }
         assertFalse(store.isSuspended(8))
@@ -96,8 +96,6 @@ class ProgressStoreTest {
         store.transaction { store.saveProgress(it, WordProgress(7, mastery = 30)) }
         store.transaction { store.saveProgress(it, WordProgress(7, mastery = 60, productionUnlocked = true)) }
         assertEquals(WordProgress(7, mastery = 60, productionUnlocked = true), store.progress(7))
-        store.transaction { store.deleteProgress(it, 7) }
-        assertEquals(WordProgress(7), store.progress(7))
     }
 
     @Test
@@ -149,72 +147,18 @@ class ProgressStoreTest {
     }
 
     @Test
-    fun rebuildingTheQueueKeepsStartedSuspendedAndLearnNextCards() {
-        val ids = store.transaction {
-            val queued = store.insertNewCard(it, 1, Direction.RECOGNITION, 1)
-            val learnNext = store.insertNewCard(it, 2, Direction.RECOGNITION, -1)
-            val suspended = store.insertNewCard(it, 3, Direction.RECOGNITION, 2, suspended = true)
-            val started = store.insertNewCard(it, 4, Direction.RECOGNITION, 3)
-            store.updateCard(it, store.card(started)!!.copy(state = CardState.LEARNING, reps = 1))
-            val kana = store.insertNewCard(it, -1, Direction.KANA, 4)
-            listOf(queued, learnNext, suspended, started, kana)
-        }
-        store.transaction { store.deleteQueuedNewCards(it) }
-        assertNull(store.card(ids[0]))
-        for (id in ids.drop(1)) assertEquals(id, store.card(id)?.id)
-
-        store.transaction { store.deleteUnstartedKana(it) }
-        assertNull(store.card(ids[4]))
-    }
-
-    @Test
-    fun kanaInReviewListsOnlyFinishedKana() {
-        store.transaction {
-            val done = store.insertNewCard(it, -1, Direction.KANA, 1)
-            store.updateCard(it, store.card(done)!!.copy(state = CardState.REVIEW))
-            val learning = store.insertNewCard(it, -2, Direction.KANA, 2)
-            store.updateCard(it, store.card(learning)!!.copy(state = CardState.LEARNING))
-        }
-        assertEquals(setOf(-1L), store.kanaInReview())
-    }
-
-    @Test
     fun settingsAreStoredAndReplaced() {
         assertNull(store.getValue("new_per_day"))
-        store.setValues(mapOf("new_per_day" to "10", "kana_known" to "none"))
+        store.setValues(mapOf("new_per_day" to "10", "theme" to "dark"))
         store.setValues(mapOf("new_per_day" to "15"))
         assertEquals("15", store.getValue("new_per_day"))
-        assertEquals("none", store.getValue("kana_known"))
-    }
-
-    @Test
-    fun storiesAreListedNewestFirst() {
-        val old = store.insertStory(SavedStory(0, 100, "古い", "本文", "", "SHORT", "EASY"))
-        val new = store.insertStory(SavedStory(0, 200, "新しい", "本文", "cats", "LONG", "HARD", listOf("New", "Text")))
-        assertEquals(listOf(new, old), store.stories().map { it.id })
-        assertEquals(SavedStory(new, 200, "新しい", "本文", "cats", "LONG", "HARD", listOf("New", "Text")), store.story(new))
-        assertEquals(emptyList<String>(), store.story(old)!!.translations)
-        store.deleteStory(new)
-        assertNull(store.story(new))
-        assertEquals(listOf(old), store.stories().map { it.id })
-    }
-
-    @Test
-    fun aSequelNumbersBothPartsAndLinksBack() {
-        val first = store.insertStory(SavedStory(0, 100, "猫", "一", "", "SHORT", "EASY"))
-        val second = store.insertSequel(store.story(first)!!, SavedStory(0, 200, "猫", "二", "", "SHORT", "EASY"))
-        val third = store.insertSequel(store.story(second)!!, SavedStory(0, 300, "猫", "三", "", "SHORT", "EASY"))
-        assertEquals(1, store.story(first)!!.part)
-        assertEquals(2, store.story(second)!!.part)
-        assertEquals(3, store.story(third)!!.part)
-        assertEquals(second, store.story(third)!!.previousId)
-        assertEquals(second, store.nextPart(first))
-        assertNull(store.nextPart(third))
+        assertEquals("dark", store.getValue("theme"))
     }
 
     @Test
     fun finishingAStoryMarksItRead() {
-        val id = store.insertStory(SavedStory(0, 100, "猫", "一", "", "SHORT", "EASY"))
+        store.syncPathStories(listOf(SavedStory(0, "path-01", "Cat", "猫だ。", listOf("A cat."))))
+        val id = store.pathStories().getValue("path-01").id
         assertNull(store.story(id)!!.readAt)
         store.markStoryRead(id, 500, 120_000)
         assertEquals(500L, store.story(id)!!.readAt)
@@ -222,9 +166,8 @@ class ProgressStoreTest {
     }
 
     @Test
-    fun pathStoriesAreSavedOnceUpdatedInPlaceAndKeptApart() {
-        fun path(body: String) = SavedStory(0, 100, "猫", body, "", "", "", listOf("Cat", "A cat."), pathId = "path-01")
-        val mine = store.insertStory(SavedStory(0, 50, "犬", "犬です。", "", "SHORT", "EASY"))
+    fun pathStoriesAreSavedOnceAndUpdatedInPlace() {
+        fun path(body: String) = SavedStory(0, "path-01", "猫", body, listOf("A cat."))
         store.syncPathStories(listOf(path("猫です。")))
         val saved = store.pathStories().getValue("path-01")
         store.markStoryRead(saved.id, 500, 1_000)
@@ -232,14 +175,20 @@ class ProgressStoreTest {
         val updated = store.pathStories().getValue("path-01")
         assertEquals(saved.id, updated.id)
         assertEquals("これは猫です。", updated.body)
+        assertEquals(listOf("A cat."), updated.translations)
         assertEquals(500L, updated.readAt)
-        assertEquals(listOf(mine), store.stories().map { it.id })
-        store.deleteStory(updated.id)
-        assertEquals(1, store.pathStories().size)
     }
 
     @Test
-    fun upgradingFromVersion5KeepsStories() {
+    fun pathStoriesTheAppNoLongerHasAreRemoved() {
+        fun path(id: String) = SavedStory(0, id, "Cat", "猫だ。", listOf("A cat."))
+        store.syncPathStories(listOf(path("old-01"), path("new-01")))
+        store.syncPathStories(listOf(path("new-01")))
+        assertEquals(setOf("new-01"), store.pathStories().keys)
+    }
+
+    @Test
+    fun upgradingToVersion8KeepsOnlyWhenBundledStoriesWereRead() {
         store.close()
         context.deleteDatabase(ProgressStore.NAME)
         val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
@@ -247,17 +196,19 @@ class ProgressStoreTest {
             db.execSQL("CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
             db.execSQL(
                 "CREATE TABLE story (id INTEGER PRIMARY KEY AUTOINCREMENT, created_at INTEGER NOT NULL, title TEXT NOT NULL, " +
-                    "body TEXT NOT NULL, prompt TEXT NOT NULL, length TEXT NOT NULL, difficulty TEXT NOT NULL, translations TEXT NOT NULL DEFAULT '')",
+                    "body TEXT NOT NULL, prompt TEXT NOT NULL, length TEXT NOT NULL, difficulty TEXT NOT NULL, " +
+                    "translations TEXT NOT NULL DEFAULT '', part INTEGER, previous_id INTEGER, read_at INTEGER, read_ms INTEGER, path_id TEXT)",
             )
-            db.execSQL("INSERT INTO story (created_at, title, body, prompt, length, difficulty) VALUES (1, '猫', '一', '', 'SHORT', 'EASY')")
-            db.version = 5
+            db.execSQL("INSERT INTO story (created_at, title, body, prompt, length, difficulty) VALUES (1, '猫', '一', 'cats', 'SHORT', 'EASY')")
+            db.execSQL(
+                "INSERT INTO story (created_at, title, body, prompt, length, difficulty, translations, read_at, read_ms, path_id) " +
+                    "VALUES (1, 'Cat', '猫だ。', '', '', '', 'A cat.', 2, 3, 'path-01')",
+            )
+            db.version = 7
         }
         store = ProgressStore(context)
-        val story = store.stories().single()
-        assertEquals("猫", story.title)
-        assertNull(story.part)
-        store.markStoryRead(story.id, 2, 3)
-        assertEquals(2L, store.story(story.id)!!.readAt)
+        val story = store.pathStories().values.single()
+        assertEquals(SavedStory(story.id, "path-01", "Cat", "猫だ。", listOf("A cat."), readAt = 2, readMillis = 3), story)
     }
 
     @Test
@@ -268,7 +219,7 @@ class ProgressStoreTest {
                 error("boom")
             }
         }
-        assertEquals(emptySet<Long>(), store.wordIdsWithCards(Direction.RECOGNITION))
+        assertEquals(emptySet<Long>(), wordIds(Direction.RECOGNITION))
     }
 
     @Test
@@ -311,5 +262,43 @@ class ProgressStoreTest {
         store = ProgressStore(context)
         assertEquals(WordProgress(1, mastery = 70, productionUnlocked = true), store.progress(1))
         assertEquals(WordProgress(2, mastery = 0, productionUnlocked = true), store.progress(2))
+    }
+
+    @Test
+    fun upgradingToVersion9DropsKanaCardsAndQueuedWords() {
+        store.close()
+        context.deleteDatabase(ProgressStore.NAME)
+        val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(path, null).use { db ->
+            ProgressStore(context).onCreate(db)
+            db.version = 8
+            fun card(word: Long, direction: Int) = db.insert(
+                "card", null,
+                ContentValues().apply {
+                    put("word_id", word)
+                    put("direction", direction)
+                    put("state", CardState.REVIEW.value)
+                    put("due_at", 0L)
+                    put("reps", 1)
+                    put("lapses", 0)
+                    put("sort_key", 0)
+                },
+            )
+            card(7, Direction.RECOGNITION.value)
+            card(-1, 2)
+            // Waiting unstarted in the old new-word queue.
+            db.execSQL(
+                "INSERT INTO card (word_id, direction, state, due_at, reps, lapses, sort_key) VALUES (8, 0, 0, 0, 0, 0, 1)",
+            )
+            db.execSQL("INSERT INTO word_progress (word_id, mastery, production_unlocked) VALUES (7, 50, 0), (-1, 40, 0)")
+            db.execSQL("INSERT INTO kv (key, value) VALUES ('kana_known', 'none')")
+        }
+
+        store = ProgressStore(context)
+        assertEquals(1, store.count("SELECT COUNT(*) FROM card"))
+        assertEquals(setOf(7L), wordIds(Direction.RECOGNITION))
+        assertEquals(0, store.progress(-1).mastery)
+        assertEquals(50, store.progress(7).mastery)
+        assertNull(store.getValue("kana_known"))
     }
 }

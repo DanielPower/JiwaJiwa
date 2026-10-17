@@ -91,15 +91,17 @@ class CardsTest {
     }
 
     @Test
-    fun `kana cards earn mastery but never unlock a production card`() {
-        val card = Card(
-            id = 1, wordId = KanaCourse.units.first().id, direction = Direction.KANA, state = CardState.REVIEW,
-            stability = 20.0, difficulty = 5.0, lastReviewAt = at("2026-10-01T09:00"),
-        )
-        val answer = reviewer.answer(card, WordProgress(card.wordId), correct = true, now = at("2026-10-10T09:00"))
-        assertTrue(answer.progress.mastery >= 40)
-        assertFalse(answer.unlockedProduction)
-        assertFalse(answer.progress.productionUnlocked)
+    fun `marking known for a stability spreads the first review over the window`() {
+        val now = at("2026-10-10T20:00")
+        val card = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)
+        val dues = (1..50).map { seed ->
+            reviewer.markKnownFor(card, WordProgress(7), 15, 40, now, Random(seed)).card.dueAt
+        }
+        val known = reviewer.markKnownFor(card, WordProgress(7), 15, 40, now, Random(1))
+        assertEquals(15.0, known.card.stability)
+        assertEquals(50, known.progress.mastery)
+        assertTrue(dues.all { it > now && it <= now + 41 * 86_400_000L })
+        assertTrue(dues.any { it > now + 16 * 86_400_000L })
     }
 
     @Test
@@ -112,7 +114,6 @@ class CardsTest {
 
         val capped = reviewer.markKnown(card, WordProgress(7), 150, now, Random(1))
         assertEquals(100, capped.progress.mastery)
-        assertEquals(90, capped.intervalDays)
         assertEquals(90.0, capped.card.stability)
 
         val already = reviewer.markKnown(card, WordProgress(7, productionUnlocked = true), 80, now, Random(1))
