@@ -44,7 +44,37 @@ class GrammarTest {
         assertEquals(listOf("ga-but"), points("寒いが行く。"))
         assertEquals(listOf("to"), points("友達と話す。"))
         assertEquals(listOf("to-omou"), points("行くと思う。"))
-        assertEquals(listOf("to-if"), points("春になると暖かくなる。").filter { it != "ni" })
+        assertEquals(listOf("to-if"), points("春になると暖かくなる。").filter { it != "naru" })
+    }
+
+    @Test
+    fun `te links, asks casually, and gives way to the patterns built on it`() {
+        assertEquals(listOf("te", "wo"), points("朝起きて、コーヒーを飲む。"))
+        assertEquals(listOf("te"), points("ゆっくり食べて。"))
+        assertEquals(listOf("te"), points("安くて、うまい。"))
+        assertEquals(listOf("te"), points("静かで、いい。"))
+        assertEquals(listOf("te-kudasai"), points("待ってください。"))
+        assertEquals(listOf("te-iru"), points("食べている。"))
+    }
+
+    @Test
+    fun `guesses and suggestions are told apart from です and ます`() {
+        assertEquals(listOf("deshou"), points("いいでしょ？"))
+        assertEquals(listOf("wa", "deshou"), points("明日は雨でしょう。"))
+        assertEquals(listOf("deshou"), points("雨だろう。"))
+        assertEquals(listOf("desu"), points("雨でした。"))
+        assertEquals(listOf("ni", "mashou"), points("一緒に行きましょう。"))
+        assertEquals(listOf("mashouka"), points("行きましょうか。"))
+        assertEquals(listOf("volitional"), points("行こう。"))
+    }
+
+    @Test
+    fun `purpose and change are found after the right words`() {
+        assertEquals(listOf("wo", "ni-iku"), points("桜を見に行く。"))
+        assertEquals(listOf("ni"), points("公園に行く。"))
+        assertEquals(listOf("naru"), points("寒くなった。"))
+        assertEquals(listOf("naru", "tai"), points("先生になりたい。"))
+        assertEquals(listOf("no", "toki"), points("子供のとき"))
     }
 
     @Test

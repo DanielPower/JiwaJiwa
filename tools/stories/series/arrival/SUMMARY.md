@@ -74,7 +74,7 @@ Out of the station, Alex finds his first konbini and loves it.
 Alex finds the share house, and someone calls his name.
 
 - 8 words; 1 new of 3 allowed.
-- Teaches よ / ね (`yo-ne`).
+- Teaches よ / ね / でしょ (`yo-ne`).
 - New: うん (N4).
 
 ### 9. Yuki (`arrival-09`)
@@ -111,6 +111,6 @@ Yuki suggests the big-bowl ramen shop past the station.
 
 Read in order after the stories it follows, a reader knows these by the end of the last chapter.
 
-Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね (`yo-ne`), の (`no`), ～たい (`tai`).
+Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / でしょ (`yo-ne`), の (`no`), ～たい (`tai`).
 
 28 words: 来る ついに 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃる いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる

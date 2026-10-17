@@ -263,14 +263,14 @@
      "id": "ramen-night-03",
      "title": "Slurp",
      "plot": "The huge, hot ramen arrives and it's great.",
-     "body": "ラーメンが来た。大きい！\n\nアレックス|「うまい！」\n\nユキ|「でしょ？」\n\nアレックス|「熱い！」\n\nユキ|「ゆっくり食べて。」\n\n卵もうまい。ビールもうまい。\n\nアレックス|「ここ、いいね！」\n\nユキ|「いいでしょ？」",
+     "body": "ラーメンが来た。大きい！\n\nアレックス|「うまい！」\n\nユキ|「でしょ？」\n\nアレックス|「熱い！」\n\nユキ|「ゆっくりね。」\n\n卵もうまい。ビールもうまい。\n\nアレックス|「ここ、いいね！」\n\nユキ|「いいでしょ？」",
      "translations": [
       "The ramen arrives.",
       "It's huge!",
       "\"So good!\"",
       "\"Told you.\"",
       "\"Hot!\"",
-      "\"Eat slowly.\"",
+      "\"Take it slow.\"",
       "The egg's good too.",
       "So is the beer.",
       "\"This place is great!\"",
@@ -955,7 +955,7 @@
      "id": "seconds-01",
      "title": "Seconds",
      "plot": "Still hungry, Alex orders seconds, and the manager mentions the job.",
-     "body": "ラーメンを食べた。うまかった。\n\nユキ|「アレックス、お腹は？」\n\nアレックス|「…すいた。」\n\nユキ|「卵、食べたい？」\n\nアレックス|「食べたい！」\n\nユキ|「ラーメンも？」\n\nアレックス|「…うん、ラーメンも！」\n\nチケットを買う。\n\n店長が来た。\n\n店長|「うまい？」\n\nアレックス|「うまい！熱い！」\n\n店長|「ゆっくり食べて。」\n\n店長|「アレックス、バイトは？」\n\nアレックス|「やりたい！」\n\nユキ|「お腹、大きいね。」\n\nアレックス|「…うん。」",
+     "body": "ラーメンを食べた。うまかった。\n\nユキ|「アレックス、お腹は？」\n\nアレックス|「…すいた。」\n\nユキ|「卵、食べたい？」\n\nアレックス|「食べたい！」\n\nユキ|「ラーメンも？」\n\nアレックス|「…うん、ラーメンも！」\n\nチケットを買う。\n\n店長が来た。\n\n店長|「うまい？」\n\nアレックス|「うまい！熱い！」\n\n店長|「ゆっくりね。」\n\n店長|「アレックス、バイトは？」\n\nアレックス|「やりたい！」\n\nユキ|「お腹、大きいね。」\n\nアレックス|「…うん。」",
      "translations": [
       "I ate my ramen.",
       "It was great.",
@@ -969,7 +969,7 @@
       "The manager came over.",
       "\"Good?\"",
       "\"Great! Hot!\"",
-      "\"Eat slowly.\"",
+      "\"Take it slow.\"",
       "\"Alex, about the job?\"",
       "\"I want it!\"",
       "\"Your belly's huge.\"",
@@ -1166,17 +1166,19 @@
   },
   {
    "id": "yo-ne",
-   "title": "よ / ね",
+   "title": "よ / ね / でしょ",
    "title_en": "You know / right?",
    "points": [
     "yo",
-    "ne"
+    "ne",
+    "deshou"
    ],
-   "summary": "よ at the end tells someone something they don't know yet. ね looks for agreement, like \"right?\" or \"huh\".",
-   "body": "ユキだよ。\nいい部屋だね。",
+   "summary": "よ at the end tells someone something they don't know yet. ね looks for agreement, like \"right?\" or \"huh\". でしょ? is surer: \"told you\".",
+   "body": "ユキだよ。\nいい部屋だね。\n大きいでしょ？",
    "translations": [
     "I'm Yuki.",
-    "It's a nice room, huh."
+    "It's a nice room, huh.",
+    "Big, right?"
    ],
    "notes": [
     {
@@ -1186,6 +1188,10 @@
     {
      "before": 2,
      "text": "ね assumes the listener sees it the same way."
+    },
+    {
+     "before": 3,
+     "text": "でしょ? expects a yes: you knew it, and you're checking they see it too. Said flat, でしょう is a polite guess, \"probably\"."
     }
    ]
   },
@@ -1292,20 +1298,26 @@
   },
   {
    "id": "te-kudasai",
-   "title": "～てください",
-   "title_en": "Please do",
+   "title": "～て / ～てください",
+   "title_en": "Please do; and",
    "points": [
-    "te-kudasai"
+    "te-kudasai",
+    "te"
    ],
-   "summary": "A verb's て form plus ください politely asks someone to do something. Friends just use the て form.",
-   "body": "ちょっと待ってください！",
+   "summary": "A verb's て form plus ください politely asks someone to do something. Friends just use the て form, which also links actions: do this, and then that.",
+   "body": "ちょっと待ってください！\nラーメンを食べて、ビールを飲む。",
    "translations": [
-    "Just a moment, please!"
+    "Just a moment, please!",
+    "I eat ramen and drink a beer."
    ],
    "notes": [
     {
      "before": 1,
      "text": "The て form of 待つ is 待って. With friends, 待って on its own is enough."
+    },
+    {
+     "before": 2,
+     "text": "In the middle of a sentence, the て form means \"and then\": one action, then the next."
     }
    ]
   },

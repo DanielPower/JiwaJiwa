@@ -47,13 +47,15 @@
     ]
   },
   {
-    "id": "yo-ne", "title": "よ / ね", "title_en": "You know / right?", "points": ["yo", "ne"],
-    "summary": "よ at the end tells someone something they don't know yet. ね looks for agreement, like \"right?\" or \"huh\".",
+    "id": "yo-ne", "title": "よ / ね / でしょ", "title_en": "You know / right?", "points": ["yo", "ne", "deshou"],
+    "summary": "よ at the end tells someone something they don't know yet. ね looks for agreement, like \"right?\" or \"huh\". でしょ? is surer: \"told you\".",
     "parts": [
       ["ユキだよ。", "I'm Yuki."],
       "よ is friendly emphasis: you're filling the listener in.",
       ["いい部屋だね。", "It's a nice room, huh."],
-      "ね assumes the listener sees it the same way."
+      "ね assumes the listener sees it the same way.",
+      ["大きいでしょ？", "Big, right?"],
+      "でしょ? expects a yes: you knew it, and you're checking they see it too. Said flat, でしょう is a polite guess, \"probably\"."
     ]
   },
   {
@@ -101,11 +103,13 @@
     ]
   },
   {
-    "id": "te-kudasai", "title": "～てください", "title_en": "Please do", "points": ["te-kudasai"],
-    "summary": "A verb's て form plus ください politely asks someone to do something. Friends just use the て form.",
+    "id": "te-kudasai", "title": "～て / ～てください", "title_en": "Please do; and", "points": ["te-kudasai", "te"],
+    "summary": "A verb's て form plus ください politely asks someone to do something. Friends just use the て form, which also links actions: do this, and then that.",
     "parts": [
       ["ちょっと待ってください！", "Just a moment, please!"],
-      "The て form of 待つ is 待って. With friends, 待って on its own is enough."
+      "The て form of 待つ is 待って. With friends, 待って on its own is enough.",
+      ["ラーメンを食べて、ビールを飲む。", "I eat ramen and drink a beer."],
+      "In the middle of a sentence, the て form means \"and then\": one action, then the next."
     ]
   },
   {

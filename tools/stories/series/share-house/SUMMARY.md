@@ -61,7 +61,7 @@ Alex's interview with the big manager: he starts today.
 Alex's first shift: a rush of customers and ramen.
 
 - 20 words; 3 new of 3 allowed.
-- Teaches ～てください (`te-kudasai`).
+- Teaches ～て / ～てください (`te-kudasai`).
 - New: すみません (N3), ちょっと (N5), 待つ (まつ, N5).
 
 ### 7. Game night (`share-house-07`)
@@ -199,6 +199,6 @@ Goodbyes at the station; Alex flies home, and Yuki wonders whether to sing her n
 
 Read in order after the stories it follows, a reader knows these by the end of the last chapter.
 
-Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます (`masu`), から / まで (`kara-made`), ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), か (`ka`), で (`de`), から (`kara-because`), と (`to`).
+Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます (`masu`), から / まで (`kara-made`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), か (`ka`), で (`de`), から (`kara-because`), と (`to`).
 
 104 words: 来る ついに 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃる いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる うまい チケット 買う これ 卵 ビール 熱い ゆっくり 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ はい お願いする すみません ちょっと 待つ 負ける もう 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 友達 写真 撮る 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に
