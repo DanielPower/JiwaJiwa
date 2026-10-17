@@ -26,44 +26,47 @@
     {
      "id": "arrival-02",
      "title": "Narita",
-     "body": "成田だ。日本だ！\n\n大きい空港だ。\n\n人、人、人だ。",
+     "body": "成田だ。日本だ！\n\n大きい空港だ。\n\n人、人、人だ。\n\nついに来た。",
      "translations": [
       "This is Narita.",
       "It's Japan!",
       "It's a big airport.",
-      "People, people, people."
+      "People, people, people.",
+      "I'm finally here."
      ],
      "topic": "da"
     },
     {
      "id": "arrival-03",
      "title": "Which way?",
-     "body": "人が多い！空港が大きい！\n\n駅…あっち？あっちだ。",
+     "body": "人が多い！空港が大きい！\n\n人、人、人。\n\n駅…あっち？あっちだ。\n\n人が多い…空港が大きい…\n\n駅だ！",
      "translations": [
       "So many people!",
       "The airport is huge!",
+      "People, people, people.",
       "The station… that way?",
-      "It's that way."
+      "It's that way.",
+      "So many people… and the airport's so big…",
+      "The station!"
      ],
      "topic": "ga"
     },
     {
      "id": "arrival-04",
      "title": "Out the window",
-     "body": "外は山だ。山、山、山。\n\n大きい山だ。きれい！\n\n日本は、きれいだ。",
+     "body": "外、山だ。山、山、山。\n\n大きい山だ。\n\n山が、きれいだ。\n\n日本、きれい！",
      "translations": [
       "Outside, mountains.",
       "Mountains, mountains, mountains.",
       "Big mountains.",
-      "Beautiful!",
-      "Japan is beautiful."
-     ],
-     "topic": "wa"
+      "The mountains are beautiful.",
+      "Japan's beautiful!"
+     ]
     },
     {
      "id": "arrival-05",
      "title": "Tokyo",
-     "body": "東京だ！\n\n人が多い。ビルが高い。ビル、ビル、ビル。\n\n山は？あ、山はあっちだ。\n\n高いビルが、きれいだ。",
+     "body": "東京だ！\n\n人が多い。ビルが高い。ビル、ビル、ビル。\n\n山は？あ、山はあっちだ。\n\n東京は、ビルが高い。山は、外だ。\n\n高いビルが、きれいだ。",
      "translations": [
       "Tokyo!",
       "There are so many people.",
@@ -71,13 +74,16 @@
       "Buildings, buildings, buildings.",
       "And the mountains?",
       "Oh, the mountains are that way.",
+      "In Tokyo, the buildings are tall.",
+      "The mountains are out there.",
       "The tall buildings are beautiful."
-     ]
+     ],
+     "topic": "wa"
     },
     {
      "id": "arrival-06",
      "title": "Lost",
-     "body": "駅が大きい。人が多い。\n\nここ、どこ？あっち？わからない。\n\n外は、どこ？わからない！",
+     "body": "駅が大きい。人が多い。\n\nここ、どこ？あっち？わからない。\n\n外は、どこ？わからない！\n\nあっちは人が多い。ここは…わからない。",
      "translations": [
       "The station is huge.",
       "There are so many people.",
@@ -85,24 +91,25 @@
       "That way?",
       "No idea.",
       "Where's the way out?",
-      "I have no idea!"
+      "I have no idea!",
+      "That way's packed.",
+      "And here… no idea."
      ],
      "topic": "nai"
     },
     {
      "id": "arrival-07",
      "title": "The konbini",
-     "body": "あ、外だ！\n\nあ、コンビニだ！\n\nコンビニに来た。\n\n「いらっしゃいませ！」\n\nきれいだ。\n\nここ、いい。コンビニ、いい！",
+     "body": "あ、外だ！\n\nあ、コンビニだ！\n\n「いらっしゃいませ！」\n\nきれいだ。人は多くない。\n\nここ、いい。コンビニ、いい！",
      "translations": [
       "Oh, I'm outside!",
       "Oh, a konbini!",
-      "I came into the konbini.",
       "\"Welcome!\"",
       "It's clean.",
+      "It's not crowded.",
       "I like this place.",
       "Konbini are great!"
-     ],
-     "topic": "ni"
+     ]
     },
     {
      "id": "arrival-08",
@@ -420,6 +427,7 @@
       "But it's a good one.",
       "The clerk is Miho."
      ],
+     "topic": "ni",
      "meets": [
       {
        "name": "ミホ",
@@ -946,9 +954,9 @@
     "ni"
    ],
    "summary": "に marks where something goes, or where it is: 店に来た, came to the shop.",
-   "body": "コンビニに来た。",
+   "body": "マンガの店に来た。",
    "translations": [
-    "I came to the konbini."
+    "I came to the manga shop."
    ],
    "notes": [
     {
