@@ -55,9 +55,9 @@ Phase 2, outlined later: passive and causative; ～ておく / ～てある; ～
 | Order | Id | Title | Chapters | Follows (`after`) | Topics |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `new-housemate` | New Housemate | about 24 | `share-house` | 1 to 8 |
-| 2 | `kentas-first-job` | Kenta's First Job | about 10 | `new-housemate/<chapter 9>` | 9 to 11 |
+| 2 | `kentas-first-job` | Kenta's First Job | about 10 | `new-housemate/late-night` | 9 to 11 |
 | 3 | `the-band` | The Band | about 24 | `new-housemate` | 12 to 19 |
-| 4 | `mihos-manga` | Miho's Manga | about 12 | `the-band/<chapter 12>` | 20 to 23 |
+| 4 | `mihos-manga` | Miho's Manga | about 12 | `the-band/mihos-notebook` | 20 to 23 |
 | 5 | `messages-from-canada` | Messages from Canada | about 8 | `mihos-manga` | 24 to 25 |
 | 6 | `yukis-song` | Yuki's Song | about 16 | `the-band`, `kentas-first-job`, `messages-from-canada` | 26 to 30 |
 
@@ -71,7 +71,7 @@ New, each speaking only from the chapter whose `meets` introduces them:
 
 - **ソラ** (Sora): takes Alex's old room; 19, from Hokkaido, starting university. Polite and nervous at first (あのー, えーと, です), slowly casual, so the learner hears the switch.
 - **ダイチ** (Daichi): drummer Yuki meets at the live house. Loud and cheerful.
-- **リン** (Rin): guitarist. Cool, says little, kinder than she looks.
+- **リナ** (Rina): guitarist. Cool, says little, kinder than she looks. (Not リン, which the reader reads as 燐.)
 - **田中さん** (Tanaka): Kenta's senior at the game company. Strict, fair, always polite.
 
 ### New Housemate (spring)
@@ -84,7 +84,7 @@ Kenta's first weeks at the game company, with polite speech at work beside his u
 
 ### The Band (summer)
 
-Yuki forms a band with Daichi and Rin. Practice in a rented studio, whether they can play the summer festival (出られる？), what happens if they win (勝ったら), the heat, a broken string, Yuki trying to write lyrics, and only three songs to their name (三曲しかない). Ends on the festival stage in the same park as The Share House's festival.
+Yuki forms a band with Daichi and Rina. Practice in a rented studio, whether they can play the summer festival (出られる？), what happens if they win (勝ったら), the heat, a broken string, Yuki trying to write lyrics, and only three songs to their name (三曲しかない). Ends on the festival stage in the same park as The Share House's festival.
 
 ### Miho's Manga
 
