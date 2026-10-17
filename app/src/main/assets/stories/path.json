@@ -2118,13 +2118,15 @@
    "title": "だ / です",
    "title_en": "Is",
    "points": [
-    "desu"
+    "desu",
+    "na"
    ],
    "summary": "だ ends a sentence that says what something is: 成田だ, it's Narita. Friends say だ or leave it off; strangers and staff say です.",
-   "body": "成田だ。\nいい部屋だ！",
+   "body": "成田だ。\nいい部屋だ！\nきれいな部屋だ！",
    "translations": [
     "It's Narita.",
-    "It's a nice room!"
+    "It's a nice room!",
+    "It's a beautiful room!"
    ],
    "notes": [
     {
@@ -2134,6 +2136,10 @@
     {
      "before": 2,
      "text": "です means the same thing, politely. You'll hear it from staff and strangers."
+    },
+    {
+     "before": 3,
+     "text": "Before a noun, だ becomes な. Words like きれい that work this way are called na-adjectives."
     }
    ]
   },
@@ -2503,10 +2509,11 @@
     "no-question"
    ],
    "summary": "ん or の before だ or です explains: 帰ったんだ, (the thing is,) he went home. A bare の with a rise asks for the story: 来たの？, you came?",
-   "body": "カナダに帰ったんだ。\nどこから来たの？",
+   "body": "カナダに帰ったんだ。\nどこから来たの？\nそうなんだ。",
    "translations": [
     "He went home to Canada.",
-    "Where did you come from?"
+    "Where did you come from?",
+    "Oh, I see. (So that's how it is.)"
    ],
    "notes": [
     {
@@ -2516,6 +2523,10 @@
     {
      "before": 2,
      "text": "A の at the end, said with a rise, is how friends ask when they want to know more. Said flat, it explains, like ～んだ."
+    },
+    {
+     "before": 3,
+     "text": "After a noun or a na-adjective, な comes first: そうなんだ, 好きなの？"
     }
    ]
   },

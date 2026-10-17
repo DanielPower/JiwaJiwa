@@ -89,6 +89,20 @@ class ReadingTest {
     }
 
     @Test
+    fun aGreetingWithItsPoliteEndingIsOneWord() {
+        val reader = Reader { text, _ -> mapOf("ありがとう" to 70L, "ありがとうございます" to 71L)[text]?.let { LexiconMatch(it, "ありがとうございます") } }
+        assertEquals(listOf(71L), reader.words("ありがとうございます。").filter { it.kind == WordKind.WORD }.map { it.wordId })
+    }
+
+    @Test
+    fun aTimeNounNoPointExplainsIsAWord() {
+        val reader = Reader { text, _ -> mapOf("休み" to 80L, "日" to 81L)[text]?.let { LexiconMatch(it, "ひ") } }
+        val hi = reader.words("休みの日").first { it.surface == "日" }
+        assertEquals(WordKind.WORD, hi.kind)
+        assertEquals(81L, hi.wordId)
+    }
+
+    @Test
     fun aSpeakersNameIsntPartOfTheText() {
         assertEquals(Speech("ユキ", "「でしょ？」"), Speech.of("ユキ|「でしょ？」"))
         assertEquals(Speech(null, "ラーメンが来た。"), Speech.of("ラーメンが来た。"))

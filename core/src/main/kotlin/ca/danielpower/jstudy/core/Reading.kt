@@ -186,7 +186,7 @@ class Reader(private val lexicon: Lexicon) {
         while (i < tokens.size) {
             val from = i
             val t = tokens[i]
-            val compound = compound(tokens, i) ?: counted(tokens, i)
+            val compound = compound(tokens, i) ?: counted(tokens, i) ?: greeting(tokens, i)
             when {
                 compound != null -> {
                     out += compound.first
@@ -261,7 +261,14 @@ class Reader(private val lexicon: Lexicon) {
             ).sortedBy { it.first }
         return words.mapIndexed { w, word ->
             val mine = uses.filter { w in it.first..it.last }
-            if (mine.isNotEmpty()) word.copy(grammar = mine) else if (word.conjugated && !word.stem) phrase(word) else word
+            when {
+                mine.isNotEmpty() -> word.copy(grammar = mine)
+                word.conjugated && !word.stem -> phrase(word)
+                // A time noun the tokenizer files with grammar but no point explains is a word: 日 in 休みの日.
+                word.kind == WordKind.GRAMMAR && word.surface.any(::isKanji) && tokens[spans[w].first].pos3 == "副詞可能" ->
+                    lexicon.find(word.lemma, word.reading)?.let { word.copy(kind = WordKind.WORD, wordId = it.wordId) } ?: word
+                else -> word
+            }
         }
     }
 
@@ -273,6 +280,20 @@ class Reader(private val lexicon: Lexicon) {
     private fun phrase(word: ReadingWord): ReadingWord {
         val match = lexicon.find(word.surface, word.reading) ?: return word
         return word.copy(lemma = word.surface, wordId = match.wordId, reading = match.reading, conjugation = emptyList(), ruby = ruby(word.surface, match.reading))
+    }
+
+    /** An interjection and the polite ending the dictionary has with it as one phrase: ありがとうございます. */
+    private fun greeting(tokens: List<Morpheme>, start: Int): Pair<ReadingWord, Int>? {
+        if (tokens[start].pos != "感動詞") return null
+        var end = start + 1
+        while (end < tokens.size && tokens[end].pos == "助動詞") end++
+        for (stop in end downTo start + 2) {
+            val group = tokens.subList(start, stop)
+            val text = group.joinToString("") { it.surface }
+            val match = lexicon.find(text, group.joinToString("") { it.readingOrSurface }) ?: continue
+            return plain(group, WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(text, match.reading)) to stop
+        }
+        return null
     }
 
     /** A run of nouns the dictionary knows as one word (図書館員, 魔導士), longest first. */

@@ -117,6 +117,16 @@ class GrammarTest {
     }
 
     @Test
+    fun `な before a noun, explaining の, and と after a noun`() {
+        assertEquals(listOf("na", "desu", "ne"), points("きれいな部屋だね。"))
+        assertEquals(listOf("na", "n-desu"), points("そうなんだ。"))
+        assertEquals(listOf("ta", "n-desu", "kana"), points("忘れたのかな。"))
+        assertEquals(listOf("no-nominal", "ga"), points("行くのが好き。"))
+        assertEquals(listOf("to"), points("友達といる。"))
+        assertEquals(listOf("to-quote"), points("「うん」と言った。").filter { it == "to-quote" })
+    }
+
+    @Test
     fun `before needs a verb in front of it`() {
         assertEquals(listOf("mae-ni"), points("寝る前に"))
         assertEquals(listOf("no"), points("駅の前に").filter { it != "ni" })

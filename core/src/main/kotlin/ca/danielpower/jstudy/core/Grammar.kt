@@ -166,11 +166,14 @@ internal object Grammar {
             "友達と映画を見ました。", "I watched a movie with a friend.",
             listOf(Step(false) { it.pos == "助詞" && it.base == "と" && it.pos2 in setOf("格助詞", "並立助詞") && it.pos3 != "引用" }),
         )
+        variant("to", listOf(Step(false) { it.pos == "助詞" && it.base == "と" && it.pos3 == "引用" }), before = { it.pos == "名詞" })
         point(
             "to-quote", "～と", 4, "quoting: \"…\", that…",
             "Marks what was said, thought or heard, before verbs like 言う and 思う.",
             "「おはよう」と言いました。", "I said \"good morning\".",
             listOf(Step(false) { it.pos == "助詞" && it.base == "と" && it.pos3 == "引用" }),
+            // Quotes follow a closing 」 or 』 or a plain form; after a bare noun the tokenizer's 引用 is usually "with" (友達といる).
+            before = { it.surface in setOf("」", "』") || it.pos in setOf("動詞", "形容詞", "助動詞") || (it.pos == "助詞" && it.pos2 == "終助詞") },
         )
         point(
             "to-if", "～と", 4, "when, whenever, if",
@@ -195,6 +198,8 @@ internal object Grammar {
             "Turns a verb or adjective into a noun-like phrase (読むのが好き, I like reading), or stands for a thing already mentioned (赤いの, the red one).",
             "本を読むのが好きです。", "I like reading books.",
             listOf(dependentNoun("の")),
+            // The の of ～のかな or ～のだ explains (～んだ); this one is followed by a particle (読むのが, 赤いのを) or ends the sentence.
+            after = { it == null || it.pos == "記号" || (it.pos == "助詞" && it.base != "か") },
         )
         point(
             "ka", "か", 5, "question, or",
@@ -464,6 +469,12 @@ internal object Grammar {
             ),
             // Not the でし in ～ませんでした, which is part of the verb's polite past.
             before = { it.base != "ん" },
+        )
+        point(
+            "na", "～な", 5, "(before a noun)",
+            "だ becomes な before a noun: a na-adjective like きれい describes with it (きれいな部屋, a beautiful room). A noun or na-adjective also takes it before ん or の (学生なんだ, 好きなの？).",
+            "きれいな部屋だね。", "It's a beautiful room, huh.",
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ダ" && it.form == "体言接続" }),
         )
         point(
             "deshou", "～でしょう / だろう", 5, "probably; right?",
@@ -858,6 +869,7 @@ internal object Grammar {
             "の or ん before だ or です explains or asks for an explanation: どうしたんですか, what's wrong?. It sounds softer and more involved than a bare statement. ～んじゃない？ suggests: isn't it that…?",
             "どうして来なかったんですか。", "Why didn't you come?",
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, Step(false) { it.pos == "助動詞" && it.type in setOf("特殊・ダ", "特殊・デス") }),
+            listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, particle("か")),
             // ～んじゃない: "isn't it that…?".
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, particle("じゃ")),
         )
