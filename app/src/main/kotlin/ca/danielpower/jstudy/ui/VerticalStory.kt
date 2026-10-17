@@ -98,8 +98,7 @@ fun VerticalStory(
     onTap: (p: Int, i: Int) -> Unit,
     onHold: (p: Int, i: Int) -> Unit,
     onBlank: () -> Unit,
-    end: @Composable () -> Unit,
-    onEnd: () -> Unit,
+    onFinish: () -> Unit,
     startPage: Int,
     onPageShown: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -135,8 +134,16 @@ fun VerticalStory(
         val seal = MaterialTheme.colorScheme.primary
         val highlight = seal.copy(alpha = 0.14f)
 
-        StoryPager(pages.size, reverse = true, end, onEnd, startPage, onPageShown) { page ->
-            val onPage = pages[page]
+        // The finish stamp stands in the column after the text, or on a page of its own when that's full.
+        val lastCol = spots.maxOfOrNull { it.col }
+        val stampWidth = with(density) { STAMP_DOWN_WIDTH.toPx() }
+        val stampX = lastCol?.let { right - (it % perPage + 1) * (colWidth + gap) - stampWidth }
+        val stampPage = stampX == null || stampX < 0f
+        val count = pages.size + if (stampPage) 1 else 0
+
+        StoryPager(count, reverse = true, startPage, onPageShown) { page ->
+            val onPage = pages.getOrNull(page).orEmpty()
+            val hasStamp = page == count - 1
             Layout(
                 modifier = Modifier.fillMaxSize().padding(PAGE_PADDING),
                 content = {
@@ -161,6 +168,7 @@ fun VerticalStory(
                             ),
                         )
                     }
+                    if (hasStamp) FinishStamp(vertical = true, onClick = onFinish)
                 },
             ) { measurables, constraints ->
                 fun left(spot: VerticalSpot): Float {
@@ -171,15 +179,22 @@ fun VerticalStory(
                 // pieces meet exactly: rounding the height on its own left
                 // highlighted words with a pixel of overlap or gap between them.
                 fun top(row: Int) = (row * cell).roundToInt()
-                val placeables = measurables.mapIndexed { n, m ->
+                val placeables = measurables.take(onPage.size).mapIndexed { n, m ->
                     val row = spots[onPage[n]].row
                     val height = top(row + pieces[onPage[n]].chars.size) - top(row)
                     m.measure(Constraints.fixed(colWidth.roundToInt(), height))
                 }
+                val stamp = measurables.getOrNull(onPage.size)?.measure(Constraints())
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeables.forEachIndexed { n, placeable ->
                         val spot = spots[onPage[n]]
                         placeable.place(left(spot).roundToInt(), top(spot.row))
+                    }
+                    if (stamp != null) {
+                        // Centred in its room, a row down from the top, as a seal sits beside the text.
+                        val room = if (stampPage) (width - stampWidth) / 2 else stampX!!
+                        val x = room + (stampWidth - stamp.width) / 2
+                        stamp.place(x.roundToInt(), cell.roundToInt())
                     }
                 }
             }

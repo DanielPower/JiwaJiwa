@@ -619,11 +619,13 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        val end = @Composable { StoryEnd(state, vm) }
         // A sequel opens in this same screen; it starts on its first page.
         key(reading.story.id) {
             val lesson = reading.lesson
-            if (lesson != null) {
+            if (state.impact != null) {
+                // Finished: the summary takes the text's place.
+                Box(Modifier.weight(1f).fillMaxWidth()) { StoryEnd(state, vm) }
+            } else if (lesson != null) {
                 LessonPage(
                     state = state,
                     lesson = lesson,
@@ -647,8 +649,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     onTap = { p, i -> tap(p to i) },
                     onHold = { p, i -> hold(p to i) },
                     onBlank = close,
-                    end = end,
-                    onEnd = vm::finishStory,
+                    onFinish = vm::finishStory,
                     startPage = state.startPage,
                     onPageShown = vm::readerAt,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
@@ -663,8 +664,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     onTap = { p, i -> tap(p to i) },
                     onHold = { p, i -> hold(p to i) },
                     onBlank = close,
-                    end = end,
-                    onEnd = vm::finishStory,
+                    onFinish = vm::finishStory,
                     startPage = state.startPage,
                     onPageShown = vm::readerAt,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
@@ -688,8 +688,7 @@ private fun HorizontalStory(
     onTap: (p: Int, i: Int) -> Unit,
     onHold: (p: Int, i: Int) -> Unit,
     onBlank: () -> Unit,
-    end: @Composable () -> Unit,
-    onEnd: () -> Unit,
+    onFinish: () -> Unit,
     startPage: Int,
     onPageShown: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -723,9 +722,15 @@ private fun HorizontalStory(
             HorizontalText.pages(flows.map { HorizontalText.lines(it, width) }, lineHeight, gap, height)
         }
         val lineDp = with(density) { lineHeight.toDp() }
-        StoryPager(pages.size, reverse = false, end, onEnd, startPage, onPageShown) { page ->
+        // The finish stamp goes under the last line, or on a page of its own when that's full.
+        val used = pages.lastOrNull()?.withIndex()?.sumOf { (n, line) ->
+            (lineHeight + if (n > 0 && line.words.first == 0) gap else 0f).toDouble()
+        } ?: 0.0
+        val stampPage = pages.isEmpty() || used + with(density) { STAMP_ACROSS_HEIGHT.toPx() } > height
+        val count = pages.size + if (stampPage) 1 else 0
+        StoryPager(count, reverse = false, startPage, onPageShown) { page ->
             Column(Modifier.fillMaxSize().padding(horizontal = PAGE_PADDING_H, vertical = PAGE_PADDING)) {
-                pages[page].forEachIndexed { n, line ->
+                pages.getOrNull(page).orEmpty().forEachIndexed { n, line ->
                     if (n > 0 && line.words.first == 0) Spacer(Modifier.height(PARAGRAPH_GAP))
                     Row(Modifier.height(lineDp), verticalAlignment = Alignment.Bottom) {
                         for (i in line.words) {
@@ -744,6 +749,9 @@ private fun HorizontalStory(
                             )
                         }
                     }
+                }
+                if (page == count - 1) {
+                    FinishStamp(vertical = false, onClick = onFinish, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
                 }
             }
         }
@@ -812,31 +820,26 @@ private fun LessonPage(
 }
 
 /**
- * [count] pages to swipe between, with the page number under them, then the
- * [end] page, which calls [onEnd] when it's reached. [reverse] puts the next
- * page on the left. It opens on [startPage], and tells [onPageShown] each page
- * it settles on, so a story can reopen where you were.
+ * [count] pages to swipe between, with the page number under them. [reverse]
+ * puts the next page on the left. It opens on [startPage], and tells
+ * [onPageShown] each page it settles on, so a story can reopen where you were.
  */
 @Composable
 internal fun StoryPager(
     count: Int,
     reverse: Boolean,
-    end: @Composable () -> Unit,
-    onEnd: () -> Unit,
     startPage: Int,
     onPageShown: (Int) -> Unit,
     page: @Composable (Int) -> Unit,
 ) {
-    val state = rememberPagerState(startPage.coerceIn(0, count)) { count + 1 }
-    val atEnd = state.settledPage == count
-    LaunchedEffect(atEnd) { if (atEnd) onEnd() }
+    val state = rememberPagerState(startPage.coerceIn(0, (count - 1).coerceAtLeast(0))) { count }
     LaunchedEffect(state) { snapshotFlow { state.settledPage }.collect(onPageShown) }
     Column(Modifier.fillMaxSize()) {
         HorizontalPager(state, Modifier.weight(1f).fillMaxWidth(), reverseLayout = reverse, verticalAlignment = Alignment.Top) {
-            if (it < count) page(it) else end()
+            page(it)
         }
         Box(Modifier.fillMaxWidth().height(PAGE_LABEL_HEIGHT), contentAlignment = Alignment.Center) {
-            if (count > 1 && state.currentPage < count) {
+            if (count > 1) {
                 Text(
                     "${state.currentPage + 1} / $count",
                     style = MaterialTheme.typography.labelMedium,
@@ -1085,7 +1088,7 @@ private fun WordCard(
                 val status = reading.statuses[entry.id]
                 Text(
                     levelLabel(entry.jlpt) + "  ·  " + when {
-                        // A story's words you haven't started join your reviews at its end page; a grammar page has none.
+                        // A story's words you haven't started join your reviews when you finish it; a grammar page has none.
                         status == null -> ui("New", "新しい") + if (reading.lesson == null) ", joins your reviews when you finish" else ""
                         status.suspended -> "Suspended"
                         status.state == CardState.NEW -> "New, in your new-word queue"
@@ -1140,10 +1143,7 @@ private fun GrammarNote(point: GrammarPoint, onLesson: (() -> Unit)?) {
 
 // ------------------------------------------------------------------ end page
 
-/**
- * After the last page: how the read went, the new words in it to add to your
- * reviews, and the next part. Tapping a word opens it in the pane, as in the story.
- */
+/** Once the story's finished: how the read went, what it did for your words, and what to read next. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {

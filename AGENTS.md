@@ -153,12 +153,14 @@ Other features (all shipped):
   pane fixed at the top of the reader, always visible with the story below
   it so it never covers the text (as in Yomu Yomu), not a popover. Long-pressing a word shows its sentence's English,
   bundled with the story. Story
-  words are never queued automatically: an unknown word's card offers
-  "Add to reviews" (front of the new-word queue) as the main action and a
-  quieter "I know this". Stories show a page at a time, swiping between
+  words you haven't started get "I know this" in the pane, and the rest
+  join your reviews when you finish the story. Stories show a page at a time, swiping between
   pages (no scrolling); horizontal pages are top-aligned, vertical pages
-  are centred and turn right to left. After the last page comes an end page:
-  reaching it marks the story read (timed from opening it), shows the
+  are centred and turn right to left. The text ends with a 読了 seal stamp
+  (`FinishStamp`, grained like the icon), under the last line or beside the
+  last column, or on a page of its own if the last is full. Tapping it
+  marks the story read (timed from opening it) and puts the summary in
+  the text's place, showing the
   read's stats (characters, share of words known, time, characters a
   minute), what it did for your words, and what to read next. A gear at the top right of the
   reader opens its settings in the pane: text size (four steps), font (Zen
@@ -244,7 +246,7 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
 - Opening a chapter shows its new kana as new cards once, then its new
   grammar's page, then the chapter. New words aren't listed up front:
   they're red and underlined in the text, and tapping one shows it, with
-  "I know this" to mark it known. Reaching the end page starts every word
+  "I know this" to mark it known. Finishing starts every word
   in it you haven't started as a card (`Repository.startStoryWords`).
 - At the end of a chapter, each word due for review that you read without
   tapping counts as an FSRS Hard review (`Reviewer.read`): less than a

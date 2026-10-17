@@ -827,7 +827,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return NextStep(next.story.id, "Next story: ${other.series.title}")
     }
 
-    /** Reaching the end page marks the story read, timed from when it was opened. */
+    /** The finish stamp at the end of the text marks the story read, timed from when it was opened, and shows the summary. */
     fun finishStory() = launchIo {
         val state = _screen.value as? Screen.StoryReader ?: return@launchIo
         if (readingFinished) return@launchIo
