@@ -101,10 +101,11 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     /** Version 9 dropped kana cards (direction 2, negative word ids), their history and settings. */
     private fun dropKana(db: SQLiteDatabase) {
+        db.execSQL("DELETE FROM kv WHERE key IN ('kana_known', 'new_kana_per_day')")
+        if (!hasColumn(db, "card", "direction")) return
         db.execSQL("DELETE FROM review_log WHERE card_id IN (SELECT id FROM card WHERE direction = 2)")
         db.execSQL("DELETE FROM card WHERE direction = 2")
         db.execSQL("DELETE FROM word_progress WHERE word_id < 0")
-        db.execSQL("DELETE FROM kv WHERE key IN ('kana_known', 'new_kana_per_day')")
     }
 
     /**

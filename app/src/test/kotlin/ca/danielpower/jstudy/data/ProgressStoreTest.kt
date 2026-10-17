@@ -277,4 +277,38 @@ class ProgressStoreTest {
         assertEquals(WordProgress(1, mastery = 70, productionUnlocked = true), store.progress(1))
         assertEquals(WordProgress(2, mastery = 0, productionUnlocked = true), store.progress(2))
     }
+
+    @Test
+    fun upgradingToVersion9DropsKanaCards() {
+        store.close()
+        context.deleteDatabase(ProgressStore.NAME)
+        val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(path, null).use { db ->
+            ProgressStore(context).onCreate(db)
+            db.version = 8
+            fun card(word: Long, direction: Int) = db.insert(
+                "card", null,
+                ContentValues().apply {
+                    put("word_id", word)
+                    put("direction", direction)
+                    put("state", CardState.REVIEW.value)
+                    put("due_at", 0L)
+                    put("reps", 1)
+                    put("lapses", 0)
+                    put("sort_key", 0)
+                },
+            )
+            card(7, Direction.RECOGNITION.value)
+            card(-1, 2)
+            db.execSQL("INSERT INTO word_progress (word_id, mastery, production_unlocked) VALUES (7, 50, 0), (-1, 40, 0)")
+            db.execSQL("INSERT INTO kv (key, value) VALUES ('kana_known', 'none')")
+        }
+
+        store = ProgressStore(context)
+        assertEquals(1, store.count("SELECT COUNT(*) FROM card"))
+        assertEquals(setOf(7L), store.wordIdsWithCards(Direction.RECOGNITION))
+        assertEquals(0, store.progress(-1).mastery)
+        assertEquals(50, store.progress(7).mastery)
+        assertNull(store.getValue("kana_known"))
+    }
 }
