@@ -208,9 +208,12 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   All of it is our own writing for adults, casual speech first: Alex, on a
   one-year working holiday in Tokyo, a share house, a ramen shop job, a
   cast met a few at a time. **Arrival** is the prologue, then **Ramen
-  night**, then the long series (**The Share House**, 20+ chapters planned),
-  each following the one before (`after`, which can also name a chapter to mean the story up
-  to there). Formal speech comes later as its own topic.
+  night**, then **The Share House** (24 chapters, Alex's year from spring
+  to his flight home), each following the one before (`after`, which can
+  also name a chapter to mean the story up to there). The next series
+  (Daniel, 2026-10-17) follows a housemate who stays in Japan after Alex
+  goes home; The Share House ends on Yuki and a new song she might sing.
+  Formal speech comes later as its own topic.
 - Dialogue shows who's speaking, script style (台本形式, Daniel 2026-10-17):
   a cast member's quote is written `ユキ|「でしょ？」` in the story and
   shown with the name before it (core `Speech`), at 80% size in a quieter
