@@ -44,7 +44,7 @@ fun StatsScreen(state: Screen.StatsPage, vm: AppViewModel) {
     val s = state.stats
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            WashiIconButton(WashiIcons.Back, "Back", vm::goHome)
+            WashiIconButton(WashiIcons.Back, "Back", vm::openReviewTab)
             Text(ui("Stats", "統計"), style = MaterialTheme.typography.headlineMedium)
         }
         Column(

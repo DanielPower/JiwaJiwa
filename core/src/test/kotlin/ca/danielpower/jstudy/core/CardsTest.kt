@@ -72,6 +72,17 @@ class CardsTest {
     }
 
     @Test
+    fun `a word marked known never becomes a new word, even after relearning it`() {
+        val now = at("2026-10-10T20:00")
+        val known = reviewer.markKnown(Card(id = 1, wordId = 7, direction = Direction.RECOGNITION), WordProgress(7), 50, now, Random(1))
+        val missed = reviewer.answer(known.card, known.progress, correct = false, now = known.card.dueAt)
+        assertEquals(CardState.RELEARNING, missed.card.state)
+        val relearned = reviewer.answer(missed.card, missed.progress, correct = true, now = missed.card.dueAt)
+        assertEquals(null, known.card.introducedDay)
+        assertEquals(null, relearned.card.introducedDay)
+    }
+
+    @Test
     fun `only a miss on a review card counts as a lapse`() {
         val now = at("2026-10-10T20:00")
         val learning = reviewer.answer(Card(id = 1, wordId = 7, direction = Direction.RECOGNITION), WordProgress(7), correct = false, now = now)

@@ -349,7 +349,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.ReviewTab(repo.summary(now()))
     }
 
-    /** The system back button: word page to dictionary, import to settings, story to stories, anything else home. */
+    /** The system back button: word page to where it was opened, import to settings, story to stories, stats to the Review tab, anything else home. */
     fun back() {
         when (_screen.value) {
             is Screen.WordPage -> closeWord()
@@ -357,6 +357,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             is Screen.RenshuuImport -> closeImport()
             is Screen.StoryReader, is Screen.Series -> storyBack()
             is Screen.Setup -> setupBack()
+            is Screen.StatsPage -> openReviewTab()
             else -> goHome()
         }
     }
@@ -654,7 +655,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             screen is Screen.Series && screen.lock != null -> closeLock()
             screen is Screen.StoryReader && screen.reading.lesson != null && grammarFrom != null -> {
                 beforeGrammar = null
-                _screen.value = if (grammarFrom is Screen.Dictionary) grammarFrom.copy(grammar = repo.grammarRows()) else grammarFrom
+                if (grammarFrom is Screen.Dictionary) _screen.value = grammarFrom.copy(grammar = repo.grammarRows()) else returnTo(grammarFrom)
             }
             chapter != null && !chapter.series.single -> showSeries(chapter.series.id)
             else -> showStories()
@@ -782,6 +783,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         repo.readWords(story, lookedUpWords.toSet(), at)
         repo.forgetWords(state.forgotten, at)
         val started = repo.startStoryWords(story, at)
+        // The words read and started change what's due, so the Review tab's badge follows.
+        refreshLanguage()
         val after = repo.masteries(state.reading.words.keys)
         fun crossed(line: Int) = after.filter { (id, m) -> (masteryAtOpen[id] ?: 0) < line && m >= line }.keys
         val words = state.reading.words
@@ -901,8 +904,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openWord(wordId: Long) = launchIo {
         when (val current = _screen.value) {
             is Screen.Dictionary -> lastDictionary = current
-            is Screen.KanjiPage, is Screen.StoryReader -> trail.addLast(current)
-            else -> {}
+            // Anywhere else (Home's Recent words, a kanji page, a story) is where Back returns.
+            else -> trail.addLast(current)
         }
         showWord(wordId)
     }
