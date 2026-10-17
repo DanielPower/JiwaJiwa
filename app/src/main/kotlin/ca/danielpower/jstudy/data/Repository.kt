@@ -188,13 +188,13 @@ enum class ReaderFont { SANS, SERIF, ROUNDED }
 
 /** How stories are set: text size in sp, typeface, and whether columns run top to bottom. */
 data class ReaderStyle(
-    val size: Int = 22,
+    val size: Int = 26,
     val font: ReaderFont = ReaderFont.SANS,
     /** Set top to bottom, right to left, as Japanese books are. */
     val vertical: Boolean = false,
 ) {
     companion object {
-        val SIZES = listOf(18, 22, 26, 30)
+        val SIZES = listOf(22, 26, 30, 34)
     }
 }
 
