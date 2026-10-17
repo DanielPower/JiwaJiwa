@@ -25,11 +25,10 @@ Guiding rules from Daniel:
 
 | Path | What it is |
 | --- | --- |
-| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kana course, kanji readings, romaji, story budgets, Kuromoji word splitting, the story server client (Claude conversations, sign-in), Renshuu import planning. No Android imports. |
+| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kanji readings, romaji, the story path, Kuromoji word splitting, Renshuu import planning. No Android imports. |
 | `app/` | The Android app: Jetpack Compose UI, SQLite storage, reminder, backup. |
 | `tools/dictionary/` | Python (stdlib only) build of the bundled dictionary DB from pinned sources. |
 | `tools/fsrs/` | Generates `core/src/test/resources/fsrs_vectors.tsv` from py-fsrs. |
-| `server/` | The story server (Python, FastAPI, SQLite, Docker Compose): Google sign-in, per-account rate limits, and the Claude API key, so the app never holds one. See `server/README.md`. |
 | `.github/workflows/` | CI (see below). |
 
 Put logic in `core` whenever it doesn't need Android, so it can be tested
@@ -64,7 +63,6 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
 | `build.yml` | pushes to branches other than main | test and build without releasing |
 | `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
-| `server.yml` (Story server) | PRs and pushes to main touching `server/` | server tests and image build; on main, pushes `ghcr.io/danielpower/jiwajiwa-story-server` (`latest` and `sha-…`) |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
 
 Every push to main ships a release, so main must always be releasable.
@@ -102,22 +100,23 @@ Study and scheduling:
 - Target retention and the mastery thresholds (furigana and production)
   are fixed constants (`MasteryRules`), not settings, so users aren't
   overwhelmed with choices. Don't add them back unless Daniel asks.
-- New words go N5 → N1, by frequency within a level. Within a sitting,
-  reviews and the day's new words are shuffled; new kana keep their order. A new word's first
-  showing offers Continue (main action) or a quiet "I know this".
+- New words start when a story is finished; there's no new-word queue or
+  "Learn next" (removed 2026-10-17). The only new cards in reviews are
+  unlocked production cards. Within a sitting, reviews and new cards are
+  shuffled.
 - "Mark known" lets you set the word's mastery; it gets a review schedule to
   match, first due on a random day in that interval.
 - "Study more" pulls every schedule one day earlier (a `daysAhead` counter)
-  and adds another day's worth of new cards for today.
+  and adds another day's worth of production cards for today.
 - v1 card back is minimal: word, reading, English meanings. No example
   sentences, TTS or pitch accent yet.
 
 Kana:
 
-- Taught as flashcards, hiragana and katakana paired per sound (あ then ア).
-  No quiz or lesson screen.
-- A new word only enters once every kana in its kana spelling has a kana card
-  in review. There's no override.
+- Not taught (Daniel, 2026-10-17): kana cards, the kana setup page and
+  setting were removed to keep the focus on stories. The app assumes you
+  read hiragana and katakana. Progress DB version 9 deletes old kana cards
+  (direction 2, negative word ids) and their history.
 - No romaji on vocabulary cards.
 
 Other features (all shipped):
@@ -129,48 +128,49 @@ Other features (all shipped):
   learn. Linked from the word page, the card's answer side and dictionary
   search. Kanji have no mastery or stats of their own; Daniel saw no use
   for them without kanji cards.
-- First-run setup: start level, kana known, optional reminder time. Both
-  can change later in Settings: marking a script known sets its started
-  kana cards aside (suspended) until you change it back, and moving the
-  start level past N5 asks, as setup does, whether unstarted easier words
-  wait or are marked Known or Mastered.
+- First-run setup: "Which level can you already read?" (None, N5..N1) and
+  an optional reminder time; both can change later in Settings. A level
+  pre-fills mastery (`ReadLevel`, Daniel 2026-10-17): the chosen level's
+  words at mastery 50 (15-day stability), one level easier 70 (30 days),
+  two easier 90 days, three or more 365 days. First reviews are spread so
+  the fill adds at most ~100 a day. Words already higher keep their
+  progress. Raising the level in Settings asks first; lowering changes
+  nothing. No random mastery jitter (the random first-due date spreads them).
+- Reader word pane: "I forgot this" on words with a review card (not on
+  grammar pages), shown as "✓ Forgot" with Undo once tapped; each gives one
+  Wrong review when the story is finished. Tapping a word never counts as
+  wrong (Daniel: checking conjugations and accidental taps shouldn't
+  punish). No burning of words; FSRS long intervals handle mature words.
 - Daily reminder has **no default time**; the user picks one. Don't request
   notification permission until they turn it on.
 - Manual backup/restore only (`jiwajiwa-<date>.jstudy`, a copy of the progress
-  DB). No automatic backups. The story sign-in isn't included.
+  DB). No automatic backups.
 - Settings has a reset button that erases all user data.
 - Stats page (heatmap, recall, forecast, per-level progress) is a link on the
   home screen, not a tab.
 - Renshuu import: takes the higher of the two masteries per word, skips
   suspended words, never stores the Renshuu key. Renshuu's `edict_ent` is
-  the JMdict id, which is jstudy's word id. Renshuu's kana entries have no
-  `edict_ent`; they're matched by text to kana cards. Its other entries
-  without one (する verbs, phrases, names) are skipped on purpose.
-- AI graded-reader stories: the user signs in with Google (Credential
-  Manager) and the app sends its Claude conversations to the story server
-  (`server/`, https://api.jiwajiwa.app), which holds the API key, picks the
-  model and limits each account (Daniel, 2026-10-14). There's no API key
-  setting. The server URL and the Google web client ID are the
-  `storyServerUrl` and `googleWebClientId` Gradle properties. Short/Medium/Long, Easy/Normal/Hard sets the share of known
-  words; unknown words beyond the budget trigger a rewrite. Tapping a word
+  the JMdict id, which is jstudy's word id. Entries without one (kana,
+  する verbs, phrases, names) are skipped on purpose.
+- Claude-written stories, and the story server they went through, were
+  removed (Daniel, 2026-10-15); they may be rebuilt later. Stories are the
+  bundled ones only. Tapping a word
   shows its meaning (and conjugation, when conjugated), plus any grammar
   point it's part of (`core/Grammar.kt`); particles and endings are tappable
-  for their grammar alone, and title words too. The meaning opens in a
+  for their grammar alone. The meaning opens in a
   pane fixed at the top of the reader, always visible with the story below
   it so it never covers the text (as in Yomu Yomu), not a popover. Long-pressing a word shows its sentence's English,
-  written by Claude with the story (one extra request per story). Story
-  words are never queued automatically: an unknown word's card offers
-  "Add to reviews" (front of the new-word queue) as the main action and a
-  quieter "I know this". Stories show a page at a time, swiping between
+  bundled with the story. Story
+  words you haven't started join your reviews when you finish the story;
+  the pane has no way to mark one known. Stories show a page at a time, swiping between
   pages (no scrolling); horizontal pages are top-aligned, vertical pages
-  are centred and turn right to left. After the last page comes an end page:
-  reaching it marks the story read (timed from opening it), shows the
+  are centred and turn right to left. The text ends with a 読了 seal stamp
+  (`FinishStamp`, grained like the icon), under the last line or beside the
+  last column, or on a page of its own if the last is full. Tapping it
+  marks the story read (timed from opening it) and puts the summary in
+  the text's place, showing the
   read's stats (characters, share of words known, time, characters a
-  minute) and lists its new words with Add and "Add all to reviews". It
-  also offers "Write a sequel": Claude gets every part so far and the same
-  length and difficulty, the sequel keeps the first part's title, and parts
-  show as "Title: Part n" (the first becomes Part 1 when its sequel is
-  saved). Once a sequel exists the button reads "Read the next part". A gear at the top right of the
+  minute), what it did for your words, and what to read next. A gear at the top right of the
   reader opens its settings in the pane: text size (four steps), font (Zen
   Kaku Gothic New by default, Zen Old Mincho serif, Zen Maru Gothic rounded)
   and horizontal or vertical (tategaki) text. They live only there, not in
@@ -197,5 +197,81 @@ Jiten (CC BY-SA 4.0), not JPDB, which has no licence. The dictionary database
 is CC BY-SA 4.0, and the EDRDG licence requires regular JMdict updates
 (`.github/workflows/update-dictionary.yml`). New data sources must have a
 licence that allows this.
+
+Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 2026-10-15):
+
+- New words and grammar come from the path instead of reviews.
+  Reviews and the home count no longer introduce words; only
+  unlocked production cards are new there.
+- The path (`app/src/main/assets/stories/path.json`, written by
+  `tools/stories/path.py`) is stories made of chapters, plus grammar topics.
+  All of it is our own writing for adults, casual speech first: Alex, on a
+  one-year working holiday in Tokyo, a share house, a ramen shop job, a
+  cast met a few at a time. **Arrival** is the prologue, then **Ramen
+  night**, then **The Share House** (24 chapters, Alex's year from spring
+  to his flight home), each following the one before (`after`, which can
+  also name a chapter to mean the story up to there). The next series
+  (Daniel, 2026-10-17) follows a housemate who stays in Japan after Alex
+  goes home; The Share House ends on Yuki and a new song she might sing.
+  Formal speech comes later as its own topic.
+- Dialogue shows who's speaking, script style (台本形式, Daniel 2026-10-17):
+  a cast member's quote is written `ユキ|「でしょ？」` in the story and
+  shown with the name before it (core `Speech`), at 80% size in a quieter
+  colour. In a run of labelled lines the quotes start level, after that
+  run's longest name (a long name only widens its own run); a quote that
+  wraps carries on one character further in. Same in vertical text, names
+  at the top of the column. Unnamed staff, strangers and thinking aloud
+  have no name. Names aren't words: not tappable, not counted.
+- Grammar pace (Daniel, 2026-10-17): don't teach too much too fast. Keep
+  chapters with no new grammar, using what came before, between the ones
+  that teach a topic, and reuse each topic in the chapters after it.
+  Stories no longer follow a kana order (kana aren't taught).
+- Side stories and one-shots (`side`) use only what the stories they
+  follow teach: no new words or grammar. They're there so you can
+  keep reading something new without learning anything new.
+- Pace (`core/Pace`, `Repository.pace`): a soft daily limit on new words
+  started (`newPerDay`, default 20, from the rollover hour), and a
+  review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this"
+  and imports start nothing, so they don't count. Past either, the Stories
+  tab leads with open chapters that have nothing new, tapping a chapter
+  that adds more shows a sheet suggesting them first ("Read it anyway"
+  carries on), and a chapter's end offers one before the next chapter.
+  Nothing is ever locked by it.
+  Unlocked production cards in reviews fill what's left of the limit.
+- A story with one chapter opens straight to it; one with more has a page
+  listing its chapters and the people met so far. Titles are English, with
+  Japanese where it fits. Chapters and grammar pages are saved in the
+  `story` table by `path_id`, with when you read them; rows the app no
+  longer ships are removed when it syncs.
+- A chapter opens on its own once it's within reach (`StoryPath.gap`): new
+  words at most 3% of its running words, from 3 to 10; and no grammar
+  point you haven't seen, other than its own topic. Tapping a locked chapter shows what it's missing and
+  the open chapters with the most of it.
+- Grammar comes in as topics (one or more related points, like から/まで),
+  at most one per chapter; the same topic can be listed on several
+  chapters, and whichever you reach first teaches it. Each topic has a full
+  page: opened before the chapter, it ends with a button into the chapter,
+  which marks its points seen (the `grammar_seen` value, no cards). It's
+  also on the Grammar list on the Words tab, and a grammar point's note in
+  the reader links to its topic's page; Back returns to the same page of
+  the story.
+- `StoryPathTest` checks the stories against the built dictionary (skipped
+  when it isn't): each story, read in order after the ones it follows,
+  opens chapter by chapter, so side stories are never required, and a
+  `side` story has nothing new at all; and
+  `StoryPath.solve` reaches every chapter from knowing nothing.
+  Readiness only grows as you learn, so no reading order can get
+  stuck. Rerun it after editing a story.
+- Words: **seen** (has a card, mastery below 40), **known** (40, where
+  furigana hides), **mastered** (70).
+- Opening a chapter shows its new grammar's page, then the chapter. New words aren't listed up front:
+  they're red and underlined in the text, and tapping one shows it.
+  Finishing starts every word
+  in it you haven't started as a card (`Repository.startStoryWords`).
+- At the end of a chapter, each word due for review that you read without
+  tapping counts as an FSRS Hard review (`Reviewer.read`): less than a
+  Right answer, since context helps. The end page shows how many words were
+  seen, moved to known and moved to mastered, the grammar topic, anyone
+  you met, and the next chapter.
 
 Not decided or not built yet: example sentences, audio.

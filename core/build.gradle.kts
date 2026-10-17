@@ -16,15 +16,19 @@ kotlin {
 dependencies {
     // Japanese tokenizer for reading stories (IPADIC dictionary bundled in the jar).
     implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
-    // JSON for Claude API requests. The Anthropic Java SDK pulls in Jackson,
-    // Apache HttpClient and JSON-schema tooling, too heavy for the APK.
+    // JSON for the bundled stories file.
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
 
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
+    // Reads the built dictionary to check the bundled story path (StoryPathTest).
+    testImplementation("org.xerial:sqlite-jdbc:3.46.1.3")
 }
 
 tasks.test {
     useJUnitPlatform()
+    // StoryPathTest reads the app's bundled stories and, when it's been built, the dictionary.
+    inputs.file("../app/src/main/assets/stories/path.json").withPropertyName("stories")
+    inputs.files(fileTree("../app/src/main/assets/databases") { include("dictionary.db") }).withPropertyName("dictionary")
 }

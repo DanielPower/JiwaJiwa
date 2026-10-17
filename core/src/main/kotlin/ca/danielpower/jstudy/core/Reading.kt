@@ -54,12 +54,61 @@ data class ReadingWord(
     val key: String get() = wordId?.toString() ?: lemma
 }
 
+/** A story's paragraphs as written: blank lines and single line breaks both start a new one. */
+fun paragraphs(text: String): List<String> = text.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
+
+/**
+ * A paragraph, and who says it when it's a line of dialogue. A story marks
+ * the speaker with their name and a bar: ユキ|「でしょ？」. The name isn't
+ * part of the text, so it's never read as a word.
+ */
+data class Speech(val speaker: String?, val text: String) {
+    /** As a script prints it, the name straight before the quote: ユキ「でしょ？」. */
+    override fun toString() = (speaker ?: "") + text
+
+    companion object {
+        fun of(paragraph: String): Speech {
+            val bar = paragraph.indexOf('|')
+            if (bar <= 0) return Speech(null, paragraph)
+            return Speech(paragraph.substring(0, bar).trim(), paragraph.substring(bar + 1).trim())
+        }
+
+        /** A story's opening paragraph, for a preview, with its speaker as a script prints it. */
+        fun firstLine(text: String): String = paragraphs(text).firstOrNull()?.let { of(it).toString() }.orEmpty()
+
+        /** Each paragraph's speaker, or null for narration. */
+        fun speakers(text: String): List<String?> = paragraphs(text).map { of(it).speaker }
+
+        /**
+         * For each paragraph, the widest speaker name in its run of dialogue:
+         * the paragraphs around it with speakers, unbroken by narration. A
+         * run's quotes all start in line, and a long name only widens its own
+         * run. Null for narration.
+         */
+        fun columns(speakers: List<String?>, width: (String) -> Float): List<Float?> {
+            val out = MutableList<Float?>(speakers.size) { null }
+            var start = 0
+            while (start < speakers.size) {
+                if (speakers[start] == null) {
+                    start++
+                    continue
+                }
+                var end = start
+                while (end < speakers.size && speakers[end] != null) end++
+                val widest = (start until end).maxOf { width(speakers[it]!!) }
+                for (i in start until end) out[i] = widest
+                start = end
+            }
+            return out
+        }
+    }
+}
+
 /** Splits Japanese text into words with Kuromoji (IPADIC) and matches them to the dictionary. */
 class Reader(private val lexicon: Lexicon) {
 
     /** Paragraphs of words. Blank lines and single line breaks both start a new paragraph. */
-    fun read(text: String): List<List<ReadingWord>> =
-        text.split('\n').map { it.trim() }.filter { it.isNotEmpty() }.map { words(it) }
+    fun read(text: String): List<List<ReadingWord>> = paragraphs(text).map { words(Speech.of(it).text) }
 
     fun words(paragraph: String): List<ReadingWord> {
         val tokens = tokenizer.tokenize(paragraph).map(::Morpheme)
@@ -76,7 +125,7 @@ class Reader(private val lexicon: Lexicon) {
                     out += compound.first
                     i = compound.second
                 }
-                t.pos == "記号" || t.surface.isBlank() -> {
+                t.pos == "記号" || t.surface.none(Char::isLetterOrDigit) -> {
                     out += plain(listOf(t), WordKind.PUNCTUATION, null)
                     i++
                 }

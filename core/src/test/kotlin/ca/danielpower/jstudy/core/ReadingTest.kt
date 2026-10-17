@@ -21,6 +21,20 @@ class ReadingTest {
     }
 
     @Test
+    fun aSpeakersNameIsntPartOfTheText() {
+        assertEquals(Speech("ユキ", "「でしょ？」"), Speech.of("ユキ|「でしょ？」"))
+        assertEquals(Speech(null, "ラーメンが来た。"), Speech.of("ラーメンが来た。"))
+        assertEquals("ユキ「でしょ？」", Speech.of("ユキ|「でしょ？」").toString())
+        assertEquals("「でしょ？」", reader.read("ユキ|「でしょ？」").single().joinToString("") { it.surface })
+    }
+
+    @Test
+    fun aRunOfDialogueLinesUpOnItsWidestName() {
+        val speakers = listOf("アレックス", "ユキ", null, "ユキ", "ケンタ", null)
+        assertEquals(listOf(5f, 5f, null, 3f, 3f, null), Speech.columns(speakers) { it.length.toFloat() })
+    }
+
+    @Test
     fun conjugationsAttachToTheirVerb() {
         val w = word("食べさせられた")
         assertEquals("食べる", w.lemma)

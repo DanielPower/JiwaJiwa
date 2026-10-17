@@ -19,6 +19,7 @@ import ca.danielpower.jstudy.ui.AppViewModel
 import ca.danielpower.jstudy.ui.JStudyTheme
 import ca.danielpower.jstudy.ui.LocalAppLanguage
 import ca.danielpower.jstudy.ui.Screen
+import ca.danielpower.jstudy.ui.SetupPage
 import ca.danielpower.jstudy.ui.isDark
 
 class MainActivity : ComponentActivity() {
@@ -40,7 +41,7 @@ class MainActivity : ComponentActivity() {
             JStudyTheme(theme) {
                 CompositionLocalProvider(LocalAppLanguage provides appLanguage) {
                     val screen by vm.screen.collectAsStateWithLifecycle()
-                    val firstPage = (screen as? Screen.Setup)?.let { it.page == it.pages.first() } == true
+                    val firstPage = (screen as? Screen.Setup)?.page == SetupPage.WELCOME
                     BackHandler(enabled = screen !is Screen.Home && screen !is Screen.Loading && !firstPage) { vm.back() }
                     App(vm, screen)
                 }

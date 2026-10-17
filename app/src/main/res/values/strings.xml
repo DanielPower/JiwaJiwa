@@ -1,5 +1,3 @@
 <resources>
     <string name="app_name">Jiwa Jiwa</string>
-    <!-- Where "Report this story" sends its email. -->
-    <string name="report_email" translatable="false">me@danielpower.ca</string>
 </resources>

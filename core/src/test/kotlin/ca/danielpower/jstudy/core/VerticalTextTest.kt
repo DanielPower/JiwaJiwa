@@ -11,6 +11,13 @@ class VerticalTextTest {
     }
 
     @Test
+    fun `starts a paragraph and its wrapped columns where it says`() {
+        val runs = "あいうえおか".mapIndexed { i, c -> VerticalRun(listOf(c.toString()), paragraphStart = i == 0, indent = 3, wrapIndent = 4) }
+        val spots = VerticalText.place(runs, 6)
+        assertEquals(listOf(VerticalSpot(0, 3), VerticalSpot(0, 4), VerticalSpot(0, 5), VerticalSpot(1, 4), VerticalSpot(1, 5), VerticalSpot(2, 4)), spots)
+    }
+
+    @Test
     fun `fills each column before starting the next`() {
         assertEquals(listOf("あいう", "えお"), columns("あいうえお", 3))
     }

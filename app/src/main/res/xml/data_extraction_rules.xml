@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12 and later. Progress and settings are backed up; the Claude API key stays on this device. -->
+<!-- Android 12 and later. Progress and settings are backed up. -->
 <data-extraction-rules>
-    <cloud-backup>
-        <exclude domain="sharedpref" path="secrets.xml" />
-    </cloud-backup>
-    <device-transfer>
-        <exclude domain="sharedpref" path="secrets.xml" />
-    </device-transfer>
+    <cloud-backup />
+    <device-transfer />
 </data-extraction-rules>

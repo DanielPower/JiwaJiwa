@@ -13,14 +13,16 @@ object HorizontalText {
      * than start a line with closing punctuation or end one with an opening
      * bracket, the words before the break move down too, as long as some of
      * the line stays behind. A word wider than a line gets a line of its own.
+     * The first line starts [indent] in, and the rest [wrapIndent] in.
      */
-    fun lines(words: List<FlowWord>, maxWidth: Float): List<IntRange> {
+    fun lines(words: List<FlowWord>, maxWidth: Float, indent: Float = 0f, wrapIndent: Float = 0f): List<IntRange> {
         val starts = ArrayList<Int>()
         var x = 0f
         words.forEachIndexed { k, word ->
+            val width = maxWidth - if (starts.size <= 1) indent else wrapIndent
             if (k == 0) {
                 starts += 0
-            } else if (x + word.width > maxWidth) {
+            } else if (x + word.width > width) {
                 fun bad(i: Int) = words[i].text.take(1) in Kinsoku.CLOSING || words[i - 1].text.takeLast(1) in Kinsoku.OPENING
                 val lineStart = starts.last()
                 var start = k

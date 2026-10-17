@@ -2,12 +2,12 @@ package ca.danielpower.jstudy.core
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
-class TranslationTest {
+class SentencesTest {
     private val reader = Reader { _, _ -> null }
 
-    private fun sentences(text: String): List<String> = sentenceTexts(reader.read(text))
+    private fun sentences(text: String): List<String> =
+        reader.read(text).flatMap { words -> sentenceRanges(words).map { r -> r.joinToString("") { words[it].surface } } }
 
     @Test
     fun `splits a paragraph after each full stop`() {
@@ -36,20 +36,5 @@ class TranslationTest {
     @Test
     fun `counts sentences paragraph by paragraph`() {
         assertEquals(listOf("猫です。", "犬です。", "鳥です。"), sentences("猫です。犬です。\n鳥です。"))
-    }
-
-    @Test
-    fun `reads numbered translations`() {
-        assertEquals(listOf("I like cats.", "Dogs too!"), parseTranslations("1. I like cats.\n2) Dogs too!\n", 2))
-    }
-
-    @Test
-    fun `rejects a reply missing a sentence`() {
-        assertNull(parseTranslations("1. I like cats.\n3. Birds?", 3))
-    }
-
-    @Test
-    fun `numbers the sentences in the request`() {
-        assertEquals("1. 猫です。\n2. 犬です。", TranslationPrompts.request(listOf("猫です。", "犬です。")))
     }
 }

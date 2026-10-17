@@ -1,0 +1,1366 @@
+{
+ "series": [
+  {
+   "id": "arrival",
+   "title": "Arrival",
+   "blurb": "Alex has a year in Japan on a working holiday visa. First, he has to get there.",
+   "after": [],
+   "chapters": [
+    {
+     "id": "arrival-01",
+     "title": "I'm here",
+     "body": "来た。ついに来た！\n\n日本…ついに、ついに来た！",
+     "translations": [
+      "I'm here.",
+      "Finally here!",
+      "Japan… finally, finally here!"
+     ],
+     "topic": "ta",
+     "meets": [
+      {
+       "name": "アレックス",
+       "about": "from Canada, in Japan for a year"
+      }
+     ]
+    },
+    {
+     "id": "arrival-02",
+     "title": "Narita",
+     "body": "成田だ。日本だ！\n\n大きい空港だ。\n\n人、人、人だ。\n\nついに来た。",
+     "translations": [
+      "This is Narita.",
+      "It's Japan!",
+      "It's a big airport.",
+      "People, people, people.",
+      "I'm finally here."
+     ],
+     "topic": "da"
+    },
+    {
+     "id": "arrival-03",
+     "title": "Which way?",
+     "body": "人が多い！空港が大きい！\n\n人、人、人。\n\n駅…あっち？あっちだ。\n\n人が多い…空港が大きい…\n\n駅だ！",
+     "translations": [
+      "So many people!",
+      "The airport is huge!",
+      "People, people, people.",
+      "The station… that way?",
+      "It's that way.",
+      "So many people… and the airport's so big…",
+      "The station!"
+     ],
+     "topic": "ga"
+    },
+    {
+     "id": "arrival-04",
+     "title": "Out the window",
+     "body": "外、山だ。山、山、山。\n\n大きい山だ。\n\n山が、きれいだ。\n\n日本、きれい！",
+     "translations": [
+      "Outside, mountains.",
+      "Mountains, mountains, mountains.",
+      "Big mountains.",
+      "The mountains are beautiful.",
+      "Japan's beautiful!"
+     ]
+    },
+    {
+     "id": "arrival-05",
+     "title": "Tokyo",
+     "body": "東京だ！\n\n人が多い。ビルが高い。ビル、ビル、ビル。\n\n山は？あ、山はあっちだ。\n\n東京は、ビルが高い。山は、外だ。\n\n高いビルが、きれいだ。",
+     "translations": [
+      "Tokyo!",
+      "There are so many people.",
+      "The buildings are tall.",
+      "Buildings, buildings, buildings.",
+      "And the mountains?",
+      "Oh, the mountains are that way.",
+      "In Tokyo, the buildings are tall.",
+      "The mountains are out there.",
+      "The tall buildings are beautiful."
+     ],
+     "topic": "wa"
+    },
+    {
+     "id": "arrival-06",
+     "title": "Lost",
+     "body": "駅が大きい。人が多い。\n\nここ、どこ？あっち？わからない。\n\n外は、どこ？わからない！\n\nあっちは人が多い。ここは…わからない。",
+     "translations": [
+      "The station is huge.",
+      "There are so many people.",
+      "Where am I?",
+      "That way?",
+      "No idea.",
+      "Where's the way out?",
+      "I have no idea!",
+      "That way's packed.",
+      "And here… no idea."
+     ],
+     "topic": "nai"
+    },
+    {
+     "id": "arrival-07",
+     "title": "The konbini",
+     "body": "あ、外だ！\n\nあ、コンビニだ！\n\n「いらっしゃいませ！」\n\nきれいだ。人は多くない。\n\nここ、いい。コンビニ、いい！",
+     "translations": [
+      "Oh, I'm outside!",
+      "Oh, a konbini!",
+      "\"Welcome!\"",
+      "It's clean.",
+      "It's not crowded.",
+      "I like this place.",
+      "Konbini are great!"
+     ]
+    },
+    {
+     "id": "arrival-08",
+     "title": "The house",
+     "body": "駅は、あっち。コンビニは、ここ。\n\nここだ。大きいな。きれいだ。\n\n「アレックス？」\n\nアレックス|「うん、アレックスだよ！」",
+     "translations": [
+      "The station's that way.",
+      "The konbini's here.",
+      "This is it.",
+      "It's big.",
+      "It's nice.",
+      "\"Alex?\"",
+      "\"Yeah, I'm Alex!\""
+     ],
+     "topic": "yo-ne"
+    },
+    {
+     "id": "arrival-09",
+     "title": "Yuki",
+     "body": "ユキ|「ユキだよ。よろしくね。」\n\nアレックス|「よろしく！」\n\nユキ|「ついに来たね！」\n\nアレックス|「来たよ！」\n\nユキ|「東京、大きいね。」\n\nアレックス|「大きい！人が多い！ビルが高い！」",
+     "translations": [
+      "\"I'm Yuki. Nice to meet you.\"",
+      "\"Nice to meet you!\"",
+      "\"You finally made it!\"",
+      "\"I did!\"",
+      "\"Tokyo's big, huh.\"",
+      "\"So big! So many people! The buildings are so tall!\""
+     ],
+     "meets": [
+      {
+       "name": "ユキ",
+       "about": "lives in the share house, makes coffee, plays bass"
+      }
+     ]
+    },
+    {
+     "id": "arrival-10",
+     "title": "The room",
+     "body": "ユキ|「ここ、アレックスの部屋。」\n\nアレックス|「いい部屋だね！」\n\nユキ|「外、きれいだね。」\n\nアレックス|「うん。ビルが高い。」\n\nアレックス|「ユキの部屋は？」\n\nユキ|「あっちだよ。」",
+     "translations": [
+      "\"This is your room, Alex.\"",
+      "\"It's a nice room!\"",
+      "\"Nice view, huh.\"",
+      "\"Yeah. The buildings are tall.\"",
+      "\"Where's your room?\"",
+      "\"Over there.\""
+     ],
+     "topic": "no"
+    },
+    {
+     "id": "arrival-11",
+     "title": "Hungry",
+     "body": "ユキ|「お腹、すいた？」\n\nアレックス|「すいた！」\n\nアレックス|「ユキは？」\n\nユキ|「すいたよ。」\n\nアレックス|「コンビニ？」\n\nユキ|「コンビニ、いいよ。」\n\nユキ|「でも…」",
+     "translations": [
+      "\"Hungry?\"",
+      "\"Starving!\"",
+      "\"You?\"",
+      "\"I am.\"",
+      "\"The konbini?\"",
+      "\"The konbini's fine.\"",
+      "\"But…\""
+     ]
+    },
+    {
+     "id": "arrival-12",
+     "title": "Ramen?",
+     "body": "ユキ|「ラーメン、食べたい？」\n\nアレックス|「食べたい！」\n\nユキ|「駅のあっちのラーメン、いいよ。」\n\nアレックス|「大きい？」\n\nユキ|「大きいよ。」\n\nアレックス|「食べたい、食べたい！」",
+     "translations": [
+      "\"Want some ramen?\"",
+      "\"Yes!\"",
+      "\"The ramen place past the station is good.\"",
+      "\"Big bowls?\"",
+      "\"Big.\"",
+      "\"I want it, I want it!\""
+     ],
+     "topic": "tai"
+    }
+   ]
+  },
+  {
+   "id": "ramen-night",
+   "title": "Ramen night",
+   "blurb": "Yuki knows a ramen shop. Alex is very hungry.",
+   "after": [
+    "arrival"
+   ],
+   "chapters": [
+    {
+     "id": "ramen-night-01",
+     "title": "The ticket machine",
+     "body": "ユキ|「ここだよ。」\n\nアレックス|「人が多いね！」\n\nユキ|「ここのラーメン、うまいよ。」\n\nチケットを買う。ユキはチケットを買う。\n\nアレックス|「お腹すいた！」\n\nユキ|「ラーメン、食べたいね。」",
+     "translations": [
+      "\"This is it.\"",
+      "\"So many people!\"",
+      "\"The ramen here is great.\"",
+      "You buy a ticket.",
+      "Yuki buys hers.",
+      "\"I'm so hungry!\"",
+      "\"I want ramen.\""
+     ],
+     "topic": "wo"
+    },
+    {
+     "id": "ramen-night-02",
+     "title": "Which one?",
+     "body": "アレックス|「これ、食べたい！」\n\nユキ|「卵も？」\n\nアレックス|「うん、卵も。ビールも！」\n\nアレックス|「ユキは？」\n\nユキ|「これ。卵も。」\n\nアレックス|「ビールも？」\n\nユキ|「うん、ビールも！」",
+     "translations": [
+      "\"I want this one!\"",
+      "\"Egg too?\"",
+      "\"Yeah, egg too. And a beer!\"",
+      "\"What about you?\"",
+      "\"This one. With egg.\"",
+      "\"A beer too?\"",
+      "\"Yeah, beer too!\""
+     ],
+     "topic": "mo"
+    },
+    {
+     "id": "ramen-night-03",
+     "title": "Slurp",
+     "body": "ラーメンが来た。大きい！\n\nアレックス|「うまい！」\n\nユキ|「でしょ？」\n\nアレックス|「熱い！」\n\nユキ|「ゆっくり食べて。」\n\n卵もうまい。ビールもうまい。\n\nアレックス|「ここ、いいね！」\n\nユキ|「いいでしょ？」",
+     "translations": [
+      "The ramen arrives.",
+      "It's huge!",
+      "\"So good!\"",
+      "\"Told you.\"",
+      "\"Hot!\"",
+      "\"Eat slowly.\"",
+      "The egg's good too.",
+      "So is the beer.",
+      "\"This place is great!\"",
+      "\"Isn't it?\""
+     ]
+    },
+    {
+     "id": "ramen-night-04",
+     "title": "The manager",
+     "body": "店長が来た。\n\n店長|「ラーメン、うまいです？」\n\nアレックス|「うまい！」\n\nアレックス|「人が多いね。」\n\n店長|「多いです。」\n\n店長|「バイト、やります？」\n\nアレックス|「…バイト？」\n\n店長|「ここのバイトです。」\n\nアレックス|「やりたい！やります！」",
+     "translations": [
+      "The manager came over.",
+      "\"How's the ramen?\"",
+      "\"Great!\"",
+      "\"Busy, huh.\"",
+      "\"It is.\"",
+      "\"Would you like a part-time job?\"",
+      "\"…A job?\"",
+      "\"A job here.\"",
+      "\"I want it! I'll do it!\""
+     ],
+     "topic": "masu",
+     "meets": [
+      {
+       "name": "店長",
+       "about": "runs the ramen shop, needs help"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "share-house",
+   "title": "The Share House",
+   "blurb": "Alex has a year in Tokyo, a room in a Shimokitazawa share house, and housemates with opinions.",
+   "after": [
+    "ramen-night"
+   ],
+   "chapters": [
+    {
+     "id": "share-house-01",
+     "title": "Morning",
+     "body": "朝だ。外はきれいだ。\n\nアレックス|「おはよう！」\n\nケンタ|「…おはよう。」\n\nアレックス|「ケンタ？」\n\nケンタ|「うん。眠い…」\n\nアレックス|「アレックスだよ。よろしく！」\n\nケンタ|「よろしく…」\n\nアレックス|「お腹、すいた？」\n\nケンタ|「…眠い。」",
+     "translations": [
+      "It's morning.",
+      "It's nice out.",
+      "\"Morning!\"",
+      "\"…Morning.\"",
+      "\"Kenta?\"",
+      "\"Yeah. Sleepy…\"",
+      "\"I'm Alex. Nice to meet you!\"",
+      "\"Nice to meet you…\"",
+      "\"Hungry?\"",
+      "\"…Sleepy.\""
+     ],
+     "meets": [
+      {
+       "name": "ケンタ",
+       "about": "the room next door, games all night"
+      }
+     ]
+    },
+    {
+     "id": "share-house-02",
+     "title": "All night",
+     "body": "アレックス|「眠い？」\n\nケンタ|「うん。朝までゲームだった。」\n\nアレックス|「朝まで！？」\n\nケンタ|「アレックス、ゲーム好き？」\n\nアレックス|「好き！」\n\nアレックス|「ユキは？」\n\nケンタ|「ユキは朝が好き。」\n\nケンタ|「今夜、ゲームだ！」\n\nアレックス|「今夜から朝まで？」\n\nケンタ|「うん！」",
+     "translations": [
+      "\"Sleepy?\"",
+      "\"Yeah. I was gaming until morning.\"",
+      "\"Until morning?!\"",
+      "\"Alex, do you like games?\"",
+      "\"I do!\"",
+      "\"What about Yuki?\"",
+      "\"Yuki likes mornings.\"",
+      "\"Games tonight, then!\"",
+      "\"From tonight until morning?\"",
+      "\"Yep!\""
+     ],
+     "topic": "kara-made"
+    },
+    {
+     "id": "share-house-03",
+     "title": "Coffee",
+     "body": "ユキは朝、コーヒーを飲む。\n\nユキ|「アレックス、飲む？」\n\nアレックス|「飲む！ありがとう。」\n\nアレックス|「いいコーヒーだね。」\n\nユキ|「でしょ？」\n\nユキ|「ケンタは？」\n\nケンタ|「…飲む。」\n\nユキ|「眠い？」\n\nケンタ|「眠い。」",
+     "translations": [
+      "Yuki drinks coffee in the morning.",
+      "\"Alex, want some?\"",
+      "\"Yes! Thanks.\"",
+      "\"This is good coffee.\"",
+      "\"Right?\"",
+      "\"Kenta?\"",
+      "\"…Yes.\"",
+      "\"Sleepy?\"",
+      "\"Sleepy.\""
+     ]
+    },
+    {
+     "id": "share-house-04",
+     "title": "Trash day",
+     "body": "朝、ユキが来た。\n\nユキ|「アレックス、今日はゴミだよ。」\n\nアレックス|「ゴミ？」\n\nユキ|「うん。これは今日。」\n\nアレックス|「これも今日？」\n\nユキ|「うん、これも。」\n\nアレックス|「ケンタのゴミは？」\n\nユキ|「…あっち。」\n\nアレックス|「多い！」\n\nユキ|「コーヒーのゴミだよ。」",
+     "translations": [
+      "In the morning, Yuki came by.",
+      "\"Alex, it's trash day.\"",
+      "\"Trash?\"",
+      "\"Yeah. This goes out today.\"",
+      "\"This too?\"",
+      "\"Yep, that too.\"",
+      "\"What about Kenta's trash?\"",
+      "\"…Over there.\"",
+      "\"That's a lot!\"",
+      "\"It's all coffee.\""
+     ]
+    },
+    {
+     "id": "share-house-05",
+     "title": "The interview",
+     "body": "ここだ。人が多い。\n\n店長が来た。大きい人だ。\n\n店長|「アレックスさん？」\n\nアレックス|「はい！」\n\n店長|「ラーメン、好きです？」\n\nアレックス|「はい、好きです！」\n\n店長|「今日から、お願いします。」\n\nアレックス|「…はい！」",
+     "translations": [
+      "Here it is.",
+      "It's busy.",
+      "The manager came over.",
+      "He's a big guy.",
+      "\"Alex?\"",
+      "\"Yes!\"",
+      "\"You like ramen?\"",
+      "\"Yes, I love it!\"",
+      "\"You start today, then.\"",
+      "\"…Yes!\""
+     ],
+     "meets": [
+      {
+       "name": "店長",
+       "about": "runs the ramen shop where Alex works"
+      }
+     ]
+    },
+    {
+     "id": "share-house-06",
+     "title": "First shift",
+     "body": "アレックス|「いらっしゃいませ！」\n\n「すみません！」\n\nアレックス|「はい！」\n\nアレックス|「ちょっと待ってください！」\n\n「すみません、ラーメン！」\n\nアレックス|「はい、ちょっと待ってください！」\n\nラーメン、ラーメン、ラーメン。\n\n店長|「アレックスさん、これ、お願いします！」\n\nアレックス|「はい！」\n\n人が多い！お腹がすいた…",
+     "translations": [
+      "\"Welcome!\"",
+      "\"Excuse me!\"",
+      "\"Coming!\"",
+      "\"Just a moment, please!\"",
+      "\"Excuse me, a ramen!\"",
+      "\"Yes, just a moment!\"",
+      "Ramen, ramen, ramen.",
+      "\"Alex, take this one, please!\"",
+      "\"Yes!\"",
+      "So many people!",
+      "I'm starving…"
+     ],
+     "topic": "te-kudasai"
+    },
+    {
+     "id": "share-house-07",
+     "title": "Game night",
+     "body": "ケンタの部屋。ゴミが多い。ゲームも多い。\n\nケンタ|「アレックス、これやる？」\n\nアレックス|「やる！」\n\nアレックス|「…負けた。」\n\nアレックス|「もう一回！」\n\nアレックス|「…負けた！」\n\nケンタ|「もう一回？」\n\nアレックス|「もう一回！」\n\n朝までゲームだった。",
+     "translations": [
+      "Kenta's room, that night.",
+      "There's a lot of trash.",
+      "And a lot of games.",
+      "\"Alex, want to play this?\"",
+      "\"Sure!\"",
+      "\"…I lost.\"",
+      "\"Again!\"",
+      "\"…Lost again!\"",
+      "\"One more?\"",
+      "\"One more!\"",
+      "We played until morning."
+     ]
+    },
+    {
+     "id": "share-house-08",
+     "title": "The manga shop",
+     "body": "今日は休み。\n\n駅のあっちに来た。\n\nマンガの店に来た。\n\n「いらっしゃいませ！」\n\nマンガが多い！店は大きくない。でも、いい店だ。\n\n店の人はミホさん。",
+     "translations": [
+      "It's my day off.",
+      "I went past the station.",
+      "I came to the manga shop.",
+      "\"Welcome!\"",
+      "So much manga!",
+      "The shop isn't big.",
+      "But it's a good one.",
+      "The clerk is Miho."
+     ],
+     "topic": "ni",
+     "meets": [
+      {
+       "name": "ミホ",
+       "about": "works at the manga shop, has recommendations"
+      }
+     ]
+    },
+    {
+     "id": "share-house-09",
+     "title": "Miho's pick",
+     "body": "アレックス|「すみません、ミホさん。」\n\nミホ|「はい？」\n\nミホ|「アレックスさん、マンガ好き？」\n\nアレックス|「好き！」\n\nミホ|「これ、好き？」\n\nアレックス|「好き！」\n\nミホ|「じゃあ、これも。おもしろいよ。」\n\nアレックス|「これもおもしろい？」\n\nミホ|「うん、おもしろいよ。」\n\nアレックス|「…買う！」\n\nアレックス|「これも買う！」",
+     "translations": [
+      "\"Excuse me, Miho.\"",
+      "\"Yes?\"",
+      "\"Alex, do you like manga?\"",
+      "\"I love it!\"",
+      "\"Do you like this one?\"",
+      "\"I love it!\"",
+      "\"Then this one too. It's good.\"",
+      "\"Is this one good too?\"",
+      "\"Yeah, it's good.\"",
+      "\"…I'll take it!\"",
+      "\"This one too!\""
+     ]
+    },
+    {
+     "id": "share-house-10",
+     "title": "The bass upstairs",
+     "body": "今夜は休み。\n\nミホさんのマンガだ。おもしろい！\n\nボン、ボン、ボン。\n\n「…うるさい。」\n\nユキのベースだ。\n\nボン、ボン、ボン、ボン。\n\nアレックス|「ユキ！」\n\nユキ|「あ、ごめん！」\n\nユキ|「ベース、うるさい？」\n\nアレックス|「ちょっとね。」\n\nユキ|「ごめんね。」",
+     "translations": [
+      "Tonight I'm off.",
+      "The manga Miho picked.",
+      "It's great!",
+      "Boom, boom, boom.",
+      "\"…So loud.\"",
+      "It's Yuki's bass.",
+      "Boom, boom, boom, boom.",
+      "\"Yuki!\"",
+      "\"Oh, sorry!\"",
+      "\"Is the bass too loud?\"",
+      "\"A little.\"",
+      "\"Sorry.\""
+     ]
+    },
+    {
+     "id": "share-house-11",
+     "title": "Laundry day",
+     "body": "今日は休み。\n\n洗濯は外だ。\n\nゲームをやった。\n\nユキ|「アレックス、雨、降ってるよ！」\n\nアレックス|「洗濯…外だ！」\n\nアレックス|「ちょっと待って！」\n\n外だ。雨が降ってる！洗濯、洗濯、洗濯！\n\nケンタ|「アレックス、うるさい。」\n\nアレックス|「ケンタ、ごめん！」",
+     "translations": [
+      "It's my day off.",
+      "My laundry's hanging outside.",
+      "I played games.",
+      "\"Alex, it's raining!\"",
+      "\"My laundry… it's outside!\"",
+      "\"Hang on!\"",
+      "Outside.",
+      "It's pouring!",
+      "Laundry, laundry, laundry!",
+      "\"Alex, you're so loud.\"",
+      "\"Sorry, Kenta!\""
+     ],
+     "topic": "te-iru"
+    },
+    {
+     "id": "share-house-12",
+     "title": "Yuki's gig",
+     "body": "ユキ|「今夜、ライブだよ。来る？」\n\nアレックス|「行く！」\n\nアレックス|「ユキのベース？」\n\nユキ|「うん、ベース。」\n\nユキ|「ケンタは？」\n\nケンタ|「…行く。」\n\nアレックス|「ミホさんも来る？」\n\nユキ|「来るよ。」\n\nアレックス|「楽しみ！」\n\nユキ|「ケンタも楽しみ？」\n\nケンタ|「…楽しみ。」\n\n今夜、ライブに来た。人が多い！\n\nボン、ボン、ボン。ユキのベースだ。\n\nケンタ|「うるさいね！」\n\nアレックス|「うるさい！でも、いい！」\n\nケンタも眠くない。",
+     "translations": [
+      "\"I've got a gig tonight. Coming?\"",
+      "\"I'll go!\"",
+      "\"You on bass?\"",
+      "\"Yeah, bass.\"",
+      "\"Kenta?\"",
+      "\"…I'll go.\"",
+      "\"Is Miho coming too?\"",
+      "\"She is.\"",
+      "\"Can't wait!\"",
+      "\"You too, Kenta?\"",
+      "\"…Yeah.\"",
+      "That night, we went to the gig.",
+      "It's packed!",
+      "Boom, boom, boom.",
+      "That's Yuki's bass.",
+      "\"It's loud!\"",
+      "\"So loud! But it's great!\"",
+      "Even Kenta isn't sleepy."
+     ]
+    },
+    {
+     "id": "share-house-13",
+     "title": "Spring",
+     "body": "春だ。外が、きれいだ。\n\n駅のあっちは、公園だ。\n\n公園の桜が、きれいだ。\n\nユキ|「アレックス、公園の桜、きれいだよ！」\n\nアレックス|「桜？行きたい！」\n\nケンタ|「…眠い。」\n\nユキ|「ケンタも行くよ！」\n\n公園に来た。人が多い！\n\n桜、桜、桜。春の日本は、きれいだ。\n\nケンタ|「…きれいだね。」\n\nケンタ|「眠くない。」",
+     "translations": [
+      "It's spring.",
+      "It's beautiful outside.",
+      "Past the station, there's a park.",
+      "The cherry blossoms in the park are beautiful.",
+      "\"Alex, the cherry blossoms in the park are beautiful!\"",
+      "\"Cherry blossoms? I want to go!\"",
+      "\"…Sleepy.\"",
+      "\"You're coming too, Kenta!\"",
+      "We came to the park.",
+      "So many people!",
+      "Cherry blossoms, everywhere.",
+      "Japan in spring is beautiful.",
+      "\"…It's pretty, huh.\"",
+      "\"I'm not sleepy.\""
+     ]
+    },
+    {
+     "id": "share-house-14",
+     "title": "Hanami",
+     "body": "今日は休みだ。\n\n春の公園は、いい。桜は、今日もきれいだ。\n\nミホさんが来た。\n\nミホ|「アレックスさん、桜は好きですか？」\n\nアレックス|「好きです！」\n\nミホ|「ユキさんは、友達ですか？」\n\nユキ|「友達だよ！」\n\nアレックス|「写真、撮りたい！」\n\nユキ|「いいね！撮って！」\n\nミホ|「ケンタさんは、どこですか？」\n\nユキ|「…ケンタは、眠い。」\n\n写真の桜も、きれいだ。",
+     "translations": [
+      "It's my day off.",
+      "The park in spring is lovely.",
+      "The cherry blossoms are beautiful again today.",
+      "Miho came.",
+      "\"Alex, do you like cherry blossoms?\"",
+      "\"I do!\"",
+      "\"Is Yuki your friend?\"",
+      "\"We're friends!\"",
+      "\"I want to take a picture!\"",
+      "\"Sure! Take one!\"",
+      "\"Where's Kenta?\"",
+      "\"…Kenta's sleepy.\"",
+      "The cherry blossoms in the photo are pretty too."
+     ],
+     "topic": "ka"
+    },
+    {
+     "id": "share-house-15",
+     "title": "A call from home",
+     "body": "今夜、電話が来た。カナダの母だ。\n\n母|「アレックス、元気？」\n\nアレックス|「元気だよ！」\n\n母|「日本、好き？」\n\nアレックス|「好き！ラーメンがうまい！」\n\n母|「友達は？」\n\nアレックス|「ユキ、ケンタ、ミホさん。いい友達だよ。」\n\n母|「バイトは？」\n\nアレックス|「バイトも好き。店長は、いい人だよ。」\n\nアレックス|「桜の写真も、撮ったよ！」\n\n母は元気だ。",
+     "translations": [
+      "Tonight I got a phone call.",
+      "It's my mom, in Canada.",
+      "\"Alex, how are you?\"",
+      "\"I'm good!\"",
+      "\"Do you like Japan?\"",
+      "\"I love it! The ramen is great!\"",
+      "\"And friends?\"",
+      "\"Yuki, Kenta, Miho. They're good friends.\"",
+      "\"And the job?\"",
+      "\"I like the job too. The manager's a good guy.\"",
+      "\"I took pictures of the cherry blossoms, too!\"",
+      "Mom's doing well."
+     ],
+     "meets": [
+      {
+       "name": "母",
+       "about": "Alex's mom, back in Canada"
+      }
+     ]
+    },
+    {
+     "id": "share-house-16",
+     "title": "Summer",
+     "body": "夏だ。暑い！\n\nアレックス|「ユキ、暑い…」\n\nユキ|「東京の夏は、暑いよ。」\n\nケンタ|「…暑い。眠くない。暑い。」\n\nアレックス|「水、飲みたい！」\n\nユキ|「コンビニに行く？」\n\nアレックス|「行く！」\n\nコンビニに来た。コンビニは暑くない！\n\nケンタ|「ここ、いいね…」\n\nケンタ|「今日は、ここだ。」\n\n水を買った。ビールも買った。\n\nユキ|「夏は、ビールがうまいね！」\n\nアレックス|「うまい！」",
+     "translations": [
+      "It's summer.",
+      "It's hot!",
+      "\"Yuki, it's so hot…\"",
+      "\"Tokyo summers are hot.\"",
+      "\"…Hot. Not sleepy. Hot.\"",
+      "\"I want some water!\"",
+      "\"Konbini?\"",
+      "\"Yes!\"",
+      "We went to the konbini.",
+      "The konbini isn't hot!",
+      "\"This place is nice…\"",
+      "\"I'm staying here today.\"",
+      "We bought water.",
+      "And beer.",
+      "\"Beer's great in summer!\"",
+      "\"So good!\""
+     ]
+    },
+    {
+     "id": "share-house-17",
+     "title": "The festival",
+     "body": "今夜は祭りだ。\n\nユキ|「公園で祭りだよ。行く？」\n\nアレックス|「行く！」\n\nケンタ|「暑い…でも、行く。」\n\n公園は人が多い！祭りだ！\n\nケンタ|「水…水を買う。」\n\n公園でラーメンを食べた。祭りのラーメンも、うまい。\n\nミホさんも来た。\n\nミホ|「アレックスさん、花火を見ますか？」\n\nアレックス|「花火？見たい！」\n\nミホ|「花火は、あっちで見ます。」",
+     "translations": [
+      "There's a festival tonight.",
+      "\"There's a festival in the park. Coming?\"",
+      "\"Yes!\"",
+      "\"Hot… but I'll go.\"",
+      "The park is packed!",
+      "It's a festival!",
+      "\"Water… I'm buying water.\"",
+      "We ate ramen in the park.",
+      "Festival ramen is good too.",
+      "Miho came too.",
+      "\"Alex, are you going to watch the fireworks?\"",
+      "\"Fireworks? I want to see them!\"",
+      "\"We watch them from over there.\""
+     ],
+     "topic": "de"
+    },
+    {
+     "id": "share-house-18",
+     "title": "Fireworks",
+     "body": "夜の公園。祭りの人が多い。\n\n空に、花火だ！\n\nアレックス|「きれい！」\n\nユキ|「きれいだね。」\n\n大きい花火だ。空が、きれいだ。\n\nケンタ|「…写真、撮る？」\n\nアレックス|「撮る！一緒に！」\n\n一緒に写真を撮った。\n\nミホ|「いい写真ですね。」\n\nユキ|「いい夜だね。」\n\n夏の夜は、暑い。でも、いい夜だ。",
+     "translations": [
+      "The park at night.",
+      "The festival crowds are huge.",
+      "Fireworks in the sky!",
+      "\"Beautiful!\"",
+      "\"They are.\"",
+      "Big fireworks.",
+      "The sky is beautiful.",
+      "\"…Want to take a picture?\"",
+      "\"Yeah! All of us together!\"",
+      "We took a picture together.",
+      "\"That's a nice photo.\"",
+      "\"What a nice night.\"",
+      "Summer nights are hot.",
+      "But it's a good night."
+     ]
+    },
+    {
+     "id": "share-house-19",
+     "title": "Kenta's interview",
+     "body": "朝、ケンタが来た。\n\nケンタ|「今日、会社に行く。」\n\nアレックス|「会社？ケンタが？」\n\nケンタ|「うん。ゲームの会社。仕事だよ。」\n\nアレックス|「ゲームの会社！いいね！」\n\nケンタ|「でも、朝だ。眠い…」\n\nユキ|「ケンタ、元気？」\n\nケンタ|「…眠い。」\n\nユキ|「コーヒー、飲む？」\n\nケンタ|「…飲む。」\n\nアレックス|「ケンタ、頑張って！」\n\nユキ|「頑張ってね！」\n\n夜、ケンタが来た。\n\nアレックス|「仕事は？」\n\nケンタ|「…わからない。」\n\nケンタ|「でも、頑張った。」\n\nユキ|「今夜は、ラーメンだね！」",
+     "translations": [
+      "In the morning, Kenta came by.",
+      "\"I'm going to a company today.\"",
+      "\"A company? You?\"",
+      "\"Yeah. A game company. For a job.\"",
+      "\"A game company! Nice!\"",
+      "\"But it's morning. I'm sleepy…\"",
+      "\"Kenta, you okay?\"",
+      "\"…Sleepy.\"",
+      "\"Coffee?\"",
+      "\"…Yes.\"",
+      "\"Good luck, Kenta!\"",
+      "\"Do your best!\"",
+      "That night, Kenta came back.",
+      "\"So, the job?\"",
+      "\"…No idea.\"",
+      "\"But I did my best.\"",
+      "\"Ramen tonight, then!\""
+     ]
+    },
+    {
+     "id": "share-house-20",
+     "title": "Autumn",
+     "body": "秋だ。朝は寒い。\n\nケンタ|「アレックス！会社から、電話が来た！」\n\nアレックス|「仕事は？」\n\nケンタ|「今日から、仕事だ！」\n\nアレックス|「ケンタ、いいね！」\n\nケンタ|「朝は眠いから、コーヒーを飲む。」\n\nユキ|「今夜は、ラーメンだよ！」\n\nユキ|「寒いから、ラーメンがうまいね。」\n\n秋の夜。母から、電話が来た。\n\n母|「アレックス、カナダに帰る？」\n\nアレックス|「…うん。帰る。」\n\n寒い夜だ。",
+     "translations": [
+      "It's autumn.",
+      "The mornings are cold.",
+      "\"Alex! The company called!\"",
+      "\"The job?\"",
+      "\"I start today!\"",
+      "\"Kenta, that's great!\"",
+      "\"Mornings make me sleepy, so I'm having coffee.\"",
+      "\"Ramen tonight!\"",
+      "\"It's cold, so the ramen tastes great.\"",
+      "An autumn night.",
+      "Mom called.",
+      "\"Alex, are you coming home to Canada?\"",
+      "\"…Yeah. I'm coming home.\"",
+      "It's a cold night."
+     ],
+     "topic": "kara-because"
+    },
+    {
+     "id": "share-house-21",
+     "title": "Yuki's song",
+     "body": "秋の夜。\n\nボン、ボン、ボン。ユキのベースだ。\n\nアレックス|「新しい曲？」\n\nユキ|「うん、新しい曲だよ。」\n\nユキ|「ライブの曲だよ。」\n\nアレックス|「ユキが歌う？」\n\nユキ|「歌わない！ベースだから。」\n\nユキ|「でも、アレックスの曲だよ。」\n\nアレックス|「アレックスの曲？」\n\nユキ|「うん。アレックスが帰るから。」\n\nアレックス|「ユキ…ありがとう。」\n\nユキ|「ケンタも、ミホさんも、来るよ。」\n\nボン、ボン。新しい曲は、きれいだ。",
+     "translations": [
+      "An autumn night.",
+      "Boom, boom, boom.",
+      "It's Yuki's bass.",
+      "\"A new song?\"",
+      "\"Yeah, a new song.\"",
+      "\"It's for a gig.\"",
+      "\"Are you singing?\"",
+      "\"No! I play bass.\"",
+      "\"But it's your song.\"",
+      "\"My song?\"",
+      "\"Yeah. Because you're going home.\"",
+      "\"Yuki… thank you.\"",
+      "\"Kenta and Miho are coming too.\"",
+      "Boom, boom.",
+      "The new song is beautiful."
+     ]
+    },
+    {
+     "id": "share-house-22",
+     "title": "Snow",
+     "body": "冬だ。外は、雪だ！\n\nアレックス|「雪！東京に雪！」\n\nユキ|「寒いね。」\n\n空から、雪。外がきれいだ。\n\nケンタ|「寒いから、ゲーム。」\n\nアレックス|「ケンタ、仕事は？」\n\nケンタ|「今日は休み。」\n\nユキ|「アレックス、来年は？」\n\nアレックス|「来年は…カナダ。」\n\nユキ|「…寒いね。」\n\n一緒に、外の雪を見た。\n\nケンタ|「来年も、一緒にゲーム…」\n\nアレックス|「うん！カナダから！」\n\n雪がきれいだ。",
+     "translations": [
+      "It's winter.",
+      "It's snowing outside!",
+      "\"Snow! Snow in Tokyo!\"",
+      "\"It's cold, huh.\"",
+      "Snow, from the sky.",
+      "It's beautiful out there.",
+      "\"It's cold, so: games.\"",
+      "\"Kenta, what about work?\"",
+      "\"Day off today.\"",
+      "\"Alex, what about next year?\"",
+      "\"Next year… Canada.\"",
+      "\"…It's cold.\"",
+      "Together, we watched the snow.",
+      "\"Next year too… games together…\"",
+      "\"Yeah! From Canada!\"",
+      "The snow is beautiful."
+     ]
+    },
+    {
+     "id": "share-house-23",
+     "title": "The last shift",
+     "body": "今日は、最後のバイトだ。\n\nアレックス|「いらっしゃいませ！」\n\nラーメン、ラーメン、ラーメン。\n\n店長|「アレックスさん、今日は最後ですね。」\n\nアレックス|「はい…」\n\n店長|「寂しいです。」\n\nアレックス|「店長とラーメン、本当に好きでした。」\n\n店長|「最後のラーメン、うまいですよ。」\n\n店長|「最後のラーメン、食べますか？」\n\nアレックス|「食べます！」\n\nユキとケンタが来た。ミホさんも来た。\n\nミホ|「アレックスさん、本当に帰りますか？」\n\nアレックス|「本当に、帰ります。」\n\nミホ|「寂しいですね。」\n\nユキとケンタと、最後のラーメンを食べた。",
+     "translations": [
+      "Today is my last shift.",
+      "\"Welcome!\"",
+      "Ramen, ramen, ramen.",
+      "\"Alex, today's your last day.\"",
+      "\"Yes…\"",
+      "\"We'll miss you.\"",
+      "\"I really loved the ramen, and working with you.\"",
+      "\"The last ramen's a good one.\"",
+      "\"One last ramen?\"",
+      "\"Yes, please!\"",
+      "Yuki and Kenta came.",
+      "Miho too.",
+      "\"Alex, are you really going home?\"",
+      "\"I really am.\"",
+      "\"We'll miss you.\"",
+      "With Yuki and Kenta, I ate one last ramen."
+     ],
+     "topic": "to"
+    },
+    {
+     "id": "share-house-24",
+     "title": "Goodbye",
+     "body": "朝だ。最後の朝だ。\n\n冬の朝は、寒い。外は、雪だ。\n\nユキ|「コーヒー、飲む？」\n\nアレックス|「飲む。ありがとう。」\n\nケンタ|「おはよう…」\n\nアレックス|「ケンタ、朝だよ！眠くない？」\n\nケンタ|「今日は、眠くない。」\n\n駅に来た。ミホさんも来た。\n\nミホ|「アレックスさん、これ、マンガです。」\n\nアレックス|「ありがとう！」\n\nユキ|「アレックス、来年も来てね。」\n\nアレックス|「来る！本当に！」\n\nケンタ|「…寂しい。」\n\n一緒に、最後の写真を撮った。\n\n空港に来た。\n\n成田だ。大きい空港だ。人、人、人。\n\n写真を見た。ユキ、ケンタ、ミホさん。\n\n来年、来る。\n\n夜。ユキの部屋。\n\nボン、ボン。\n\nユキ|「新しい曲…ユキが歌う？」\n\nユキ|「来年も、頑張る！」",
+     "translations": [
+      "It's morning.",
+      "My last morning.",
+      "Winter mornings are cold.",
+      "It's snowing.",
+      "\"Coffee?\"",
+      "\"Yes. Thanks.\"",
+      "\"Morning…\"",
+      "\"Kenta, it's morning! Not sleepy?\"",
+      "\"Not today.\"",
+      "We came to the station.",
+      "Miho came too.",
+      "\"Alex, here's some manga for you.\"",
+      "\"Thank you!\"",
+      "\"Alex, come back next year.\"",
+      "\"I will! Really!\"",
+      "\"…I'll miss you.\"",
+      "We took one last picture together.",
+      "I came to the airport.",
+      "Narita.",
+      "A big airport.",
+      "People, people, people.",
+      "I looked at the photo.",
+      "Yuki, Kenta, Miho.",
+      "I'll be back next year.",
+      "That night.",
+      "Yuki's room.",
+      "Boom, boom.",
+      "\"The new song… should I sing it?\"",
+      "\"Next year, I'll keep at it!\""
+     ]
+    }
+   ]
+  },
+  {
+   "id": "midnight-konbini",
+   "title": "Midnight konbini",
+   "blurb": "Jet lag, an empty stomach, and a konbini that never closes.",
+   "after": [
+    "arrival"
+   ],
+   "chapters": [
+    {
+     "id": "midnight-konbini-01",
+     "title": "Midnight konbini",
+     "body": "お腹すいた。\n\n外は…東京だ。ビルが高い。\n\nコンビニはどこ？わからない。あ、あっちだ！\n\n「いらっしゃいませ！」\n\n人は多くない。コンビニ、いい。\n\nラーメンだ。大きいラーメンだ！食べたい！\n\nついに、ラーメン！",
+     "translations": [
+      "I'm hungry.",
+      "Outside… Tokyo.",
+      "Tall buildings.",
+      "Where's a konbini?",
+      "No idea.",
+      "Oh, over there!",
+      "\"Welcome!\"",
+      "Not many people.",
+      "I love konbini.",
+      "Ramen.",
+      "A big ramen!",
+      "I want it!",
+      "Ramen, at last!"
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "rush-hour",
+   "title": "Rush hour",
+   "blurb": "Alex and Yuki try to meet at the station at the worst possible time.",
+   "after": [
+    "arrival"
+   ],
+   "chapters": [
+    {
+     "id": "rush-hour-01",
+     "title": "Rush hour",
+     "body": "駅だ。人が多い！\n\n人、人、人。\n\nユキはどこ？わからない！\n\nあっち？あっちは人が多い。\n\n駅は大きい。ここ、どこ？\n\n「アレックス！」\n\nあ、ユキだ。\n\nユキ|「人、多いね。」\n\nアレックス|「多い！」\n\nユキ|「お腹すいた？」\n\nアレックス|「すいた。」\n\nユキ|「ラーメン？」\n\nアレックス|「ラーメン！」",
+     "translations": [
+      "The station.",
+      "So many people!",
+      "People, people, people.",
+      "Where's Yuki?",
+      "No idea!",
+      "That way?",
+      "That way's packed.",
+      "The station is huge.",
+      "Where am I?",
+      "\"Alex!\"",
+      "Oh, there's Yuki.",
+      "\"So crowded, huh.\"",
+      "\"So crowded!\"",
+      "\"Hungry?\"",
+      "\"Yeah.\"",
+      "\"Ramen?\"",
+      "\"Ramen!\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "seconds",
+   "title": "Seconds",
+   "blurb": "One bowl was not enough.",
+   "after": [
+    "ramen-night"
+   ],
+   "chapters": [
+    {
+     "id": "seconds-01",
+     "title": "Seconds",
+     "body": "ラーメンを食べた。うまかった。\n\nユキ|「アレックス、お腹は？」\n\nアレックス|「…すいた。」\n\nユキ|「卵、食べたい？」\n\nアレックス|「食べたい！」\n\nユキ|「ラーメンも？」\n\nアレックス|「…うん、ラーメンも！」\n\nチケットを買う。\n\n店長が来た。\n\n店長|「うまい？」\n\nアレックス|「うまい！熱い！」\n\n店長|「ゆっくり食べて。」\n\n店長|「アレックス、バイトは？」\n\nアレックス|「やりたい！」\n\nユキ|「お腹、大きいね。」\n\nアレックス|「…うん。」",
+     "translations": [
+      "I ate my ramen.",
+      "It was great.",
+      "\"How's your stomach, Alex?\"",
+      "\"…Still hungry.\"",
+      "\"Want an egg?\"",
+      "\"Yes!\"",
+      "\"More ramen too?\"",
+      "\"…Yeah, ramen too!\"",
+      "Another ticket.",
+      "The manager came over.",
+      "\"Good?\"",
+      "\"Great! Hot!\"",
+      "\"Eat slowly.\"",
+      "\"Alex, about the job?\"",
+      "\"I want it!\"",
+      "\"Your belly's huge.\"",
+      "\"…Yeah.\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "kentas-side",
+   "title": "Kenta's side",
+   "blurb": "Game night, from next door.",
+   "after": [
+    "share-house-07"
+   ],
+   "chapters": [
+    {
+     "id": "kentas-side-01",
+     "title": "Kenta's side",
+     "body": "ゲームは好き。\n\n朝は眠い。今日も眠い。\n\nユキのコーヒーは好き。\n\n部屋はゴミが多い。でも、ゲームも多い。\n\n今夜もゲームだ。\n\nアレックスが来た。\n\nケンタ|「これ、やる？」\n\nアレックス|「やる！」\n\nアレックスが負けた。\n\nケンタ|「…もう一回？」\n\nアレックス|「もう一回！」\n\n朝までゲームだった。\n\n「おはよう…」\n\n「眠い…」",
+     "translations": [
+      "I like games.",
+      "Mornings, I'm sleepy.",
+      "Today too.",
+      "I like Yuki's coffee.",
+      "My room's full of trash.",
+      "But it's full of games too.",
+      "Games tonight too.",
+      "Alex came over.",
+      "\"Want to play this?\"",
+      "\"Sure!\"",
+      "Alex lost.",
+      "\"…Again?\"",
+      "\"Again!\"",
+      "We played until morning.",
+      "\"Morning…\"",
+      "\"So sleepy…\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "day-off",
+   "title": "Day off",
+   "blurb": "No shift, no plans, and Yuki has coffee on.",
+   "after": [
+    "share-house-12"
+   ],
+   "chapters": [
+    {
+     "id": "day-off-01",
+     "title": "Day off",
+     "body": "朝だ。今日は休み。\n\nユキ|「アレックス、コーヒー飲む？」\n\nアレックス|「飲む！ありがとう。」\n\nユキ|「今日は休み？」\n\nアレックス|「うん、休み。」\n\nアレックス|「雨は？」\n\nユキ|「降ってないよ。」\n\nアレックス|「じゃあ、洗濯！」\n\nアレックス|「今日はゴミ？」\n\nユキ|「ゴミは朝だったよ。」\n\nユキ|「マンガの店に行く？」\n\nアレックス|「行く！」\n\nアレックス|「ユキも行く？」\n\nユキ|「…行く。」\n\nアレックス|「ケンタは？」\n\nケンタ|「眠い…」\n\nユキ|「じゃあ、ケンタは部屋だね。」\n\nアレックス|「ユキ、ライブは？」\n\nユキ|「今夜も！」\n\nアレックス|「楽しみ！」",
+     "translations": [
+      "Morning.",
+      "Day off today.",
+      "\"Alex, coffee?\"",
+      "\"Yes! Thanks.\"",
+      "\"Day off today?\"",
+      "\"Yeah, day off.\"",
+      "\"Is it raining?\"",
+      "\"Nope.\"",
+      "\"Laundry, then!\"",
+      "\"Is it trash day?\"",
+      "\"That was this morning.\"",
+      "\"Going to the manga shop?\"",
+      "\"Yeah!\"",
+      "\"You coming too, Yuki?\"",
+      "\"…Sure.\"",
+      "\"Kenta?\"",
+      "\"Sleepy…\"",
+      "\"Then Kenta's staying in his room.\"",
+      "\"Yuki, any gigs coming up?\"",
+      "\"Tonight too!\"",
+      "\"Can't wait!\""
+     ]
+    }
+   ],
+   "side": true
+  }
+ ],
+ "grammar": [
+  {
+   "id": "ta",
+   "title": "～た",
+   "title_en": "Did",
+   "points": [
+    "ta"
+   ],
+   "summary": "た on the end of a verb puts it in the past, the way friends say it: 来る (come), 来た (came).",
+   "body": "ついに来た！\nお腹すいた。",
+   "translations": [
+    "I'm finally here!",
+    "I'm hungry. (My stomach has emptied.)"
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "Verbs change their endings to say when, and whether, something happens. The plain past ends in た, or だ after some verbs."
+    },
+    {
+     "before": 2,
+     "text": "This plain form is what you use with friends. The polite past, ～ました, comes later."
+    }
+   ]
+  },
+  {
+   "id": "da",
+   "title": "だ / です",
+   "title_en": "Is",
+   "points": [
+    "desu"
+   ],
+   "summary": "だ ends a sentence that says what something is: 成田だ, it's Narita. Friends say だ or leave it off; strangers and staff say です.",
+   "body": "成田だ。\nいい部屋だ！",
+   "translations": [
+    "It's Narita.",
+    "It's a nice room!"
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "だ comes at the very end of the sentence. In casual talk it's often left off, especially in questions."
+    },
+    {
+     "before": 2,
+     "text": "です means the same thing, politely. You'll hear it from staff and strangers."
+    }
+   ]
+  },
+  {
+   "id": "wa",
+   "title": "は",
+   "title_en": "As for…",
+   "points": [
+    "wa"
+   ],
+   "summary": "は marks what you're talking about. It's written は but said \"wa\". On its own with a rising voice, it asks \"what about…?\"",
+   "body": "駅は？\n外は山だ。",
+   "translations": [
+    "Where's the station? (What about the station?)",
+    "Outside, it's mountains."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "The topic comes first, then は, then what you say about it."
+    }
+   ]
+  },
+  {
+   "id": "ga",
+   "title": "が",
+   "title_en": "Who or what",
+   "points": [
+    "ga"
+   ],
+   "summary": "が points at who or what does something, or what a description is about: 人が多い, there are lots of people.",
+   "body": "人が多い。\nビルが高い。",
+   "translations": [
+    "There are a lot of people.",
+    "The buildings are tall."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "は sets the topic for what follows; が picks out the one thing the sentence is about. Often either works, with a slightly different feel."
+    }
+   ]
+  },
+  {
+   "id": "nai",
+   "title": "～ない",
+   "title_en": "Not",
+   "points": [
+    "nai"
+   ],
+   "summary": "ない on a verb makes it negative, the way friends say it: わかる (understand), わからない (don't understand).",
+   "body": "わからない。\nいない。",
+   "translations": [
+    "I don't know.",
+    "Nobody's here."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "The verb's ending changes before ない. For る verbs, drop る: 食べる, 食べない. For others, the last sound moves to the \"a\" row: わかる, わからない."
+    }
+   ]
+  },
+  {
+   "id": "yo-ne",
+   "title": "よ / ね",
+   "title_en": "You know / right?",
+   "points": [
+    "yo",
+    "ne"
+   ],
+   "summary": "よ at the end tells someone something they don't know yet. ね looks for agreement, like \"right?\" or \"huh\".",
+   "body": "ユキだよ。\nいい部屋だね。",
+   "translations": [
+    "I'm Yuki.",
+    "It's a nice room, huh."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "よ is friendly emphasis: you're filling the listener in."
+    },
+    {
+     "before": 2,
+     "text": "ね assumes the listener sees it the same way."
+    }
+   ]
+  },
+  {
+   "id": "no",
+   "title": "の",
+   "title_en": "'s, of",
+   "points": [
+    "no"
+   ],
+   "summary": "の joins two nouns, like 's or \"of\": アレックスの部屋, Alex's room.",
+   "body": "アレックスの部屋。\nここのラーメン。",
+   "translations": [
+    "Alex's room.",
+    "The ramen here."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "The first noun owns or describes the second."
+    }
+   ]
+  },
+  {
+   "id": "tai",
+   "title": "～たい",
+   "title_en": "Want to",
+   "points": [
+    "tai"
+   ],
+   "summary": "たい on a verb's stem means you want to do it: 食べる, 食べたい, want to eat.",
+   "body": "ラーメン、食べたい？",
+   "translations": [
+    "Want some ramen?"
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "Drop る from a る verb, or move other verbs to their \"i\" sound, and add たい: やる, やりたい."
+    },
+    {
+     "before": 1,
+     "text": "It changes like an adjective: 食べたくない is \"don't want to eat\"."
+    }
+   ]
+  },
+  {
+   "id": "wo",
+   "title": "を",
+   "title_en": "Object",
+   "points": [
+    "wo"
+   ],
+   "summary": "を marks what a verb is done to: ラーメンを食べる, eat ramen. It's said \"o\".",
+   "body": "ラーメンを食べる。",
+   "translations": [
+    "I eat ramen."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "Friends often drop it: ラーメン、食べる？ means the same."
+    }
+   ]
+  },
+  {
+   "id": "mo",
+   "title": "も",
+   "title_en": "Too, also",
+   "points": [
+    "mo"
+   ],
+   "summary": "も means \"too\" or \"also\", in place of は, が or を: これも, this too.",
+   "body": "ラーメンも食べたい。\nこれも！",
+   "translations": [
+    "I want ramen too.",
+    "This one too!"
+   ],
+   "notes": []
+  },
+  {
+   "id": "masu",
+   "title": "です / ます",
+   "title_en": "Polite speech",
+   "points": [
+    "masu"
+   ],
+   "summary": "Staff, strangers and bosses speak politely: verbs end in ます, and \"is\" is です. You'll hear it long before you need to say it.",
+   "body": "バイト、やります？\n今日から、お願いします。",
+   "translations": [
+    "Would you like the job?",
+    "Starting today, please."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "ます goes on a verb's stem, the same stem as たい: 食べます, 飲みます. Its negative is ません, and its past is ました."
+    },
+    {
+     "before": 1,
+     "text": "Friends would say the plain form instead. Using ます with friends sounds distant; leaving it off with strangers sounds rude."
+    }
+   ]
+  },
+  {
+   "id": "te-kudasai",
+   "title": "～てください",
+   "title_en": "Please do",
+   "points": [
+    "te-kudasai"
+   ],
+   "summary": "A verb's て form plus ください politely asks someone to do something. Friends just use the て form.",
+   "body": "ちょっと待ってください！",
+   "translations": [
+    "Just a moment, please!"
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "The て form of 待つ is 待って. With friends, 待って on its own is enough."
+    }
+   ]
+  },
+  {
+   "id": "ni",
+   "title": "に",
+   "title_en": "To, at",
+   "points": [
+    "ni"
+   ],
+   "summary": "に marks where something goes, or where it is: 店に来た, came to the shop.",
+   "body": "マンガの店に来た。",
+   "translations": [
+    "I came to the manga shop."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "It also marks times: 朝に, in the morning. In casual talk it's sometimes dropped after places."
+    }
+   ]
+  },
+  {
+   "id": "te-iru",
+   "title": "～てる / ～ている",
+   "title_en": "Is doing",
+   "points": [
+    "te-iru"
+   ],
+   "summary": "A verb's て form plus いる says something is going on now. Friends shorten ている to てる.",
+   "body": "雨、降ってるよ！",
+   "translations": [
+    "It's raining!"
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "It can also mean a state that's ongoing: 知ってる, I know (I'm in the state of having learned it)."
+    }
+   ]
+  },
+  {
+   "id": "ka",
+   "title": "か",
+   "title_en": "Question",
+   "points": [
+    "ka"
+   ],
+   "summary": "か at the end of a polite sentence makes it a question: 好きです, I like it; 好きですか, do you like it?",
+   "body": "桜は好きですか？",
+   "translations": [
+    "Do you like cherry blossoms?"
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "With friends, a rising voice is enough: 好き？ か on a plain sentence can sound blunt, so it mostly goes with です and ます."
+    }
+   ]
+  },
+  {
+   "id": "de",
+   "title": "で",
+   "title_en": "At, in",
+   "points": [
+    "de"
+   ],
+   "summary": "で marks where something happens: 公園で食べた, ate in the park. に is where something is or goes; で is where it's done.",
+   "body": "公園でラーメンを食べた。",
+   "translations": [
+    "I ate ramen in the park."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "で also marks what you use to do something, but that comes later."
+    }
+   ]
+  },
+  {
+   "id": "kara-because",
+   "title": "から",
+   "title_en": "Because, so",
+   "points": [
+    "kara-because"
+   ],
+   "summary": "から after a reason means \"because\", and what follows is what happens: 寒いから, because it's cold.",
+   "body": "寒いから、ラーメンがうまい。",
+   "translations": [
+    "It's cold, so ramen tastes great."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "It's the same から as \"from\": the reason is where the rest comes from. It can end a sentence too: ベースだから。, because I play bass."
+    }
+   ]
+  },
+  {
+   "id": "to",
+   "title": "と",
+   "title_en": "And, with",
+   "points": [
+    "to"
+   ],
+   "summary": "と joins nouns, \"A and B\", or marks who you do something with: 店長と, with the manager.",
+   "body": "店長とラーメンを食べた。",
+   "translations": [
+    "I ate ramen with the manager."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "It joins whole lists, unlike や, which only gives examples. For \"together\", 一緒に often comes after it."
+    }
+   ]
+  },
+  {
+   "id": "kara-made",
+   "title": "から / まで",
+   "title_en": "From, until",
+   "points": [
+    "kara-from",
+    "made"
+   ],
+   "summary": "から marks where or when something starts; まで, where or when it ends: 朝まで, until morning.",
+   "body": "朝までゲーム。",
+   "translations": [
+    "Games until morning."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "They work with places and times, together or apart."
+    }
+   ]
+  }
+ ]
+}

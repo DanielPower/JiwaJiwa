@@ -368,11 +368,47 @@ internal object Grammar {
 
         // The copula and sentence endings.
         point(
+            "desu", "です / だ", 5, "is",
+            "Ends a sentence that says what something is: \"X is Y\". です is polite and だ is plain. After an i-adjective, です only adds politeness.",
+            "これは本です。", "This is a book.",
+            // Not なら (if) or the な after a na-adjective, which are other forms of だ.
+            listOf(Step(false) { it.pos == "助動詞" && it.type in setOf("特殊・デス", "特殊・ダ") && it.form !in setOf("仮定形", "体言接続") }),
+            // Not the でし in ～ませんでした, which is part of the verb's polite past.
+            before = { it.base != "ん" },
+        )
+        point(
             "janai", "～じゃない / ではない", 5, "is not",
             "The negative of だ and です after a noun or na-adjective. ではない and ではありません are more formal than じゃない.",
             "私は先生じゃないです。", "I'm not a teacher.",
             listOf(particle("じゃ", pos2 = "副助詞"), Step(false) { it.base == "ない" || it.base == "ある" }),
             listOf(base("で"), particle("は"), Step(false) { it.base == "ない" || it.base == "ある" }),
+        )
+        point(
+            "nai", "～ない", 5, "not (plain)",
+            "The plain negative of a verb, as friends say it: 食べる, 食べない.",
+            "肉は食べない。", "I don't eat meat.",
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ナイ" }),
+        )
+        point(
+            "ta", "～た", 5, "did (plain past)",
+            "The plain past of a verb or adjective, as friends say it: 食べる, 食べた. After some verbs it's だ (読んだ).",
+            "もう食べた。", "I already ate.",
+            // Not たら, which is its own point.
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・タ" && it.form != "仮定形" }),
+        )
+        point(
+            "tai", "～たい", 5, "want to",
+            "On a verb's stem: you want to do it. It changes like an i-adjective: 食べたい, 食べたくない, 食べたかった.",
+            "ラーメン食べたい。", "I want ramen.",
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・タイ" }),
+        )
+        point(
+            "masu", "～ます", 5, "polite verb ending",
+            "The polite form of a verb, used with strangers, staff and at work: 食べます, 食べません, 食べました.",
+            "これ、お願いします。", "This one, please.",
+            // Not set phrases learned whole: いらっしゃいませ, ありがとうございます.
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・マス" && !it.form.startsWith("命令") }),
+            before = { it.base != "ござる" },
         )
         point(
             "masenka", "～ませんか", 5, "won't you…?, shall we…?",
@@ -747,3 +783,6 @@ internal object Grammar {
     /** Every point, for listing and tests. */
     val points: List<GrammarPoint> get() = rules.map { it.point }.distinctBy { it.id }
 }
+
+/** The grammar point with [id], such as "wa" for the particle は. */
+fun grammarPoint(id: String): GrammarPoint? = Grammar.points.firstOrNull { it.id == id }

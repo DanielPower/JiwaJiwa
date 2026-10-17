@@ -31,10 +31,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ca.danielpower.jstudy.core.Speech
 import ca.danielpower.jstudy.core.VerticalRun
 import ca.danielpower.jstudy.core.VerticalSpot
 import ca.danielpower.jstudy.core.VerticalText
 import ca.danielpower.jstudy.data.StoryReading
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 // Compose has no vertical writing mode, so stories are set here by hand: each
@@ -98,8 +100,9 @@ fun VerticalStory(
     onTap: (p: Int, i: Int) -> Unit,
     onHold: (p: Int, i: Int) -> Unit,
     onBlank: () -> Unit,
-    end: @Composable () -> Unit,
-    onEnd: () -> Unit,
+    onFinish: () -> Unit,
+    startPage: Int,
+    onPageShown: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pieces = remember(reading) { pieces(reading) }
@@ -117,7 +120,22 @@ fun VerticalStory(
         // Keep one cell spare at the foot for hanging punctuation.
         val rows = ((height / cell).toInt() - 1).coerceAtLeast(4)
         val perPage = ((width + gap) / (colWidth + gap)).toInt().coerceAtLeast(1)
-        val spots = remember(pieces, rows) { VerticalText.place(pieces.map { VerticalRun(it.chars, it.paragraphStart) }, rows) }
+        // Script style: a line of dialogue starts with its speaker's name at the
+        // top of the column, and the quotes in a run of dialogue all start level,
+        // below its longest name. A quote that runs on carries on a cell lower.
+        val nameRows = remember(reading) {
+            Speech.columns(reading.speakers) { it.characters().size * NAME_RATIO }.map { it?.let { r -> ceil(r + NAME_GAP).toInt() } }
+        }
+        val spots = remember(pieces, rows) {
+            VerticalText.place(
+                pieces.map { piece ->
+                    val names = nameRows[piece.p]
+                    if (names == null) VerticalRun(piece.chars, piece.paragraphStart)
+                    else VerticalRun(piece.chars, piece.paragraphStart, indent = names, wrapIndent = names + 1)
+                },
+                rows,
+            )
+        }
         // The pieces on each page, by index.
         val pages = remember(spots, perPage) {
             val count = (spots.maxOfOrNull { it.col } ?: 0) / perPage + 1
@@ -132,9 +150,22 @@ fun VerticalStory(
         val ink = LocalContentColor.current
         val seal = MaterialTheme.colorScheme.primary
         val highlight = seal.copy(alpha = 0.14f)
+        val nameColor = speakerColor()
+        val nameCell = cell * NAME_RATIO
+        val nameCellDp = with(density) { nameCell.toDp() }
 
-        StoryPager(pages.size, reverse = true, end, onEnd) { page ->
-            val onPage = pages[page]
+        // The finish stamp stands in the column after the text, or on a page of its own when that's full.
+        val lastCol = spots.maxOfOrNull { it.col }
+        val stampWidth = with(density) { STAMP_DOWN_WIDTH.toPx() }
+        val stampX = lastCol?.let { right - (it % perPage + 1) * (colWidth + gap) - stampWidth }
+        val stampPage = stampX == null || stampX < 0f
+        val count = pages.size + if (stampPage) 1 else 0
+
+        StoryPager(count, reverse = true, startPage, onPageShown) { page ->
+            val onPage = pages.getOrNull(page).orEmpty()
+            // Speakers whose lines start on this page, by the piece their line starts with.
+            val names = onPage.filter { pieces[it].paragraphStart && reading.speakers.getOrNull(pieces[it].p) != null }
+            val hasStamp = page == count - 1
             Layout(
                 modifier = Modifier.fillMaxSize().padding(PAGE_PADDING),
                 content = {
@@ -159,6 +190,14 @@ fun VerticalStory(
                             ),
                         )
                     }
+                    names.forEach { k ->
+                        Column {
+                            for (c in reading.speakers[pieces[k].p].orEmpty().characters()) {
+                                Glyph(c, (size * NAME_RATIO).sp, family, nameCellDp, nameColor)
+                            }
+                        }
+                    }
+                    if (hasStamp) FinishStamp(vertical = true, onClick = onFinish)
                 },
             ) { measurables, constraints ->
                 fun left(spot: VerticalSpot): Float {
@@ -169,15 +208,28 @@ fun VerticalStory(
                 // pieces meet exactly: rounding the height on its own left
                 // highlighted words with a pixel of overlap or gap between them.
                 fun top(row: Int) = (row * cell).roundToInt()
-                val placeables = measurables.mapIndexed { n, m ->
+                val placeables = measurables.take(onPage.size).mapIndexed { n, m ->
                     val row = spots[onPage[n]].row
                     val height = top(row + pieces[onPage[n]].chars.size) - top(row)
                     m.measure(Constraints.fixed(colWidth.roundToInt(), height))
                 }
+                val nameables = measurables.drop(onPage.size).take(names.size).map { it.measure(Constraints()) }
+                val stamp = measurables.getOrNull(onPage.size + names.size)?.measure(Constraints())
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeables.forEachIndexed { n, placeable ->
                         val spot = spots[onPage[n]]
                         placeable.place(left(spot).roundToInt(), top(spot.row))
+                    }
+                    // Each name at the top of its line's first column, centred on the text's cells.
+                    nameables.forEachIndexed { n, placeable ->
+                        val x = left(spots[names[n]]) + (cell - nameCell) / 2
+                        placeable.place(x.roundToInt(), 0)
+                    }
+                    if (stamp != null) {
+                        // Centred in its room, a row down from the top, as a seal sits beside the text.
+                        val room = if (stampPage) (width - stampWidth) / 2 else stampX!!
+                        val x = room + (stampWidth - stamp.width) / 2
+                        stamp.place(x.roundToInt(), cell.roundToInt())
                     }
                 }
             }

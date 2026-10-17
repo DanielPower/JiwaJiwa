@@ -6,7 +6,6 @@ import ca.danielpower.jstudy.core.Kana
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.Lexicon
 import ca.danielpower.jstudy.core.LexiconMatch
-import ca.danielpower.jstudy.core.VocabWord
 import org.json.JSONArray
 import java.io.File
 
@@ -41,8 +40,6 @@ data class Entry(
     val secondary: String?,
     val gloss: String,
     val jlpt: Int,
-    /** Int.MAX_VALUE for words that aren't on the JLPT lists. */
-    val studyOrder: Int,
 )
 
 /** "N5" to "N1", or "Other" for a word that isn't on the JLPT lists. */
@@ -119,51 +116,13 @@ class Dictionary(context: Context) : Lexicon {
         return word.copy(senses = senses)
     }
 
-    /**
-     * Words in study order that aren't in [exclude]. Levels from [startLevel]
-     * up come first (N3 first means N3, N2, N1, then N5 and N4). The second
-     * value is the word's place in that order, for sorting its card.
-     * With [canRead], words whose kana spelling it rejects are skipped, so
-     * new words wait until you can read them.
-     */
-    fun nextWords(
-        exclude: Set<Long>,
-        limit: Int,
-        startLevel: Int = 5,
-        canRead: ((kana: String) -> Boolean)? = null,
-    ): List<Pair<Long, Int>> {
-        if (limit <= 0) return emptyList()
-        val out = ArrayList<Pair<Long, Int>>(limit)
-        db.rawQuery(
-            """
-            SELECT id, study_order + CASE WHEN jlpt > ? THEN $LATER_LEVELS ELSE 0 END AS place, kana
-            FROM word WHERE study_order IS NOT NULL ORDER BY place
-            """,
-            arrayOf(startLevel.toString()),
-        ).use { c ->
-            while (out.size < limit && c.moveToNext()) {
-                val id = c.getLong(0)
-                if (id in exclude || (canRead != null && !canRead(c.getString(2)))) continue
-                out.add(id to c.getInt(1))
-            }
-        }
-        return out
-    }
-
-    /** JLPT words below [startLevel] (easier levels), in study order. */
-    fun wordsBelow(startLevel: Int): List<Long> =
-        db.rawQuery(
-            "SELECT id FROM word WHERE jlpt > ? AND study_order IS NOT NULL ORDER BY study_order",
-            arrayOf(startLevel.toString()),
-        ).use { c -> buildList { while (c.moveToNext()) add(c.getLong(0)) } }
-
     /** Word count per JLPT level (5 for N5 down to 1 for N1). */
     fun levelCounts(): Map<Int, Int> =
         db.rawQuery("SELECT jlpt, COUNT(*) FROM word WHERE jlpt > 0 GROUP BY jlpt", null).use { c ->
             buildMap { while (c.moveToNext()) put(c.getInt(0), c.getInt(1)) }
         }
 
-    /** JLPT level of each word, for the stats. */
+    /** JLPT level of each word. */
     fun levels(): Map<Long, Int> =
         db.rawQuery("SELECT id, jlpt FROM word WHERE jlpt > 0", null).use { c ->
             buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1)) }
@@ -179,7 +138,7 @@ class Dictionary(context: Context) : Lexicon {
     private fun entryRows(where: String, args: Array<String>): List<Entry> =
         db.rawQuery(
             """
-            SELECT w.id, w.kanji, w.kana, w.usually_kana, w.furigana IS NOT NULL, w.jlpt, w.study_order,
+            SELECT w.id, w.kanji, w.kana, w.usually_kana, w.furigana IS NOT NULL, w.jlpt,
                 (SELECT gloss FROM sense s WHERE s.word_id = w.id ORDER BY s.ord LIMIT 1)
             FROM word w WHERE $where ORDER BY w.study_order IS NULL, w.study_order, w.id
             """,
@@ -195,9 +154,8 @@ class Dictionary(context: Context) : Lexicon {
                             id = c.getLong(0),
                             display = if (showsKanji) kanji!! else kana,
                             secondary = if (showsKanji) kana else kanji,
-                            gloss = c.getString(7)?.let { strings(it).joinToString("; ") }.orEmpty(),
+                            gloss = c.getString(6)?.let { strings(it).joinToString("; ") }.orEmpty(),
                             jlpt = c.getInt(5),
-                            studyOrder = if (c.isNull(6)) Int.MAX_VALUE else c.getInt(6),
                         ),
                     )
                 }
@@ -295,24 +253,6 @@ class Dictionary(context: Context) : Lexicon {
         return LexiconMatch(best.id, bestReading)
     }
 
-    /** How the story writer should see each word: the spelling cards show, and its reading. */
-    fun vocab(ids: Collection<Long>): List<VocabWord> =
-        ids.chunked(500).flatMap { chunk ->
-            db.rawQuery(
-                "SELECT id, kanji, kana, usually_kana, furigana IS NOT NULL FROM word WHERE id IN (${chunk.joinToString(",")})",
-                null,
-            ).use { c ->
-                buildList {
-                    while (c.moveToNext()) {
-                        val kanji = if (c.isNull(1)) null else c.getString(1)
-                        val kana = c.getString(2)
-                        val showsKanji = kanji != null && c.getInt(3) == 0 && c.getInt(4) != 0
-                        add(VocabWord(c.getLong(0), if (showsKanji) kanji!! else kana, kana))
-                    }
-                }
-            }
-        }
-
     /** A kanji's entry, or null for a character KANJIDIC2 doesn't have. */
     fun kanji(literal: String): Kanji? = kanjiRows("literal = ?", arrayOf(literal)).firstOrNull()
 
@@ -377,9 +317,6 @@ class Dictionary(context: Context) : Lexicon {
         return ids.mapNotNull { rows[it] }
     }
 
-    fun level(id: Long): Int =
-        db.rawQuery("SELECT jlpt FROM word WHERE id = ?", arrayOf(id.toString())).use { if (it.moveToFirst()) it.getInt(0) else 0 }
-
     fun partOfSpeechNames(): Map<String, String> =
         db.rawQuery("SELECT code, description FROM tag", null).use { c ->
             buildMap { while (c.moveToNext()) put(c.getString(0), c.getString(1)) }
@@ -404,8 +341,6 @@ class Dictionary(context: Context) : Lexicon {
     companion object {
         const val NAME = "dictionary.db"
 
-        /** Added to the study order of words before the starting level, so they come last. */
-        private const val LATER_LEVELS = 1_000_000
         private val PARENTHESES = Regex("\\([^)]*\\)")
     }
 }

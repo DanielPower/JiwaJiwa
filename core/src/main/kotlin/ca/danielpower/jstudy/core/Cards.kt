@@ -8,9 +8,6 @@ enum class Direction(val value: Int) {
 
     /** Meaning on the front, Japanese on the back. */
     PRODUCTION(1),
-
-    /** A kana on the front, its sound on the back. The card's word id is a [KanaUnit] id. */
-    KANA(2),
     ;
 
     companion object {
@@ -88,8 +85,20 @@ class Reviewer(
     private val fsrs: Fsrs,
     private val clock: StudyClock,
 ) {
-    fun answer(card: Card, progress: WordProgress, correct: Boolean, now: Long, fuzz: Random? = null): Answer {
+    fun answer(card: Card, progress: WordProgress, correct: Boolean, now: Long, fuzz: Random? = null): Answer =
+        grade(card, progress, if (correct) Rating.GOOD else Rating.AGAIN, now, fuzz)
+
+    /**
+     * A due word read in a story without looking it up. It counts as a pass,
+     * but as FSRS's Hard rather than Good: context helps in a story, so it
+     * moves mastery less than getting the card right in a review.
+     */
+    fun read(card: Card, progress: WordProgress, now: Long, fuzz: Random? = null): Answer =
+        grade(card, progress, Rating.HARD, now, fuzz)
+
+    private fun grade(card: Card, progress: WordProgress, rating: Rating, now: Long, fuzz: Random?): Answer {
         require(card.wordId == progress.wordId)
+        val correct = rating != Rating.AGAIN
         val today = clock.dayOf(now)
         val memory = if (card.state == CardState.NEW) {
             FsrsMemory.NEW
@@ -106,7 +115,7 @@ class Reviewer(
             )
         }
         val elapsed = card.lastReviewAt?.let { (today - clock.dayOf(it)).toInt().coerceAtLeast(0) }
-        val result = fsrs.review(memory, if (correct) Rating.GOOD else Rating.AGAIN, elapsed, fuzz)
+        val result = fsrs.review(memory, rating, elapsed, fuzz)
 
         val dueAt = when (val interval = result.interval) {
             is FsrsInterval.Minutes -> now + (interval.minutes * 60_000).toLong()
@@ -189,11 +198,23 @@ class Reviewer(
      * that interval, so marking many words at once doesn't bunch them up.
      */
     fun markKnown(card: Card, progress: WordProgress, mastery: Int, now: Long, random: Random): Known {
-        require(card.wordId == progress.wordId)
         val newMastery = mastery.coerceIn(0, MasteryRules.MAX)
         val days = MasteryRules.stabilityDays(newMastery)
+        return known(card, progress, newMastery, days, days, now, random)
+    }
+
+    /**
+     * Mark a word known with a stability of [days], as the reading level
+     * does. The first review lands within [firstDueWithin] days, which can
+     * be longer than [days] to spread out a large batch.
+     */
+    fun markKnownFor(card: Card, progress: WordProgress, days: Int, firstDueWithin: Int, now: Long, random: Random): Known =
+        known(card, progress, MasteryRules.fromStability(days.toDouble()), days, maxOf(days, firstDueWithin), now, random)
+
+    private fun known(card: Card, progress: WordProgress, newMastery: Int, days: Int, firstDueWithin: Int, now: Long, random: Random): Known {
+        require(card.wordId == progress.wordId)
         val today = clock.dayOf(now)
-        val firstDue = 1 + random.nextInt(days)
+        val firstDue = 1 + random.nextInt(firstDueWithin)
         val unlock = card.direction == Direction.RECOGNITION &&
             !progress.productionUnlocked &&
             newMastery >= MasteryRules.PRODUCTION_AT
@@ -209,7 +230,6 @@ class Reviewer(
             ),
             progress = progress.copy(mastery = newMastery, productionUnlocked = progress.productionUnlocked || unlock),
             unlockedProduction = unlock,
-            intervalDays = days,
         )
     }
 }
@@ -218,5 +238,4 @@ data class Known(
     val card: Card,
     val progress: WordProgress,
     val unlockedProduction: Boolean,
-    val intervalDays: Int,
 )
