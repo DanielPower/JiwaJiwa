@@ -108,6 +108,8 @@ data class StoryReading(
     val coverage: Coverage,
     /** For a grammar topic's page: its English notes between the examples. */
     val lesson: PathStory? = null,
+    /** A chapter's English notes, by the paragraph whose end has their marker. */
+    val notes: Map<Int, String> = emptyMap(),
     /** The saved page of the grammar topic each grammar point belongs to, by point id. */
     val lessons: Map<String, Long> = emptyMap(),
 ) {
@@ -590,7 +592,7 @@ class Repository(context: Context) {
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
-        val paragraphs = reader.read(story.body)
+        val paragraphs = reader.read(story.body, readings(story))
         val ids = paragraphs.flatten().mapNotNull { it.wordId }.toSet()
         val statuses = store.wordStatuses()
         return StoryReading(
@@ -601,9 +603,23 @@ class Repository(context: Context) {
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),
             lesson = topicOfPage(story)?.page,
+            notes = notes(story),
             lessons = lessons(),
         )
     }
+
+    /** The bundled chapter [story] was saved from, if it's one. */
+    private fun chapterOf(story: SavedStory): PathStory? =
+        catalog.chapters.firstOrNull { it.second.story.id == story.pathId }?.second?.story
+
+    /** A chapter's notes, each shown from the end of the paragraph before it; two after one paragraph share its marker. */
+    private fun notes(story: SavedStory): Map<Int, String> =
+        chapterOf(story)?.notes.orEmpty()
+            .groupBy({ it.before - 1 }, { it.text })
+            .mapValues { it.value.joinToString("\n\n") }
+
+    /** The words the reader gets wrong in a chapter, pinned to their readings. */
+    private fun readings(story: SavedStory): Map<String, String> = chapterOf(story)?.readings.orEmpty()
 
     /** Each grammar point's topic page, saved when the path was. */
     private fun lessons(): Map<String, Long> {
@@ -621,9 +637,12 @@ class Repository(context: Context) {
         StoryPath.parse(appContext.assets.open("stories/path.json").bufferedReader().use { it.readText() })
     }
 
-    /** What each chapter asks of you, by its id. */
+    /**
+     * What each chapter asks of you, by its id. The story tools work it out
+     * when the stories change (core StoryTools), so the app doesn't read every chapter.
+     */
     private val needs: Map<String, StepNeeds> by lazy {
-        catalog.chapters.associate { (_, c) -> c.story.id to StoryPath.needs(reader, c.story) }
+        StoryPath.parseNeeds(appContext.assets.open("stories/needs.json").bufferedReader().use { it.readText() }, catalog)
     }
     private var pathSynced = false
 
@@ -727,7 +746,7 @@ class Repository(context: Context) {
      */
     fun readWords(story: SavedStory, lookedUp: Set<Long>, now: Long) {
         val reviewer = Reviewer(Fsrs(), clock())
-        val ids = StoryPath.words(reader, story.body).mapNotNull { it.wordId }
+        val ids = StoryPath.words(reader, story.body, readings(story)).mapNotNull { it.wordId }
         for (id in ids.distinct() - lookedUp) {
             val card = recognitionCard(id) ?: continue
             if (card.state != CardState.REVIEW || card.dueAt > now || store.isSuspended(id)) continue
@@ -751,7 +770,7 @@ class Repository(context: Context) {
      */
     fun startStoryWords(story: SavedStory, now: Long): List<Long> {
         val isKnown = known(store.wordStatuses())
-        val ids = StoryPath.words(reader, story.body).mapNotNull { it.wordId }.distinct()
+        val ids = StoryPath.words(reader, story.body, readings(story)).mapNotNull { it.wordId }.distinct()
             .filter { !isKnown(it) && dictionary.word(it) != null }
         for (id in ids) {
             store.transaction { db -> if (recognitionCard(id) == null) store.insertNewCard(db, id, Direction.RECOGNITION, 0) }

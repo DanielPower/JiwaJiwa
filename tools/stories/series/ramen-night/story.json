@@ -1,0 +1,11 @@
+{
+  "title": "Ramen night",
+  "blurb": "Yuki knows a ramen shop. Alex is very hungry.",
+  "after": ["arrival"],
+  "chapters": [
+    "the-ticket-machine",
+    "which-one",
+    "slurp",
+    "the-manager"
+  ]
+}

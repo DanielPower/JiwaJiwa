@@ -1,0 +1,75 @@
+# tools/stories/AGENTS.md
+
+The stories that come with the app, as they're written. The app reads
+`app/src/main/assets/stories/path.json` (the text) and `needs.json` (each
+chapter's words and grammar), both put together from here by the story
+tools (core `src/stories`).
+
+## Layout
+
+| Path | What's in it |
+| --- | --- |
+| `stories.json` | Every story's id, in the order the Stories tab lists them: the main stories, each following the one before, then side stories and one-shots. Add a new story here. |
+| `grammar.json` | The grammar topics, in Grammar-list order. Each has `parts`: Japanese lines with their English (`["来た。", "I'm here."]`), and notes in English (plain strings) between them. The first line is the example shown before the chapter that teaches it. Chapters name topics by `id`. |
+| `series/<id>/story.json` | A story's `title`, `blurb`, the stories it follows (`after`: story ids, or a chapter id such as `share-house/yukis-gig` to mean the story up to that chapter), `side` for a side story, and `chapters`: its chapters' slugs in reading order. |
+| `series/<id>/<slug>.json` | One chapter each, named by its slug (lowercase words joined by hyphens, usually from its title: `trash-day.json`): `title`, a one-line `plot`, optional `topic` (one grammar topic it teaches), `meets` (people it introduces, `{"name", "about"}`) and `readings` (see below), and `paragraphs`, each a list of `[Japanese sentence, English]`, or a note (`{"note": "English…"}`) between two of them. Its id is the story's id and its slug (`share-house/trash-day`), which saved progress uses. To add or move a chapter, add its file and put its slug where it goes in `chapters`; never rename a slug or delete a chapter people may have read. |
+| `series/<id>/SUMMARY.md` | Written by the tools, never by hand: the cast so far, each chapter's plot, words and new words, and every word and grammar topic known by the end. |
+| `COVERAGE.md` | Written by the tools: how many of the most common words the stories use, the words left (most common first), and the grammar points left. |
+
+## Conventions
+
+- Titles are English, with Japanese where it fits.
+- Speech is casual from the start: Alex and his friends talk the way friends
+  do. Staff and strangers are polite, and です/ます come in as their own topic.
+- A quote from one of the cast starts with their name and a bar,
+  `ユキ|「でしょ？」`, and is shown with the name before it, script style; it
+  goes on a line of its own. Someone in the cast speaks only from the
+  chapter that introduces them (`meets`) on. Staff and strangers can go
+  unnamed, or take a description as their label (`店員|「…」`,
+  `男の人|「…」`), which may be used anywhere. Thinking aloud has no name.
+- English quotes are escaped in JSON: `"\"Morning!\""`.
+- When the reader picks the wrong word, pin it in the chapter's `readings`:
+  the word as the text writes it, and its reading (`"readings": {"方":
+  "かた"}` for あの方, where the reader sees the ほう of ～のほうが).
+  Check the new words in the report: a wrong reading there means a wrong
+  card. `StoryPathTest` fails if a pin isn't needed, or doesn't take.
+- Notes are rare: an aid for the odd spot where the reader needs cultural
+  context the dialogue doesn't make clear, or an exception in the language
+  explained. Most chapters have none. A note goes after the paragraph it's
+  about (never first), and shows as a 注 marker at that paragraph's end,
+  opening the note in the reader's pane. Notes aren't read for words.
+
+## Writing a chapter
+
+To continue a story you don't need the others: read its `SUMMARY.md`, its
+last chapter or two, and the conventions above. The summary's "Known at
+the end" is what a reader has by then. Use those words freely and bring
+back ones met only once or twice. Pick new words from `COVERAGE.md`, most
+common first: the stories teach the words used most in casual Japanese,
+whatever their JLPT level, and any word in the dictionary can be used.
+
+Chapters grow as the reader's words do: the allowance grows with length,
+and the next few hundred common words need chapters of 150 to 300 words.
+A short chapter now and then is fine, but one under half as long as the
+chapters before it fails the check.
+
+A chapter's new words must fit its allowance (3% of its running words, from
+3 to 10), it may teach one grammar topic (and should usually teach none,
+see the grammar pace in the root AGENTS.md), and every word should appear in
+at least two chapters. Side stories have nothing new at all.
+
+Then run, with the dictionary built (`python3 tools/dictionary/build_dictionary.py`):
+
+    ./gradlew -PcoreOnly=true :core:stories :core:test
+
+`:core:stories` puts path.json together, reads every chapter with the app's
+reader and dictionary lookup, and writes `needs.json`, each `SUMMARY.md` and
+`COVERAGE.md`. `StoryPathTest` checks the rules above, that the solver
+reaches every chapter, and that all of those files are up to date; its
+report (`core/build/reports/story-path.txt`) lists each chapter's new words.
+Commit all of them with the chapter.
+
+Those files are worked out from every story, so two branches that each
+change a story both change them, and conflict when the second is merged or
+rebased. Never resolve them by hand: take either side, rerun
+`:core:stories`, and commit what it writes.

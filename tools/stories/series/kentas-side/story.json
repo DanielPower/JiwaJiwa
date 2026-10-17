@@ -1,0 +1,7 @@
+{
+  "title": "Kenta's side",
+  "blurb": "Game night, from next door.",
+  "after": ["share-house/game-night"],
+  "side": true,
+  "chapters": ["kentas-side"]
+}

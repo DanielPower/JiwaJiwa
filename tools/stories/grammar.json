@@ -1,0 +1,171 @@
+[
+  {
+    "id": "ta", "title": "～た", "title_en": "Did", "points": ["ta"],
+    "summary": "た on the end of a verb puts it in the past, the way friends say it: 来る (come), 来た (came).",
+    "parts": [
+      ["ついに来た！", "I'm finally here!"],
+      "Verbs change their endings to say when, and whether, something happens. The plain past ends in た, or だ after some verbs.",
+      ["お腹すいた。", "I'm hungry. (My stomach has emptied.)"],
+      "This plain form is what you use with friends. The polite past, ～ました, comes later."
+    ]
+  },
+  {
+    "id": "da", "title": "だ / です", "title_en": "Is", "points": ["desu"],
+    "summary": "だ ends a sentence that says what something is: 成田だ, it's Narita. Friends say だ or leave it off; strangers and staff say です.",
+    "parts": [
+      ["成田だ。", "It's Narita."],
+      "だ comes at the very end of the sentence. In casual talk it's often left off, especially in questions.",
+      ["いい部屋だ！", "It's a nice room!"],
+      "です means the same thing, politely. You'll hear it from staff and strangers."
+    ]
+  },
+  {
+    "id": "wa", "title": "は", "title_en": "As for…", "points": ["wa"],
+    "summary": "は marks what you're talking about. It's written は but said \"wa\". On its own with a rising voice, it asks \"what about…?\"",
+    "parts": [
+      ["駅は？", "Where's the station? (What about the station?)"],
+      "The topic comes first, then は, then what you say about it.",
+      ["外は山だ。", "Outside, it's mountains."]
+    ]
+  },
+  {
+    "id": "ga", "title": "が", "title_en": "Who or what", "points": ["ga"],
+    "summary": "が points at who or what does something, or what a description is about: 人が多い, there are lots of people.",
+    "parts": [
+      ["人が多い。", "There are a lot of people."],
+      "は sets the topic for what follows; が picks out the one thing the sentence is about. Often either works, with a slightly different feel.",
+      ["ビルが高い。", "The buildings are tall."]
+    ]
+  },
+  {
+    "id": "nai", "title": "～ない", "title_en": "Not", "points": ["nai"],
+    "summary": "ない on a verb makes it negative, the way friends say it: わかる (understand), わからない (don't understand).",
+    "parts": [
+      ["わからない。", "I don't know."],
+      "The verb's ending changes before ない. For る verbs, drop る: 食べる, 食べない. For others, the last sound moves to the \"a\" row: わかる, わからない.",
+      ["いない。", "Nobody's here."]
+    ]
+  },
+  {
+    "id": "yo-ne", "title": "よ / ね / でしょ", "title_en": "You know / right?", "points": ["yo", "ne", "deshou"],
+    "summary": "よ at the end tells someone something they don't know yet. ね looks for agreement, like \"right?\" or \"huh\". でしょ? is surer: \"told you\".",
+    "parts": [
+      ["ユキだよ。", "I'm Yuki."],
+      "よ is friendly emphasis: you're filling the listener in.",
+      ["いい部屋だね。", "It's a nice room, huh."],
+      "ね assumes the listener sees it the same way.",
+      ["大きいでしょ？", "Big, right?"],
+      "でしょ? expects a yes: you knew it, and you're checking they see it too. Said flat, でしょう is a polite guess, \"probably\"."
+    ]
+  },
+  {
+    "id": "no", "title": "の", "title_en": "'s, of", "points": ["no"],
+    "summary": "の joins two nouns, like 's or \"of\": アレックスの部屋, Alex's room.",
+    "parts": [
+      ["アレックスの部屋。", "Alex's room."],
+      "The first noun owns or describes the second.",
+      ["ここのラーメン。", "The ramen here."]
+    ]
+  },
+  {
+    "id": "tai", "title": "～たい", "title_en": "Want to", "points": ["tai"],
+    "summary": "たい on a verb's stem means you want to do it: 食べる, 食べたい, want to eat.",
+    "parts": [
+      ["ラーメン、食べたい？", "Want some ramen?"],
+      "Drop る from a る verb, or move other verbs to their \"i\" sound, and add たい: やる, やりたい.",
+      "It changes like an adjective: 食べたくない is \"don't want to eat\"."
+    ]
+  },
+  {
+    "id": "wo", "title": "を", "title_en": "Object", "points": ["wo"],
+    "summary": "を marks what a verb is done to: ラーメンを食べる, eat ramen. It's said \"o\".",
+    "parts": [
+      ["ラーメンを食べる。", "I eat ramen."],
+      "Friends often drop it: ラーメン、食べる？ means the same."
+    ]
+  },
+  {
+    "id": "mo", "title": "も", "title_en": "Too, also", "points": ["mo"],
+    "summary": "も means \"too\" or \"also\", in place of は, が or を: これも, this too.",
+    "parts": [
+      ["ラーメンも食べたい。", "I want ramen too."],
+      ["これも！", "This one too!"]
+    ]
+  },
+  {
+    "id": "masu", "title": "です / ます", "title_en": "Polite speech", "points": ["masu"],
+    "summary": "Staff, strangers and bosses speak politely: verbs end in ます, and \"is\" is です. You'll hear it long before you need to say it.",
+    "parts": [
+      ["バイト、やります？", "Would you like the job?"],
+      "ます goes on a verb's stem, the same stem as たい: 食べます, 飲みます. Its negative is ません, and its past is ました.",
+      "Friends would say the plain form instead. Using ます with friends sounds distant; leaving it off with strangers sounds rude.",
+      ["今日から、お願いします。", "Starting today, please."]
+    ]
+  },
+  {
+    "id": "te-kudasai", "title": "～て / ～てください", "title_en": "Please do; and", "points": ["te-kudasai", "te"],
+    "summary": "A verb's て form plus ください politely asks someone to do something. Friends just use the て form, which also links actions: do this, and then that.",
+    "parts": [
+      ["ちょっと待ってください！", "Just a moment, please!"],
+      "The て form of 待つ is 待って. With friends, 待って on its own is enough.",
+      ["ラーメンを食べて、ビールを飲む。", "I eat ramen and drink a beer."],
+      "In the middle of a sentence, the て form means \"and then\": one action, then the next."
+    ]
+  },
+  {
+    "id": "ni", "title": "に", "title_en": "To, at", "points": ["ni"],
+    "summary": "に marks where something goes, or where it is: 店に来た, came to the shop.",
+    "parts": [
+      ["マンガの店に来た。", "I came to the manga shop."],
+      "It also marks times: 朝に, in the morning. In casual talk it's sometimes dropped after places."
+    ]
+  },
+  {
+    "id": "te-iru", "title": "～てる / ～ている", "title_en": "Is doing", "points": ["te-iru"],
+    "summary": "A verb's て form plus いる says something is going on now. Friends shorten ている to てる.",
+    "parts": [
+      ["雨、降ってるよ！", "It's raining!"],
+      "It can also mean a state that's ongoing: 知ってる, I know (I'm in the state of having learned it)."
+    ]
+  },
+  {
+    "id": "ka", "title": "か", "title_en": "Question", "points": ["ka"],
+    "summary": "か at the end of a polite sentence makes it a question: 好きです, I like it; 好きですか, do you like it?",
+    "parts": [
+      ["桜は好きですか？", "Do you like cherry blossoms?"],
+      "With friends, a rising voice is enough: 好き？ か on a plain sentence can sound blunt, so it mostly goes with です and ます."
+    ]
+  },
+  {
+    "id": "de", "title": "で", "title_en": "At, in", "points": ["de"],
+    "summary": "で marks where something happens: 公園で食べた, ate in the park. に is where something is or goes; で is where it's done.",
+    "parts": [
+      ["公園でラーメンを食べた。", "I ate ramen in the park."],
+      "で also marks what you use to do something, but that comes later."
+    ]
+  },
+  {
+    "id": "kara-because", "title": "から", "title_en": "Because, so", "points": ["kara-because"],
+    "summary": "から after a reason means \"because\", and what follows is what happens: 寒いから, because it's cold.",
+    "parts": [
+      ["寒いから、ラーメンがうまい。", "It's cold, so ramen tastes great."],
+      "It's the same から as \"from\": the reason is where the rest comes from. It can end a sentence too: ベースだから。, because I play bass."
+    ]
+  },
+  {
+    "id": "to", "title": "と", "title_en": "And, with", "points": ["to"],
+    "summary": "と joins nouns, \"A and B\", or marks who you do something with: 店長と, with the manager.",
+    "parts": [
+      ["店長とラーメンを食べた。", "I ate ramen with the manager."],
+      "It joins whole lists, unlike や, which only gives examples. For \"together\", 一緒に often comes after it."
+    ]
+  },
+  {
+    "id": "kara-made", "title": "から / まで", "title_en": "From, until", "points": ["kara-from", "made"],
+    "summary": "から marks where or when something starts; まで, where or when it ends: 朝まで, until morning.",
+    "parts": [
+      ["朝までゲーム。", "Games until morning."],
+      "They work with places and times, together or apart."
+    ]
+  }
+]

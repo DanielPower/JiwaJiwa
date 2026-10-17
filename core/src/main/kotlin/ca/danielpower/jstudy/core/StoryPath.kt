@@ -2,13 +2,25 @@ package ca.danielpower.jstudy.core
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonArray
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 
-/** English in a grammar topic's page, shown before Japanese line [before] (after the last line when it's the line count). */
+/**
+ * English beside the Japanese, shown before paragraph [before] (after the
+ * last one when it's the paragraph count). In a grammar topic's page, a
+ * paragraph is a line, and the note sits between them; in a chapter, it
+ * opens from a marker at the end of the paragraph before.
+ */
 data class LessonNote(val before: Int, val text: String)
 
 /**
@@ -25,10 +37,12 @@ data class PathStory(
     val translations: List<String>,
     /** The grammar points it teaches (ids from [grammarPoint]): a chapter's topic, before you read it. */
     val teaches: List<String> = emptyList(),
-    /** For a grammar topic's page, its English explanations between the Japanese lines. */
+    /** English between the paragraphs: a grammar topic's explanations, or a chapter's culture notes. */
     val notes: List<LessonNote> = emptyList(),
     /** A grammar topic's page, rather than a chapter. */
     val lesson: Boolean = false,
+    /** Words the reader gets wrong in it, as written, with their reading ([Reader.words]). */
+    val readings: Map<String, String> = emptyMap(),
 )
 
 /** Someone in a story, as the chapter that introduces them describes them. */
@@ -42,6 +56,8 @@ data class Chapter(
     val topic: String?,
     /** The people you meet in it. */
     val meets: List<CastMember>,
+    /** What happens in it, in a line, for the story tools' summaries. */
+    val plot: String = "",
 )
 
 /**
@@ -98,10 +114,16 @@ data class StoryCatalog(val series: List<PathSeries>, val grammar: List<GrammarT
     fun teaching(topic: String): List<Pair<PathSeries, Chapter>> = chapters.filter { it.second.topic == topic }
 }
 
+/** A word a step counts: its dictionary entry, or only its dictionary form when it has none. */
+data class StepWord(val wordId: Long?, val lemma: String) {
+    /** Identifies the word for counting, as [ReadingWord.key] does. */
+    val key: String get() = wordId?.toString() ?: lemma
+}
+
 /** What a step asks of you: the words and grammar its Japanese uses. */
 data class StepNeeds(
     /** Each counted word once, in the order they first appear. */
-    val words: List<ReadingWord>,
+    val words: List<StepWord>,
     /** How many counted words there are, repeats included. */
     val running: Int,
     /** The grammar points its Japanese uses. */
@@ -114,7 +136,7 @@ data class StepNeeds(
 }
 
 /** What a step's [needs] leave to learn, for someone who knows some of it. */
-data class StepGap(val words: List<ReadingWord>, val grammar: List<String>, val allowance: Int) {
+data class StepGap(val words: List<StepWord>, val grammar: List<String>, val allowance: Int) {
     /** Open to read: few enough new words, and no grammar that hasn't been taught. */
     val ready get() = words.size <= allowance && grammar.isEmpty()
 }
@@ -133,6 +155,10 @@ object StoryPath {
         val root = Json.parseToJsonElement(json).jsonObject
         fun JsonObject.text(key: String) = getValue(key).jsonPrimitive.content
         fun JsonObject.texts(key: String) = this[key]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
+        fun JsonObject.notes() = this["notes"]?.jsonArray.orEmpty().map { n ->
+            val note = n.jsonObject
+            LessonNote(note.getValue("before").jsonPrimitive.int, note.text("text"))
+        }
         val grammar = root["grammar"]?.jsonArray.orEmpty().map { e ->
             val o = e.jsonObject
             val id = o.text("id")
@@ -147,10 +173,7 @@ object StoryPath {
                     title = o.text("title"),
                     body = o.text("body"),
                     translations = o.texts("translations"),
-                    notes = o["notes"]?.jsonArray.orEmpty().map { n ->
-                        val note = n.jsonObject
-                        LessonNote(note.getValue("before").jsonPrimitive.int, note.text("text"))
-                    },
+                    notes = o.notes(),
                     lesson = true,
                 ),
             )
@@ -174,6 +197,8 @@ object StoryPath {
                             body = ch.text("body"),
                             translations = ch.texts("translations"),
                             teaches = topic?.let { topics[it]?.points }.orEmpty(),
+                            notes = ch.notes(),
+                            readings = ch["readings"]?.jsonObject.orEmpty().mapValues { it.value.jsonPrimitive.content },
                         ),
                         number = i + 1,
                         topic = topic,
@@ -181,6 +206,7 @@ object StoryPath {
                             val member = m.jsonObject
                             CastMember(member.text("name"), member.text("about"))
                         },
+                        plot = ch["plot"]?.jsonPrimitive?.content.orEmpty(),
                     )
                 },
             )
@@ -188,15 +214,50 @@ object StoryPath {
         return StoryCatalog(series, grammar)
     }
 
+    /**
+     * Each chapter's needs, as the story tools write them to stories/needs.json
+     * when the stories change, so the app doesn't read every chapter to find them.
+     * A word is its entry id and dictionary form, or just the form when it has no entry.
+     */
+    fun writeNeeds(needs: Map<String, StepNeeds>): String =
+        needs.entries.joinToString(",\n", "{\n", "\n}\n") { (id, n) ->
+            val entry = buildJsonObject {
+                put("running", n.running)
+                putJsonArray("grammar") { n.grammar.sorted().forEach { add(it) } }
+                putJsonArray("words") {
+                    for (w in n.words) addJsonArray { w.wordId?.let { add(it) }; add(w.lemma) }
+                }
+            }
+            // A chapter a line, so a change to one shows as a change to its line.
+            " ${JsonPrimitive(id)}: $entry"
+        }
+
+    /** The needs [writeNeeds] wrote, with what each chapter teaches from [catalog]. */
+    fun parseNeeds(json: String, catalog: StoryCatalog): Map<String, StepNeeds> {
+        val root = Json.parseToJsonElement(json).jsonObject
+        return catalog.chapters.associate { (_, c) ->
+            val o = root[c.story.id]?.jsonObject ?: error("stories/needs.json has no ${c.story.id}: run ./gradlew -PcoreOnly=true :core:stories")
+            c.story.id to StepNeeds(
+                words = o.getValue("words").jsonArray.map { w ->
+                    val parts = w.jsonArray.map { it.jsonPrimitive }
+                    StepWord(parts.first().longOrNull.takeIf { parts.size == 2 }, parts.last().content)
+                },
+                running = o.getValue("running").jsonPrimitive.int,
+                grammar = o.getValue("grammar").jsonArray.map { it.jsonPrimitive.content }.toSet(),
+                teaches = c.story.teaches.toSet(),
+            )
+        }
+    }
+
     /** The words a story's body counts, each once, in the order they first appear. */
-    fun words(reader: Reader, body: String): List<ReadingWord> =
-        reader.read(body).flatten().filter { it.kind == WordKind.WORD }.distinctBy { it.key }
+    fun words(reader: Reader, body: String, readings: Map<String, String> = emptyMap()): List<ReadingWord> =
+        reader.read(body, readings).flatten().filter { it.kind == WordKind.WORD }.distinctBy { it.key }
 
     fun needs(reader: Reader, story: PathStory): StepNeeds {
-        val all = reader.read(story.body).flatten()
+        val all = reader.read(story.body, story.readings).flatten()
         val counted = all.filter { it.kind == WordKind.WORD }
         return StepNeeds(
-            words = counted.distinctBy { it.key },
+            words = counted.distinctBy { it.key }.map { StepWord(it.wordId, it.lemma) },
             running = counted.size,
             grammar = all.flatMap { w -> w.grammar.map { it.point.id } }.toSet(),
             teaches = story.teaches.toSet(),
@@ -204,7 +265,7 @@ object StoryPath {
     }
 
     /** Of a story's [words], the ones still to learn. A word with no dictionary entry can't be learned, so it always counts. */
-    fun newWords(words: List<ReadingWord>, isKnown: (Long) -> Boolean): List<ReadingWord> =
+    fun newWords(words: List<StepWord>, isKnown: (Long) -> Boolean): List<StepWord> =
         words.filter { w -> w.wordId?.let(isKnown) != true }
 
     /** What's left of [needs] to learn, given the words and grammar you know. */

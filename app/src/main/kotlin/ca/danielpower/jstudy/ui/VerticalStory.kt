@@ -46,9 +46,10 @@ import kotlin.math.roundToInt
 
 /**
  * A run of characters set together: a kanji run with its furigana, which
- * shouldn't break across columns, or a single character.
+ * shouldn't break across columns, or a single character. A [note] piece is
+ * the marker for paragraph [p]'s note, after its words.
  */
-private class Piece(val chars: List<String>, val ruby: List<String>?, val p: Int, val i: Int, val paragraphStart: Boolean)
+private class Piece(val chars: List<String>, val ruby: List<String>?, val p: Int, val i: Int, val paragraphStart: Boolean, val note: Boolean = false)
 
 /** Vertical forms of punctuation, brackets and the long vowel mark. */
 private val Vertical = TextStyle(fontFeatureSettings = "vert")
@@ -82,6 +83,7 @@ private fun pieces(reading: StoryReading): List<Piece> = buildList {
                 }
             }
         }
+        if (p in reading.notes) add(Piece(listOf("注"), null, p, -1, paragraphStart = false, note = true))
     }
 }
 
@@ -99,6 +101,8 @@ fun VerticalStory(
     lit: Set<Pair<Int, Int>>,
     onTap: (p: Int, i: Int) -> Unit,
     onHold: (p: Int, i: Int) -> Unit,
+    openNote: Int?,
+    onNote: (p: Int) -> Unit,
     onBlank: () -> Unit,
     onFinish: () -> Unit,
     startPage: Int,
@@ -130,8 +134,8 @@ fun VerticalStory(
             VerticalText.place(
                 pieces.map { piece ->
                     val names = nameRows[piece.p]
-                    if (names == null) VerticalRun(piece.chars, piece.paragraphStart)
-                    else VerticalRun(piece.chars, piece.paragraphStart, indent = names, wrapIndent = names + 1)
+                    if (names == null) VerticalRun(piece.chars, piece.paragraphStart, glued = piece.note)
+                    else VerticalRun(piece.chars, piece.paragraphStart, indent = names, wrapIndent = names + 1, glued = piece.note)
                 },
                 rows,
             )
@@ -171,6 +175,19 @@ fun VerticalStory(
                 content = {
                     onPage.forEach { k ->
                         val piece = pieces[k]
+                        if (piece.note) {
+                            // In the text's cell, with the furigana's room beside it.
+                            Box {
+                                NoteMarker(
+                                    textSize = size.sp,
+                                    family = family,
+                                    open = openNote == piece.p,
+                                    onClick = { onNote(piece.p) },
+                                    modifier = Modifier.size(cellDp),
+                                )
+                            }
+                            return@forEach
+                        }
                         val word = reading.paragraphs[piece.p][piece.i]
                         val isSelected = selected == (piece.p to piece.i)
                         val unknown = reading.isUnknown(word)

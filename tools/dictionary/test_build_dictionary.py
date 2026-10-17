@@ -190,6 +190,15 @@ class BuildTest(unittest.TestCase):
         self.assertEqual(row, ("魔導士", "まどうし", 0, None))
 
 
+class OtherRankTest(unittest.TestCase):
+    def test_a_kanji_word_isnt_ranked_by_its_kana_spelling(self):
+        nai = entry(1000001, [kanji("亡い")], [kana("ない")], [sense("dead")])
+        w = bd.select_other(nai, {("ない", "ない"): 5, ("亡い", "ない"): 9000})
+        self.assertEqual(w.freq_rank, 9000)
+        uk = entry(1000002, [kanji("亡い")], [kana("ない")], [sense("dead", misc=["uk"])])
+        self.assertEqual(bd.select_other(uk, {("ない", "ない"): 5, ("亡い", "ない"): 9000}).freq_rank, 5)
+
+
 class KanjiTest(unittest.TestCase):
     def test_kanji_get_readings_meanings_level_and_strokes(self):
         result = bd.build(BuildTest().source(), {})

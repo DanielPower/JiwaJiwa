@@ -39,6 +39,12 @@ class VerticalTextTest {
     }
 
     @Test
+    fun `carries the last character over rather than start a column with a glued run`() {
+        val runs = "あいう".map { VerticalRun(listOf(it.toString())) } + VerticalRun(listOf("注"), glued = true)
+        assertEquals(listOf("あい", "う注"), columns("", 3, runs))
+    }
+
+    @Test
     fun `never ends a column with an opening bracket`() {
         assertEquals(listOf("あい", "「う"), columns("あい「う", 3))
     }

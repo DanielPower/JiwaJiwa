@@ -21,6 +21,21 @@ class ReadingTest {
     }
 
     @Test
+    fun aPinnedReadingPicksTheWord() {
+        // 方 is ほう (direction, ～のほうが) or かた (person); the tokenizer only knows ほう, as grammar.
+        val hou = LexiconMatch(30, "ほう")
+        val kata = LexiconMatch(31, "かた")
+        val reader = Reader { text, reading -> if (text == "方") (if (reading == "かた") kata else hou) else null }
+        assertEquals(WordKind.GRAMMAR, reader.words("あの方").first { it.surface == "方" }.kind)
+        val w = reader.words("あの方", mapOf("方" to "かた")).first { it.surface == "方" }
+        assertEquals(WordKind.WORD, w.kind)
+        assertEquals(31L, w.wordId)
+        assertEquals(listOf(Ruby("方", "かた")), w.ruby)
+        // A reading the dictionary doesn't have for the word changes nothing.
+        assertEquals(WordKind.GRAMMAR, reader.words("あの方", mapOf("方" to "がた")).first { it.surface == "方" }.kind)
+    }
+
+    @Test
     fun aSpeakersNameIsntPartOfTheText() {
         assertEquals(Speech("ユキ", "「でしょ？」"), Speech.of("ユキ|「でしょ？」"))
         assertEquals(Speech(null, "ラーメンが来た。"), Speech.of("ラーメンが来た。"))
@@ -88,14 +103,28 @@ class ReadingTest {
     }
 
     @Test
-    fun namesAndNumbersAreNotVocabulary() {
-        val words = reader.words("タロウさんは三匹の猫と東京へ行く")
+    fun namesAndDigitsAreNotVocabulary() {
+        val words = reader.words("タロウさんは3匹の猫と東京へ行く")
         val kinds = words.associate { it.surface to it.kind }
         assertEquals(WordKind.NAME, kinds["タロウ"])
-        assertEquals(WordKind.NAME, kinds["三"])
+        assertEquals(WordKind.NAME, kinds["さん"])
+        assertEquals(WordKind.NAME, kinds["3"])
         assertEquals(WordKind.NAME, kinds["東京"])
         assertEquals(WordKind.WORD, kinds["猫"])
         assertNull(words.first { it.surface == "タロウ" }.wordId)
+    }
+
+    @Test
+    fun numbersInKanjiAndCountersAreWords() {
+        // 二人 isn't read に・にん, so it's a word; 三時 is just さん・じ, so it's 三 and 時.
+        val dictionary = mapOf("三" to LexiconMatch(30, "さん"), "時" to LexiconMatch(31, "じ"), "二人" to LexiconMatch(32, "ふたり"), "三時" to LexiconMatch(33, "さんじ"), "一回" to LexiconMatch(34, "いっかい"))
+        val reader = Reader { text, _ -> dictionary[text] }
+        assertEquals(listOf("三" to 30L, "時" to 31L), reader.words("三時に来る").take(2).map { it.surface to it.wordId })
+        val pair = reader.words("二人").single()
+        assertEquals(32L, pair.wordId)
+        assertEquals(listOf(Ruby("二人", "ふたり")), pair.ruby)
+        assertEquals(34L, reader.words("一回").single().wordId)
+        assertEquals(WordKind.WORD, reader.words("三匹").first().kind)
     }
 
     @Test

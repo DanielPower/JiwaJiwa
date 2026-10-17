@@ -1,0 +1,31 @@
+{
+  "title": "The Share House",
+  "blurb": "Alex has a year in Tokyo, a room in a Shimokitazawa share house, and housemates with opinions.",
+  "after": ["ramen-night"],
+  "chapters": [
+    "morning",
+    "all-night",
+    "coffee",
+    "trash-day",
+    "the-interview",
+    "first-shift",
+    "game-night",
+    "the-manga-shop",
+    "mihos-pick",
+    "the-bass-upstairs",
+    "laundry-day",
+    "yukis-gig",
+    "spring",
+    "hanami",
+    "a-call-from-home",
+    "summer",
+    "the-festival",
+    "fireworks",
+    "kentas-interview",
+    "autumn",
+    "yukis-song",
+    "snow",
+    "the-last-shift",
+    "goodbye"
+  ]
+}

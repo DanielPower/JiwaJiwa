@@ -1,0 +1,12 @@
+{
+  "title": "The konbini",
+  "plot": "Out of the station, Alex finds his first konbini and loves it.",
+  "paragraphs": [
+    [["あ、外だ！", "Oh, I'm outside!"]],
+    [["あ、コンビニだ！", "Oh, a konbini!"]],
+    [["「いらっしゃいませ！」", "\"Welcome!\""]],
+    {"note": "Shop staff call いらっしゃいませ (\"welcome\") to everyone who walks in. It isn't said to you personally, and nobody answers it; a nod is plenty."},
+    [["きれいだ。", "It's clean."], ["人は多くない。", "It's not crowded."]],
+    [["ここ、いい。", "I like this place."], ["コンビニ、いい！", "Konbini are great!"]]
+  ]
+}

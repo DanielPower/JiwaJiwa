@@ -1,0 +1,7 @@
+{
+  "title": "Day off",
+  "blurb": "No shift, no plans, and Yuki has coffee on.",
+  "after": ["share-house/yukis-gig"],
+  "side": true,
+  "chapters": ["day-off"]
+}

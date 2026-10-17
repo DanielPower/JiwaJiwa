@@ -15,6 +15,33 @@ fun interface Lexicon {
     fun find(text: String, reading: String?): LexiconMatch?
 }
 
+/** A dictionary entry with a spelling a word was written in, for [bestHomograph]. */
+data class Homograph(val id: Long, val kana: String, val jlpt: Int, val rank: Int)
+
+/** The entries that have a spelling (the one argument), for [bestHomograph]: id, kana, JLPT level, frequency rank. */
+const val HOMOGRAPHS_SQL =
+    "SELECT w.id, w.kana, w.jlpt, COALESCE(w.freq_rank, 1000000000) FROM form f JOIN word w ON w.id = f.word_id WHERE f.text = ?"
+
+/**
+ * The entry for a word among the [homographs] spelled the way it is. One with
+ * a kana spelling matching [reading] wins, then JLPT words, then the more
+ * frequent. JLPT only breaks ties here: the frequency list ranks spellings,
+ * not entries, so a rare homograph shares a common word's rank (右舞 has
+ * うまい's), and the JLPT lists name the entry learners mean. [forms] gives
+ * an entry's spellings. The app and the story tools both look words up this
+ * way, so a story's index matches what the app reads.
+ */
+fun bestHomograph(homographs: List<Homograph>, reading: String?, forms: (Long) -> List<String>): LexiconMatch? {
+    val candidates = homographs.distinctBy { it.id }
+    if (candidates.isEmpty()) return null
+    val wanted = reading?.let(Kana::toHiragana)
+    val readingMatches = if (wanted == null) emptySet() else candidates.filter { cand ->
+        Kana.toHiragana(cand.kana) == wanted || forms(cand.id).any { Kana.isKana(it) && Kana.toHiragana(it) == wanted }
+    }.map { it.id }.toSet()
+    val best = candidates.minWith(compareBy<Homograph>({ it.id !in readingMatches }, { it.jlpt == 0 }, { it.rank }, { it.id }))
+    return LexiconMatch(best.id, if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana))
+}
+
 /** One piece of a written word and the reading above it (null for kana). */
 data class Ruby(val base: String, val ruby: String?)
 
@@ -22,7 +49,7 @@ enum class WordKind {
     /** A content word: counted as known or new, and tappable. */
     WORD,
 
-    /** A content word that isn't vocabulary to learn: a name or a number. Tappable, never counted. */
+    /** A content word that isn't vocabulary to learn: a name, or a number in digits. Tappable, never counted. */
     NAME,
 
     /** A particle, auxiliary or other grammar on its own. */
@@ -107,10 +134,20 @@ data class Speech(val speaker: String?, val text: String) {
 /** Splits Japanese text into words with Kuromoji (IPADIC) and matches them to the dictionary. */
 class Reader(private val lexicon: Lexicon) {
 
-    /** Paragraphs of words. Blank lines and single line breaks both start a new paragraph. */
-    fun read(text: String): List<List<ReadingWord>> = paragraphs(text).map { words(Speech.of(it).text) }
+    /**
+     * Paragraphs of words. Blank lines and single line breaks both start a new paragraph.
+     * [readings] pins a word the reader gets wrong to the right one; see [words].
+     */
+    fun read(text: String, readings: Map<String, String> = emptyMap()): List<List<ReadingWord>> =
+        paragraphs(text).map { words(Speech.of(it).text, readings) }
 
-    fun words(paragraph: String): List<ReadingWord> {
+    /**
+     * [readings] maps a word, written as the text writes it, to its reading,
+     * for the odd word the reader gets wrong: 方 in あの方 is かた, not the
+     * ほう of ～のほうが. A pinned word is looked up by that reading, and
+     * left as it was if the dictionary doesn't have it.
+     */
+    fun words(paragraph: String, readings: Map<String, String> = emptyMap()): List<ReadingWord> {
         val tokens = tokenizer.tokenize(paragraph).map(::Morpheme)
         val out = ArrayList<ReadingWord>()
         // The tokens each word was made from, for placing grammar points.
@@ -119,7 +156,7 @@ class Reader(private val lexicon: Lexicon) {
         while (i < tokens.size) {
             val from = i
             val t = tokens[i]
-            val compound = compound(tokens, i)
+            val compound = compound(tokens, i) ?: counted(tokens, i)
             when {
                 compound != null -> {
                     out += compound.first
@@ -159,7 +196,15 @@ class Reader(private val lexicon: Lexicon) {
             }
             spans += from until i
         }
-        return withGrammar(out, spans, tokens)
+        return withGrammar(if (readings.isEmpty()) out else out.map { pinned(it, readings) }, spans, tokens)
+    }
+
+    /** [word] as [readings] reads it, if it pins it and the dictionary has it with that reading. */
+    private fun pinned(word: ReadingWord, readings: Map<String, String>): ReadingWord {
+        val reading = readings[word.surface] ?: return word
+        val match = (lexicon.find(word.surface, reading) ?: lexicon.find(word.lemma, reading))?.takeIf { it.reading == reading }
+            ?: return word
+        return word.copy(kind = WordKind.WORD, wordId = match.wordId, reading = reading, ruby = ruby(word.surface, reading))
     }
 
     private fun withGrammar(words: List<ReadingWord>, spans: List<IntRange>, tokens: List<Morpheme>): List<ReadingWord> {
@@ -194,6 +239,28 @@ class Reader(private val lexicon: Lexicon) {
             return plain(group, WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(text, match.reading)) to stop
         }
         return null
+    }
+
+    /**
+     * A number with its counter that's a word of its own: a dictionary word
+     * whose reading isn't its pieces read in turn (一つ, 二人, 一回, 六本,
+     * 二十歳). Others (三時, 三人, 五百円) are read a piece at a time, so you
+     * learn 三 and 時 rather than every pair.
+     */
+    private fun counted(tokens: List<Morpheme>, start: Int): Pair<ReadingWord, Int>? {
+        if (!tokens[start].isNumber || tokens.getOrNull(start - 1)?.isNumber == true) return null
+        var end = start
+        while (end < tokens.size && tokens[end].isNumber) end++
+        if (tokens.getOrNull(end)?.isCounter == true) end++
+        if (end == start + 1) return null
+        val group = tokens.subList(start, end)
+        val text = group.joinToString("") { it.surface }
+        if (text.any(Char::isDigit)) return null
+        // The tokenizer reads each piece on its own (二人 as に・にん), which is
+        // exactly what these words don't do, so the dictionary's reading wins.
+        val pieces = Kana.toHiragana(group.joinToString("") { it.readingOrSurface })
+        val match = lexicon.find(text, null)?.takeIf { it.reading != pieces } ?: return null
+        return plain(group, WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(text, match.reading)) to end
     }
 
     /** Where the conjugation attached to a verb or adjective at [from] - 1 ends. */
@@ -241,7 +308,9 @@ class Reader(private val lexicon: Lexicon) {
     }
 
     private fun content(t: Morpheme): ReadingWord {
-        val name = t.pos2 == "固有名詞" || t.pos2 == "数" || t.pos2 == "接尾" || (t.unknown && Kana.isKana(t.surface))
+        // Numbers written in kanji (三, 百, 何) and counters (時, 円, 人) are words to learn; digits aren't.
+        val name = t.pos2 == "固有名詞" || (t.isNumber && t.surface.any(Char::isDigit)) ||
+            (t.pos2 == "接尾" && !t.isCounter) || (t.unknown && Kana.isKana(t.surface))
         val id = if (t.unknown && name) null else lexicon.find(t.base, t.readingOrSurface)?.wordId
         return plain(listOf(t), if (name) WordKind.NAME else WordKind.WORD, id)
     }
@@ -420,4 +489,7 @@ internal class Morpheme(token: Token) {
     val isInflectingHead get() = (pos == "動詞" || pos == "形容詞") && pos2 == "自立"
     val isSuruNoun get() = pos == "名詞" && pos2 == "サ変接続"
     val isSuru get() = pos == "動詞" && base == "する"
+    val isNumber get() = pos == "名詞" && pos2 == "数"
+    /** A counter after a number: 時, 円, 人, つ. */
+    val isCounter get() = pos == "名詞" && pos2 == "接尾" && pos3 == "助数詞"
 }

@@ -371,10 +371,22 @@ internal object Grammar {
             "desu", "です / だ", 5, "is",
             "Ends a sentence that says what something is: \"X is Y\". です is polite and だ is plain. After an i-adjective, です only adds politeness.",
             "これは本です。", "This is a book.",
-            // Not なら (if) or the な after a na-adjective, which are other forms of だ.
-            listOf(Step(false) { it.pos == "助動詞" && it.type in setOf("特殊・デス", "特殊・ダ") && it.form !in setOf("仮定形", "体言接続") }),
+            // Not なら (if), the な after a na-adjective, でしょう / だろう (a guess) or
+            // the で that links to what follows, which are other forms of だ.
+            listOf(
+                Step(false) {
+                    it.pos == "助動詞" && it.type in setOf("特殊・デス", "特殊・ダ") && it.form !in setOf("仮定形", "体言接続", "未然形") &&
+                        !(it.type == "特殊・ダ" && it.form == "連用形")
+                },
+            ),
             // Not the でし in ～ませんでした, which is part of the verb's polite past.
             before = { it.base != "ん" },
+        )
+        point(
+            "deshou", "～でしょう / だろう", 5, "probably; right?",
+            "A guess (明日は雨でしょう, it'll probably rain tomorrow). Said with a rise, でしょ? looks for agreement: \"right?\". だろう is the plain form.",
+            "明日は雨でしょう。", "It'll probably rain tomorrow.",
+            listOf(Step(false) { it.pos == "助動詞" && it.type in setOf("特殊・デス", "特殊・ダ") && it.form == "未然形" }, aux("う").optional()),
         )
         point(
             "janai", "～じゃない / ではない", 5, "is not",
@@ -423,6 +435,19 @@ internal object Grammar {
             listOf(Step(false) { it.base == "ます" && it.form.startsWith("未然ウ") }, aux("う"), particle("か")),
         )
         point(
+            "mashou", "～ましょう", 5, "let's",
+            "Suggests doing something together, politely. With friends it's the volitional form (行こう).",
+            "一緒に行きましょう。", "Let's go together.",
+            listOf(Step(false) { it.base == "ます" && it.form.startsWith("未然ウ") }, aux("う")),
+        )
+        point(
+            "volitional", "～よう / ～おう", 4, "let's (casual); I'll",
+            "The volitional form: a casual \"let's\" between friends (行こう), or what you've decided to do. ～ましょう is the polite version.",
+            "一緒に行こう。", "Let's go together.",
+            listOf(aux("う", "よう")),
+            before = { it.pos == "動詞" },
+        )
+        point(
             "nara", "～なら", 4, "if (it's the case that)",
             "Takes up a topic or condition someone raised and says what follows from it: \"if it's X, then…\".",
             "日曜日なら、時間があります。", "If it's Sunday, I have time.",
@@ -430,6 +455,14 @@ internal object Grammar {
         )
 
         // Te-form patterns.
+        point(
+            "te", "～て", 5, "and; (casual) please",
+            "The て form links actions in order (起きて、食べる) and describes with adjectives (安くて、うまい). At the end of a sentence it's a casual request, as friends say it (待って, wait). Patterns like ～てください build on it.",
+            "ラーメンを食べて、ビールを飲む。", "I eat ramen and drink a beer.",
+            listOf(te),
+            // The で after a noun or na-adjective (静かで), which links the same way.
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ダ" && it.form == "連用形" && it.surface == "で" }),
+        )
         point(
             "te-kudasai", "～てください", 5, "please do",
             "A polite request: the te-form plus ください.",
@@ -544,6 +577,20 @@ internal object Grammar {
             listOf(te, particle("も", pos2 = "係助詞")),
         )
 
+        // Verbs that change form.
+        point(
+            "passive", "～れる / ～られる", 4, "is done (passive)",
+            "The passive: something is done to the subject, often with に for who did it (先生に言われた, I was told by the teacher). For る verbs, the same form also means \"can\" (食べられる).",
+            "先生に名前を呼ばれました。", "My name was called by the teacher.",
+            listOf(Step(false) { it.pos == "動詞" && it.pos2 == "接尾" && it.base in setOf("れる", "られる") }),
+        )
+        point(
+            "causative", "～せる / ～させる", 4, "make or let someone do",
+            "The causative: someone makes or lets someone else do something, with に or を for who does it.",
+            "母は弟に野菜を食べさせました。", "Mom made my little brother eat his vegetables.",
+            listOf(Step(false) { it.pos == "動詞" && it.pos2 == "接尾" && it.base in setOf("せる", "させる") }),
+        )
+
         // Negatives and obligation.
         point(
             "nakereba", "～なければならない", 4, "must, have to",
@@ -580,6 +627,21 @@ internal object Grammar {
             "雨が降ったら、行きません。", "If it rains, I won't go.",
             listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・タ" && it.form == "仮定形" }),
         )
+
+        point(
+            "ni-iku", "～に行く / ～に来る", 5, "go to do, come to do",
+            "After a verb stem: the purpose of going or coming (見に行く, go to see).",
+            "公園に桜を見に行きます。", "I'm going to the park to see the cherry blossoms.",
+            listOf(particle("に", pos2 = "格助詞"), base("行く", "いく", "来る", "くる", "帰る", "かえる", "出かける", "でかける")),
+            before = { it.pos == "動詞" && it.form == "連用形" },
+        )
+        point(
+            "naru", "～くなる / ～になる", 5, "become",
+            "Change: an i-adjective takes く (寒くなる, get cold), and a noun or na-adjective takes に (先生になる, become a teacher).",
+            "春になりました。", "It's spring now.",
+            listOf(particle("に"), base("なる", "成る")),
+        )
+        variant("naru", listOf(base("なる", "成る")), before = { it.pos == "形容詞" && it.form == "連用テ接続" })
 
         // Verb stem patterns.
         point(
@@ -674,6 +736,18 @@ internal object Grammar {
             "After a verb or \"noun + の\": a purpose (in order to). After a past form or a state it can give a cause.",
             "日本語を勉強するために日本に来ました。", "I came to Japan to study Japanese.",
             listOf(dependentNoun("ため", "為"), particle("に").optional()),
+        )
+        point(
+            "toki", "～とき", 5, "when",
+            "After a verb, adjective or \"noun + の\": the time when something happens (子供のとき, when I was a child).",
+            "暇なとき、マンガを読みます。", "When I have free time, I read manga.",
+            listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("とき", "時") }),
+        )
+        point(
+            "n-desu", "～んです / ～のだ", 4, "explaining, asking why",
+            "の or ん before だ or です explains or asks for an explanation: どうしたんですか, what's wrong?. It sounds softer and more involved than a bare statement.",
+            "どうして来なかったんですか。", "Why didn't you come?",
+            listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, Step(false) { it.pos == "助動詞" && it.type in setOf("特殊・ダ", "特殊・デス") }),
         )
         point(
             "mae-ni", "～前に", 5, "before doing",
@@ -786,3 +860,6 @@ internal object Grammar {
 
 /** The grammar point with [id], such as "wa" for the particle は. */
 fun grammarPoint(id: String): GrammarPoint? = Grammar.points.firstOrNull { it.id == id }
+
+/** Every grammar point the reader knows, in the order they're defined. */
+fun grammarPoints(): List<GrammarPoint> = Grammar.points
