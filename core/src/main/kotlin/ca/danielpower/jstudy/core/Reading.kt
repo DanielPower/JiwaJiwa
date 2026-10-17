@@ -282,8 +282,9 @@ class Reader(private val lexicon: Lexicon) {
             when {
                 mine.isNotEmpty() -> word.copy(grammar = mine)
                 word.conjugated && !word.stem -> phrase(word)
-                // A time noun the tokenizer files with grammar but no point explains is a word: 日 in 休みの日.
-                word.kind == WordKind.GRAMMAR && word.surface.any(::isKanji) && tokens[spans[w].first].pos3 == "副詞可能" ->
+                // A time noun the tokenizer files with grammar but no point explains is a word: 日 in 休みの日, 最後の日です.
+                word.kind == WordKind.GRAMMAR && word.surface.any(::isKanji) &&
+                    (tokens[spans[w].first].pos3 == "副詞可能" || word.lemma in TIME_NOUNS) ->
                     lexicon.find(word.lemma, word.reading)?.let { word.copy(kind = WordKind.WORD, wordId = it.wordId) } ?: word
                 else -> word
             }
@@ -476,7 +477,10 @@ class Reader(private val lexicon: Lexicon) {
         private const val MAX_COMPOUND = 4
         private val CONNECTIVES = setOf("て", "で", "ば", "ながら", "つつ")
         private val CONJUNCTIONS = setOf("でも", "けど", "だけど", "だって")
-        private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "おかえり", "いってきます", "いってらっしゃい")
+        /** Nouns the tokenizer sometimes files as dependent (grammar) nouns, though they're words: 日 in 最後の日です. */
+private val TIME_NOUNS = setOf("日")
+
+private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "おかえり", "いってきます", "いってらっしゃい")
         private val CONTRACTIONS = setOf("ちゃう", "じゃう", "ちまう", "とく", "てる", "でる")
         private val E_TO_U = mapOf('え' to 'う', 'け' to 'く', 'せ' to 'す', 'て' to 'つ', 'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る', 'げ' to 'ぐ')
 
@@ -640,8 +644,10 @@ internal class Morpheme(token: Token) {
     val form: String = token.conjugationForm
     val type: String = token.conjugationType
     val unknown: Boolean = token.baseForm == "*"
-    val base: String = if (unknown) surface else token.baseForm
-    private val reading: String? = token.reading.takeIf { it != "*" }?.let(Kana::toHiragana)
+    // 行っ(た) is 行く, "went", far more often than 行う, "carried out", which the tokenizer sometimes picks.
+    private val went = token.baseForm == "行う" && surface == "行っ"
+    val base: String = if (unknown) surface else if (went) "行く" else token.baseForm
+    private val reading: String? = if (went) "いっ" else token.reading.takeIf { it != "*" }?.let(Kana::toHiragana)
 
     /** The reading in hiragana, or the surface if the tokenizer has none. */
     val readingOrSurface: String get() = reading ?: Kana.toHiragana(surface)

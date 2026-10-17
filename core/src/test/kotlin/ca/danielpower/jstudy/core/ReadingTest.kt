@@ -48,6 +48,14 @@ class ReadingTest {
     }
 
     @Test
+    fun wentIsGoNotCarryOut() {
+        val reader = Reader { _, _ -> null }
+        val w = reader.words("電車で行った。").first { it.surface == "行った" }
+        assertEquals("行く", w.lemma)
+        assertEquals("いった", w.reading)
+    }
+
+    @Test
     fun aConjunctionOpeningASentenceIsAWord() {
         val reader = Reader { text, reading -> if (text == "でも") LexiconMatch(40, "でも") else null }
         val demo = reader.words("うるさい！でも、いい！").first { it.surface == "でも" }
