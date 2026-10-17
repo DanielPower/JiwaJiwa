@@ -6612,16 +6612,16 @@
    "side": true
   },
   {
-   "id": "soras-coffee",
-   "title": "Sora's coffee",
+   "id": "sora-makes-coffee",
+   "title": "Sora makes coffee",
    "blurb": "Yuki always makes the coffee. This morning, Sora tries.",
    "after": [
     "the-band/a-call-from-alex"
    ],
    "chapters": [
     {
-     "id": "soras-coffee/soras-coffee",
-     "title": "Sora's coffee",
+     "id": "sora-makes-coffee/sora-makes-coffee",
+     "title": "Sora makes coffee",
      "plot": "Sora makes the morning coffee for the first time and it's terrible; Yuki drinks it anyway and tells him to make it again tomorrow, and Kenta says it woke him up.",
      "body": "朝。ユキさんは、まだ部屋だ。\n\n今日は、僕がコーヒーを作る。ユキさんのコーヒーは、いつもうまい。僕も、作れる…かな。\n\n作った。飲んだ。\n\n…すごい。すごく、うまくない。\n\nユキ|「おはよう。…ソラ、コーヒー？」\n\nソラ|「あ…ユキさん、それは…」\n\nユキさんが、飲んだ。ユキさんは、何も言わない。\n\nユキ|「…すごいね。」\n\nソラ|「ごめん！うまくない…」\n\nユキ|「でも、飲む。」\n\nユキ|「ソラが作ったから。」\n\nユキさんは、ゆっくり飲んだ。\n\nユキ|「明日も、作って。」\n\nソラ|「…明日も？」\n\nユキ|「毎日作ったら、上手になるよ。」\n\nソラ|「ユキさんのコーヒーは、なんでうまいの？」\n\nユキ|「毎日、作ってるから。」\n\nケンタさんも来た。\n\nケンタ|「おはよう…コーヒー？」\n\nユキ|「今日は、ソラのコーヒー。」\n\nケンタさんが、飲んだ。ケンタさんも、何も言わない。\n\nケンタ|「…眠くなくなった。」\n\nユキさんが、笑った。僕も、ちょっと笑った。",
      "translations": [

@@ -1,10 +1,10 @@
-# Sora's coffee
+# Sora makes coffee
 
 Written by `./gradlew -PcoreOnly=true :core:stories` from the chapter files here. Don't edit it by hand.
 
 Yuki always makes the coffee. This morning, Sora tries.
 
-- Id `soras-coffee`, 1 chapter.
+- Id `sora-makes-coffee`, 1 chapter.
 - Follows `the-band/a-call-from-alex`.
 - A side story: it has nothing new to learn, no new words and no grammar topic.
 
@@ -24,7 +24,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 ## Chapters
 
-### 1. Sora's coffee (`soras-coffee/soras-coffee`)
+### 1. Sora makes coffee (`sora-makes-coffee/sora-makes-coffee`)
 
 Sora makes the morning coffee for the first time and it's terrible; Yuki drinks it anyway and tells him to make it again tomorrow, and Kenta says it woke him up.
 
