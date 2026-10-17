@@ -21,10 +21,12 @@ import ca.danielpower.jstudy.core.UiLabel
 import ca.danielpower.jstudy.core.UiLanguage
 import ca.danielpower.jstudy.data.BackupException
 import ca.danielpower.jstudy.data.ChapterEntry
+import ca.danielpower.jstudy.data.Dashboard
 import ca.danielpower.jstudy.data.Entry
 import ca.danielpower.jstudy.data.GrammarRow
 import ca.danielpower.jstudy.data.KanjiDetail
 import ca.danielpower.jstudy.data.LockInfo
+import ca.danielpower.jstudy.data.ReaderPlace
 import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.Reminder
 import ca.danielpower.jstudy.data.Stats
@@ -91,7 +93,10 @@ data class DictionaryRow(val entry: Entry, val status: WordStatus?)
 
 sealed interface Screen {
     data object Loading : Screen
-    data class Home(val summary: Summary) : Screen
+    data class Home(val dashboard: Dashboard) : Screen
+
+    /** The Review tab: today's cards, study days, and the way into a session. */
+    data class ReviewTab(val summary: Summary) : Screen
     data class Review(
         val current: ReviewCard,
         val revealed: Boolean,
@@ -231,6 +236,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Which UI labels are in Japanese: the ones whose words you've mastered. */
     private val _language = MutableStateFlow(UiLanguage.ENGLISH)
     val language: StateFlow<UiLanguage> = _language.asStateFlow()
+
+    /** Cards a review session would show now, for the Review tab's badge. */
+    private val _due = MutableStateFlow(0)
+    val due: StateFlow<Int> = _due.asStateFlow()
     private val labelRequests = Channel<UiLabel>(Channel.UNLIMITED)
     private val requestedLabels = ConcurrentHashMap.newKeySet<String>()
 
@@ -312,6 +321,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun refreshLanguage() {
         val mastered = repo.masteredWords()
         _language.update { it.withMastered(mastered) }
+        // Most screens refresh this on the way in, so the badge rides along.
+        val summary = repo.summary(now())
+        _due.value = summary.newCards + summary.learning + summary.reviews
     }
 
 
@@ -320,10 +332,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         trail.clear()
         session = null
         undo = null
-        _screen.value = Screen.Home(repo.summary(now()))
+        _screen.value = Screen.Home(repo.dashboard(now()))
     }
 
     fun goHome() = launchIo { showHome() }
+
+    fun openReviewTab() = launchIo { showReviewTab() }
+
+    private fun showReviewTab() {
+        refreshLanguage()
+        trail.clear()
+        session = null
+        undo = null
+        _screen.value = Screen.ReviewTab(repo.summary(now()))
+    }
 
     /** The system back button: word page to dictionary, import to settings, story to stories, anything else home. */
     fun back() {
@@ -707,23 +729,31 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         showStory(pageId)
     }
 
-    /** The page the open story has settled on. */
+    /** The page the open story has settled on; for an unfinished chapter, kept so Home can come back to it. */
     fun readerAt(page: Int) {
         readerPage = page
+        val state = _screen.value as? Screen.StoryReader ?: return
+        if (state.reading.lesson != null || state.impact != null || state.reading.story.readAt != null) return
+        val place = ReaderPlace(state.reading.story.id, page, state.style.toString())
+        viewModelScope.launch(Dispatchers.IO) { repo.saveReaderPlace(place) }
     }
 
     /** Open a story, or a grammar page; a grammar page leaves the story it was opened from as it was. */
     private fun showStory(id: Long, then: NextStep? = null) {
         val reading = repo.readStory(id) ?: return showStories()
+        val style = repo.readerStyle()
+        var startPage = 0
         if (reading.lesson == null) {
             readingSince = now()
             readingFinished = false
             masteryAtOpen = repo.masteries(reading.words.keys)
             lookedUpWords.clear()
-            readerPage = 0
+            // Back where you left it, unless the pages have been laid out differently since.
+            startPage = repo.readerPlace()?.takeIf { it.storyId == id && it.style == style.toString() }?.page ?: 0
+            readerPage = startPage
         }
         val chapter = repo.chapterOf(reading.story, now())
-        _screen.value = Screen.StoryReader(reading, repo.readerStyle(), chapter = chapter, next = chapter?.let(::nextStep), then = then)
+        _screen.value = Screen.StoryReader(reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage)
     }
 
     /** After [chapter]: its story's next open, unread chapter, or else the next story on the path that has one. */
@@ -746,6 +776,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val at = now()
         val story = state.reading.story
         repo.markStoryRead(story.id, at, at - readingSince)
+        if (repo.readerPlace()?.storyId == story.id) repo.clearReaderPlace()
         repo.readWords(story, lookedUpWords.toSet(), at)
         repo.forgetWords(state.forgotten, at)
         val started = repo.startStoryWords(story, at)
@@ -790,14 +821,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------ dictionary
 
-    fun openDictionary() = launchIo {
+    fun openDictionary(status: StatusFilter = StatusFilter.ALL) = launchIo {
         trail.clear()
         if (entries == null) {
             entries = repo.dictionary.entries()
             entryIds = entries!!.mapTo(HashSet()) { it.id }
         }
         statuses = repo.wordStatuses()
-        val state = Screen.Dictionary("", emptySet(), StatusFilter.ALL, emptyList())
+        val state = Screen.Dictionary("", emptySet(), status, emptyList())
         _screen.value = state.copy(rows = rows(state))
     }
 

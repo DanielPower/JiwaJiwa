@@ -74,7 +74,7 @@ internal fun FinishStamp(vertical: Boolean, onClick: () -> Unit, modifier: Modif
 }
 
 /** Knocks speckles out of whatever it draws, like ink that didn't take on a stamp. */
-private fun Modifier.stampGrain(): Modifier =
+internal fun Modifier.stampGrain(): Modifier =
     graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen).drawWithContent {
         drawContent()
         drawRect(GrainBrush, blendMode = BlendMode.DstOut)

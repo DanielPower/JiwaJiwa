@@ -146,8 +146,24 @@ Other features (all shipped):
 - Manual backup/restore only (`jiwajiwa-<date>.jstudy`, a copy of the progress
   DB). No automatic backups.
 - Settings has a reset button that erases all user data.
-- Stats page (heatmap, recall, forecast, per-level progress) is a link on the
-  home screen, not a tab.
+- Tabs (Daniel, 2026-10-17): Home, Read (the stories), Review, Dictionary.
+  Settings opens from a gear on Home; it's rarely needed. The Review tab
+  has today's counts, the review heatmap, a link to the Stats page
+  (recall, forecast, per-level progress) and Start studying, with the due
+  count as a badge on the tab.
+- Home (Daniel, 2026-10-17, layout "Journal"): one next-step card with a
+  quiet blue "or ..." line under it (`core/Home.kt` `Suggest`): reviews
+  first once due reviews reach the review nudge; else the chapter you left
+  part way, or the next one in the story you read last; past today's
+  new-word limit, an open chapter with nothing new; then reviews alone;
+  then "Done for today" with a grained 済 stamp and no button. Under it: a
+  Mon–Sun streak (a day counts with a review answered or a chapter
+  finished; arrows go back a week at a time), the words graph (seen, known
+  and mastered as nested bands, 30 days or all, replayed from the review
+  log by `WordHistory`; words marked known or imported count from the
+  start), the words started this week ("New words", in the seen colour),
+  and the grammar topics met. A chapter left part way reopens on its page
+  (the `reader_place` value), unless the reader style has changed since.
 - Renshuu import: takes the higher of the two masteries per word, skips
   suspended words, never stores the Renshuu key. Renshuu's `edict_ent` is
   the JMdict id, which is jstudy's word id. Entries without one (kana,
@@ -246,7 +262,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - Pace (`core/Pace`, `Repository.pace`): a soft daily limit on new words
   started (`newPerDay`, default 20, from the rollover hour), and a
   review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this"
-  and imports start nothing, so they don't count. Past either, the Stories
+  and imports start nothing, so they don't count. Past either, the Read
   tab leads with open chapters that have nothing new, tapping a chapter
   that adds more shows a sheet suggesting them first ("Read it anyway"
   carries on), and a chapter's end offers one before the next chapter.
