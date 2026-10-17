@@ -60,8 +60,7 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | Workflow | When | What |
 | --- | --- | --- |
 | `test.yml` (Tests) | every PR, every push to main | core tests, app unit tests, dictionary tests, as separate checks |
-| `check.yml` (Check pull request) | every PR | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
-| `build.yml` | pushes to branches other than main | test and build without releasing |
+| `check.yml` (Check pull request) | every PR, or by hand on any branch | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
 | `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
 
