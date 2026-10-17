@@ -96,6 +96,15 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         if (oldVersion < 2) db.execSQL("ALTER TABLE card ADD COLUMN suspended INTEGER NOT NULL DEFAULT 0")
         if (oldVersion < 4) deriveMastery(db)
         if (oldVersion < 8) keepOnlyBundledStories(db)
+        if (oldVersion < 9) dropKana(db)
+    }
+
+    /** Version 9 dropped kana cards (direction 2, negative word ids), their history and settings. */
+    private fun dropKana(db: SQLiteDatabase) {
+        db.execSQL("DELETE FROM review_log WHERE card_id IN (SELECT id FROM card WHERE direction = 2)")
+        db.execSQL("DELETE FROM card WHERE direction = 2")
+        db.execSQL("DELETE FROM word_progress WHERE word_id < 0")
+        db.execSQL("DELETE FROM kv WHERE key IN ('kana_known', 'new_kana_per_day')")
     }
 
     /**
@@ -283,19 +292,14 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         count("SELECT COUNT(*) FROM card WHERE word_id = ? AND suspended = 1", wordId) > 0
 
     /** Recognition state, suspension and mastery for every word with a card. */
-    fun wordStatuses(): Map<Long, WordStatus> = statuses(Direction.RECOGNITION)
-
-    /** The same for kana, keyed by kana unit id. */
-    fun kanaStatuses(): Map<Long, WordStatus> = statuses(Direction.KANA)
-
-    private fun statuses(direction: Direction): Map<Long, WordStatus> =
+    fun wordStatuses(): Map<Long, WordStatus> =
         readableDatabase.rawQuery(
             """
             SELECT c.word_id, c.state, c.suspended, COALESCE(p.mastery, 0)
             FROM card c LEFT JOIN word_progress p ON p.word_id = c.word_id
             WHERE c.direction = ?
             """,
-            arrayOf(direction.value.toString()),
+            arrayOf(Direction.RECOGNITION.value.toString()),
         ).use { c ->
             buildMap {
                 while (c.moveToNext()) {
@@ -348,10 +352,10 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             if (c.moveToFirst()) WordProgress(wordId, c.getInt(0), c.getInt(1) != 0) else WordProgress(wordId)
         }
 
-    /** The words (not kana) at [mastery] or higher. */
+    /** The words at [mastery] or higher. */
     fun wordsAtMastery(mastery: Int): Set<Long> =
         readableDatabase.rawQuery(
-            "SELECT word_id FROM word_progress WHERE mastery >= ? AND word_id > 0",
+            "SELECT word_id FROM word_progress WHERE mastery >= ?",
             arrayOf(mastery.toString()),
         ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
 
@@ -435,22 +439,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         )
     }
 
-    /** Kana units whose cards have finished learning, so their kana count as readable. */
-    fun kanaInReview(): Set<Long> =
-        readableDatabase.rawQuery(
-            "SELECT word_id FROM card WHERE direction = ? AND state = ?",
-            arrayOf(Direction.KANA.value.toString(), CardState.REVIEW.value.toString()),
-        ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
-
-    /** Drop kana cards that haven't been shown yet, so the kana queue is rebuilt. */
-    fun deleteUnstartedKana(db: SQLiteDatabase) {
-        db.delete(
-            "card",
-            "state = ? AND direction = ? AND reps = 0",
-            arrayOf(CardState.NEW.value.toString(), Direction.KANA.value.toString()),
-        )
-    }
-
     // ------------------------------------------------------------ backup
 
     /** Fold any write-ahead log into the main file, so the file alone is a complete copy. */
@@ -531,7 +519,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 8
+        const val VERSION = 9
         private const val CARD_COLUMNS =
             "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day"
     }

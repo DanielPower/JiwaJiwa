@@ -9,11 +9,7 @@ import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.GrammarTopic
-import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.ImportPlan
-import ca.danielpower.jstudy.core.KanaCourse
-import ca.danielpower.jstudy.core.KanaKnown
-import ca.danielpower.jstudy.core.KanaUnit
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.Pace
@@ -61,13 +57,10 @@ import kotlinx.coroutines.withContext
 
 data class ReviewCard(
     val card: Card,
-    /** The word, or null on a kana card. */
-    val word: Word?,
+    val word: Word,
     /** Furigana on the front, from the word's mastery. */
     val furigana: FuriganaMode,
     val mastery: Int,
-    /** The kana on a kana card. */
-    val kana: KanaUnit? = null,
     /** The kanji in the word's spelling, linked from the answer side. */
     val kanji: List<Kanji> = emptyList(),
 )
@@ -115,12 +108,11 @@ sealed interface Screen {
         val attribution: String,
         val startLevel: Int,
         val reminder: Reminder,
-        val kanaKnown: KanaKnown,
         /** The result of the last backup export or import. */
         val backupMessage: String? = null,
     ) : Screen
 
-    /** First run, a page at a time: kana, where to start, and the reminder. */
+    /** First run, a page at a time: where to start, and the reminder. */
     data class Setup(
         val levelCounts: Map<Int, Int>,
         val startLevel: Int,
@@ -128,16 +120,8 @@ sealed interface Screen {
         val lowerMastery: Int,
         /** The daily reminder's time, if you chose one. */
         val reminderMinute: Int?,
-        /** Which kana you read already; null until you choose. */
-        val kana: KanaKnown? = null,
         val page: SetupPage = SetupPage.WELCOME,
-    ) : Screen {
-        /**
-         * The pages in order. Picking a level only makes sense if you read
-         * kana; anyone still learning them starts at N5.
-         */
-        val pages get() = SetupPage.entries.filter { it != SetupPage.LEVEL || kana == KanaKnown.BOTH }
-    }
+    ) : Screen
 
     data class StatsPage(val stats: Stats) : Screen
 
@@ -160,7 +144,7 @@ sealed interface Screen {
     data class Stories(
         /** The stories that come with the app, in order, ready or not. */
         val path: List<SeriesEntry>,
-        /** Today's new words and kana against the daily limit, and reviews waiting. */
+        /** Today's new words against the daily limit, and reviews waiting. */
         val pace: Pace? = null,
         /** Open chapters you haven't read that have nothing new to learn. */
         val nothingNew: List<ChapterEntry> = emptyList(),
@@ -188,7 +172,7 @@ sealed interface Screen {
     ) : Screen
 }
 
-/** Past today's limit, a story that would add [adding] new words and kana, before it opens. */
+/** Past today's limit, a story that would add [adding] new words, before it opens. */
 data class LimitPrompt(
     val storyId: Long,
     val title: String,
@@ -216,7 +200,7 @@ data class ReadImpact(
 /** The next chapter to read, and how to name it on the button. */
 data class NextStep(val storyId: Long, val label: String)
 
-enum class SetupPage { WELCOME, KANA, LEVEL, REMINDER }
+enum class SetupPage { WELCOME, LEVEL, REMINDER }
 
 sealed interface ImportStep {
     data class EnterKey(val error: String? = null) : ImportStep
@@ -249,8 +233,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private lateinit var repo: Repository
     private var session: StudySession? = null
-    // The chapter whose new kana the session is teaching; it goes on when they're done.
-    private var learningFor: Long? = null
     // The grammar topic read before the open chapter, for its end page.
     private var topicForStory: GrammarTopic? = null
     // Where Back goes from a grammar page: the screen it was opened from.
@@ -334,7 +316,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refreshLanguage()
         trail.clear()
         session = null
-        learningFor = null
         undo = null
         _screen.value = Screen.Home(repo.summary(now()))
     }
@@ -372,31 +353,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         refreshLanguage()
         val counts = ReviewCounts(s.newRemaining, s.learningRemaining, s.reviewRemaining)
         val card = s.next(now())
-        if (card == null && learningFor != null) {
-            val story = repo.story(learningFor!!)
-            session = null
-            learningFor = null
-            undo = null
-            return if (story != null) continueChapter(story) else showStories()
-        }
         if (card == null) {
             val due = s.nextLearningDue
             _screen.value = if (due != null) Screen.Waiting(due, counts) else Screen.Done(repo.summary(now()))
-            return
-        }
-        if (card.direction == Direction.KANA) {
-            val unit = KanaCourse.unit(card.wordId)
-            if (unit == null) {
-                s.answered(card.copy(state = CardState.REVIEW), 0)
-                return advance()
-            }
-            _screen.value = Screen.Review(
-                current = ReviewCard(card, null, FuriganaMode.OFF, repo.progress(card.wordId).mastery, unit),
-                revealed = false,
-                furiganaVisible = false,
-                counts = counts,
-                canUndo = undo != null,
-            )
             return
         }
         val word = repo.dictionary.word(card.wordId)
@@ -419,7 +378,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun reveal() = _screen.update { if (it is Screen.Review) it.copy(revealed = true) else it }
 
     fun toggleFurigana() = _screen.update {
-        if (it is Screen.Review && it.current.furigana != FuriganaMode.OFF && it.current.word?.showsKanji == true) {
+        if (it is Screen.Review && it.current.furigana != FuriganaMode.OFF && it.current.word.showsKanji) {
             it.copy(furiganaVisible = !it.furiganaVisible)
         } else {
             it
@@ -437,44 +396,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         advance()
     }
 
-    /**
-     * Answer the first sight of a new word. Mastery 0 starts learning it;
-     * anything higher marks it known at that mastery, and the session is
-     * rebuilt so the next new word takes its place.
-     */
-    fun introduce(mastery: Int) = launchIo {
-        val state = _screen.value as? Screen.Review ?: return@launchIo
-        if (state.current.card.state != CardState.NEW) return@launchIo
-        val s = session ?: return@launchIo
-        val now = now()
-        if (learningFor != null) {
-            // Learning a chapter's kana: each is shown once, then the chapter goes on.
-            val u = if (mastery <= 0) {
-                repo.introduce(state.current.card, now).second
-            } else {
-                repo.markKnown(state.current.card, mastery, now).second
-            }
-            s.answered(state.current.card.copy(state = CardState.REVIEW), 0)
-            undo = u
-        } else if (mastery <= 0) {
-            val (card, u) = repo.introduce(state.current.card, now)
-            s.answered(card, repo.endOfToday(now))
-            undo = u
-        } else {
-            val (_, u) = repo.markKnown(state.current.card, mastery, now)
-            session = repo.session(now)
-            undo = u
-        }
-        advance()
-    }
-
     fun undoLast() = launchIo {
         val u = undo ?: return@launchIo
         repo.undo(u)
-        if (u.logId == null && learningFor == null) {
-            // Undoing a first sight: the word is new again, so rebuild the queue around it.
-            session = repo.session(now())
-        }
         session?.restore(u.cardBefore)
         undo = null
         advance()
@@ -496,7 +420,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             attribution = attribution,
             startLevel = repo.startLevel(),
             reminder = repo.reminder(),
-            kanaKnown = repo.kanaKnown(),
             backupMessage = backupMessage,
         )
     }
@@ -506,11 +429,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         repo.setStartLevel(level)
         if (easierMastery > 0) repo.markEasierLevelsKnown(level, easierMastery, now())
         _screen.update { if (it is Screen.Settings) it.copy(startLevel = repo.startLevel()) else it }
-    }
-
-    fun setKanaKnown(known: KanaKnown) = launchIo {
-        repo.setKanaKnown(known)
-        _screen.update { if (it is Screen.Settings) it.copy(kanaKnown = repo.kanaKnown()) else it }
     }
 
     fun setReminder(reminder: Reminder) = launchIo {
@@ -578,18 +496,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun editSetup(change: (Screen.Setup) -> Screen.Setup) = _screen.update { if (it is Screen.Setup) change(it) else it }
 
-    fun setupNext() = editSetup { s -> s.pages.getOrNull(s.pages.indexOf(s.page) + 1)?.let { s.copy(page = it) } ?: s }
+    fun setupNext() = editSetup { s -> SetupPage.entries.getOrNull(s.page.ordinal + 1)?.let { s.copy(page = it) } ?: s }
 
-    fun setupBack() = editSetup { s -> s.pages.getOrNull(s.pages.indexOf(s.page) - 1)?.let { s.copy(page = it) } ?: s }
+    fun setupBack() = editSetup { s -> SetupPage.entries.getOrNull(s.page.ordinal - 1)?.let { s.copy(page = it) } ?: s }
 
     fun finishSetup() = launchIo {
         val setup = _screen.value as? Screen.Setup ?: return@launchIo
         _screen.value = Screen.Loading
-        val kana = setup.kana ?: KanaKnown.BOTH
-        // Still learning kana: start at the beginning, whatever was picked before going back.
-        val startLevel = if (kana == KanaKnown.BOTH) setup.startLevel else 5
-        val lower = setup.lowerMastery.takeIf { startLevel < 5 && it > 0 }
-        repo.finishSetup(startLevel, lower, kana, setup.reminderMinute, now())
+        val lower = setup.lowerMastery.takeIf { setup.startLevel < 5 && it > 0 }
+        repo.finishSetup(setup.startLevel, lower, setup.reminderMinute, now())
         DailyReminder.schedule(getApplication(), repo.reminder())
         showHome()
     }
@@ -723,15 +638,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun storyBackPressed() = storyBack()
 
     /**
-     * Open a story. A chapter's new kana come first, as cards, then its new
-     * grammar's page, then the chapter; its new words you learn by reading.
+     * Open a story. A chapter's new grammar's page comes first, then the
+     * chapter; its new words you learn by reading.
      * Past today's limit, a chapter that adds more asks first, unless [anyway].
      */
     fun openStory(id: Long, anyway: Boolean = false) = launchIo {
         _limit.value = null
         val story = repo.story(id) ?: return@launchIo showStories()
         val learn = repo.stepToLearn(story, now())
-        val adding = learn?.let { it.words.size + it.kana.size } ?: 0
+        val adding = learn?.words?.size ?: 0
         val pace = repo.pace(now())
         if (!anyway && pace.over(adding)) {
             val chapter = repo.chapterOf(story, now())
@@ -745,15 +660,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         continueChapter(story, learn)
     }
 
-    /** On towards reading [story]: its new kana as cards, then its new grammar's page, then the story. */
-    private fun continueChapter(story: SavedStory, learn: StepToLearn? = repo.stepToLearn(story, now())) {
-        val kana = learn?.kana?.let(repo::kanaToLearn).orEmpty()
-        if (kana.isNotEmpty()) {
-            session = StudySession(emptyList(), kana, emptyList())
-            learningFor = story.id
-            undo = null
-            return advance()
-        }
+    /** On towards reading [story]: its new grammar's page, then the story. */
+    private fun continueChapter(story: SavedStory, learn: StepToLearn?) {
         val page = learn?.topic?.let { repo.grammarPageId(it, now()) } ?: return showStory(story.id)
         val chapter = repo.chapterOf(story, now())
         val name = if (chapter != null && !chapter.series.single) "chapter ${chapter.chapter.number}: ${chapter.chapter.story.title}" else story.title

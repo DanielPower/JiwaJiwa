@@ -25,7 +25,7 @@ Guiding rules from Daniel:
 
 | Path | What it is |
 | --- | --- |
-| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kana course, kanji readings, romaji, the story path, Kuromoji word splitting, Renshuu import planning. No Android imports. |
+| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kanji readings, romaji, the story path, Kuromoji word splitting, Renshuu import planning. No Android imports. |
 | `app/` | The Android app: Jetpack Compose UI, SQLite storage, reminder, backup. |
 | `tools/dictionary/` | Python (stdlib only) build of the bundled dictionary DB from pinned sources. |
 | `tools/fsrs/` | Generates `core/src/test/resources/fsrs_vectors.tsv` from py-fsrs. |
@@ -101,8 +101,8 @@ Study and scheduling:
   are fixed constants (`MasteryRules`), not settings, so users aren't
   overwhelmed with choices. Don't add them back unless Daniel asks.
 - New words go N5 → N1, by frequency within a level. Within a sitting,
-  reviews and the day's new words are shuffled; new kana keep their order. A new word's first
-  showing offers Continue (main action) or a quiet "I know this".
+  reviews and new cards are shuffled. Reviews never show a "new card"
+  screen: new words start when a story is finished.
 - "Mark known" lets you set the word's mastery; it gets a review schedule to
   match, first due on a random day in that interval.
 - "Study more" pulls every schedule one day earlier (a `daysAhead` counter)
@@ -112,10 +112,10 @@ Study and scheduling:
 
 Kana:
 
-- Taught as flashcards, introduced by the story path as stories need them
-  (see Story path below). No quiz or lesson screen.
-- A new word only enters once every kana in its kana spelling has a kana card
-  in review. There's no override.
+- Not taught (Daniel, 2026-10-17): kana cards, the kana setup page and
+  setting were removed to keep the focus on stories. The app assumes you
+  read hiragana and katakana. Progress DB version 9 deletes old kana cards
+  (direction 2, negative word ids) and their history.
 - No romaji on vocabulary cards.
 
 Other features (all shipped):
@@ -127,10 +127,8 @@ Other features (all shipped):
   learn. Linked from the word page, the card's answer side and dictionary
   search. Kanji have no mastery or stats of their own; Daniel saw no use
   for them without kanji cards.
-- First-run setup: start level, kana known, optional reminder time. Both
-  can change later in Settings: marking a script known sets its started
-  kana cards aside (suspended) until you change it back, and moving the
-  start level past N5 asks, as setup does, whether unstarted easier words
+- First-run setup: start level, optional reminder time. Both can change
+  later in Settings: moving the start level past N5 asks, as setup does, whether unstarted easier words
   wait or are marked Known or Mastered.
 - Daily reminder has **no default time**; the user picks one. Don't request
   notification permission until they turn it on.
@@ -141,9 +139,8 @@ Other features (all shipped):
   home screen, not a tab.
 - Renshuu import: takes the higher of the two masteries per word, skips
   suspended words, never stores the Renshuu key. Renshuu's `edict_ent` is
-  the JMdict id, which is jstudy's word id. Renshuu's kana entries have no
-  `edict_ent`; they're matched by text to kana cards. Its other entries
-  without one (する verbs, phrases, names) are skipped on purpose.
+  the JMdict id, which is jstudy's word id. Entries without one (kana,
+  する verbs, phrases, names) are skipped on purpose.
 - Claude-written stories, and the story server they went through, were
   removed (Daniel, 2026-10-15); they may be rebuilt later. Stories are the
   bundled ones only. Tapping a word
@@ -192,8 +189,8 @@ licence that allows this.
 
 Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 2026-10-15):
 
-- New words, kana and grammar come from the path instead of reviews.
-  Reviews and the home count no longer introduce words or kana; only
+- New words and grammar come from the path instead of reviews.
+  Reviews and the home count no longer introduce words; only
   unlocked production cards are new there.
 - The path (`app/src/main/assets/stories/path.json`, written by
   `tools/stories/path.py`) is stories made of chapters, plus grammar topics.
@@ -204,10 +201,10 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   follow it (`after`, which can also name a chapter to mean the story up
   to there). Formal speech comes later as its own topic.
 - Side stories and one-shots (`side`) use only what the stories they
-  follow teach: no new words, kana or grammar. They're there so you can
+  follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.
 - Pace (`core/Pace`, `Repository.pace`): a soft daily limit on new words
-  and kana started (`newPerDay`, default 20, from the rollover hour), and a
+  started (`newPerDay`, default 20, from the rollover hour), and a
   review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this"
   and imports start nothing, so they don't count. Past either, the Stories
   tab leads with open chapters that have nothing new, tapping a chapter
@@ -221,10 +218,8 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   `story` table by `path_id`, with when you read them; rows the app no
   longer ships are removed when it syncs.
 - A chapter opens on its own once it's within reach (`StoryPath.gap`): new
-  words at most 3% of its running words, from 3 to 10; at most 6 new kana
-  (furigana counts, and kana you said you read never do); and no grammar
-  point you haven't seen, other than its own topic. Hiragana and katakana
-  are separate units. Tapping a locked chapter shows what it's missing and
+  words at most 3% of its running words, from 3 to 10; and no grammar
+  point you haven't seen, other than its own topic. Tapping a locked chapter shows what it's missing and
   the open chapters with the most of it.
 - Grammar comes in as topics (one or more related points, like から/まで),
   at most one per chapter; the same topic can be listed on several
@@ -238,13 +233,12 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   when it isn't): each story, read in order after the ones it follows,
   opens chapter by chapter, so side stories are never required, and a
   `side` story has nothing new at all; and
-  `StoryPath.solve` reaches every chapter from knowing nothing, kana
-  included. Readiness only grows as you learn, so no reading order can get
+  `StoryPath.solve` reaches every chapter from knowing nothing.
+  Readiness only grows as you learn, so no reading order can get
   stuck. Rerun it after editing a story.
 - Words: **seen** (has a card, mastery below 40), **known** (40, where
   furigana hides), **mastered** (70).
-- Opening a chapter shows its new kana as new cards once, then its new
-  grammar's page, then the chapter. New words aren't listed up front:
+- Opening a chapter shows its new grammar's page, then the chapter. New words aren't listed up front:
   they're red and underlined in the text, and tapping one shows it.
   Finishing starts every word
   in it you haven't started as a card (`Repository.startStoryWords`).

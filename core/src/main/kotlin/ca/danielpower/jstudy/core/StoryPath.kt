@@ -46,7 +46,7 @@ data class Chapter(
 
 /**
  * A story that comes with the app, as one or more chapters. Each chapter
- * opens on its own once its words, kana and grammar are within reach.
+ * opens on its own once its words and grammar are within reach.
  * Read in order, after the stories in [after], every chapter is.
  */
 data class PathSeries(
@@ -98,14 +98,12 @@ data class StoryCatalog(val series: List<PathSeries>, val grammar: List<GrammarT
     fun teaching(topic: String): List<Pair<PathSeries, Chapter>> = chapters.filter { it.second.topic == topic }
 }
 
-/** What a step asks of you: the words, kana and grammar its Japanese uses. */
+/** What a step asks of you: the words and grammar its Japanese uses. */
 data class StepNeeds(
     /** Each counted word once, in the order they first appear. */
     val words: List<ReadingWord>,
     /** How many counted words there are, repeats included. */
     val running: Int,
-    /** Every kana it takes to read it, furigana included. */
-    val kana: Set<KanaUnit>,
     /** The grammar points its Japanese uses. */
     val grammar: Set<String>,
     /** The grammar points it teaches, for a lesson. */
@@ -116,21 +114,20 @@ data class StepNeeds(
 }
 
 /** What a step's [needs] leave to learn, for someone who knows some of it. */
-data class StepGap(val words: List<ReadingWord>, val kana: List<KanaUnit>, val grammar: List<String>, val allowance: Int) {
-    /** Open to read: few enough new words and kana, and no grammar that hasn't been taught. */
-    val ready get() = words.size <= allowance && kana.size <= StoryPath.MAX_KANA && grammar.isEmpty()
+data class StepGap(val words: List<ReadingWord>, val grammar: List<String>, val allowance: Int) {
+    /** Open to read: few enough new words, and no grammar that hasn't been taught. */
+    val ready get() = words.size <= allowance && grammar.isEmpty()
 }
 
 /**
- * The bundled stories, whose chapters introduce new words, kana and grammar
- * in place of the study queue. A chapter opens once it has few enough new
- * words and kana and uses only grammar you've seen or it teaches. A chapter
+ * The bundled stories, whose chapters introduce new words and grammar in
+ * place of the study queue. A chapter opens once it has few enough new
+ * words and uses only grammar you've seen or it teaches. A chapter
  * teaches one grammar topic at most, before you read it.
  */
 object StoryPath {
     const val MIN_NEW = 3
     const val MAX_NEW = 10
-    const val MAX_KANA = 6
 
     fun parse(json: String): StoryCatalog {
         val root = Json.parseToJsonElement(json).jsonObject
@@ -198,12 +195,9 @@ object StoryPath {
     fun needs(reader: Reader, story: PathStory): StepNeeds {
         val all = reader.read(story.body).flatten()
         val counted = all.filter { it.kind == WordKind.WORD }
-        // Furigana is read where there is some; a grammar page's English can quote kana too.
-        val text = all.flatMap { w -> w.ruby.map { it.ruby ?: it.base } } + story.notes.map { it.text }
         return StepNeeds(
             words = counted.distinctBy { it.key },
             running = counted.size,
-            kana = text.flatMap(KanaCourse::unitsIn).toSet(),
             grammar = all.flatMap { w -> w.grammar.map { it.point.id } }.toSet(),
             teaches = story.teaches.toSet(),
         )
@@ -213,17 +207,16 @@ object StoryPath {
     fun newWords(words: List<ReadingWord>, isKnown: (Long) -> Boolean): List<ReadingWord> =
         words.filter { w -> w.wordId?.let(isKnown) != true }
 
-    /** What's left of [needs] to learn, given the words, kana and grammar you know. */
-    fun gap(needs: StepNeeds, isKnown: (Long) -> Boolean, knowsKana: (KanaUnit) -> Boolean, seenGrammar: Set<String>) = StepGap(
+    /** What's left of [needs] to learn, given the words and grammar you know. */
+    fun gap(needs: StepNeeds, isKnown: (Long) -> Boolean, seenGrammar: Set<String>) = StepGap(
         words = newWords(needs.words, isKnown),
-        kana = KanaCourse.units.filter { it in needs.kana && !knowsKana(it) },
         grammar = (needs.grammar - needs.teaches - seenGrammar).sorted(),
         allowance = needs.allowance,
     )
 
     /**
      * Reads every step that's open, learning what it teaches, until none is
-     * left, starting from no words, no kana and no grammar. Returns the
+     * left, starting from no words and no grammar. Returns the
      * indexes read, in order; any step missing can never be reached.
      *
      * Reading a step only adds to what you know, and knowing more never
@@ -233,7 +226,6 @@ object StoryPath {
      */
     fun solve(steps: List<StepNeeds>): List<Int> {
         val words = HashSet<String>()
-        val kana = HashSet<KanaUnit>()
         val grammar = HashSet<String>()
         val order = ArrayList<Int>()
         val left = steps.indices.toMutableList()
@@ -241,13 +233,11 @@ object StoryPath {
             val i = left.firstOrNull { i ->
                 val s = steps[i]
                 s.words.count { it.wordId == null || it.key !in words } <= s.allowance &&
-                    s.kana.count { it !in kana } <= MAX_KANA &&
                     grammar.containsAll(s.grammar - s.teaches)
             } ?: return order
             left.remove(i)
             order += i
             words += steps[i].words.map { it.key }
-            kana += steps[i].kana
             grammar += steps[i].grammar + steps[i].teaches
         }
     }

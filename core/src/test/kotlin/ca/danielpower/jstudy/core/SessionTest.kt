@@ -118,17 +118,13 @@ class SessionTest {
     }
 
     @Test
-    fun `a shuffled sitting mixes up reviews and new words but keeps new kana in order`() {
-        val kana = (101L..104L).map { Card(id = it, wordId = -it, direction = Direction.KANA) }
+    fun `a shuffled sitting mixes up reviews and new words`() {
         val reviews = (1L..20L).map(::review)
         val words = (21L..30L).map(::newCard)
         val orders = (1..5).map { seed ->
-            order(StudySession(reviews, kana + words, emptyList(), random = kotlin.random.Random(seed)))
+            order(StudySession(reviews, words, emptyList(), random = kotlin.random.Random(seed)))
         }
-        for (o in orders) {
-            assertEquals((reviews + kana + words).map { it.id }.toSet(), o.toSet())
-            assertEquals(kana.map { it.id }, o.filter { it > 100 })
-        }
+        for (o in orders) assertEquals((reviews + words).map { it.id }.toSet(), o.toSet())
         assertTrue(orders.any { o -> o.filter { it <= 20 } != reviews.map { it.id } })
         assertTrue(orders.any { o -> o.filter { it in 21..30 } != words.map { it.id } })
         assertTrue(orders.distinct().size > 1)

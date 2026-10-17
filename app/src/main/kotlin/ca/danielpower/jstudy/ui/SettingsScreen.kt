@@ -30,7 +30,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
@@ -66,19 +65,6 @@ fun SettingsScreen(
                 }
             }
         }
-
-        Section(ui("Kana", "かな", "仮名"))
-        Text("Kana you could read already", style = MaterialTheme.typography.bodyLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for ((known, label) in KANA_CHOICES) {
-                WashiChip(selected = state.kanaKnown == known, onClick = { vm.setKanaKnown(known) }, label = ui(label))
-            }
-        }
-        Text(
-            kanaHelp(state.kanaKnown),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
 
         Section(ui("Daily study", "毎日の勉強"))
         Text("Start new words from", style = MaterialTheme.typography.bodyLarge)
@@ -125,7 +111,7 @@ fun SettingsScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Stepper(ui("New words and kana per day", "一日の新しい言葉と仮名"), "${s.newPerDay}") { d ->
+        Stepper(ui("New words per day", "一日の新しい言葉"), "${s.newPerDay}") { d ->
             update { s.copy(newPerDay = (s.newPerDay + d * 5).coerceIn(5, 100)) }
         }
         Text(

@@ -30,16 +30,15 @@ class StoryPathTest {
         StoryPath.needs(reader, PathStory("x", "A title in English", body, emptyList(), teaches))
 
     @Test
-    fun `a step needs the kana of its words and furigana, and its grammar, but not its English title`() {
+    fun `a step needs its grammar, but not its English title's`() {
         val n = needs("猫と犬です。")
-        assertEquals(setOf("ね", "こ", "と", "い", "ぬ", "で", "す"), n.kana.map { it.text }.toSet())
         assertEquals(setOf("to", "desu"), n.grammar)
         assertEquals(setOf("wa", "desu"), needs("猫は犬です。").grammar)
     }
 
     @Test
     fun `the new word allowance is 3 percent of running words, from 3 to 10`() {
-        fun allowance(running: Int) = StepNeeds(emptyList(), running, emptySet(), emptySet(), emptySet()).allowance
+        fun allowance(running: Int) = StepNeeds(emptyList(), running, emptySet(), emptySet()).allowance
         assertEquals(3, allowance(10))
         assertEquals(3, allowance(133))
         assertEquals(6, allowance(200))
@@ -49,20 +48,11 @@ class StoryPathTest {
     @Test
     fun `a chapter waits for its grammar to be taught, unless it teaches it`() {
         val story = needs("猫は犬です。")
-        val none = StoryPath.gap(story, { true }, { true }, emptySet())
+        val none = StoryPath.gap(story, { true }, emptySet())
         assertEquals(listOf("desu", "wa"), none.grammar)
         assertFalse(none.ready)
-        assertTrue(StoryPath.gap(story, { true }, { true }, setOf("wa", "desu")).ready)
-        assertTrue(StoryPath.gap(needs("猫は犬です。", teaches = listOf("wa", "desu")), { true }, { true }, emptySet()).ready)
-    }
-
-    @Test
-    fun `a step waits while it has more than 6 new kana`() {
-        val story = needs("猫です。")
-        assertTrue(StoryPath.gap(story, { true }, { false }, setOf("desu")).ready)
-        val more = StoryPath.gap(needs("犬、魚です。"), { true }, { false }, emptySet())
-        assertEquals(setOf("い", "ぬ", "さ", "か", "な", "で", "す"), more.kana.map { it.text }.toSet())
-        assertFalse(more.ready)
+        assertTrue(StoryPath.gap(story, { true }, setOf("wa", "desu")).ready)
+        assertTrue(StoryPath.gap(needs("猫は犬です。", teaches = listOf("wa", "desu")), { true }, emptySet()).ready)
     }
 
     @Test
@@ -88,7 +78,7 @@ class StoryPathTest {
      * and grammar page has English for each sentence, every counted word is
      * in the dictionary, topics name real grammar points, each story read in
      * order (after the stories it follows) opens chapter by chapter, and the
-     * solver reaches every chapter from knowing nothing, kana included.
+     * solver reaches every chapter from knowing nothing.
      * Needs the dictionary built (python3 tools/dictionary/build_dictionary.py),
      * so it's skipped where it isn't. Writes build/reports/story-path.txt.
      */
@@ -128,23 +118,20 @@ class StoryPathTest {
             }.distinct()
             for (series in catalog.series) {
                 val words = HashSet<Long>()
-                val kana = HashSet<KanaUnit>()
                 val grammar = HashSet<String>()
                 for (c in before(series) + series.chapters) {
                     val own = c in series.chapters
                     val n = needs.getValue(c.story.id)
-                    val gap = StoryPath.gap(n, { it in words }, { it in kana }, grammar)
+                    val gap = StoryPath.gap(n, { it in words }, grammar)
                     // The stories this one follows are checked on their own turn.
                     if (own) {
                         val id = c.story.id
                         if (gap.words.size > gap.allowance) problems += "$id: ${gap.words.size} new words, ${gap.allowance} allowed"
-                        if (gap.kana.size > StoryPath.MAX_KANA) problems += "$id: ${gap.kana.size} new kana"
                         if (gap.grammar.isNotEmpty()) problems += "$id: grammar not taught yet: ${gap.grammar}"
-                        if (series.side && (gap.words.isNotEmpty() || gap.kana.isNotEmpty() || c.topic != null))
-                            problems += "$id: side story has something new: ${gap.words.map { it.lemma }} ${gap.kana.map { it.text }} ${c.topic.orEmpty()}"
+                        if (series.side && (gap.words.isNotEmpty() || c.topic != null))
+                            problems += "$id: side story has something new: ${gap.words.map { it.lemma }} ${c.topic.orEmpty()}"
                     }
                     words += n.words.mapNotNull { it.wordId }
-                    kana += n.kana
                     grammar += n.grammar + n.teaches
                     if (!own) continue
                     // The topic's example, shown before reading, uses only words you have by then.
@@ -152,8 +139,7 @@ class StoryPathTest {
                         val unknown = StoryPath.words(reader, jp).filter { it.wordId !in words }
                         if (unknown.isNotEmpty()) problems += "${c.story.id}: ${c.topic} example has new words ${unknown.map { it.lemma }}"
                     }
-                    report.appendLine("${c.story.id} ${c.story.title}  words ${gap.words.size}/${gap.allowance}, total ${words.size}; kana ${gap.kana.size}, total ${kana.size}${c.topic?.let { "; teaches $it" }.orEmpty()}")
-                    if (gap.kana.isNotEmpty()) report.appendLine("    kana ${gap.kana.joinToString(" ") { it.text }}")
+                    report.appendLine("${c.story.id} ${c.story.title}  words ${gap.words.size}/${gap.allowance}, total ${words.size}${c.topic?.let { "; teaches $it" }.orEmpty()}")
                     report.appendLine("    grammar ${n.grammar.sorted()}")
                     for (w in gap.words) report.appendLine("    ${w.lemma} (${w.reading}) ${w.wordId} ${lexicon.describe(w.wordId)}")
                 }
@@ -169,8 +155,6 @@ class StoryPathTest {
             for (n in all) for (id in n.words.mapNotNull { it.wordId }.distinct()) chaptersWith.merge(id, 1, Int::plus)
             val once = chaptersWith.filterValues { it == 1 }.keys
             report.appendLine("Words in one chapter only (${once.size} of ${chaptersWith.size}): ${once.joinToString(" ") { lexicon.describe(it).substringBefore('/') }}")
-            val kana = all.flatMap { it.kana }.toSet()
-            report.appendLine("Kana never needed: ${KanaCourse.units.filter { it !in kana }.joinToString(" ") { it.text }}")
             File("build/reports").mkdirs()
             File("build/reports/story-path.txt").writeText(report.toString() + problems.distinct().joinToString("\n", "\nProblems:\n"))
             assertTrue(problems.isEmpty(), problems.distinct().joinToString("\n"))

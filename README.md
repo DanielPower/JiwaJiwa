@@ -3,7 +3,7 @@
 An Android app for learning Japanese vocabulary. It ships with every word on
 the JLPT N5 to N1 lists, reviews them Anki-style (you grade yourself Wrong or
 Right), schedules them with FSRS, and fades out furigana as each word's
-mastery grows. Its graded stories bring in new words, kana and grammar a few
+mastery grows. Its graded stories bring in new words and grammar a few
 at a time.
 
 Every push to `main` builds a release APK and publishes it on the

@@ -79,7 +79,6 @@ import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.ReadingWord
-import ca.danielpower.jstudy.core.StoryPath
 import ca.danielpower.jstudy.core.WordKind
 import ca.danielpower.jstudy.core.readStats
 import ca.danielpower.jstudy.data.ChapterEntry
@@ -204,20 +203,18 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
     }
 }
 
-/** What's new in a chapter: "3 new words · 2 new kana", or that nothing is. */
+/** What's new in a chapter: "3 new words" and its grammar topic, or that nothing is. */
 @Composable
 private fun newLabel(entry: ChapterEntry): String {
     val words = entry.gap.words.size
-    val kana = entry.gap.kana.size
-    if (words == 0 && kana == 0 && entry.newTopic == null) return ui("Nothing new", "新しい言葉なし", "新しい", "言葉")
+    if (words == 0 && entry.newTopic == null) return ui("Nothing new", "新しい言葉なし", "新しい", "言葉")
     return listOfNotNull(
         words.takeIf { it > 0 }?.let { if (it == 1) "1 new word" else "$it new words" },
-        kana.takeIf { it > 0 }?.let { "$it new kana" },
         entry.newTopic?.title,
     ).joinToString(" · ")
 }
 
-/** Today's new words and kana against the daily limit, gold once it's reached. */
+/** Today's new words against the daily limit, gold once it's reached. */
 @Composable
 private fun PaceMeter(pace: Pace) {
     val color = if (pace.atLimit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
@@ -422,7 +419,7 @@ private fun ChapterRow(entry: ChapterEntry, next: Boolean, onClick: () -> Unit) 
                 entry.read -> Text("✓", color = rightGreen(), fontWeight = FontWeight.Bold)
                 locked -> Icon(WashiIcons.Lock, contentDescription = "Locked", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 else -> {
-                    val words = entry.gap.words.size + entry.gap.kana.size
+                    val words = entry.gap.words.size
                     Text(
                         listOfNotNull(if (words > 0) "$words new" else null, entry.newTopic?.title).joinToString(" · ").ifEmpty { "Ready" },
                         style = MaterialTheme.typography.labelMedium,
@@ -440,8 +437,7 @@ private fun lockReason(entry: ChapterEntry): String {
     val gap = entry.gap
     return when {
         gap.grammar.isNotEmpty() -> "Needs grammar you haven't met yet"
-        gap.words.size > gap.allowance -> "${gap.words.size} new words"
-        else -> "${gap.kana.size} new kana"
+        else -> "${gap.words.size} new words"
     }
 }
 
@@ -481,12 +477,6 @@ private fun LockSheet(lock: LockInfo, vm: AppViewModel) {
                 }
             }
         }
-        if (gap.kana.size > StoryPath.MAX_KANA) {
-            Text(
-                "It has ${gap.kana.size} kana you haven't learned: ${lock.kana.joinToString(" ") { it.text }}.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
         if (lock.sources.isNotEmpty()) {
             SectionLabel("Pick them up faster", Modifier.padding(top = 8.dp))
             for ((source, count) in lock.sources) {
@@ -524,7 +514,7 @@ fun LimitSheet(prompt: LimitPrompt, vm: AppViewModel) {
         SectionLabel(listOfNotNull(prompt.chapter, "Over today's limit").joinToString(" · "))
         Text(prompt.title, style = MaterialTheme.typography.titleLarge)
         Text(
-            "You've started ${prompt.newToday} new words and kana today. This adds ${prompt.adding} more.",
+            "You've started ${prompt.newToday} new words today. This adds ${prompt.adding} more.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -21,7 +21,7 @@ data class StudySettings(
 }
 
 /**
- * Today's new words and kana against the daily limit, and the reviews
+ * Today's new words against the daily limit, and the reviews
  * waiting. It only shapes suggestions: nothing is locked by it.
  */
 data class Pace(val newToday: Int, val limit: Int, val reviewsDue: Int, val reviewNudge: Int) {
@@ -29,7 +29,7 @@ data class Pace(val newToday: Int, val limit: Int, val reviewsDue: Int, val revi
     val backlog get() = reviewNudge > 0 && reviewsDue >= reviewNudge
     val nudge get() = atLimit || backlog
 
-    /** Whether learning [adding] more new words and kana now would take you past the limit. */
+    /** Whether learning [adding] more new words now would take you past the limit. */
     fun over(adding: Int) = adding > 0 && newToday + adding > limit
 }
 
@@ -84,8 +84,7 @@ data class DailyLimits(
  * next one is shown early if it is due within [learnAheadMillis], as Anki does.
  *
  * With [random], reviews and new words come in a shuffled order, so cards
- * aren't always met in the same order or next to the same neighbours. New
- * kana keep their order, so each sound's hiragana comes before its katakana.
+ * aren't always met in the same order or next to the same neighbours.
  */
 class StudySession(
     reviews: List<Card>,
@@ -98,8 +97,7 @@ class StudySession(
         if (random == null) {
             interleave(reviews, newCards)
         } else {
-            val (kana, words) = newCards.partition { it.direction == Direction.KANA }
-            interleave(reviews.shuffled(random), kana + words.shuffled(random))
+            interleave(reviews.shuffled(random), newCards.shuffled(random))
         },
     )
     private val learning = learning.sortedBy { it.dueAt }.toMutableList()

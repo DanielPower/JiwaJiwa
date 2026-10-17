@@ -91,18 +91,6 @@ class CardsTest {
     }
 
     @Test
-    fun `kana cards earn mastery but never unlock a production card`() {
-        val card = Card(
-            id = 1, wordId = KanaCourse.units.first().id, direction = Direction.KANA, state = CardState.REVIEW,
-            stability = 20.0, difficulty = 5.0, lastReviewAt = at("2026-10-01T09:00"),
-        )
-        val answer = reviewer.answer(card, WordProgress(card.wordId), correct = true, now = at("2026-10-10T09:00"))
-        assertTrue(answer.progress.mastery >= 40)
-        assertFalse(answer.unlockedProduction)
-        assertFalse(answer.progress.productionUnlocked)
-    }
-
-    @Test
     fun `marking a word known below the production threshold keeps it locked`() {
         val now = at("2026-10-10T20:00")
         val card = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)

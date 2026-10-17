@@ -19,15 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.MasteryRules
-import ca.danielpower.jstudy.core.UiLabel
 
-/** First run, a page at a time: welcome, kana, starting level (if you read kana), reminder. */
+/** First run, a page at a time: welcome, starting level, reminder. */
 @Composable
 fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
-    val pages = state.pages
-    val index = pages.indexOf(state.page)
+    val pages = SetupPage.entries
+    val index = state.page.ordinal
     val last = index == pages.lastIndex
 
     Column(Modifier.fillMaxSize()) {
@@ -42,7 +40,6 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
             )
             when (state.page) {
                 SetupPage.WELCOME -> WelcomePage()
-                SetupPage.KANA -> KanaPage(state, vm)
                 SetupPage.LEVEL -> LevelPage(state, vm)
                 SetupPage.REMINDER -> ReminderPage(state, vm)
             }
@@ -58,7 +55,6 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
             }
             PrimaryButton(
                 onClick = if (last) vm::finishSetup else vm::setupNext,
-                enabled = state.page != SetupPage.KANA || state.kana != null,
                 modifier = Modifier.weight(1f).height(58.dp),
             ) {
                 Text(if (last) ui("Start", "始める") else ui("Next", "次へ"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -108,33 +104,6 @@ private fun ColumnScope.WelcomePage() {
             "earlier ones timed for just before you'd forget them.",
     )
     Body("A couple of questions first, so it starts at the right place for you.")
-}
-
-@Composable
-private fun ColumnScope.KanaPage(state: Screen.Setup, vm: AppViewModel) {
-    Title(ui("Kana", "かな", "仮名"))
-    Body("Japanese is written with three scripts, often mixed in one sentence.")
-    Example("ひらがな", "Hiragana", "Grammar and native words, like たべる (to eat).")
-    Example("カタカナ", "Katakana", "Words borrowed from other languages, like テレビ (television).")
-    Example("漢字", "Kanji", "Characters from Chinese, each with a meaning, like 山 (mountain).")
-    Body(
-        "Hiragana and katakana are the kana. Each has 46 basic characters, one per sound, and the two " +
-            "share the same sounds. Kanji take years, so every card here shows the reading in hiragana " +
-            "above the kanji until you know the word. Reading kana comes first.",
-    )
-
-    SectionLabel("Which can you read?", Modifier.padding(top = 8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for ((known, label) in KANA_CHOICES) {
-            WashiChip(
-                selected = state.kana == known,
-                onClick = { vm.editSetup { it.copy(kana = known) } },
-                label = ui(label),
-            )
-        }
-    }
-    // Anyone still learning kana starts at N5, so the level page is skipped.
-    state.kana?.let { Help(kanaHelp(it) + if (it == KanaKnown.BOTH) "" else " Words start at N5, the first level.") }
 }
 
 @Composable
@@ -213,20 +182,7 @@ private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
         }
     }
     Help(
-        "You can change kana, the starting level and the reminder later in Settings, and mark single " +
+        "You can change the starting level and the reminder later in Settings, and mark single " +
             "words from the dictionary.",
     )
-}
-
-/** The kana choices, as chips. */
-internal val KANA_CHOICES = listOf(
-    KanaKnown.BOTH to UiLabel("Both", "両方"),
-    KanaKnown.HIRAGANA to UiLabel("Hiragana only", "ひらがなだけ", listOf("ひらがな")),
-    KanaKnown.NONE to UiLabel("Neither", "どちらも"),
-)
-
-internal fun kanaHelp(known: KanaKnown) = when (known) {
-    KanaKnown.BOTH -> "Straight to vocabulary."
-    KanaKnown.HIRAGANA -> "Stories teach katakana as they use them, a few at a time, before you read."
-    KanaKnown.NONE -> "Stories teach kana as they use them, a few at a time, before you read. Hiragana comes first."
 }

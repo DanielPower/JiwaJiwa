@@ -69,7 +69,6 @@ class ProgressStoreTest {
         }
         assertEquals(setOf(7L), store.wordIdsWithCards(Direction.RECOGNITION))
         assertEquals(setOf(7L), store.wordIdsWithCards(Direction.PRODUCTION))
-        assertEquals(emptySet<Long>(), store.wordIdsWithCards(Direction.KANA))
     }
 
     @Test
@@ -77,14 +76,12 @@ class ProgressStoreTest {
         store.transaction {
             store.insertNewCard(it, 7, Direction.RECOGNITION, 1)
             store.insertNewCard(it, 8, Direction.RECOGNITION, 2, suspended = true)
-            store.insertNewCard(it, -1, Direction.KANA, 3)
             store.saveProgress(it, WordProgress(7, mastery = 55, productionUnlocked = true))
         }
         assertEquals(
             mapOf(7L to WordStatus(CardState.NEW, false, 55), 8L to WordStatus(CardState.NEW, true, 0)),
             store.wordStatuses(),
         )
-        assertEquals(mapOf(-1L to WordStatus(CardState.NEW, false, 0)), store.kanaStatuses())
         assertTrue(store.isSuspended(8))
         store.transaction { store.setSuspended(it, 8, false) }
         assertFalse(store.isSuspended(8))
@@ -156,35 +153,20 @@ class ProgressStoreTest {
             val suspended = store.insertNewCard(it, 3, Direction.RECOGNITION, 2, suspended = true)
             val started = store.insertNewCard(it, 4, Direction.RECOGNITION, 3)
             store.updateCard(it, store.card(started)!!.copy(state = CardState.LEARNING, reps = 1))
-            val kana = store.insertNewCard(it, -1, Direction.KANA, 4)
-            listOf(queued, learnNext, suspended, started, kana)
+            listOf(queued, learnNext, suspended, started)
         }
         store.transaction { store.deleteQueuedNewCards(it) }
         assertNull(store.card(ids[0]))
         for (id in ids.drop(1)) assertEquals(id, store.card(id)?.id)
-
-        store.transaction { store.deleteUnstartedKana(it) }
-        assertNull(store.card(ids[4]))
-    }
-
-    @Test
-    fun kanaInReviewListsOnlyFinishedKana() {
-        store.transaction {
-            val done = store.insertNewCard(it, -1, Direction.KANA, 1)
-            store.updateCard(it, store.card(done)!!.copy(state = CardState.REVIEW))
-            val learning = store.insertNewCard(it, -2, Direction.KANA, 2)
-            store.updateCard(it, store.card(learning)!!.copy(state = CardState.LEARNING))
-        }
-        assertEquals(setOf(-1L), store.kanaInReview())
     }
 
     @Test
     fun settingsAreStoredAndReplaced() {
         assertNull(store.getValue("new_per_day"))
-        store.setValues(mapOf("new_per_day" to "10", "kana_known" to "none"))
+        store.setValues(mapOf("new_per_day" to "10", "theme" to "dark"))
         store.setValues(mapOf("new_per_day" to "15"))
         assertEquals("15", store.getValue("new_per_day"))
-        assertEquals("none", store.getValue("kana_known"))
+        assertEquals("dark", store.getValue("theme"))
     }
 
     @Test

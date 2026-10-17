@@ -14,10 +14,9 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 | `Session.kt` | `StudySettings`, `Pace` (the soft daily limit and review nudge), `StudyAhead` ("study more"), `DailyLimits`, and `StudySession`, the order cards are shown in during one sitting. |
 | `Kana.kt` | Romaji → kana for search, hiragana/katakana variants. |
 | `Kanji.kt` | `Kanji` entries, the kanji in a word from its furigana, and which dictionary reading a word uses (allowing for rendaku, small っ and verb stems in compounds). |
-| `KanaCourse.kt` | The kana units (negative ids, so they never clash with JMdict word ids), teaching order, and the "kana known" setting. |
 | `Reading.kt` | Kuromoji tokens grouped into words, matched to the dictionary, with conjugation labels. |
 | `Grammar.kt` | About 100 hand-written grammar points (particles and N5–N3 patterns), each with token patterns over Kuromoji output. `Reader` attaches them to words; a match inside a longer match is dropped. `GrammarTest` checks every point's own example sentence finds it, so add an example that does. |
-| `StoryPath.kt` | The bundled story path: parsing `path.json` (stories of chapters, and grammar topics), the words, kana and grammar each chapter needs, which chapters are within reach, and the solver that proves every chapter can be reached. |
+| `StoryPath.kt` | The bundled story path: parsing `path.json` (stories of chapters, and grammar topics), the words and grammar each chapter needs, which chapters are within reach, and the solver that proves every chapter can be reached. |
 | `Coverage.kt` | How a story's words measure up against what you know, and a finished read's stats. |
 | `UiLabels.kt` | `UiLabel` (English, Japanese, optional word spellings), the words a label needs (read with `Reader`), and `UiLanguage`, which picks the language each label shows in. |
 | `VerticalText.kt` | Line breaking for the vertical story reader: which column each run of characters goes in, with Japanese line-break rules (hanging 、。, closing brackets never start a column, opening ones never end one). |
@@ -27,11 +26,11 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 
 ## Things that are easy to get wrong
 
-- Mastery follows the recognition card (and kana cards). Production answers
+- Mastery follows the recognition card. Production answers
   must not change it.
 - `Direction` and `CardState` values are stored in the app's database. Don't
   renumber them; add new values at the end.
-- Kana cards use `Direction.KANA` with the `KanaUnit` id as the word id.
+- Value 2 was `Direction.KANA` (kana cards, removed); don't reuse it.
 - Elapsed time for FSRS is counted in study days, not 24-hour periods.
 - Times are epoch milliseconds; days are epoch days of the study day's
   calendar date. Tests use `America/St_Johns` (a half-hour offset with DST)
