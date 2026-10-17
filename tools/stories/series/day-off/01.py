@@ -1,0 +1,16 @@
+"""A day off: coffee, laundry, the manga shop, and another gig tonight."""
+from story import chapter
+
+CHAPTER = chapter(
+    "Day off",
+    [("朝だ。", "Morning."), ("今日は休み。", "Day off today.")],
+    [("ユキ|「アレックス、コーヒー飲む？」", "\"Alex, coffee?\""), ("アレックス|「飲む！ありがとう。」", "\"Yes! Thanks.\"")],
+    [("ユキ|「今日は休み？」", "\"Day off today?\""), ("アレックス|「うん、休み。」", "\"Yeah, day off.\"")],
+    [("アレックス|「雨は？」", "\"Is it raining?\""), ("ユキ|「降ってないよ。」", "\"Nope.\""), ("アレックス|「じゃあ、洗濯！」", "\"Laundry, then!\"")],
+    [("アレックス|「今日はゴミ？」", "\"Is it trash day?\""), ("ユキ|「ゴミは朝だったよ。」", "\"That was this morning.\"")],
+    [("ユキ|「マンガの店に行く？」", "\"Going to the manga shop?\""), ("アレックス|「行く！」", "\"Yeah!\"")],
+    [("アレックス|「ユキも行く？」", "\"You coming too, Yuki?\""), ("ユキ|「…行く。」", "\"…Sure.\"")],
+    [("アレックス|「ケンタは？」", "\"Kenta?\""), ("ケンタ|「眠い…」", "\"Sleepy…\"")],
+    [("ユキ|「じゃあ、ケンタは部屋だね。」", "\"Then Kenta's staying in his room.\"")],
+    [("アレックス|「ユキ、ライブは？」", "\"Yuki, any gigs coming up?\""), ("ユキ|「今夜も！」", "\"Tonight too!\""), ("アレックス|「楽しみ！」", "\"Can't wait!\"")],
+)

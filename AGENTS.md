@@ -198,13 +198,17 @@ is CC BY-SA 4.0, and the EDRDG licence requires regular JMdict updates
 (`.github/workflows/update-dictionary.yml`). New data sources must have a
 licence that allows this.
 
-Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 2026-10-15):
+Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026-10-17):
 
 - New words and grammar come from the path instead of reviews.
   Reviews and the home count no longer introduce words; only
   unlocked production cards are new there.
-- The path (`app/src/main/assets/stories/path.json`, written by
-  `tools/stories/path.py`) is stories made of chapters, plus grammar topics.
+- The path (`app/src/main/assets/stories/path.json`, written from
+  `tools/stories`, a file per chapter; see `tools/stories/AGENTS.md`) is
+  stories made of chapters, plus grammar topics. Each chapter's words and
+  grammar are worked out when the stories change and shipped in
+  `stories/needs.json` (Daniel, 2026-10-17), so the app never reads every
+  chapter: at a few hundred chapters that would take seconds on a phone.
   All of it is our own writing for adults, casual speech first: Alex, on a
   one-year working holiday in Tokyo, a share house, a ramen shop job, a
   cast met a few at a time. **Arrival** is the prologue, then **Ramen
@@ -261,7 +265,8 @@ Story path (an experiment on its own branch, Daniel, 2026-10-14; chapters since 
   `side` story has nothing new at all; and
   `StoryPath.solve` reaches every chapter from knowing nothing.
   Readiness only grows as you learn, so no reading order can get
-  stuck. Rerun it after editing a story.
+  stuck. It also checks path.json, needs.json and the summaries are up to
+  date. After editing a story, run `./gradlew -PcoreOnly=true :core:stories :core:test`.
 - Words: **seen** (has a card, mastery below 40), **known** (40, where
   furigana hides), **mastered** (70).
 - Opening a chapter shows its new grammar's page, then the chapter. New words aren't listed up front:

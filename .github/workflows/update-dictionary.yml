@@ -40,6 +40,17 @@ jobs:
         run: |
           python3 -m unittest discover tools/dictionary
           python3 tools/dictionary/build_dictionary.py
+      - uses: actions/setup-java@v4
+        if: steps.pin.outputs.changed == 'true'
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.pin.outputs.changed == 'true'
+      # A word can now match a different entry, so the stories' index and summaries are rewritten too.
+      - name: Rewrite the stories' index
+        if: steps.pin.outputs.changed == 'true'
+        run: ./gradlew -PcoreOnly=true :core:stories
       - name: Open a pull request
         if: steps.pin.outputs.changed == 'true'
         env:
@@ -49,7 +60,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
-          git add tools/dictionary/sources.json tools/dictionary/build_report.md
+          git add tools/dictionary/sources.json tools/dictionary/build_report.md \
+            app/src/main/assets/stories/needs.json tools/stories/series/*/SUMMARY.md
           git commit -m "Update JMdict, KANJIDIC2 and JmdictFurigana"
           git push --force origin "$branch"
           {

@@ -2,8 +2,6 @@ package ca.danielpower.jstudy.core
 
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.io.File
-import java.sql.Connection
-import java.sql.DriverManager
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -21,7 +19,7 @@ class StoryPathTest {
 
     @Test
     fun `words with no dictionary entry always count as new`() {
-        val words = StoryPath.words(reader, "猫はりんごを食べます。")
+        val words = needs("猫はりんごを食べます。").words
         val new = StoryPath.newWords(words) { it == 1L || it == 5L }
         assertEquals(listOf("りんご"), new.map { it.lemma })
     }
@@ -73,24 +71,41 @@ class StoryPathTest {
         assertEquals(catalog.series.size, catalog.series.map { it.id }.toSet().size, "story ids are unique")
     }
 
+    /** path.json is written from tools/stories; this catches a chapter changed without rewriting it. Needs python3. */
+    @Test
+    fun `the bundled stories file is up to date with tools stories`() {
+        val out = File.createTempFile("path", ".json")
+        try {
+            val python = runCatching {
+                ProcessBuilder("python3", "../tools/stories/build.py", out.path).redirectErrorStream(true).start()
+            }.getOrNull()
+            assumeTrue(python != null, "python3 not found")
+            val log = python!!.inputStream.bufferedReader().readText()
+            assertEquals(0, python.waitFor(), log)
+            assertEquals(out.readText(), bundled.readText(), "path.json is out of date: run ./gradlew -PcoreOnly=true :core:stories")
+        } finally {
+            out.delete()
+        }
+    }
+
     /**
      * Checks the bundled stories against the real dictionary: every chapter
      * and grammar page has English for each sentence, every counted word is
      * in the dictionary, topics name real grammar points, each story read in
-     * order (after the stories it follows) opens chapter by chapter, and the
-     * solver reaches every chapter from knowing nothing.
+     * order (after the stories it follows) opens chapter by chapter, the
+     * solver reaches every chapter from knowing nothing, and the index and
+     * summaries the story tools write are up to date.
      * Needs the dictionary built (python3 tools/dictionary/build_dictionary.py),
      * so it's skipped where it isn't. Writes build/reports/story-path.txt.
      */
     @Test
     fun `every chapter of the bundled stories can be reached from knowing nothing`() {
-        val db = File("../app/src/main/assets/databases/dictionary.db")
-        assumeTrue(db.exists(), "dictionary not built")
-        DriverManager.getConnection("jdbc:sqlite:${db.path}").use { conn ->
-            val lexicon = DictionaryLexicon(conn)
-            val reader = Reader(lexicon)
-            val catalog = StoryPath.parse(bundled.readText())
-            val needs = catalog.chapters.associate { (_, c) -> c.story.id to StoryPath.needs(reader, c.story) }
+        val root = File("..")
+        assumeTrue(StoryTools.dictionary(root).exists(), "dictionary not built")
+        StoryTools.open(root).use { tools ->
+            val catalog = tools.catalog
+            val reader = tools.reader
+            val needs = tools.needs
             val report = StringBuilder()
             val problems = ArrayList<String>()
 
@@ -108,40 +123,25 @@ class StoryPathTest {
             }
 
             // Each story read in order, after the ones it follows, opens one chapter at a time.
-            // A side story opens with nothing new at all.
-            val bySeries = catalog.series.associateBy { it.id }
-            val seriesOf = catalog.series.flatMap { s -> s.chapters.map { it.story.id to s } }.toMap()
-            fun before(series: PathSeries): List<Chapter> = series.after.flatMap { id ->
-                bySeries[id]?.let { before(it) + it.chapters }
-                    ?: seriesOf[id]?.let { s -> before(s) + s.chapters.takeWhile { it.story.id != id } + s.chapters.first { it.story.id == id } }
-                    ?: emptyList<Chapter>().also { problems += "${series.id}: no story or chapter $id" }
-            }.distinct()
+            // A side story opens with nothing new at all. The stories it follows are checked on their own turn.
             for (series in catalog.series) {
-                val words = HashSet<Long>()
-                val grammar = HashSet<String>()
-                for (c in before(series) + series.chapters) {
-                    val own = c in series.chapters
-                    val n = needs.getValue(c.story.id)
-                    val gap = StoryPath.gap(n, { it in words }, grammar)
-                    // The stories this one follows are checked on their own turn.
-                    if (own) {
-                        val id = c.story.id
-                        if (gap.words.size > gap.allowance) problems += "$id: ${gap.words.size} new words, ${gap.allowance} allowed"
-                        if (gap.grammar.isNotEmpty()) problems += "$id: grammar not taught yet: ${gap.grammar}"
-                        if (series.side && (gap.words.isNotEmpty() || c.topic != null))
-                            problems += "$id: side story has something new: ${gap.words.map { it.lemma }} ${c.topic.orEmpty()}"
-                    }
-                    words += n.words.mapNotNull { it.wordId }
-                    grammar += n.grammar + n.teaches
-                    if (!own) continue
+                for (step in tools.walk(series) { problems += "${series.id}: no story or chapter $it" }.filter { it.own }) {
+                    val c = step.chapter
+                    val gap = step.gap
+                    val id = c.story.id
+                    if (gap.words.size > gap.allowance) problems += "$id: ${gap.words.size} new words, ${gap.allowance} allowed"
+                    if (gap.grammar.isNotEmpty()) problems += "$id: grammar not taught yet: ${gap.grammar}"
+                    if (series.side && (gap.words.isNotEmpty() || c.topic != null))
+                        problems += "$id: side story has something new: ${gap.words.map { it.lemma }} ${c.topic.orEmpty()}"
+                    if (c.plot.isBlank()) problems += "$id: no plot line"
                     // The topic's example, shown before reading, uses only words you have by then.
                     catalog.topic(c.topic)?.example?.let { (jp, _) ->
-                        val unknown = StoryPath.words(reader, jp).filter { it.wordId !in words }
-                        if (unknown.isNotEmpty()) problems += "${c.story.id}: ${c.topic} example has new words ${unknown.map { it.lemma }}"
+                        val unknown = StoryPath.words(reader, jp).filter { it.wordId !in step.words }
+                        if (unknown.isNotEmpty()) problems += "$id: ${c.topic} example has new words ${unknown.map { it.lemma }}"
                     }
-                    report.appendLine("${c.story.id} ${c.story.title}  words ${gap.words.size}/${gap.allowance}, total ${words.size}${c.topic?.let { "; teaches $it" }.orEmpty()}")
-                    report.appendLine("    grammar ${n.grammar.sorted()}")
-                    for (w in gap.words) report.appendLine("    ${w.lemma} (${w.reading}) ${w.wordId} ${lexicon.describe(w.wordId)}")
+                    report.appendLine("$id ${c.story.title}  words ${gap.words.size}/${gap.allowance}, total ${step.words.size}${c.topic?.let { "; teaches $it" }.orEmpty()}")
+                    report.appendLine("    grammar ${step.needs.grammar.sorted()}")
+                    for (w in gap.words) report.appendLine("    ${w.lemma} ${w.wordId} ${tools.lexicon.describe(w.wordId)}")
                 }
                 report.appendLine()
             }
@@ -154,7 +154,14 @@ class StoryPathTest {
             val chaptersWith = HashMap<Long, Int>()
             for (n in all) for (id in n.words.mapNotNull { it.wordId }.distinct()) chaptersWith.merge(id, 1, Int::plus)
             val once = chaptersWith.filterValues { it == 1 }.keys
-            report.appendLine("Words in one chapter only (${once.size} of ${chaptersWith.size}): ${once.joinToString(" ") { lexicon.describe(it).substringBefore('/') }}")
+            report.appendLine("Words in one chapter only (${once.size} of ${chaptersWith.size}): ${once.joinToString(" ") { tools.lexicon.describe(it).substringBefore('/') }}")
+
+            // The app reads the index in place of every chapter, so it must match the stories.
+            for ((file, text) in tools.outputs()) {
+                if (!file.exists() || file.readText() != text) problems += "${file.relativeTo(root)} is out of date: run ./gradlew -PcoreOnly=true :core:stories"
+            }
+            assertEquals(needs, StoryPath.parseNeeds(StoryPath.writeNeeds(needs), catalog), "the index reads back as written")
+
             File("build/reports").mkdirs()
             File("build/reports/story-path.txt").writeText(report.toString() + problems.distinct().joinToString("\n", "\nProblems:\n"))
             assertTrue(problems.isEmpty(), problems.distinct().joinToString("\n"))
@@ -162,36 +169,4 @@ class StoryPathTest {
     }
 
     private val bundled = File("../app/src/main/assets/stories/path.json")
-
-    /** The app's dictionary lookup (data/Dictionary.find), over JDBC. */
-    private class DictionaryLexicon(private val conn: Connection) : Lexicon {
-        override fun find(text: String, reading: String?): LexiconMatch? {
-            data class Candidate(val id: Long, val kana: String, val jlpt: Int, val rank: Int)
-            val candidates = query(
-                "SELECT w.id, w.kana, w.jlpt, COALESCE(w.freq_rank, 1000000000) FROM form f JOIN word w ON w.id = f.word_id WHERE f.text = ?",
-                text,
-            ) { Candidate(getLong(1), getString(2), getInt(3), getInt(4)) }.distinctBy { it.id }
-            if (candidates.isEmpty()) return null
-            val wanted = reading?.let(Kana::toHiragana)
-            val readingMatches = if (wanted == null) emptySet() else candidates.filter { cand ->
-                Kana.toHiragana(cand.kana) == wanted ||
-                    query("SELECT text FROM form WHERE word_id = ?", cand.id.toString()) { getString(1) }
-                        .any { Kana.isKana(it) && Kana.toHiragana(it) == wanted }
-            }.map { it.id }.toSet()
-            val best = candidates.minWith(compareBy<Candidate>({ it.id !in readingMatches }, { it.jlpt == 0 }, { it.rank }, { it.id }))
-            return LexiconMatch(best.id, if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana))
-        }
-
-        fun describe(id: Long?): String = id?.let {
-            query("SELECT COALESCE(kanji, kana), kana, jlpt, usually_kana FROM word WHERE id = ?", it.toString()) {
-                "${getString(1)}/${getString(2)} N${getInt(3)}${if (getInt(4) == 1) " kana" else ""}"
-            }.firstOrNull()
-        }.orEmpty()
-
-        private fun <T> query(sql: String, arg: String, row: java.sql.ResultSet.() -> T): List<T> =
-            conn.prepareStatement(sql).use { st ->
-                st.setString(1, arg)
-                st.executeQuery().use { rs -> buildList { while (rs.next()) add(rs.row()) } }
-            }
-    }
 }

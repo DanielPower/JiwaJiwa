@@ -1,0 +1,13 @@
+"""Jet-lagged and hungry, Alex finds a konbini at midnight."""
+from story import chapter
+
+CHAPTER = chapter(
+    "Midnight konbini",
+    [("お腹すいた。", "I'm hungry.")],
+    [("外は…東京だ。", "Outside… Tokyo."), ("ビルが高い。", "Tall buildings.")],
+    [("コンビニはどこ？", "Where's a konbini?"), ("わからない。", "No idea."), ("あ、あっちだ！", "Oh, over there!")],
+    [("「いらっしゃいませ！」", "\"Welcome!\"")],
+    [("人は多くない。", "Not many people."), ("コンビニ、いい。", "I love konbini.")],
+    [("ラーメンだ。", "Ramen."), ("大きいラーメンだ！", "A big ramen!"), ("食べたい！", "I want it!")],
+    [("ついに、ラーメン！", "Ramen, at last!")],
+)

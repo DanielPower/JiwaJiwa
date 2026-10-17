@@ -1,0 +1,18 @@
+"""Kenta interviews at a game company and does his best."""
+from story import chapter
+
+CHAPTER = chapter(
+    "Kenta's interview",
+    [("朝、ケンタが来た。", "In the morning, Kenta came by.")],
+    [("ケンタ|「今日、会社に行く。」", "\"I'm going to a company today.\"")],
+    [("アレックス|「会社？ケンタが？」", "\"A company? You?\""), ("ケンタ|「うん。ゲームの会社。仕事だよ。」", "\"Yeah. A game company. For a job.\"")],
+    [("アレックス|「ゲームの会社！いいね！」", "\"A game company! Nice!\"")],
+    [("ケンタ|「でも、朝だ。眠い…」", "\"But it's morning. I'm sleepy…\"")],
+    [("ユキ|「ケンタ、元気？」", "\"Kenta, you okay?\""), ("ケンタ|「…眠い。」", "\"…Sleepy.\"")],
+    [("ユキ|「コーヒー、飲む？」", "\"Coffee?\""), ("ケンタ|「…飲む。」", "\"…Yes.\"")],
+    [("アレックス|「ケンタ、頑張って！」", "\"Good luck, Kenta!\""), ("ユキ|「頑張ってね！」", "\"Do your best!\"")],
+    [("夜、ケンタが来た。", "That night, Kenta came back.")],
+    [("アレックス|「仕事は？」", "\"So, the job?\""), ("ケンタ|「…わからない。」", "\"…No idea.\"")],
+    [("ケンタ|「でも、頑張った。」", "\"But I did my best.\"")],
+    [("ユキ|「今夜は、ラーメンだね！」", "\"Ramen tonight, then!\"")],
+)

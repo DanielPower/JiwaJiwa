@@ -621,9 +621,12 @@ class Repository(context: Context) {
         StoryPath.parse(appContext.assets.open("stories/path.json").bufferedReader().use { it.readText() })
     }
 
-    /** What each chapter asks of you, by its id. */
+    /**
+     * What each chapter asks of you, by its id. The story tools work it out
+     * when the stories change (core StoryTools), so the app doesn't read every chapter.
+     */
     private val needs: Map<String, StepNeeds> by lazy {
-        catalog.chapters.associate { (_, c) -> c.story.id to StoryPath.needs(reader, c.story) }
+        StoryPath.parseNeeds(appContext.assets.open("stories/needs.json").bufferedReader().use { it.readText() }, catalog)
     }
     private var pathSynced = false
 

@@ -15,6 +15,30 @@ fun interface Lexicon {
     fun find(text: String, reading: String?): LexiconMatch?
 }
 
+/** A dictionary entry with a spelling a word was written in, for [bestHomograph]. */
+data class Homograph(val id: Long, val kana: String, val jlpt: Int, val rank: Int)
+
+/** The entries that have a spelling (the one argument), for [bestHomograph]: id, kana, JLPT level, frequency rank. */
+const val HOMOGRAPHS_SQL =
+    "SELECT w.id, w.kana, w.jlpt, COALESCE(w.freq_rank, 1000000000) FROM form f JOIN word w ON w.id = f.word_id WHERE f.text = ?"
+
+/**
+ * The entry for a word among the [homographs] spelled the way it is. One with
+ * a kana spelling matching [reading] wins, then JLPT words, then the more
+ * frequent. [forms] gives an entry's spellings. The app and the story tools
+ * both look words up this way, so a story's index matches what the app reads.
+ */
+fun bestHomograph(homographs: List<Homograph>, reading: String?, forms: (Long) -> List<String>): LexiconMatch? {
+    val candidates = homographs.distinctBy { it.id }
+    if (candidates.isEmpty()) return null
+    val wanted = reading?.let(Kana::toHiragana)
+    val readingMatches = if (wanted == null) emptySet() else candidates.filter { cand ->
+        Kana.toHiragana(cand.kana) == wanted || forms(cand.id).any { Kana.isKana(it) && Kana.toHiragana(it) == wanted }
+    }.map { it.id }.toSet()
+    val best = candidates.minWith(compareBy<Homograph>({ it.id !in readingMatches }, { it.jlpt == 0 }, { it.rank }, { it.id }))
+    return LexiconMatch(best.id, if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana))
+}
+
 /** One piece of a written word and the reading above it (null for kana). */
 data class Ruby(val base: String, val ruby: String?)
 

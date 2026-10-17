@@ -1,0 +1,14 @@
+"""Alex's first shift: a rush of customers and ramen."""
+from story import chapter
+
+CHAPTER = chapter(
+    "First shift",
+    [("アレックス|「いらっしゃいませ！」", "\"Welcome!\"")],
+    [("「すみません！」", "\"Excuse me!\""), ("アレックス|「はい！」", "\"Coming!\"")],
+    [("アレックス|「ちょっと待ってください！」", "\"Just a moment, please!\"")],
+    [("「すみません、ラーメン！」", "\"Excuse me, a ramen!\""), ("アレックス|「はい、ちょっと待ってください！」", "\"Yes, just a moment!\"")],
+    [("ラーメン、ラーメン、ラーメン。", "Ramen, ramen, ramen.")],
+    [("店長|「アレックスさん、これ、お願いします！」", "\"Alex, take this one, please!\""), ("アレックス|「はい！」", "\"Yes!\"")],
+    [("人が多い！", "So many people!"), ("お腹がすいた…", "I'm starving…")],
+    topic="te-kudasai",
+)

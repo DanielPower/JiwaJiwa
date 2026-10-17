@@ -1,0 +1,11 @@
+"""Kenta gamed until morning; he and Alex plan a game night."""
+from story import chapter
+
+CHAPTER = chapter(
+    "All night",
+    [("アレックス|「眠い？」", "\"Sleepy?\""), ("ケンタ|「うん。朝までゲームだった。」", "\"Yeah. I was gaming until morning.\""), ("アレックス|「朝まで！？」", "\"Until morning?!\"")],
+    [("ケンタ|「アレックス、ゲーム好き？」", "\"Alex, do you like games?\""), ("アレックス|「好き！」", "\"I do!\"")],
+    [("アレックス|「ユキは？」", "\"What about Yuki?\""), ("ケンタ|「ユキは朝が好き。」", "\"Yuki likes mornings.\"")],
+    [("ケンタ|「今夜、ゲームだ！」", "\"Games tonight, then!\""), ("アレックス|「今夜から朝まで？」", "\"From tonight until morning?\""), ("ケンタ|「うん！」", "\"Yep!\"")],
+    topic="kara-made",
+)

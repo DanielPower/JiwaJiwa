@@ -1,0 +1,12 @@
+"""Miho recommends manga, and Alex buys them all."""
+from story import chapter
+
+CHAPTER = chapter(
+    "Miho's pick",
+    [("アレックス|「すみません、ミホさん。」", "\"Excuse me, Miho.\""), ("ミホ|「はい？」", "\"Yes?\"")],
+    [("ミホ|「アレックスさん、マンガ好き？」", "\"Alex, do you like manga?\""), ("アレックス|「好き！」", "\"I love it!\"")],
+    [("ミホ|「これ、好き？」", "\"Do you like this one?\""), ("アレックス|「好き！」", "\"I love it!\"")],
+    [("ミホ|「じゃあ、これも。おもしろいよ。」", "\"Then this one too. It's good.\"")],
+    [("アレックス|「これもおもしろい？」", "\"Is this one good too?\""), ("ミホ|「うん、おもしろいよ。」", "\"Yeah, it's good.\"")],
+    [("アレックス|「…買う！」", "\"…I'll take it!\""), ("アレックス|「これも買う！」", "\"This one too!\"")],
+)

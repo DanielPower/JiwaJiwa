@@ -2,10 +2,13 @@ package ca.danielpower.jstudy.data
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import ca.danielpower.jstudy.core.HOMOGRAPHS_SQL
+import ca.danielpower.jstudy.core.Homograph
 import ca.danielpower.jstudy.core.Kana
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.Lexicon
 import ca.danielpower.jstudy.core.LexiconMatch
+import ca.danielpower.jstudy.core.bestHomograph
 import org.json.JSONArray
 import java.io.File
 
@@ -226,31 +229,12 @@ class Dictionary(context: Context) : Lexicon {
     /** Words on the JLPT lists. */
     fun wordCount(): Int = db.rawQuery("SELECT COUNT(*) FROM word WHERE jlpt > 0", null).use { it.moveToFirst(); it.getInt(0) }
 
-    /**
-     * The entry for a word spelled [text]. Among homographs, one with a kana
-     * spelling matching [reading] wins, then JLPT words, then the more frequent.
-     */
+    /** The entry for a word spelled [text] (core [bestHomograph]). */
     override fun find(text: String, reading: String?): LexiconMatch? {
-        data class Candidate(val id: Long, val kana: String, val jlpt: Int, val rank: Int)
-        val candidates = db.rawQuery(
-            """
-            SELECT w.id, w.kana, w.jlpt, COALESCE(w.freq_rank, 1000000000)
-            FROM form f JOIN word w ON w.id = f.word_id WHERE f.text = ?
-            """,
-            arrayOf(text),
-        ).use { c ->
-            buildList { while (c.moveToNext()) add(Candidate(c.getLong(0), c.getString(1), c.getInt(2), c.getInt(3))) }
-        }.distinctBy { it.id }
-        if (candidates.isEmpty()) return null
-        val wanted = reading?.let(Kana::toHiragana)
-        val readingMatches = if (wanted == null) emptySet() else candidates.filter { cand ->
-            Kana.toHiragana(cand.kana) == wanted || forms(cand.id).any { Kana.isKana(it) && Kana.toHiragana(it) == wanted }
-        }.map { it.id }.toSet()
-        val best = candidates.minWith(
-            compareBy<Candidate>({ it.id !in readingMatches }, { it.jlpt == 0 }, { it.rank }, { it.id }),
-        )
-        val bestReading = if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana)
-        return LexiconMatch(best.id, bestReading)
+        val homographs = db.rawQuery(HOMOGRAPHS_SQL, arrayOf(text)).use { c ->
+            buildList { while (c.moveToNext()) add(Homograph(c.getLong(0), c.getString(1), c.getInt(2), c.getInt(3))) }
+        }
+        return bestHomograph(homographs, reading) { forms(it) }
     }
 
     /** A kanji's entry, or null for a character KANJIDIC2 doesn't have. */
