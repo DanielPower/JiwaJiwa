@@ -87,6 +87,14 @@ and いってらっしゃい read as words, and ～ないで来る as "come with
 ない on its own (ゴミがない) is the word 無い, and ありがとうございました is a
 different entry from ありがとうございます: both count as new words.
 
+More to reword around, found writing Phase 1: ～たことはない (write
+～たことがない), 大きすぎ and a bare し before すぎ (練習しすぎ is fine), 静かに
+as an adverb, 来るみたい (来る as きたる), 弾きたい (as はじく), 休めない (as
+休める), 聞けた (as 聞ける), ～てたんだって (たん as 歎), 変わったって (as
+～たって), なんで / 何の (the なん entry), よかった (as よい), あげる "give"
+(the 上げる entry), a stuttered ご、ごめん (後), 送りに行く (送り as a noun),
+終わり on its own (the stem of 終わる), and 何ページ (the なん entry).
+
 Then run, with the dictionary built (`python3 tools/dictionary/build_dictionary.py`):
 
     ./gradlew -PcoreOnly=true :core:stories :core:test
