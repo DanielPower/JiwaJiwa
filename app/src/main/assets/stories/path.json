@@ -1819,6 +1819,397 @@
    ]
   },
   {
+   "id": "kentas-first-job",
+   "title": "Kenta's First Job",
+   "blurb": "A new game, a strict senior, and two ways of talking: one for the office, one for home.",
+   "after": [
+    "new-housemate/late-night"
+   ],
+   "chapters": [
+    {
+     "id": "kentas-first-job/tanaka-san",
+     "title": "Tanaka-san",
+     "plot": "Kenta's first day on the new game, with Tanaka-san, his strict and very polite senior.",
+     "body": "朝だ。ケンタは、会社に来た。\n\n今日から、新しいゲームの仕事だ。\n\n田中|「ケンタさんですか？田中です。」\n\nケンタ|「はい！よろしくお願いします！」\n\n田中|「よろしくお願いします。」\n\n田中|「ケンタさんの机は、ここです。」\n\n田中|「コーヒー、飲みませんか？」\n\nケンタ|「あ、はい！」\n\n田中|「じゃあ、始めましょうか。」\n\nケンタ|「はい。何をしますか？」\n\n田中|「ゲームをしましょう。」\n\nケンタ|「…ゲーム、ですか？」\n\n田中|「はい。会社の新しいゲームです。」\n\n田中|「朝から夜まで、しましょう。」\n\nケンタ|「仕事で、ゲーム…！」\n\n田中|「仕事ですよ、ケンタさん。」\n\n夜。\n\n田中|「今日は、ここまでです。帰りましょう。」\n\n田中|「明日も、頑張りましょう。」\n\nケンタ|「はい！ありがとうございます！」\n\nケンタは帰った。田中さんは、まだ仕事をしている。",
+     "translations": [
+      "Morning.",
+      "Kenta got to the office.",
+      "Starting today, he's working on the new game.",
+      "\"Are you Kenta? I'm Tanaka.\"",
+      "\"Yes! Nice to meet you!\"",
+      "\"Nice to meet you.\"",
+      "\"Your desk is here.\"",
+      "\"Would you like some coffee?\"",
+      "\"Oh, yes please!\"",
+      "\"Well then, shall we begin?\"",
+      "\"Yes. What do I do?\"",
+      "\"Let's play the game.\"",
+      "\"…The game?\"",
+      "\"Yes. The company's new game.\"",
+      "\"Let's play it from morning till night.\"",
+      "\"Games, for work…!\"",
+      "\"It is work, Kenta.\"",
+      "Night.",
+      "\"That's it for today. Let's go home.\"",
+      "\"Let's work hard tomorrow too.\"",
+      "\"Yes! Thank you very much!\"",
+      "Kenta went home.",
+      "Tanaka is still working."
+     ],
+     "topic": "mashou",
+     "meets": [
+      {
+       "name": "田中",
+       "about": "Kenta's senior at the game company; strict, fair, always polite"
+      }
+     ]
+    },
+    {
+     "id": "kentas-first-job/lunch",
+     "title": "Lunch",
+     "plot": "Tanaka-san invites Kenta to lunch, and it turns out she plays games every night too.",
+     "body": "お昼だ。ケンタは、まだゲームをしている。\n\n田中|「ケンタさん、お昼、一緒に行きませんか？」\n\nケンタ|「あ…はい！行きます！」\n\n田中|「ラーメンは好きですか？」\n\nケンタ|「好きです！」\n\n田中|「じゃあ、行きましょう。」\n\n会社の外に、ラーメンの店がある。\n\n田中|「私は、いつもここで食べています。」\n\nラーメンが来た。\n\n田中|「食べましょう。」\n\nケンタ|「田中さんは、ゲーム、好きですか？」\n\n田中|「好きですよ。」\n\n田中|「夜は、いつもゲームをしています。」\n\nケンタ|「僕もです！」\n\nケンタ|「今度、一緒にやりませんか？」\n\n田中|「いいですね。」\n\n田中|「でも、今は仕事です。」\n\n田中|「会社に帰りましょうか。」\n\nケンタ|「はい！」\n\nケンタは、今度が楽しみだ。",
+     "translations": [
+      "Noon.",
+      "Kenta's still playing the game.",
+      "\"Kenta, would you like to go to lunch together?\"",
+      "\"Oh… yes! I'd love to!\"",
+      "\"Do you like ramen?\"",
+      "\"I do!\"",
+      "\"Then let's go.\"",
+      "There's a ramen shop outside the office.",
+      "\"I always eat here.\"",
+      "The ramen came.",
+      "\"Let's eat.\"",
+      "\"Do you like games, Tanaka-san?\"",
+      "\"I do.\"",
+      "\"I always play games at night.\"",
+      "\"Me too!\"",
+      "\"Want to play together sometime?\"",
+      "\"That sounds nice.\"",
+      "\"But right now, it's work.\"",
+      "\"Shall we head back to the office?\"",
+      "\"Okay!\"",
+      "Kenta's looking forward to next time."
+     ]
+    },
+    {
+     "id": "kentas-first-job/boku-and-ore",
+     "title": "僕 and 俺",
+     "plot": "Home from work, Kenta tells Yuki and Sora that at the office he's polite, and calls himself 僕.",
+     "body": "夜だ。ケンタが帰った。\n\nケンタ|「ただいま。」\n\nユキ|「おかえり！」\n\nソラ|「ケンタさん、新しい仕事は、おもしろいですか？」\n\nケンタ|「おもしろいよ。朝から夜まで、ゲーム。」\n\nユキ|「いいね！」\n\nケンタ|「でも、田中さんがいるんだ。」\n\nソラ|「田中さん？」\n\nケンタ|「会社の人。いつも敬語なんだ。」\n\nソラ|「田中さんも、ゲームが好きですか？」\n\nケンタ|「うん。夜は、いつもゲームなんだ。」\n\nユキ|「いい人じゃん。」\n\nケンタ|「…うん。いい人。」\n\nケンタ|「『ケンタさん、始めましょうか。』『明日も頑張りましょう。』」\n\nユキ|「ケンタも、会社では敬語？」\n\nケンタ|「うん。会社では、『僕』なんだ。」\n\nユキ|「ケンタが『僕』！」\n\nソラ|「ケンタさんが…『僕』。」\n\nケンタ|「ここでは、『俺』だよ。」\n\nユキ|「ケンタ、コーヒー飲む？」\n\nケンタ|「…お願いします。」\n\nユキ|「あ、敬語！」\n\nケンタ|「あ…飲む。ありがとう。」\n\nソラ|「僕は、いつも敬語ですね。」\n\nユキ|「ソラは、ソラだから。」",
+     "translations": [
+      "Night.",
+      "Kenta's home.",
+      "\"I'm home.\"",
+      "\"Welcome back!\"",
+      "\"Kenta, is the new job fun?\"",
+      "\"It's great. Games from morning till night.\"",
+      "\"Nice!\"",
+      "\"But there's Tanaka-san.\"",
+      "\"Tanaka-san?\"",
+      "\"Someone at work. She's always polite.\"",
+      "\"Does Tanaka-san like games too?\"",
+      "\"Yeah. She plays every night.\"",
+      "\"Sounds like a good person.\"",
+      "\"…Yeah. She is.\"",
+      "\"'Kenta, shall we begin?' 'Let's work hard tomorrow too.'\"",
+      "\"Are you polite at work too?\"",
+      "\"Yeah. At work, I'm 'boku'.\"",
+      "\"Kenta says 'boku'!\"",
+      "\"Kenta… says 'boku'.\"",
+      "\"Here, I'm 'ore'.\"",
+      "\"Kenta, want a coffee?\"",
+      "\"…Yes, please.\"",
+      "\"Ha, polite!\"",
+      "\"Oh… yeah. Thanks.\"",
+      "\"I'm polite all the time, though.\"",
+      "\"Well, you're Sora.\""
+     ]
+    },
+    {
+     "id": "kentas-first-job/tanaka-sans-lunch",
+     "title": "Tanaka-san's lunch",
+     "plot": "Kenta learns what he may use at the office, and the one thing on Tanaka-san's desk he must not touch.",
+     "body": "朝だ。田中さんは、もう仕事をしている。\n\nケンタ|「おはようございます！」\n\n田中|「おはようございます。」\n\nケンタ|「田中さん、この机、使ってもいいですか？」\n\n田中|「はい。ケンタさんの机です。」\n\n田中|「使ってもいいですよ。」\n\nケンタ|「机で、コーヒーを飲んでもいいですか？」\n\n田中|「はい、飲んでもいいです。」\n\n田中さんの机に、荷物がある。ちょっと大きい。\n\nケンタ|「これは何ですか？」\n\nケンタ|「触ってもいいですか？」\n\n田中|「触ってはいけません。」\n\nケンタ|「…新しいゲームですか？」\n\n田中|「私の、お昼です。」\n\nケンタ|「お昼…」\n\n田中|「お昼は、触ってはいけません。」\n\nケンタ|「…はい。」\n\nお昼。田中さんのお昼は、本当に大きい。\n\n田中|「ケンタさん、卵、食べませんか？」\n\nケンタ|「食べてもいいですか？」\n\n田中|「はい。食べてもいいですよ。」\n\nケンタ|「…うまいです！」",
+     "translations": [
+      "Morning.",
+      "Tanaka's already working.",
+      "\"Good morning!\"",
+      "\"Good morning.\"",
+      "\"Tanaka-san, may I use this desk?\"",
+      "\"Yes. It's your desk.\"",
+      "\"Go ahead and use it.\"",
+      "\"May I drink coffee at my desk?\"",
+      "\"Yes, you may.\"",
+      "There's a bundle on Tanaka's desk.",
+      "A fairly big one.",
+      "\"What's this?\"",
+      "\"May I touch it?\"",
+      "\"You must not touch that.\"",
+      "\"…Is it the new game?\"",
+      "\"It's my lunch.\"",
+      "\"Lunch…\"",
+      "\"Lunch must not be touched.\"",
+      "\"…Understood.\"",
+      "Noon.",
+      "Tanaka's lunch really is big.",
+      "\"Kenta, would you like an egg?\"",
+      "\"Am I allowed?\"",
+      "\"Yes. Go ahead.\"",
+      "\"…It's delicious!\""
+     ],
+     "topic": "te-mo-ii"
+    },
+    {
+     "id": "kentas-first-job/kentas-room",
+     "title": "Kenta's room",
+     "plot": "Kenta keeps slipping into office talk at home, and Sora finally gets to see Kenta's room.",
+     "body": "夜だ。\n\nケンタ|「ただいま。」\n\nユキ|「おかえり。」\n\nソラ|「ケンタさん、明日は休みですか？」\n\nケンタ|「うん、休み！」\n\nケンタ|「ソラ、今夜、ゲームをしませんか？」\n\nソラ|「…ケンタさん、敬語です。」\n\nケンタ|「あ…ゲーム、する？」\n\nソラ|「します！」\n\nソラ|「ケンタさんの部屋に、入ってもいいですか？」\n\nケンタ|「いいよ。」\n\nユキ|「ソラ、ケンタの部屋には、入ってはいけないよ。」\n\nソラ|「何があるんですか？」\n\nユキ|「ゴミ。」\n\nケンタの部屋だ。ゴミ、マンガ、ゲーム、ゴミ。\n\nソラ|「…本当に、ゴミが多いですね。」\n\nケンタ|「…うん。」\n\nソラ|「このマンガ、読んでもいいですか？」\n\nケンタ|「いいよ。」\n\nソラ|「これは？触ってもいいですか？」\n\nケンタ|「それは、だめ！」\n\nケンタ|「それは、会社のスーツ。」\n\nソラ|「スーツが、ゴミと一緒に…」\n\nケンタ|「…じゃあ、始めましょう！」\n\nソラ|「ケンタさん、また敬語です。」\n\nケンタとソラは、朝までゲームをした。",
+     "translations": [
+      "Night.",
+      "\"I'm home.\"",
+      "\"Welcome back.\"",
+      "\"Kenta, are you off tomorrow?\"",
+      "\"Yep, day off!\"",
+      "\"Sora, would you care to play games tonight?\"",
+      "\"…Kenta, you're being polite.\"",
+      "\"Oh… wanna play?\"",
+      "\"Yes!\"",
+      "\"May I come into your room?\"",
+      "\"Sure.\"",
+      "\"Sora, you mustn't go into Kenta's room.\"",
+      "\"What's in there?\"",
+      "\"Trash.\"",
+      "Kenta's room.",
+      "Trash, manga, games, trash.",
+      "\"…There really is a lot of trash.\"",
+      "\"…Yeah.\"",
+      "\"May I read this manga?\"",
+      "\"Sure.\"",
+      "\"What's this? May I touch it?\"",
+      "\"Not that!\"",
+      "\"That's my work suit.\"",
+      "\"Your suit's in with the trash…\"",
+      "\"…Right, shall we begin!\"",
+      "\"Kenta, polite again.\"",
+      "Kenta and Sora played games till morning."
+     ]
+    },
+    {
+     "id": "kentas-first-job/the-bug",
+     "title": "The bug",
+     "plot": "Playing the game at his desk, Kenta finds a character who flies off into the sky, and Tanaka-san calls it good work.",
+     "body": "ケンタは、毎日、会社でゲームをしている。\n\nケンタ|「おはようございます！」\n\n田中|「おはようございます。」\n\n今日も、朝から机でゲームだ。\n\nゲームの人が、山に来た。\n\nケンタ|「…あ。」\n\nゲームの人が、空に行った。\n\nケンタ|「田中さん！ちょっと見てください！」\n\n田中|「何ですか？」\n\n田中|「ケンタさんの机、使ってもいいですか？」\n\nケンタ|「はい！」\n\nケンタ|「ここで、この人が…空に行きます。」\n\n田中さんがやった。ゲームの人が、また空に行った。\n\n田中|「…問題ですね。」\n\n田中|「ケンタさん、ありがとうございます。いい仕事です。」\n\nケンタ|「いい仕事…！」\n\n田中|「このゲームには、まだ問題が多いです。」\n\n田中|「毎日、一緒に見ましょう。」\n\n夜だ。\n\nケンタ|「田中さん、まだ仕事ですか？」\n\n田中|「はい。でも、ケンタさんは帰ってもいいですよ。」\n\nケンタ|「僕も、もうちょっとやります。」\n\n田中|「じゃあ、もうちょっと頑張りましょうか。」\n\n田中|「お疲れ様でした。」\n\nケンタ|「お疲れ様でした！」",
+     "translations": [
+      "Every day, Kenta plays the game at the office.",
+      "\"Good morning!\"",
+      "\"Good morning.\"",
+      "Today too, it's the game at his desk from the morning on.",
+      "His character came to a mountain.",
+      "\"…Huh.\"",
+      "The character flew off into the sky.",
+      "\"Tanaka-san! Please take a look at this!\"",
+      "\"What is it?\"",
+      "\"May I use your desk?\"",
+      "\"Sure!\"",
+      "\"Right here, this guy… goes into the sky.\"",
+      "Tanaka tried it.",
+      "The character flew off into the sky again.",
+      "\"…That's a problem.\"",
+      "\"Thank you, Kenta. That's good work.\"",
+      "\"Good work…!\"",
+      "\"This game still has a lot of problems.\"",
+      "\"Let's look for them together, every day.\"",
+      "Night.",
+      "\"Tanaka-san, are you still working?\"",
+      "\"Yes. But you can go home, Kenta.\"",
+      "\"I'll do a little more too.\"",
+      "\"Then shall we keep at it a little longer?\"",
+      "\"Good work today.\"",
+      "\"Good work today!\""
+     ]
+    },
+    {
+     "id": "kentas-first-job/the-rules",
+     "title": "The rules",
+     "plot": "The game comes out in summer, and Tanaka-san has rules: no photos, no telling friends, no sleeping at the office, no skipping lunch.",
+     "body": "朝だ。ケンタは、ちょっと眠い。\n\nケンタ|「おはようございます…」\n\n田中|「おはようございます。」\n\n田中さんが、会社のみんなに言った。\n\n田中|「新しいゲームは、夏に出ます。」\n\n田中|「でも、まだ誰も知りません。」\n\n田中|「ゲームの写真を、撮らないでください。」\n\n田中|「友達にも、言わないでください。」\n\nユキとソラにも…？\n\nケンタ|「あのー…友達にも、ですか？」\n\n田中|「はい。友達にも、です。」\n\n田中|「ケンタさん。」\n\nケンタ|「はい！」\n\n田中|「会社で、寝ないでください。」\n\nケンタ|「…すみません。」\n\nお昼だ。\n\n田中|「ケンタさん、お昼に行きませんか？」\n\nケンタ|「今日は、食べないで仕事をします。」\n\n田中|「朝は、食べましたか？」\n\nケンタ|「…朝も、食べないで会社に来ました。」\n\n田中|「食べないで仕事をしてはいけません。」\n\n田中|「行きましょう。」\n\nケンタ|「…はい。」\n\nラーメンは、うまかった。\n\n田中|「ケンタさん、毎日、夜まで頑張っていますね。」\n\nケンタ|「…はい。」\n\n田中|「でも、寝ないで仕事をしてはいけません。」\n\n田中|「ケンタさん、明日は、寝ないで会社に来ないでくださいね。」\n\nケンタ|「…はい。」",
+     "translations": [
+      "Morning.",
+      "Kenta's a little sleepy.",
+      "\"Good morning…\"",
+      "\"Good morning.\"",
+      "Tanaka spoke to everyone at the office.",
+      "\"The new game comes out in summer.\"",
+      "\"But nobody knows about it yet.\"",
+      "\"Please don't take pictures of the game.\"",
+      "\"And please don't tell your friends.\"",
+      "Not even Yuki and Sora…?",
+      "\"Um… not even friends?\"",
+      "\"Yes. Not even friends.\"",
+      "\"Kenta.\"",
+      "\"Yes!\"",
+      "\"Please don't sleep at the office.\"",
+      "\"…Sorry.\"",
+      "Noon.",
+      "\"Kenta, would you like to go to lunch?\"",
+      "\"Today I'll work through lunch.\"",
+      "\"Did you eat this morning?\"",
+      "\"…I came in without eating this morning, too.\"",
+      "\"You mustn't work without eating.\"",
+      "\"Let's go.\"",
+      "\"…Okay.\"",
+      "The ramen was great.",
+      "\"Kenta, you're working till night every day.\"",
+      "\"…Yes.\"",
+      "\"But you mustn't work without sleeping.\"",
+      "\"Kenta, tomorrow, please don't come in without sleeping.\"",
+      "\"…Yes.\""
+     ],
+     "topic": "naide"
+    },
+    {
+     "id": "kentas-first-job/secrets",
+     "title": "Secrets",
+     "plot": "Yuki and Sora want to hear about the new game, Kenta can't tell them, and he falls asleep on the floor.",
+     "body": "夜だ。\n\nケンタ|「ただいま。」\n\nユキ|「おかえり！」\n\nソラ|「ケンタさん、新しいゲームは、どんなゲームですか？」\n\nケンタ|「…それは、言ってはいけないんだ。」\n\nユキ|「誰にも言わないよ！」\n\nケンタ|「だめ。聞かないで。」\n\nソラ|「写真は、ありますか？」\n\nケンタ|「写真も、だめ。」\n\nユキ|「ケンタ、ゲームの仕事、おもしろい？」\n\nケンタ|「おもしろいよ。でも、毎日、問題が多いんだ。」\n\nソラ|「田中さんは、元気ですか？」\n\nケンタ|「元気。いつも、寝ないで仕事してる。」\n\nユキ|「どんな人が、いるの？」\n\nケンタ|「…言わない。」\n\nユキ|「ケンタ、今日は会社の人だね。」\n\nケンタ|「会社の人だよ。」\n\nケンタ|「夏まで、待って。」\n\nユキ|「…待つ。」\n\nケンタは、もう寝ている。部屋じゃない。ここで、寝ている。\n\nユキ|「ケンタ、ここで寝ないで！」\n\nソラ|「ケンタさん、ご飯も食べないで…」\n\nユキ|「起きて！部屋で寝て！」\n\nケンタ|「…ここで、寝てもいい？」\n\nユキ|「だめ！」\n\nソラ|「ケンタさん、ラーメン、食べませんか？」\n\nケンタ|「…食べる。」\n\nケンタは起きて、ラーメンを食べた。\n\nユキ|「ケンタ、毎日頑張ってるね。」\n\nケンタ|「…うん。」",
+     "translations": [
+      "Night.",
+      "\"I'm home.\"",
+      "\"Welcome back!\"",
+      "\"Kenta, what kind of game is the new one?\"",
+      "\"…I'm not allowed to say.\"",
+      "\"I won't tell anyone!\"",
+      "\"No. Don't ask.\"",
+      "\"Do you have any pictures?\"",
+      "\"No pictures either.\"",
+      "\"Kenta, is the game job fun?\"",
+      "\"It is. But there are lots of problems, every day.\"",
+      "\"How's Tanaka-san?\"",
+      "\"Fine. She's always working, never sleeping.\"",
+      "\"Who's in it, then?\"",
+      "\"…Not saying.\"",
+      "\"You're all office guy today, Kenta.\"",
+      "\"I am an office guy.\"",
+      "\"Wait till summer.\"",
+      "\"…Fine. I'll wait.\"",
+      "Kenta's already asleep.",
+      "Not in his room.",
+      "Right here.",
+      "\"Kenta, don't sleep here!\"",
+      "\"He hasn't even eaten…\"",
+      "\"Get up! Sleep in your room!\"",
+      "\"…Can I sleep here?\"",
+      "\"No!\"",
+      "\"Kenta, would you like some ramen?\"",
+      "\"…Yeah.\"",
+      "Kenta got up and ate the ramen.",
+      "\"You're working hard every day, Kenta.\"",
+      "\"…Yeah.\""
+     ]
+    },
+    {
+     "id": "kentas-first-job/the-last-night",
+     "title": "The last night",
+     "plot": "The night before the game comes out, the flying bug is back; Kenta stays to fix it with Tanaka-san, and she smiles.",
+     "body": "夏だ。明日、新しいゲームが出る。\n\n夜だ。会社には、ケンタと田中さんがいる。\n\nケンタ|「田中さん！問題です！」\n\n田中|「何ですか？」\n\nゲームの最後で、人が空に行く。\n\nケンタ|「この人、また空に行きます。」\n\n田中|「…問題ですね。」\n\n田中|「ケンタさん、ご飯は食べましたか？」\n\nケンタ|「…まだです。」\n\n田中|「食べないで仕事をしてはいけません。コンビニに行きましょう。」\n\nコンビニのラーメンを食べた。\n\n田中|「…うまいですね。」\n\nケンタ|「うまいです。」\n\n田中|「ケンタさんは、帰ってもいいですよ。」\n\nケンタ|「帰りません。」\n\nケンタ|「一緒にやりましょう。」\n\n田中さんは、ちょっとケンタを見た。\n\n田中|「…ありがとうございます。」\n\nケンタと田中さんは、朝まで仕事をした。\n\n朝だ。ゲームの人は、もう空に行かない。\n\nケンタ|「…終わりました！」\n\n田中|「終わりましたね。」\n\n田中|「お疲れ様でした。ケンタさん、寝ないで頑張りましたね。」\n\nケンタ|「田中さんも、寝ないで…」\n\n田中|「私は、いつもです。」\n\n田中|「ゲームの最後に、みんなの名前が出ます。」\n\n田中|「ケンタさんの名前も、出ますよ。」\n\nケンタ|「…僕の名前も、ですか？」\n\n田中|「はい。ケンタさんも、頑張りましたから。」\n\n田中さんが、ちょっと笑った。\n\n田中|「帰りましょうか。」\n\nケンタ|「はい！」\n\nケンタは眠い。でも、ケンタも笑った。",
+     "translations": [
+      "Summer.",
+      "Tomorrow, the new game comes out.",
+      "Night.",
+      "Kenta and Tanaka are at the office.",
+      "\"Tanaka-san! There's a problem!\"",
+      "\"What is it?\"",
+      "At the end of the game, the character flies off into the sky.",
+      "\"This guy is going into the sky again.\"",
+      "\"…That is a problem.\"",
+      "\"Kenta, have you eaten?\"",
+      "\"…Not yet.\"",
+      "\"You mustn't work without eating. Let's go to the konbini.\"",
+      "They ate konbini ramen.",
+      "\"…It's good.\"",
+      "\"It is.\"",
+      "\"You can go home, Kenta.\"",
+      "\"I'm not going home.\"",
+      "\"Let's do it together.\"",
+      "Tanaka looked at Kenta for a moment.",
+      "\"…Thank you.\"",
+      "Kenta and Tanaka worked until morning.",
+      "Morning.",
+      "The character doesn't fly into the sky any more.",
+      "\"…It's done!\"",
+      "\"It's done.\"",
+      "\"Good work. You kept at it all night without sleeping.\"",
+      "\"You didn't sleep either…\"",
+      "\"I never do.\"",
+      "\"At the end of the game, everyone's names come up.\"",
+      "\"Your name will be there too, Kenta.\"",
+      "\"…Mine too?\"",
+      "\"Yes. You worked hard on it too.\"",
+      "Tanaka smiled, just a little.",
+      "\"Shall we go home?\"",
+      "\"Yes!\"",
+      "Kenta's sleepy.",
+      "But he smiled too."
+     ]
+    },
+    {
+     "id": "kentas-first-job/the-credits",
+     "title": "The credits",
+     "plot": "The game is out; the whole house plays it through the night, and at the end, there's Kenta's name.",
+     "body": "夏の夜だ。新しいゲームが出た。\n\nケンタの部屋に、みんながいる。\n\nユキ|「ケンタの部屋が、きれい！」\n\nケンタ|「…今日は。」\n\nミホ|「ケンタさん、これが新しいゲーム？どんなゲーム？」\n\nケンタ|「もう言ってもいいよ。でも、やって！」\n\nソラ|「やりましょう！」\n\nユキ|「やる！」\n\nみんなで、ゲームをした。\n\nソラ|「おもしろいです！」\n\nミホ|「本当に、おもしろい！」\n\nユキ|「あ、この人！空に行かない？」\n\nケンタ|「もう行かないよ。」\n\n朝だ。みんな、まだ起きている。\n\nゲームが終わった。最後に、名前が出る。\n\n名前が多い。\n\nユキ|「あ、田中さんの名前！」\n\nソラ|「…あ！」\n\nケンタの名前だ。\n\nユキ|「ケンタ！ケンタの名前！」\n\nミホ|「すごい！」\n\nソラ|「ケンタさん、すごいです！」\n\nユキ|「すごいじゃん、ケンタ！」\n\nケンタは、名前を見ている。\n\nソラ|「ケンタさん？」\n\nケンタ|「…写真、撮ってもいい？」\n\nユキ|「撮って！撮って！」\n\nケンタは、名前とみんなの写真を撮った。\n\nケンタ|「田中さんに、見せたい。」\n\n会社だ。\n\nケンタ|「田中さん、おはようございます！」\n\n田中|「おはようございます。」\n\n田中|「ケンタさん、名前、見ましたか？」\n\nケンタ|「はい！見ました！」\n\n田中|「私も、夜、ゲームをしました。」\n\nケンタは、写真を見せた。\n\n田中|「…いい写真ですね。」\n\n田中|「ケンタさんの友達ですか？」\n\nケンタ|「はい。みんな、友達です。」\n\n田中|「じゃあ、今日も始めましょうか。新しいゲームの仕事です。」\n\nケンタ|「はい！一緒に頑張りましょう！」\n\n田中さんが、また笑った。",
+     "translations": [
+      "A summer night.",
+      "The new game is out.",
+      "Everyone's in Kenta's room.",
+      "\"Kenta's room is clean!\"",
+      "\"…Today.\"",
+      "\"Kenta, is this the new game? What's it like?\"",
+      "\"I'm allowed to talk about it now. But play it!\"",
+      "\"Let's play!\"",
+      "\"I'm in!\"",
+      "They all played the game.",
+      "\"It's great!\"",
+      "\"It really is!\"",
+      "\"Hey, this guy! Doesn't he fly off into the sky?\"",
+      "\"Not any more.\"",
+      "Morning.",
+      "Everyone's still up.",
+      "The game is over.",
+      "At the end, the names come up.",
+      "So many names.",
+      "\"Oh, Tanaka-san's name!\"",
+      "\"…Oh!\"",
+      "It's Kenta's name.",
+      "\"Kenta! Your name!\"",
+      "\"Amazing!\"",
+      "\"Kenta, that's amazing!\"",
+      "\"Look at you, Kenta!\"",
+      "Kenta's looking at his name.",
+      "\"Kenta?\"",
+      "\"…Mind if I take a picture?\"",
+      "\"Take it! Take it!\"",
+      "Kenta took a picture of his name and everyone.",
+      "\"I want to show Tanaka-san.\"",
+      "The office.",
+      "\"Good morning, Tanaka-san!\"",
+      "\"Good morning.\"",
+      "\"Kenta, did you see your name?\"",
+      "\"Yes! I saw it!\"",
+      "\"I played it last night too.\"",
+      "Kenta showed her the picture.",
+      "\"…That's a nice picture.\"",
+      "\"Are these your friends?\"",
+      "\"Yes. They're all my friends.\"",
+      "\"Well then, shall we begin today too? It's work on a new game.\"",
+      "\"Yes! Let's do our best together!\"",
+      "Tanaka smiled again."
+     ]
+    }
+   ]
+  },
+  {
    "id": "midnight-konbini",
    "title": "Midnight konbini",
    "blurb": "Jet lag, an empty stomach, and a konbini that never closes.",
@@ -2082,6 +2473,60 @@
       "\"So I did.\"",
       "\"Another konbini run?\"",
       "\"No!\""
+     ]
+    }
+   ],
+   "side": true
+  },
+  {
+   "id": "tanaka-sans-day-off",
+   "title": "Tanaka-san's day off",
+   "blurb": "The game night Kenta promised, with his senior over at the share house and nobody sure how to talk.",
+   "after": [
+    "kentas-first-job/the-credits"
+   ],
+   "chapters": [
+    {
+     "id": "tanaka-sans-day-off/tanaka-sans-day-off",
+     "title": "Tanaka-san's day off",
+     "plot": "Tanaka-san comes over for the game night Kenta promised, beats everyone, and sees a photo Kenta wishes she hadn't.",
+     "body": "休みだ。今夜は、田中さんが来る。\n\nケンタの部屋が、きれいだ。\n\nユキ|「本当に、きれい！」\n\n田中|「こんばんは。」\n\nケンタ|「田中さん！こんばんは！」\n\nユキ|「ユキです！」\n\nソラ|「ソラです。よろしくお願いします。」\n\n田中|「田中です。よろしくお願いします。」\n\nユキ|「田中さん、コーヒー飲む？…あ、飲みますか？」\n\n田中|「ありがとうございます。」\n\nケンタ|「田中さん、俺の…僕の部屋に、来てください。」\n\n田中|「入ってもいいですか？」\n\nユキ|「今日は、いいよ。…いいです。」\n\n田中|「ケンタさん、今度が、今日ですね。」\n\nケンタ|「はい！やりましょう！」\n\nみんなで、ゲームをした。\n\nケンタは負けた。ソラも、ユキも負けた。\n\nケンタ|「…もう一回！」\n\n田中|「いいですよ。」\n\nケンタは、また負けた。\n\nユキ|「田中さん、すごい！」\n\n田中|「毎日、夜にやっていますから。」\n\nユキ|「田中さん、写真、見ますか？」\n\nユキ|「ケンタが、ここで寝ている写真。」\n\nケンタ|「見せないで！」\n\n田中さんが写真を見た。\n\n田中|「…ケンタさん、部屋で寝てくださいね。」\n\n夜だ。\n\n田中|「今日は、ありがとうございます。」\n\nユキ|「また来てね！…来てください！」\n\n田中|「はい。また来ます。」\n\n田中さんが笑った。ケンタも笑った。",
+     "translations": [
+      "A day off.",
+      "Tonight, Tanaka's coming over.",
+      "Kenta's room is clean.",
+      "\"It really is clean!\"",
+      "\"Good evening.\"",
+      "\"Tanaka-san! Good evening!\"",
+      "\"I'm Yuki!\"",
+      "\"I'm Sora. Nice to meet you.\"",
+      "\"I'm Tanaka. Nice to meet you.\"",
+      "\"Tanaka-san, want a coffee? …I mean, would you care for some coffee?\"",
+      "\"Thank you.\"",
+      "\"Tanaka-san, please come to my… my room.\"",
+      "\"May I come in?\"",
+      "\"Today you can. …You may.\"",
+      "\"Kenta, 'sometime' turned out to be today.\"",
+      "\"Yes! Let's play!\"",
+      "They all played.",
+      "Kenta lost.",
+      "So did Sora and Yuki.",
+      "\"…One more round!\"",
+      "\"Certainly.\"",
+      "Kenta lost again.",
+      "\"Tanaka-san, you're amazing!\"",
+      "\"I play every night, after all.\"",
+      "\"Tanaka-san, want to see a picture?\"",
+      "\"Kenta asleep, right here.\"",
+      "\"Don't show her!\"",
+      "Tanaka looked at the picture.",
+      "\"…Kenta, please sleep in your room.\"",
+      "Night.",
+      "\"Thank you for today.\"",
+      "\"Come again! …Please come again!\"",
+      "\"Yes. I'll come again.\"",
+      "Tanaka smiled.",
+      "Kenta smiled too."
      ]
     }
    ],
@@ -2699,6 +3144,87 @@
     {
      "before": 2,
      "text": "かも is short for かもしれない, \"it might be\", about half sure. It goes after the plain form, or straight after a noun: 無理かも, maybe not."
+    }
+   ]
+  },
+  {
+   "id": "mashou",
+   "title": "～ましょう / ～ませんか",
+   "title_en": "Let's, won't you?",
+   "points": [
+    "mashou",
+    "masenka",
+    "mashouka"
+   ],
+   "summary": "～ましょう is the polite \"let's\": 行きましょう, let's go. ～ませんか invites: 飲みませんか, won't you have some? ～ましょうか offers or suggests: shall we?",
+   "body": "一緒に頑張りましょう。\nコーヒー、飲みませんか？\nじゃあ、帰りましょうか。",
+   "translations": [
+    "Let's do our best together.",
+    "Would you like some coffee?",
+    "Well, shall we head home?"
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "ましょう goes on the same stem as ます: 行きます, 行きましょう; 食べます, 食べましょう. It's how people at work, staff and strangers suggest doing something together."
+    },
+    {
+     "before": 2,
+     "text": "～ませんか is a negative question, \"won't you…?\", which makes it a soft invitation: it leaves room to say no."
+    },
+    {
+     "before": 3,
+     "text": "With か on the end, ～ましょうか asks: shall we, or shall I? Among friends the casual volitional (行こう) does the same job."
+    }
+   ]
+  },
+  {
+   "id": "te-mo-ii",
+   "title": "～てもいい / ～てはいけない",
+   "title_en": "May, must not",
+   "points": [
+    "te-mo-ii",
+    "te-wa-ikenai"
+   ],
+   "summary": "A verb's て form plus もいい gives or asks permission: 飲んでもいい, it's okay to drink. Plus はいけない, it forbids: 触ってはいけない, you mustn't touch.",
+   "body": "ここで、コーヒーを飲んでもいいですか？\nこれは、触ってはいけません。",
+   "translations": [
+    "May I drink coffee here?",
+    "You mustn't touch this."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "てもいい is \"even if you do, it's fine\". As a question, ～てもいいですか asks \"may I?\", and the answer is often just いいですよ. Friends say ～てもいい？"
+    },
+    {
+     "before": 2,
+     "text": "てはいけない is \"if you do, it won't do\": it isn't allowed. Politely it's ～てはいけません. Friends often just say だめ, no."
+    }
+   ]
+  },
+  {
+   "id": "naide",
+   "title": "～ないで / ～ないでください",
+   "title_en": "Without, please don't",
+   "points": [
+    "naide",
+    "naide-kudasai"
+   ],
+   "summary": "A verb's ない form plus で asks someone not to do it: 撮らないでください, please don't take pictures. In the middle of a sentence it means \"without\": 食べないで来た, came without eating.",
+   "body": "写真を撮らないでください。\n朝、食べないで会社に来ました。",
+   "translations": [
+    "Please don't take pictures.",
+    "I came to work without eating this morning."
+   ],
+   "notes": [
+    {
+     "before": 1,
+     "text": "ないでください is the negative of ～てください: 撮ってください, please take one; 撮らないでください, please don't. Friends drop ください: 撮らないで！"
+    },
+    {
+     "before": 2,
+     "text": "In the middle of a sentence, ～ないで says how the next thing was done: without doing this one, or instead of it."
     }
    ]
   }

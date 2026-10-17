@@ -255,5 +255,37 @@
       ["声が出ないかも。", "My voice might not come out."],
       "かも is short for かもしれない, \"it might be\", about half sure. It goes after the plain form, or straight after a noun: 無理かも, maybe not."
     ]
+  },
+  {
+    "id": "mashou", "title": "～ましょう / ～ませんか", "title_en": "Let's, won't you?", "points": ["mashou", "masenka", "mashouka"],
+    "summary": "～ましょう is the polite \"let's\": 行きましょう, let's go. ～ませんか invites: 飲みませんか, won't you have some? ～ましょうか offers or suggests: shall we?",
+    "parts": [
+      ["一緒に頑張りましょう。", "Let's do our best together."],
+      "ましょう goes on the same stem as ます: 行きます, 行きましょう; 食べます, 食べましょう. It's how people at work, staff and strangers suggest doing something together.",
+      ["コーヒー、飲みませんか？", "Would you like some coffee?"],
+      "～ませんか is a negative question, \"won't you…?\", which makes it a soft invitation: it leaves room to say no.",
+      ["じゃあ、帰りましょうか。", "Well, shall we head home?"],
+      "With か on the end, ～ましょうか asks: shall we, or shall I? Among friends the casual volitional (行こう) does the same job."
+    ]
+  },
+  {
+    "id": "te-mo-ii", "title": "～てもいい / ～てはいけない", "title_en": "May, must not", "points": ["te-mo-ii", "te-wa-ikenai"],
+    "summary": "A verb's て form plus もいい gives or asks permission: 飲んでもいい, it's okay to drink. Plus はいけない, it forbids: 触ってはいけない, you mustn't touch.",
+    "parts": [
+      ["ここで、コーヒーを飲んでもいいですか？", "May I drink coffee here?"],
+      "てもいい is \"even if you do, it's fine\". As a question, ～てもいいですか asks \"may I?\", and the answer is often just いいですよ. Friends say ～てもいい？",
+      ["これは、触ってはいけません。", "You mustn't touch this."],
+      "てはいけない is \"if you do, it won't do\": it isn't allowed. Politely it's ～てはいけません. Friends often just say だめ, no."
+    ]
+  },
+  {
+    "id": "naide", "title": "～ないで / ～ないでください", "title_en": "Without, please don't", "points": ["naide", "naide-kudasai"],
+    "summary": "A verb's ない form plus で asks someone not to do it: 撮らないでください, please don't take pictures. In the middle of a sentence it means \"without\": 食べないで来た, came without eating.",
+    "parts": [
+      ["写真を撮らないでください。", "Please don't take pictures."],
+      "ないでください is the negative of ～てください: 撮ってください, please take one; 撮らないでください, please don't. Friends drop ください: 撮らないで！",
+      ["朝、食べないで会社に来ました。", "I came to work without eating this morning."],
+      "In the middle of a sentence, ～ないで says how the next thing was done: without doing this one, or instead of it."
+    ]
   }
 ]
