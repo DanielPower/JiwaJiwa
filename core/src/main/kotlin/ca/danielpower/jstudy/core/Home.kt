@@ -135,6 +135,25 @@ object WordHistory {
     }
 }
 
+// ------------------------------------------------------------ recent
+
+object Recent {
+    /**
+     * Home's recent words and grammar, newest day first, at most [shown] in
+     * all, and how many words were left out. Every grammar topic stays, since
+     * there are few; words fill what's left. On the same day a topic comes
+     * before the words, as its page comes before the chapter.
+     */
+    fun <T> pick(words: List<Pair<T, Long>>, grammar: List<Pair<T, Long>>, shown: Int): Pair<List<T>, Int> {
+        val room = (shown - grammar.size).coerceAtLeast(0)
+        val kept = words.sortedByDescending { it.second }.take(room)
+        val items = (grammar.map { Triple(it.first, it.second, 0) } + kept.map { Triple(it.first, it.second, 1) })
+            .sortedWith(compareByDescending<Triple<T, Long, Int>> { it.second }.thenBy { it.third })
+            .map { it.first }
+        return items to words.size - kept.size
+    }
+}
+
 // ------------------------------------------------------------ streak
 
 object Streak {
