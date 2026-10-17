@@ -324,7 +324,7 @@ class Repository(context: Context) {
             clock = clock,
             now = now,
             // Production cards fill what today's new words leave of the daily limit.
-            newIntroducedToday = store.count("SELECT COUNT(*) FROM card WHERE introduced_day = ?", today),
+            newIntroducedToday = store.count("SELECT COUNT(*) FROM card WHERE introduced_day = ? AND started_known = 0", today),
             reviewsDoneToday = store.count(
                 "SELECT COUNT(*) FROM review_log WHERE day = ? AND state_before = ?",
                 today,
@@ -369,7 +369,7 @@ class Repository(context: Context) {
         val today = clock.dayOf(now)
         return Pace(
             newToday = store.count(
-                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND direction != ?",
+                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND started_known = 0 AND direction != ?",
                 today,
                 Direction.PRODUCTION.value,
             ),
@@ -555,7 +555,7 @@ class Repository(context: Context) {
                     store.insertNewCard(db, wordId, Direction.RECOGNITION, 0)
                 }
                 val card = recognitionCard(wordId) ?: continue
-                val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default)
+                val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default, dated = false)
                 store.updateCard(db, known.card)
                 store.saveProgress(db, known.progress)
                 if (known.unlockedProduction) {
@@ -828,14 +828,10 @@ class Repository(context: Context) {
     }
 
     /**
-     * A word a story just started that you already know: known now, and no
-     * longer counted against today's new words.
+     * A word a story just started that you already know: known now, still
+     * started today, but no longer counted against today's new words.
      */
-    fun knowStartedWord(wordId: Long, now: Long) {
-        markKnown(wordId, MasteryRules.HIDE_AT, now)
-        val card = recognitionCard(wordId) ?: return
-        store.transaction { db -> store.updateCard(db, card.copy(introducedDay = null)) }
-    }
+    fun knowStartedWord(wordId: Long, now: Long) = markKnown(wordId, MasteryRules.HIDE_AT, now)
 
     /** Undo [knowStartedWord]: new again, as the story started it. */
     fun unknowStartedWord(wordId: Long, now: Long) {
@@ -1044,8 +1040,8 @@ class Repository(context: Context) {
         val today = clock.dayOf(now)
         val active = activeDays(clock)
         val started = store.startedWords()
-        // A word that came in with mastery has no real first day, even once it's reviewed.
-        val firstDays = started.associate { w -> w.wordId to w.introducedDay?.takeIf { (w.firstBefore ?: 0) == 0 } }
+        // Words filled in by reading level or imported have no first day.
+        val firstDays = started.associate { w -> w.wordId to w.introducedDay }
         val firsts = listOfNotNull(firstDays.values.filterNotNull().minOrNull(), active.minOrNull())
         val from = minOf(firsts.minOrNull() ?: today, today - MIN_GRAPH_DAYS + 1)
         val words = WordHistory.days(firstDays, started.associate { it.wordId to it.mastery }, store.masteryChanges(), from, today)

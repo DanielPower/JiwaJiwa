@@ -52,13 +52,13 @@ class ProgressStoreTest {
 
         val reviewed = fresh.copy(
             state = CardState.RELEARNING, step = 0, stability = 2.5, difficulty = 6.25,
-            dueAt = 123_456, lastReviewAt = 100_000, reps = 4, lapses = 1, introducedDay = 20_000,
+            dueAt = 123_456, lastReviewAt = 100_000, reps = 4, lapses = 1, introducedDay = 20_000, startedKnown = true,
         )
         store.transaction { store.updateCard(it, reviewed) }
         assertEquals(reviewed, store.card(id))
 
         // Nulls go back as nulls.
-        val cleared = reviewed.copy(step = null, stability = null, difficulty = null, lastReviewAt = null, introducedDay = null)
+        val cleared = reviewed.copy(step = null, stability = null, difficulty = null, lastReviewAt = null, introducedDay = null, startedKnown = false)
         store.transaction { store.updateCard(it, cleared) }
         assertEquals(cleared, store.card(id))
     }
@@ -300,5 +300,31 @@ class ProgressStoreTest {
         assertEquals(0, store.progress(-1).mastery)
         assertEquals(50, store.progress(7).mastery)
         assertNull(store.getValue("kana_known"))
+    }
+    @Test
+    fun upgradingToVersion10AddsStartedKnown() {
+        store.close()
+        context.deleteDatabase(ProgressStore.NAME)
+        val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(path, null).use { db ->
+            ProgressStore(context).onCreate(db)
+            // A version 9 card table, without started_known.
+            db.execSQL("DROP TABLE card")
+            db.execSQL(
+                "CREATE TABLE card (id INTEGER PRIMARY KEY AUTOINCREMENT, word_id INTEGER NOT NULL, direction INTEGER NOT NULL, " +
+                    "state INTEGER NOT NULL, step INTEGER, stability REAL, difficulty REAL, due_at INTEGER NOT NULL, " +
+                    "last_review_at INTEGER, reps INTEGER NOT NULL, lapses INTEGER NOT NULL, introduced_day INTEGER, " +
+                    "sort_key INTEGER NOT NULL, suspended INTEGER NOT NULL DEFAULT 0, UNIQUE (word_id, direction))",
+            )
+            db.execSQL(
+                "INSERT INTO card (word_id, direction, state, due_at, reps, lapses, introduced_day, sort_key) VALUES (7, 0, 2, 0, 1, 0, 20000, 0)",
+            )
+            db.version = 9
+        }
+
+        store = ProgressStore(context)
+        val card = store.cards("word_id = ?", arrayOf("7"), "id").single()
+        assertEquals(20_000L, card.introducedDay)
+        assertFalse(card.startedKnown)
     }
 }

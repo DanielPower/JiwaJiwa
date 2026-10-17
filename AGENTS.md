@@ -159,8 +159,8 @@ Other features (all shipped):
   Mon–Sun streak (a day counts with a review answered or a chapter
   finished; arrows go back a week at a time), the words graph (seen, known
   and mastered as nested bands, 30 days or all, replayed from the review
-  log by `WordHistory`; words marked known or imported count from the
-  start), then "Recent": the week's new words (gold) and grammar topics
+  log by `WordHistory`; words filled in by reading level or imported
+  count from the start), then "Recent": the week's new words (gold) and grammar topics
   (indigo) in one row, newest first, every topic kept (`Recent.pick`), with
   a "N of M grammar" link to the Grammar list. A chapter left part way reopens on its page
   (the `reader_place` value), unless the reader style has changed since.
@@ -266,7 +266,9 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - Pace (`Pace` in `core/Session.kt`, `Repository.pace`): a soft daily limit on new words
   started (`newPerDay`, default 20, from the rollover hour), and a
   review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this"
-  and imports start nothing, so they don't count. Past either, the Read
+  and "Mark known" (Daniel, 2026-10-17) count as started that day, for
+  Home's graph and Recent row, but not against the limit (the card's
+  `started_known`); reading-level pre-fill and imports have no start day. Past either, the Read
   tab leads with open chapters that have nothing new, tapping a chapter
   that adds more shows a sheet suggesting them first ("Read it anyway"
   carries on), and a chapter's end offers one before the next chapter.

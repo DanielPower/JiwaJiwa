@@ -72,14 +72,43 @@ class CardsTest {
     }
 
     @Test
-    fun `a word marked known never becomes a new word, even after relearning it`() {
+    fun `a word filled in by reading level gets no start day, even after relearning it`() {
         val now = at("2026-10-10T20:00")
-        val known = reviewer.markKnown(Card(id = 1, wordId = 7, direction = Direction.RECOGNITION), WordProgress(7), 50, now, Random(1))
+        val known = reviewer.markKnownFor(Card(id = 1, wordId = 7, direction = Direction.RECOGNITION), WordProgress(7), 15, 40, now, Random(1))
         val missed = reviewer.answer(known.card, known.progress, correct = false, now = known.card.dueAt)
         assertEquals(CardState.RELEARNING, missed.card.state)
         val relearned = reviewer.answer(missed.card, missed.progress, correct = true, now = missed.card.dueAt)
         assertEquals(null, known.card.introducedDay)
         assertEquals(null, relearned.card.introducedDay)
+        assertFalse(relearned.card.startedKnown)
+    }
+
+    @Test
+    fun `marking a word known starts it today, apart from the day's new words`() {
+        val now = at("2026-10-10T20:00")
+        val today = clock.dayOf(now)
+        val fresh = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)
+        val known = reviewer.markKnown(fresh, WordProgress(7), 50, now, Random(1))
+        assertEquals(today, known.card.introducedDay)
+        assertTrue(known.card.startedKnown)
+        val reviewed = reviewer.answer(known.card, known.progress, correct = true, now = known.card.dueAt)
+        assertEquals(today, reviewed.card.introducedDay)
+        assertTrue(reviewed.card.startedKnown)
+
+        // Started by a story today, then known: still today's, no longer one of its new words.
+        val startedToday = reviewer.introduce(fresh, now)
+        assertTrue(reviewer.markKnown(startedToday, WordProgress(7), 50, now, Random(1)).card.startedKnown)
+
+        // Started on an earlier day: that day stays, as one of its new words.
+        val earlier = reviewer.introduce(fresh, at("2026-10-01T20:00"))
+        val later = reviewer.markKnown(earlier, WordProgress(7), 50, now, Random(1)).card
+        assertEquals(earlier.introducedDay, later.introducedDay)
+        assertFalse(later.startedKnown)
+
+        // Imports aren't dated.
+        val imported = reviewer.markKnown(fresh, WordProgress(7), 50, now, Random(1), dated = false).card
+        assertEquals(null, imported.introducedDay)
+        assertFalse(imported.startedKnown)
     }
 
     @Test

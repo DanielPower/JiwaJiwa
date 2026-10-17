@@ -84,7 +84,7 @@ object WordHistory {
     /**
      * One [WordDay] for each day from [from] to [to], replaying [changes]
      * (oldest first). [started] is each started word's first day, null when
-     * it has none (a word marked known or imported); [mastery] is each one's
+     * it has none (filled in by reading level, or imported); [mastery] is each one's
      * mastery now, for words with no reviews. Words with no first day or
      * review count from the start, since there's no telling when they came.
      * Mastery can drop after a missed review, so known and mastered can too.

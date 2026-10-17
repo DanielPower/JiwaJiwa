@@ -42,8 +42,10 @@ data class Card(
     val lastReviewAt: Long? = null,
     val reps: Int = 0,
     val lapses: Int = 0,
-    /** Study day of the first answer. */
+    /** Study day the word was started: introduced by a story, or marked known. */
     val introducedDay: Long? = null,
+    /** Started by saying you knew it: it counts as started that day, but not against the day's new words. */
+    val startedKnown: Boolean = false,
 )
 
 data class WordProgress(
@@ -198,11 +200,15 @@ class Reviewer(
      * review schedule to match the chosen mastery, so it still comes back
      * for occasional checks. The first review lands on a random day within
      * that interval, so marking many words at once doesn't bunch them up.
+     *
+     * A word that wasn't started yet, or was started today, counts as started
+     * today when [dated] (so it shows among the day's new words on Home), but
+     * never against the daily limit. Imports aren't dated.
      */
-    fun markKnown(card: Card, progress: WordProgress, mastery: Int, now: Long, random: Random): Known {
+    fun markKnown(card: Card, progress: WordProgress, mastery: Int, now: Long, random: Random, dated: Boolean = true): Known {
         val newMastery = mastery.coerceIn(0, MasteryRules.MAX)
         val days = MasteryRules.stabilityDays(newMastery)
-        return known(card, progress, newMastery, days, days, now, random)
+        return known(card, progress, newMastery, days, days, now, random, dated)
     }
 
     /**
@@ -211,11 +217,12 @@ class Reviewer(
      * be longer than [days] to spread out a large batch.
      */
     fun markKnownFor(card: Card, progress: WordProgress, days: Int, firstDueWithin: Int, now: Long, random: Random): Known =
-        known(card, progress, MasteryRules.fromStability(days.toDouble()), days, maxOf(days, firstDueWithin), now, random)
+        known(card, progress, MasteryRules.fromStability(days.toDouble()), days, maxOf(days, firstDueWithin), now, random, dated = false)
 
-    private fun known(card: Card, progress: WordProgress, newMastery: Int, days: Int, firstDueWithin: Int, now: Long, random: Random): Known {
+    private fun known(card: Card, progress: WordProgress, newMastery: Int, days: Int, firstDueWithin: Int, now: Long, random: Random, dated: Boolean): Known {
         require(card.wordId == progress.wordId)
         val today = clock.dayOf(now)
+        val startsToday = dated && (card.state == CardState.NEW || card.introducedDay == today)
         val firstDue = 1 + random.nextInt(firstDueWithin)
         val unlock = card.direction == Direction.RECOGNITION &&
             !progress.productionUnlocked &&
@@ -229,6 +236,8 @@ class Reviewer(
                 difficulty = fsrs.startingDifficulty(Rating.GOOD),
                 dueAt = clock.startOf(today + firstDue),
                 lastReviewAt = now,
+                introducedDay = if (startsToday) today else card.introducedDay,
+                startedKnown = card.startedKnown || startsToday,
             ),
             progress = progress.copy(mastery = newMastery, productionUnlocked = progress.productionUnlocked || unlock),
             unlockedProduction = unlock,

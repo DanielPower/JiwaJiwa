@@ -18,7 +18,7 @@ data class WordStatus(val state: CardState, val suspended: Boolean, val mastery:
 data class ReviewEntry(val at: Long, val correct: Boolean, val masteryAfter: Int)
 
 /** A word with a started recognition card: its first day, mastery now, and mastery before its first review, if it's had one. */
-data class StartedWord(val wordId: Long, val introducedDay: Long?, val mastery: Int, val firstBefore: Int?)
+data class StartedWord(val wordId: Long, val introducedDay: Long?, val mastery: Int)
 
 /** A story that comes with the app (a chapter or a grammar topic's page), as saved with whether you've read it. */
 data class SavedStory(
@@ -53,6 +53,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 reps INTEGER NOT NULL,
                 lapses INTEGER NOT NULL,
                 introduced_day INTEGER,
+                started_known INTEGER NOT NULL DEFAULT 0,
                 sort_key INTEGER NOT NULL,
                 suspended INTEGER NOT NULL DEFAULT 0,
                 UNIQUE (word_id, direction)
@@ -99,6 +100,10 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         if (oldVersion < 4) deriveMastery(db)
         if (oldVersion < 8) keepOnlyBundledStories(db)
         if (oldVersion < 9) dropRemovedCards(db)
+        // Version 10: words marked known count as started that day, but not against the limit.
+        if (oldVersion < 10 && hasColumn(db, "card", "id") && !hasColumn(db, "card", "started_known")) {
+            db.execSQL("ALTER TABLE card ADD COLUMN started_known INTEGER NOT NULL DEFAULT 0")
+        }
     }
 
     /**
@@ -277,6 +282,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             put("reps", card.reps)
             put("lapses", card.lapses)
             putNullable("introduced_day", card.introducedDay)
+            put("started_known", if (card.startedKnown) 1 else 0)
         }
         db.update("card", values, "id = ?", arrayOf(card.id.toString()))
     }
@@ -435,15 +441,13 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         }
 
     /**
-     * Each started word's first day, with its mastery now and its mastery
-     * before its first review, from the recognition card. A word that came
-     * in with mastery (marked known or imported) has more than 0 there.
+     * Each started word's first day and its mastery now, from the recognition
+     * card. Words filled in by reading level or imported have no first day.
      */
     fun startedWords(): List<StartedWord> =
         readableDatabase.rawQuery(
             """
-            SELECT c.word_id, c.introduced_day, COALESCE(p.mastery, 0),
-                (SELECT l.mastery_before FROM review_log l WHERE l.card_id = c.id ORDER BY l.reviewed_at, l.id LIMIT 1)
+            SELECT c.word_id, c.introduced_day, COALESCE(p.mastery, 0)
             FROM card c LEFT JOIN word_progress p ON p.word_id = c.word_id
             WHERE c.direction = ? AND c.state != ?
             """,
@@ -451,7 +455,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         ).use { c ->
             buildList {
                 while (c.moveToNext()) {
-                    add(StartedWord(c.getLong(0), if (c.isNull(1)) null else c.getLong(1), c.getInt(2), if (c.isNull(3)) null else c.getInt(3)))
+                    add(StartedWord(c.getLong(0), if (c.isNull(1)) null else c.getLong(1), c.getInt(2)))
                 }
             }
         }
@@ -531,6 +535,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         reps = c.getInt(9),
         lapses = c.getInt(10),
         introducedDay = if (c.isNull(11)) null else c.getLong(11),
+        startedKnown = c.getInt(12) != 0,
     )
 
     private fun ContentValues.putNullable(key: String, value: Any?) {
@@ -545,8 +550,8 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 9
+        const val VERSION = 10
         private const val CARD_COLUMNS =
-            "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day"
+            "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, started_known"
     }
 }
