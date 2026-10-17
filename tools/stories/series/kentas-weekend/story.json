@@ -1,0 +1,7 @@
+{
+  "title": "Kenta's weekend",
+  "blurb": "Sleeping, gaming, sleeping, and ramen with the house, from Kenta's side.",
+  "after": ["messages-from-canada/the-weekend"],
+  "side": true,
+  "chapters": ["kentas-weekend"]
+}

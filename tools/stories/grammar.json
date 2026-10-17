@@ -430,5 +430,29 @@
       ["食べてから、行こう。", "Let's eat first, then go."],
       "～てから puts two things in order: this one, and only then that one. It's the everyday way to say one thing has to come first."
     ]
+  },
+  {
+    "id": "ya", "title": "や / ～たり / など", "title_en": "Things like", "points": ["ya", "tari", "nado"],
+    "summary": "や lists a few nouns out of more: ラーメンや卵, ramen, eggs and so on. ～たり does the same for things you do: 読んだり、書いたり. など after a list says it goes on.",
+    "parts": [
+      ["休みの日は、マンガを読んだり、ゲームをしたりする。", "On my days off I read manga, play games, that kind of thing."],
+      "Take a verb's past form (読んだ, した) and add り: 読んだり, したり. Give two or so, then する in whatever form the sentence needs: したりする, したりした. In casual talk the last する often drops: 読んだり、書いたり。",
+      ["コンビニで、ビールや水を買った。", "I bought beer, water and stuff at the konbini."],
+      "や joins nouns like と does, but と gives the whole list, and や only a few of them. ビールと水 is just those two; ビールや水 is those and more.",
+      ["マンガやゲームなどが好き。", "I like manga, games, that sort of thing."],
+      "など after the last one says there's more where that came from. It often closes a list made with や, and can follow just one: ラーメンなど, ramen and the like."
+    ]
+  },
+  {
+    "id": "no-nominal", "title": "～の", "title_en": "Doing; the one", "points": ["no-nominal"],
+    "summary": "の after a verb or adjective makes it something you can talk about like a noun: 歌うのが好き, I like singing; 大きいのを買った, I bought the big one.",
+    "parts": [
+      ["ユキが歌うのが、好き。", "I love it when Yuki sings."],
+      "A plain verb, then の, and the whole thing works like a noun: it takes が, を, は or も after it. 一人で食べるのは、寂しい: eating alone is lonely.",
+      ["ユキが歌うのを、聞いた。", "I heard Yuki sing."],
+      "With 見る and 聞く, the の is what you see or hear going on: 笑うのを見た, I saw her laugh.",
+      ["大きいのを買った。", "I bought the big one."],
+      "After an adjective, の stands for a thing you've already talked about: 大きいの, the big one; 新しいの, the new one. A na-adjective takes な first: 静かなの, the quiet one."
+    ]
   }
 ]
