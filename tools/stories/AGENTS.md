@@ -12,7 +12,7 @@ tools (core `src/stories`).
 | `stories.json` | Every story's id, in the order the Stories tab lists them: the main stories, each following the one before, then side stories and one-shots. Add a new story here. |
 | `grammar.json` | The grammar topics, in Grammar-list order. Each has `parts`: Japanese lines with their English (`["来た。", "I'm here."]`), and notes in English (plain strings) between them. The first line is the example shown before the chapter that teaches it. Chapters name topics by `id`. |
 | `series/<id>/story.json` | A story's `title`, `blurb`, the stories it follows (`after`: story ids, or a chapter id such as `share-house/yukis-gig` to mean the story up to that chapter), `side` for a side story, and `chapters`: its chapters' slugs in reading order. |
-| `series/<id>/<slug>.json` | One chapter each, named by its slug (lowercase words joined by hyphens, usually from its title: `trash-day.json`): `title`, a one-line `plot`, optional `topic` (one grammar topic it teaches) and `meets` (people it introduces, `{"name", "about"}`), and `paragraphs`, each a list of `[Japanese sentence, English]`, or a note (`{"note": "English…"}`) between two of them. Its id is the story's id and its slug (`share-house/trash-day`), which saved progress uses. To add or move a chapter, add its file and put its slug where it goes in `chapters`; never rename a slug or delete a chapter people may have read. |
+| `series/<id>/<slug>.json` | One chapter each, named by its slug (lowercase words joined by hyphens, usually from its title: `trash-day.json`): `title`, a one-line `plot`, optional `topic` (one grammar topic it teaches), `meets` (people it introduces, `{"name", "about"}`) and `readings` (see below), and `paragraphs`, each a list of `[Japanese sentence, English]`, or a note (`{"note": "English…"}`) between two of them. Its id is the story's id and its slug (`share-house/trash-day`), which saved progress uses. To add or move a chapter, add its file and put its slug where it goes in `chapters`; never rename a slug or delete a chapter people may have read. |
 | `series/<id>/SUMMARY.md` | Written by the tools, never by hand: the cast so far, each chapter's plot, words and new words, and every word and grammar topic known by the end. |
 | `COVERAGE.md` | Written by the tools: how much of N5 and N4 the stories cover, and the grammar points and words left, most common first. |
 
@@ -26,6 +26,11 @@ tools (core `src/stories`).
   goes on a line of its own. Unnamed staff and strangers, and thinking
   aloud, have no name.
 - English quotes are escaped in JSON: `"\"Morning!\""`.
+- When the reader picks the wrong word, pin it in the chapter's `readings`:
+  the word as the text writes it, and its reading (`"readings": {"方":
+  "かた"}` for あの方, where the reader sees the ほう of ～のほうが).
+  Check the new words in the report: a wrong reading there means a wrong
+  card. `StoryPathTest` fails if a pin isn't needed, or doesn't take.
 - Notes are rare: an aid for the odd spot where the reader needs cultural
   context the dialogue doesn't make clear, or an exception in the language
   explained. Most chapters have none. A note goes after the paragraph it's

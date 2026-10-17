@@ -92,6 +92,7 @@ object StorySource {
             put("body", paragraphs.joinToString("\n\n") { p -> p.joinToString("") { it.first } })
             putJsonArray("translations") { for (p in paragraphs) for ((_, en) in p) add(en) }
             if (notes.isNotEmpty()) put("notes", notes)
+            c["readings"]?.let { put("readings", it) }
             c["topic"]?.let { put("topic", it) }
             c["meets"]?.let { put("meets", it) }
         }

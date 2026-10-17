@@ -43,4 +43,11 @@ class StorySourceTest {
         val error = assertFailsWith<IllegalArgumentException> { StorySource.pathJson(root(listOf("a"), chapter = first)) }
         assertTrue("note" in error.message.orEmpty())
     }
+
+    @Test
+    fun `a chapter's pinned readings reach the app`() {
+        val chapter = """{"title": "T", "plot": "P", "readings": {"方": "かた"}, "paragraphs": [[["あの方だ。", "It's that person."]]]}"""
+        val story = StoryPath.parse(StorySource.pathJson(root(listOf("a"), chapter = chapter))).chapters.single().second.story
+        assertEquals(mapOf("方" to "かた"), story.readings)
+    }
 }

@@ -109,6 +109,14 @@ class StoryPathTest {
                 if (sentences(s) != s.translations.size) problems += "${s.id}: ${sentences(s)} sentences, ${s.translations.size} translations"
                 for (w in needs.getValue(s.id).words.filter { it.wordId == null }) problems += "${s.id}: ${w.lemma} isn't in the dictionary"
                 if (c.topic != null && catalog.topic(c.topic) == null) problems += "${s.id}: no grammar topic ${c.topic}"
+                // A pinned reading must be needed, and must take: the reader agrees once it's pinned.
+                for ((text, reading) in s.readings) {
+                    fun read(pins: Map<String, String>) = reader.read(s.body, pins).flatten().filter { it.surface == text }
+                    val pinned = read(s.readings)
+                    if (pinned.isEmpty()) problems += "${s.id}: readings: no word written $text"
+                    else if (pinned.any { it.reading != reading || it.wordId == null }) problems += "${s.id}: readings: the dictionary has no $text read $reading"
+                    else if (read(emptyMap()) == pinned) problems += "${s.id}: readings: $text is already read $reading"
+                }
             }
             for (t in catalog.grammar) {
                 if (sentences(t.page) != t.page.translations.size) problems += "${t.id}: ${sentences(t.page)} sentences, ${t.page.translations.size} translations"

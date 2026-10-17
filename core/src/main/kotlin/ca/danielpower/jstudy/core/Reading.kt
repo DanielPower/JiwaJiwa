@@ -132,10 +132,20 @@ data class Speech(val speaker: String?, val text: String) {
 /** Splits Japanese text into words with Kuromoji (IPADIC) and matches them to the dictionary. */
 class Reader(private val lexicon: Lexicon) {
 
-    /** Paragraphs of words. Blank lines and single line breaks both start a new paragraph. */
-    fun read(text: String): List<List<ReadingWord>> = paragraphs(text).map { words(Speech.of(it).text) }
+    /**
+     * Paragraphs of words. Blank lines and single line breaks both start a new paragraph.
+     * [readings] pins a word the reader gets wrong to the right one; see [words].
+     */
+    fun read(text: String, readings: Map<String, String> = emptyMap()): List<List<ReadingWord>> =
+        paragraphs(text).map { words(Speech.of(it).text, readings) }
 
-    fun words(paragraph: String): List<ReadingWord> {
+    /**
+     * [readings] maps a word, written as the text writes it, to its reading,
+     * for the odd word the reader gets wrong: 方 in あの方 is かた, not the
+     * ほう of ～のほうが. A pinned word is looked up by that reading, and
+     * left as it was if the dictionary doesn't have it.
+     */
+    fun words(paragraph: String, readings: Map<String, String> = emptyMap()): List<ReadingWord> {
         val tokens = tokenizer.tokenize(paragraph).map(::Morpheme)
         val out = ArrayList<ReadingWord>()
         // The tokens each word was made from, for placing grammar points.
@@ -184,7 +194,15 @@ class Reader(private val lexicon: Lexicon) {
             }
             spans += from until i
         }
-        return withGrammar(out, spans, tokens)
+        return withGrammar(if (readings.isEmpty()) out else out.map { pinned(it, readings) }, spans, tokens)
+    }
+
+    /** [word] as [readings] reads it, if it pins it and the dictionary has it with that reading. */
+    private fun pinned(word: ReadingWord, readings: Map<String, String>): ReadingWord {
+        val reading = readings[word.surface] ?: return word
+        val match = (lexicon.find(word.surface, reading) ?: lexicon.find(word.lemma, reading))?.takeIf { it.reading == reading }
+            ?: return word
+        return word.copy(kind = WordKind.WORD, wordId = match.wordId, reading = reading, ruby = ruby(word.surface, reading))
     }
 
     private fun withGrammar(words: List<ReadingWord>, spans: List<IntRange>, tokens: List<Morpheme>): List<ReadingWord> {

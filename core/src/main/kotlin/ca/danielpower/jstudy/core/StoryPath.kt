@@ -41,6 +41,8 @@ data class PathStory(
     val notes: List<LessonNote> = emptyList(),
     /** A grammar topic's page, rather than a chapter. */
     val lesson: Boolean = false,
+    /** Words the reader gets wrong in it, as written, with their reading ([Reader.words]). */
+    val readings: Map<String, String> = emptyMap(),
 )
 
 /** Someone in a story, as the chapter that introduces them describes them. */
@@ -196,6 +198,7 @@ object StoryPath {
                             translations = ch.texts("translations"),
                             teaches = topic?.let { topics[it]?.points }.orEmpty(),
                             notes = ch.notes(),
+                            readings = ch["readings"]?.jsonObject.orEmpty().mapValues { it.value.jsonPrimitive.content },
                         ),
                         number = i + 1,
                         topic = topic,
@@ -247,11 +250,11 @@ object StoryPath {
     }
 
     /** The words a story's body counts, each once, in the order they first appear. */
-    fun words(reader: Reader, body: String): List<ReadingWord> =
-        reader.read(body).flatten().filter { it.kind == WordKind.WORD }.distinctBy { it.key }
+    fun words(reader: Reader, body: String, readings: Map<String, String> = emptyMap()): List<ReadingWord> =
+        reader.read(body, readings).flatten().filter { it.kind == WordKind.WORD }.distinctBy { it.key }
 
     fun needs(reader: Reader, story: PathStory): StepNeeds {
-        val all = reader.read(story.body).flatten()
+        val all = reader.read(story.body, story.readings).flatten()
         val counted = all.filter { it.kind == WordKind.WORD }
         return StepNeeds(
             words = counted.distinctBy { it.key }.map { StepWord(it.wordId, it.lemma) },

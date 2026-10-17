@@ -21,6 +21,21 @@ class ReadingTest {
     }
 
     @Test
+    fun aPinnedReadingPicksTheWord() {
+        // 方 is ほう (direction, ～のほうが) or かた (person); the tokenizer only knows ほう, as grammar.
+        val hou = LexiconMatch(30, "ほう")
+        val kata = LexiconMatch(31, "かた")
+        val reader = Reader { text, reading -> if (text == "方") (if (reading == "かた") kata else hou) else null }
+        assertEquals(WordKind.GRAMMAR, reader.words("あの方").first { it.surface == "方" }.kind)
+        val w = reader.words("あの方", mapOf("方" to "かた")).first { it.surface == "方" }
+        assertEquals(WordKind.WORD, w.kind)
+        assertEquals(31L, w.wordId)
+        assertEquals(listOf(Ruby("方", "かた")), w.ruby)
+        // A reading the dictionary doesn't have for the word changes nothing.
+        assertEquals(WordKind.GRAMMAR, reader.words("あの方", mapOf("方" to "がた")).first { it.surface == "方" }.kind)
+    }
+
+    @Test
     fun aSpeakersNameIsntPartOfTheText() {
         assertEquals(Speech("ユキ", "「でしょ？」"), Speech.of("ユキ|「でしょ？」"))
         assertEquals(Speech(null, "ラーメンが来た。"), Speech.of("ラーメンが来た。"))

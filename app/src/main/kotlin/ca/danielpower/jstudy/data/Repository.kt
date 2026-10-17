@@ -592,7 +592,7 @@ class Repository(context: Context) {
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
-        val paragraphs = reader.read(story.body)
+        val paragraphs = reader.read(story.body, readings(story))
         val ids = paragraphs.flatten().mapNotNull { it.wordId }.toSet()
         val statuses = store.wordStatuses()
         return StoryReading(
@@ -608,11 +608,18 @@ class Repository(context: Context) {
         )
     }
 
+    /** The bundled chapter [story] was saved from, if it's one. */
+    private fun chapterOf(story: SavedStory): PathStory? =
+        catalog.chapters.firstOrNull { it.second.story.id == story.pathId }?.second?.story
+
     /** A chapter's notes, each shown from the end of the paragraph before it; two after one paragraph share its marker. */
     private fun notes(story: SavedStory): Map<Int, String> =
-        catalog.chapters.firstOrNull { it.second.story.id == story.pathId }?.second?.story?.notes.orEmpty()
+        chapterOf(story)?.notes.orEmpty()
             .groupBy({ it.before - 1 }, { it.text })
             .mapValues { it.value.joinToString("\n\n") }
+
+    /** The words the reader gets wrong in a chapter, pinned to their readings. */
+    private fun readings(story: SavedStory): Map<String, String> = chapterOf(story)?.readings.orEmpty()
 
     /** Each grammar point's topic page, saved when the path was. */
     private fun lessons(): Map<String, Long> {
@@ -739,7 +746,7 @@ class Repository(context: Context) {
      */
     fun readWords(story: SavedStory, lookedUp: Set<Long>, now: Long) {
         val reviewer = Reviewer(Fsrs(), clock())
-        val ids = StoryPath.words(reader, story.body).mapNotNull { it.wordId }
+        val ids = StoryPath.words(reader, story.body, readings(story)).mapNotNull { it.wordId }
         for (id in ids.distinct() - lookedUp) {
             val card = recognitionCard(id) ?: continue
             if (card.state != CardState.REVIEW || card.dueAt > now || store.isSuspended(id)) continue
@@ -763,7 +770,7 @@ class Repository(context: Context) {
      */
     fun startStoryWords(story: SavedStory, now: Long): List<Long> {
         val isKnown = known(store.wordStatuses())
-        val ids = StoryPath.words(reader, story.body).mapNotNull { it.wordId }.distinct()
+        val ids = StoryPath.words(reader, story.body, readings(story)).mapNotNull { it.wordId }.distinct()
             .filter { !isKnown(it) && dictionary.word(it) != null }
         for (id in ids) {
             store.transaction { db -> if (recognitionCard(id) == null) store.insertNewCard(db, id, Direction.RECOGNITION, 0) }
