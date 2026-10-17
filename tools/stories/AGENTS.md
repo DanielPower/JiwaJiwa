@@ -75,9 +75,12 @@ in kanji poorly (as 来る きたる), so use 来れる.
 
 Known misreadings to pin (`readings`) or reword around: 何時 reads as いつ
 (pin `"何時": "なんじ"`), よし as 葦, いつか as 五日, いい straight after ！ as
-言う, いってきます as a form of 言う, and the ます of a quoted 「です、ます」 as
+言う, and the ます of a quoted 「です、ます」 as
 増す. な before a noun (きれいな部屋) and before ん / の (そうなんだ) is taught
-with だ / です, so it's fine anywhere.
+with だ / です, so it's fine anywhere. ただいま, おかえり(なさい), いってきます
+and いってらっしゃい read as words, and ～ないで来る as "come without doing".
+ない on its own (ゴミがない) is the word 無い, and ありがとうございました is a
+different entry from ありがとうございます: both count as new words.
 
 Then run, with the dictionary built (`python3 tools/dictionary/build_dictionary.py`):
 

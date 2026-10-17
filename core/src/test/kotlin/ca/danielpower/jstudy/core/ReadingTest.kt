@@ -95,6 +95,18 @@ class ReadingTest {
     }
 
     @Test
+    fun aSetPhraseIsOneWordWithNoGrammarInside() {
+        val reader = Reader { text, _ -> mapOf("ただいま" to 90L, "いってきます" to 91L, "来る" to 92L)[text]?.let { LexiconMatch(it, text) } }
+        val tadaima = reader.words("ただいま！").first()
+        assertEquals(90L, tadaima.wordId)
+        val ittekimasu = reader.words("いってきます。").first()
+        assertEquals(91L, ittekimasu.wordId)
+        assertTrue(ittekimasu.grammar.isEmpty())
+        // ～ないで来た is "came without", so 来た is its own word.
+        assertEquals(92L, reader.words("食べないで来た。").first { it.surface == "来た" }.wordId)
+    }
+
+    @Test
     fun aTimeNounNoPointExplainsIsAWord() {
         val reader = Reader { text, _ -> mapOf("休み" to 80L, "日" to 81L)[text]?.let { LexiconMatch(it, "ひ") } }
         val hi = reader.words("休みの日").first { it.surface == "日" }

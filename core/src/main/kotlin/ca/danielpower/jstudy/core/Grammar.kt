@@ -630,6 +630,8 @@ internal object Grammar {
             "Change coming up to now (寒くなってきた, it's got cold), or doing something and coming back (買ってくる).",
             "だんだん寒くなってきました。", "It's been getting colder.",
             listOf(te, dependentVerb("くる", "来る")),
+            // Not ～ないで来る, "come without doing".
+            before = { it.base != "ない" },
         )
         point(
             "te-iku", "～ていく", 4, "go on; do and go",

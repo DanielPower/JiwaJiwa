@@ -186,7 +186,7 @@ class Reader(private val lexicon: Lexicon) {
         while (i < tokens.size) {
             val from = i
             val t = tokens[i]
-            val compound = compound(tokens, i) ?: counted(tokens, i) ?: greeting(tokens, i)
+            val compound = compound(tokens, i) ?: counted(tokens, i) ?: greeting(tokens, i) ?: setPhrase(tokens, i)
             when {
                 compound != null -> {
                     out += compound.first
@@ -196,7 +196,7 @@ class Reader(private val lexicon: Lexicon) {
                     out += plain(listOf(t), WordKind.PUNCTUATION, null)
                     i++
                 }
-                t.isInflectingHead || (t.isSuruNoun && tokens.getOrNull(i + 1)?.isSuru == true) -> {
+                t.isInflectingHead || comesWithout(tokens, i) || (t.isSuruNoun && tokens.getOrNull(i + 1)?.isSuru == true) -> {
                     val end = chainEnd(tokens, i + if (t.isSuruNoun) 2 else 1)
                     out += inflected(tokens.subList(i, end))
                     i = end
@@ -246,7 +246,10 @@ class Reader(private val lexicon: Lexicon) {
     private fun withGrammar(words: List<ReadingWord>, spans: List<IntRange>, tokens: List<Morpheme>): List<ReadingWord> {
         val wordOf = IntArray(tokens.size)
         spans.forEachIndexed { w, span -> for (k in span) wordOf[k] = w }
+        // A set phrase or compound read whole (いってきます) has no grammar inside it.
+        val whole = words.indices.filter { words[it].kind == WordKind.WORD && words[it].lemma == words[it].surface && spans[it].count() > 1 }.toSet()
         val found = Grammar.find(tokens).map { GrammarUse(it.point, wordOf[it.start], wordOf[it.end - 1]) }
+            .filterNot { it.first == it.last && it.first in whole }
         // A bare stem is there for what follows it, so it joins that point: 見 in 見に行く, 暑く in 暑くなる.
         val stems = words.indices.filter { words[it].stem }.toSet()
         val joined = found.map { u ->
@@ -296,6 +299,23 @@ class Reader(private val lexicon: Lexicon) {
         return null
     }
 
+    /**
+     * An everyday set phrase the tokenizer splits or misreads, as its
+     * dictionary entry: ただいま (not ただ + いま before ！), いってきます (not a
+     * form of 言う).
+     */
+    private fun setPhrase(tokens: List<Morpheme>, start: Int): Pair<ReadingWord, Int>? {
+        for (phrase in SET_PHRASES) {
+            var end = start
+            var text = ""
+            while (end < tokens.size && text.length < phrase.length) text += tokens[end++].surface
+            if (text != phrase || end == start) continue
+            val match = lexicon.find(phrase, Kana.toHiragana(phrase)) ?: continue
+            return plain(tokens.subList(start, end), WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(phrase, match.reading)) to end
+        }
+        return null
+    }
+
     /** A run of nouns the dictionary knows as one word (図書館員, 魔導士), longest first. */
     private fun compound(tokens: List<Morpheme>, start: Int): Pair<ReadingWord, Int>? {
         val first = tokens[start]
@@ -341,6 +361,11 @@ class Reader(private val lexicon: Lexicon) {
         return plain(group, WordKind.WORD, match.wordId).copy(reading = match.reading, ruby = ruby(text, match.reading)) to end
     }
 
+    /** 来る after ～ないで, "come without doing": a verb of its own, though the tokenizer takes it for ～てくる's. */
+    private fun comesWithout(tokens: List<Morpheme>, i: Int): Boolean =
+        tokens[i].pos == "動詞" && tokens[i].base in setOf("くる", "来る") && tokens.getOrNull(i - 1)?.base == "で" &&
+            tokens.getOrNull(i - 2)?.base == "ない"
+
     /** Where the conjugation attached to a verb or adjective at [from] - 1 ends. */
     private fun chainEnd(tokens: List<Morpheme>, from: Int): Int {
         var i = from
@@ -352,6 +377,7 @@ class Reader(private val lexicon: Lexicon) {
                 t.pos == "動詞" && t.pos2 == "接尾" -> true
                 t.pos == "助詞" && t.pos2 == "接続助詞" && t.base in CONNECTIVES -> true
                 t.pos == "助詞" && t.pos2 == "並立助詞" && t.base == "たり" -> true
+                comesWithout(tokens, i) -> false
                 t.pos == "動詞" && t.pos2 == "非自立" ->
                     prev.base in setOf("て", "で", "ば") || t.base in CONTRACTIONS
                 // The tokenizer sometimes takes ちゃう for a verb of its own (帰っちゃう).
@@ -435,6 +461,7 @@ class Reader(private val lexicon: Lexicon) {
         private const val MAX_COMPOUND = 4
         private val CONNECTIVES = setOf("て", "で", "ば", "ながら", "つつ")
         private val CONJUNCTIONS = setOf("でも", "けど", "だけど", "だって")
+        private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "おかえり", "いってきます", "いってらっしゃい")
         private val CONTRACTIONS = setOf("ちゃう", "じゃう", "ちまう", "とく", "てる", "でる")
         private val E_TO_U = mapOf('え' to 'う', 'け' to 'く', 'せ' to 'す', 'て' to 'つ', 'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る', 'げ' to 'ぐ')
 
