@@ -25,7 +25,7 @@ Everyone met by the end, in the chapter that introduces them.
 Alex meets Kenta, the sleepy housemate, one morning.
 
 - 12 words; 3 new of 3 allowed.
-- New: 朝 (あさ, N5), おはよう (N2), 眠い (ねむい, N4).
+- New: 朝 (あさ, N5), おはよう (N5), 眠い (ねむい, N4).
 
 ### 2. All night (`share-house/all-night`)
 
@@ -40,7 +40,7 @@ Kenta gamed until morning; he and Alex plan a game night.
 Yuki makes coffee for Alex and a sleepy Kenta.
 
 - 11 words; 3 new of 3 allowed.
-- New: コーヒー (N5), 飲む (のむ, N5), ありがとう (N3).
+- New: コーヒー (N5), 飲む (のむ, N5), ありがとう (N5).
 
 ### 4. Trash day (`share-house/trash-day`)
 
@@ -54,7 +54,7 @@ Yuki teaches Alex trash day; Kenta's trash is all coffee.
 Alex's interview with the big manager: he starts today.
 
 - 15 words; 2 new of 3 allowed.
-- New: はい (N5), お願いする (おねがい, not JLPT).
+- New: はい (N5), お願いする (おねがい, N5).
 
 ### 6. First shift (`share-house/first-shift`)
 
@@ -62,7 +62,7 @@ Alex's first shift: a rush of customers and ramen.
 
 - 20 words; 3 new of 3 allowed.
 - Teaches ～て / ～てください (`te-kudasai`).
-- New: すみません (N3), ちょっと (N5), 待つ (まつ, N5).
+- New: すみません (N5), ちょっと (N5), 待つ (まつ, N5).
 
 ### 7. Game night (`share-house/game-night`)
 
@@ -91,7 +91,7 @@ Miho recommends manga, and Alex buys them all.
 Yuki's bass is too loud while Alex reads; she apologizes.
 
 - 12 words; 3 new of 3 allowed.
-- New: うるさい (N5), ベース (N1), ごめん (N2).
+- New: うるさい (N5), ベース (N1), ごめん (N5).
 
 ### 11. Laundry day (`share-house/laundry-day`)
 
@@ -128,7 +128,7 @@ Hanami with Miho; Alex and Yuki are friends, and they take photos.
 Alex's mom calls from Canada; he tells her about friends and work.
 
 - 24 words; 3 new of 3 allowed.
-- New: 電話 (でんわ, N5), 母 (はは, not JLPT), 元気 (げんき, N5).
+- New: 電話 (でんわ, N5), 母 (はは, N5), 元気 (げんき, N5).
 
 ### 16. Summer (`share-house/summer`)
 
@@ -157,7 +157,7 @@ Fireworks at night, and a photo of everyone together.
 Kenta interviews at a game company and does his best.
 
 - 31 words; 3 new of 3 allowed.
-- New: 会社 (かいしゃ, N5), 仕事 (しごと, N5), 頑張る (がんばる, not JLPT).
+- New: 会社 (かいしゃ, N5), 仕事 (しごと, N5), 頑張る (がんばる, N4).
 
 ### 20. Autumn (`share-house/autumn`)
 
@@ -187,7 +187,7 @@ Alex's last shift and one last ramen with his friends.
 
 - 32 words; 3 new of 3 allowed.
 - Teaches と (`to`).
-- New: 最後 (さいご, N4), 寂しい (さびしい, N4), 本当に (ほんとうに, not JLPT).
+- New: 最後 (さいご, N4), 寂しい (さびしい, N4), 本当に (ほんとうに, N5).
 
 ### 24. Goodbye (`share-house/goodbye`)
 

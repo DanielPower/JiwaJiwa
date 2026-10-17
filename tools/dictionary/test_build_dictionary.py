@@ -175,6 +175,14 @@ class BuildTest(unittest.TestCase):
         # An excluded word is still there to look up.
         self.assertEqual([(w.id, w.jlpt) for w in result.others], [(1577980, 0)])
 
+    def test_override_puts_a_word_on_the_lists(self):
+        src = self.source()
+        src["jmdict"]["words"].append(MADOUSHI)
+        result = bd.build(src, {"2000001": {"jlpt": "4"}})
+        word = next(w for w in result.words if w.id == 2000001)
+        self.assertEqual((word.kanji, word.kana, word.jlpt), ("魔導士", "まどうし", 4))
+        self.assertNotIn(2000001, [w.id for w in result.others])
+
     def test_words_off_the_lists_are_kept_for_lookups(self):
         src = self.source()
         src["jmdict"]["words"].append(MADOUSHI)

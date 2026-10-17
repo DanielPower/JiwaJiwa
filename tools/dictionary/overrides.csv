@@ -17,3 +17,15 @@ jmdict_seq,field,value
 2219590,exclude,1
 2771700,exclude,1
 1570120,jlpt,3
+#
+# Basic words the JLPT list leaves out or files too high, usually because it
+# lists their polite form or set phrase instead (ありがとうございます,
+# お願いします, お母さん). Each is taught in the first stories.
+1586820,jlpt,5
+1295060,jlpt,5
+1612820,jlpt,5
+1270670,jlpt,5
+2036870,jlpt,5
+1611580,jlpt,5
+1514990,jlpt,5
+1217700,jlpt,4

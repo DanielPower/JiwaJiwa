@@ -535,6 +535,14 @@ def build(src: dict, overrides: dict[str, dict[str, str]]) -> Build:
     by_seq: dict[str, list[JlptRow]] = defaultdict(list)
     for row in linked:
         by_seq[row.seq].append(row)
+    # A jlpt override can also put a word on the lists that they leave out,
+    # written as it would be off them.
+    for seq, fields in overrides.items():
+        if "jlpt" in fields and seq not in by_seq:
+            if seq not in entries:
+                raise SystemExit(f"overrides.csv: JMdict entry {seq} not found")
+            other = select_other(entries[seq], ranks)
+            by_seq[seq].append(JlptRow(seq, other.kana, other.kanji or "", int(fields["jlpt"])))
 
     words: list[Word] = []
     for seq, rows in by_seq.items():
