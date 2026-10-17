@@ -196,7 +196,7 @@ fun SettingsScreen(
 
             Section(ui("Reset", "消す"))
             Text(
-                "Erase all your progress, settings and stories, sign out, " +
+                "Erase all your progress, settings and stories, " +
                     "and start again from first-run setup.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -212,7 +212,7 @@ fun SettingsScreen(
                     text = {
                         Text(
                             "All your cards, mastery, review history, settings and stories " +
-                                "will be deleted, and you'll be signed out. This can't be undone. Save a backup first if you might want them back.",
+                                "will be deleted. This can't be undone. Save a backup first if you might want them back.",
                         )
                     },
                     confirmButton = {

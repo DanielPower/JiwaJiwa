@@ -1,10 +1,9 @@
 # Jiwa Jiwa
 
-An Android app for learning Japanese vocabulary. It ships with every word on
-the JLPT N5 to N1 lists, reviews them Anki-style (you grade yourself Wrong or
-Right), schedules them with FSRS, and fades out furigana as each word's
-mastery grows. Its graded stories bring in new words and grammar a few
-at a time.
+An Android app for learning Japanese by reading. Its graded stories bring in
+new words and grammar a few at a time; the words you meet are reviewed
+Anki-style (you grade yourself Wrong or Right), scheduled with FSRS, and lose
+their furigana as each word's mastery grows.
 
 Every push to `main` builds a release APK and publishes it on the
 [Releases](../../releases) page.
@@ -14,8 +13,9 @@ Every push to `main` builds a release APK and publishes it on the
 | Path | What it is |
 | --- | --- |
 | `app/` | The Android app (Kotlin, Jetpack Compose) |
-| `core/` | Pure-Kotlin study logic: FSRS, the daily queue, mastery and furigana rules, and the story path (Kuromoji word splitting, conjugation notes, grammar) |
+| `core/` | Pure-Kotlin study logic: FSRS, the review session, mastery and furigana rules, and the story path (Kuromoji word splitting, conjugation notes, grammar) |
 | `tools/dictionary/` | Builds `app/src/main/assets/databases/dictionary.db` from pinned sources |
+| `tools/stories/` | The bundled stories and grammar topics, as they're written (see its AGENTS.md) |
 | `tools/fsrs/` | Generates the FSRS reference vectors the core tests replay |
 
 ## Building
@@ -46,8 +46,8 @@ python3 -m unittest discover tools/dictionary
 ```
 
 The database holds every JMdict entry (about 218,000) and every KANJIDIC2
-kanji, about 85 MB in all. The JLPT words have a level and a place in the study order; the rest have level 0 and are
-there for looking up words in stories, and can be studied on request. Because
+kanji, about 85 MB in all. JLPT words have a level; the rest have level 0
+(shown as "Other"). Every entry can turn up in a story or a search. Because
 of its size the database is built in CI rather than committed;
 `build_report.md` records its content digest.
 

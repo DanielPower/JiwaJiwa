@@ -53,8 +53,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 reps INTEGER NOT NULL,
                 lapses INTEGER NOT NULL,
                 introduced_day INTEGER,
-                -- Unused since mastery is derived from stability (version 4).
-                last_mastery_day INTEGER,
                 sort_key INTEGER NOT NULL,
                 suspended INTEGER NOT NULL DEFAULT 0,
                 UNIQUE (word_id, direction)
@@ -430,7 +428,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         writableDatabase.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { it.moveToFirst() }
     }
 
-    /** Study days with at least one review, newest first. */
     /** When each story you've finished was finished. */
     fun storyReadTimes(): List<Long> =
         readableDatabase.rawQuery("SELECT read_at FROM story WHERE read_at IS NOT NULL", null).use { c ->
@@ -471,6 +468,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             arrayOf(Direction.RECOGNITION.value.toString()),
         ).use { c -> buildList { while (c.moveToNext()) add(MasteryChange(c.getLong(0), c.getLong(1), c.getInt(2), c.getInt(3))) } }
 
+    /** Study days with at least one review, newest first. */
     fun studyDays(): List<Long> =
         readableDatabase.rawQuery("SELECT DISTINCT day FROM review_log ORDER BY day DESC", null).use { c ->
             buildList { while (c.moveToNext()) add(c.getLong(0)) }

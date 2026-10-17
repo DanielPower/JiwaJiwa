@@ -610,7 +610,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun showStories() {
-        val path = repo.storyPath(now())
+        val path = repo.storyPath()
         _screen.value = Screen.Stories(
             path = path,
             pace = repo.pace(now()),
@@ -629,13 +629,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openSeries(id: String) = launchIo { showSeries(id) }
 
     private fun showSeries(id: String) {
-        val entry = repo.storyPath(now()).firstOrNull { it.series.id == id } ?: return showStories()
+        val entry = repo.storyPath().firstOrNull { it.series.id == id } ?: return showStories()
         _screen.value = Screen.Series(entry)
     }
 
     /** Tapping a locked chapter: what it's missing, and where to find it. */
     fun showLock(chapterId: String) = launchIo {
-        val lock = repo.lockInfo(chapterId, now()) ?: return@launchIo
+        val lock = repo.lockInfo(chapterId) ?: return@launchIo
         _screen.update { if (it is Screen.Series) it.copy(lock = lock) else it }
     }
 
@@ -647,14 +647,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val grammarFrom = beforeGrammar
         val chapter = when (screen) {
             // A grammar page before a chapter goes back to its chapters.
-            is Screen.StoryReader -> if (screen.reading.lesson == null) screen.chapter else screen.then?.let { repo.story(it.storyId) }?.let { repo.chapterOf(it, now()) }
+            is Screen.StoryReader -> if (screen.reading.lesson == null) screen.chapter else screen.then?.let { repo.story(it.storyId) }?.let { repo.chapterEntry(it) }
             else -> null
         }
         when {
             screen is Screen.Series && screen.lock != null -> closeLock()
             screen is Screen.StoryReader && screen.reading.lesson != null && grammarFrom != null -> {
                 beforeGrammar = null
-                _screen.value = if (grammarFrom is Screen.Dictionary) grammarFrom.copy(grammar = repo.grammarRows(now())) else grammarFrom
+                _screen.value = if (grammarFrom is Screen.Dictionary) grammarFrom.copy(grammar = repo.grammarRows()) else grammarFrom
             }
             chapter != null && !chapter.series.single -> showSeries(chapter.series.id)
             else -> showStories()
@@ -672,14 +672,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openStory(id: Long, anyway: Boolean = false) = launchIo {
         _limit.value = null
         val story = repo.story(id) ?: return@launchIo showStories()
-        val learn = repo.stepToLearn(story, now())
+        val learn = repo.stepToLearn(story)
         val adding = learn?.newWords ?: 0
         val pace = repo.pace(now())
         if (!anyway && pace.over(adding)) {
-            val chapter = repo.chapterOf(story, now())
+            val chapter = repo.chapterEntry(story)
             _limit.value = LimitPrompt(
                 id, story.title, chapter?.takeIf { !it.series.single }?.let { "Chapter ${it.chapter.number}" },
-                adding, pace.newToday, nothingNew(repo.storyPath(now())).isNotEmpty(),
+                adding, pace.newToday, nothingNew(repo.storyPath()).isNotEmpty(),
             )
             return@launchIo
         }
@@ -689,8 +689,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** On towards reading [story]: its new grammar's page, then the story. */
     private fun continueChapter(story: SavedStory, learn: StepToLearn?) {
-        val page = learn?.topic?.let { repo.grammarPageId(it, now()) } ?: return showStory(story.id)
-        val chapter = repo.chapterOf(story, now())
+        val page = learn?.topic?.let { repo.grammarPageId(it) } ?: return showStory(story.id)
+        val chapter = repo.chapterEntry(story)
         val name = if (chapter != null && !chapter.series.single) "chapter ${chapter.chapter.number}: ${chapter.chapter.story.title}" else story.title
         beforeGrammar = null
         showStory(page, then = NextStep(story.id, "Read $name"))
@@ -719,7 +719,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * A grammar topic's page, from the Words tab or a grammar point in a
+     * A grammar topic's page, from the Grammar list or a grammar point in a
      * story; Back returns there, to the same page of the story. From one
      * grammar page to another, Back skips the first.
      */
@@ -754,13 +754,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             startPage = repo.readerPlace()?.takeIf { it.storyId == id && it.style == style.toString() }?.page ?: 0
             readerPage = startPage
         }
-        val chapter = repo.chapterOf(reading.story, now())
+        val chapter = repo.chapterEntry(reading.story)
         _screen.value = Screen.StoryReader(reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage)
     }
 
     /** After [chapter]: its story's next open, unread chapter, or else the next story on the path that has one. */
     private fun nextStep(chapter: ChapterEntry): NextStep? {
-        val path = repo.storyPath(now())
+        val path = repo.storyPath()
         val here = path.firstOrNull { it.series.id == chapter.series.id }
         val sameStory = here?.chapters?.let { c -> c.drop(c.indexOfFirst { it.story.id == chapter.story.id } + 1) + c }
             ?.firstOrNull { it.ready && !it.read && it.story.id != chapter.story.id }
@@ -791,7 +791,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
             topic = topicForStory,
         )
-        val rest = nothingNew(repo.storyPath(at)).firstOrNull { it.story.id != story.id }?.let {
+        val rest = nothingNew(repo.storyPath()).firstOrNull { it.story.id != story.id }?.let {
             val name = if (it.series.single) it.series.title else "${it.series.title} ${it.chapter.number}"
             NextStep(it.story.id, "Next: $name · nothing new")
         }
@@ -830,7 +830,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun refreshStory() {
         val state = _screen.value as? Screen.StoryReader ?: return
         val reading = repo.readStory(state.reading.story.id) ?: return
-        val chapter = repo.chapterOf(reading.story, now())
+        val chapter = repo.chapterEntry(reading.story)
         val next = chapter?.let(::nextStep)
         _screen.update { if (it is Screen.StoryReader) it.copy(reading = reading, chapter = chapter, next = next) else it }
     }
@@ -845,7 +845,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             entryIds = entries!!.mapTo(HashSet()) { it.id }
         }
         statuses = repo.wordStatuses()
-        val state = Screen.Dictionary("", emptySet(), status, emptyList(), if (grammar) repo.grammarRows(now()) else null)
+        val state = Screen.Dictionary("", emptySet(), status, emptyList(), if (grammar) repo.grammarRows() else null)
         _screen.value = state.copy(rows = rows(state))
     }
 
@@ -884,9 +884,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** The Words tab's Grammar list in place of the words, or back to the words. */
+    /** The Dictionary tab's Grammar list in place of the words, or back to the words. */
     fun showGrammar(show: Boolean) = launchIo {
-        val rows = if (show) repo.grammarRows(now()) else null
+        val rows = if (show) repo.grammarRows() else null
         _screen.update { if (it is Screen.Dictionary) it.copy(grammar = rows) else it }
     }
 

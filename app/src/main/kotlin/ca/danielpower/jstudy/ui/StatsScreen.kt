@@ -61,7 +61,7 @@ fun StatsScreen(state: Screen.StatsPage, vm: AppViewModel) {
             }
             Text(
                 "Recall is how often you got a card right when it came back for review, not counting words " +
-                    "you were still learning. Your target is set in Settings." +
+                    "you were still learning. The schedule aims for 90%." +
                     (percent(s.recallAll)?.let { " All time: $it." } ?: ""),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

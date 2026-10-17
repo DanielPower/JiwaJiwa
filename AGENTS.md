@@ -60,7 +60,7 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | Workflow | When | What |
 | --- | --- | --- |
 | `test.yml` (Tests) | every PR, every push to main | core tests, app unit tests, dictionary tests, as separate checks |
-| `check.yml` (Check pull request) | every PR, or by hand on any branch | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
+| `check.yml` (Check pull request) | every PR, or by hand on any branch | builds the dictionary, runs the core tests with it (so `StoryPathTest` checks the stories, which it skips in Tests), and builds the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
 | `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
 
@@ -263,7 +263,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.
-- Pace (`core/Pace`, `Repository.pace`): a soft daily limit on new words
+- Pace (`Pace` in `core/Session.kt`, `Repository.pace`): a soft daily limit on new words
   started (`newPerDay`, default 20, from the rollover hour), and a
   review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this"
   and imports start nothing, so they don't count. Past either, the Read
@@ -288,7 +288,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   which marks its points seen (the `grammar_seen` value, no cards) and
   the day the topic was learned (`grammar_days`, `id:day` pairs; topics
   learned before it existed have no day). It's
-  also on the Grammar list on the Words tab, and a grammar point's note in
+  also on the Grammar list on the Dictionary tab, and a grammar point's note in
   the reader links to its topic's page; Back returns to the same page of
   the story.
 - `StoryPathTest` checks the stories against the built dictionary (skipped

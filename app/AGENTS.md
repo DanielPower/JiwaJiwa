@@ -1,6 +1,6 @@
 # app/AGENTS.md
 
-The Android app: Kotlin, Jetpack Compose, minSdk 26, target/compile SDK 35.
+The Android app: Kotlin, Jetpack Compose, minSdk 26, target/compile SDK 36.
 It can't be built in cloud agent containers (Google's Maven hosts are
 blocked there), so CI is the build check. Keep logic in `core` where you can.
 
@@ -25,12 +25,13 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 - Plain `SQLiteOpenHelper`, not Room (avoids KSP and prepackaged-DB schema
   validation). Settings live in the progress DB's `kv` table, not DataStore,
   so a backup carries them.
-- `ProgressStore.VERSION` is 8. Schema changes need an `onUpgrade` step, and
+- `ProgressStore.VERSION` is 9. Schema changes need an `onUpgrade` step, and
   backups from older versions must still restore (they're upgraded when
   reopened). A backup from a newer version is refused.
 - SharedPreferences hold only what must not go in a backup or must load
   before the DB: `display` (theme, read on
-  the first frame), `dictionary` (asset copy bookkeeping).
+  the first frame), `dictionary` (asset copy bookkeeping), `labels` (the
+  words in each UI label, see "UI text").
 - The dictionary DB (`assets/databases/dictionary.db`, about 85 MB, all of
   JMdict) is built by `tools/dictionary` and isn't committed. JLPT words
   have level 1–5 and a `study_order`; others have level 0 and no order.
@@ -73,7 +74,7 @@ and text with numbers stay plain English.
 `src/test/kotlin`, JUnit 4. Tests that need Android (SQLite, `Context`) use
 `@RunWith(RobolectricTestRunner::class)`; Robolectric is pinned to SDK 34 in
 `src/test/resources/robolectric.properties`. `ProgressStoreTest` covers the
-DB layer including the version 3 → 4 migration; add a migration test with
+DB layer including its migrations (3 → 4, 7 → 8, 8 → 9); add a migration test with
 any schema change. Run with `./gradlew :app:testDebugUnitTest` (CI only in
 cloud containers).
 

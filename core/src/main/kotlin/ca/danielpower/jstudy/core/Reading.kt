@@ -482,9 +482,9 @@ class Reader(private val lexicon: Lexicon) {
         private val CONNECTIVES = setOf("て", "で", "ば", "ながら", "つつ")
         private val CONJUNCTIONS = setOf("でも", "けど", "だけど", "だって")
         /** Nouns the tokenizer sometimes files as dependent (grammar) nouns, though they're words: 日 in 最後の日です. */
-private val TIME_NOUNS = setOf("日")
+        private val TIME_NOUNS = setOf("日")
 
-private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "おかえり", "いってきます", "いってらっしゃい")
+        private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "おかえり", "いってきます", "いってらっしゃい")
         private val CONTRACTIONS = setOf("ちゃう", "じゃう", "ちまう", "とく", "てる", "でる")
         private val E_TO_U = mapOf('え' to 'う', 'け' to 'く', 'せ' to 'す', 'て' to 'つ', 'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る', 'げ' to 'ぐ')
 

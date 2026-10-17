@@ -525,7 +525,7 @@ private fun DoneScreen(summary: Summary, onStudyMore: () -> Unit, onHome: () -> 
             )
         }
         Text(
-            "Study more brings tomorrow's reviews forward and adds the next new words.",
+            "Study more brings tomorrow's reviews forward, with any English → Japanese cards waiting.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

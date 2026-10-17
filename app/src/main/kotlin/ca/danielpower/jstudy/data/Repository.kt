@@ -210,10 +210,9 @@ data class LockInfo(
     val earlierCover: Boolean,
 )
 
-/** A grammar topic for the Words tab: whether you've met it, where it's taught, and its page. */
+/** A grammar topic for the Dictionary tab's Grammar list: whether you've met it, where it's taught, and its page. */
 data class GrammarRow(val topic: GrammarTopic, val seen: Boolean, val taughtIn: ChapterEntry?, val pageId: Long)
 
-/** A sentence of a story: its words in their paragraph, and its English if the story has translations. */
 /** The story reader's typefaces: two sans serifs and a serif, all bundled under the OFL. */
 enum class ReaderFont { SANS, SERIF, ROUNDED }
 
@@ -229,6 +228,7 @@ data class ReaderStyle(
     }
 }
 
+/** A sentence of a story: its words in their paragraph, and its English if the story has translations. */
 data class StorySentence(val words: IntRange, val translation: String?)
 
 /** Numbers for the stats screen. */
@@ -260,10 +260,7 @@ class BackupException(message: String) : Exception(message)
 class Repository(context: Context) {
     private val appContext = context.applicationContext
     val dictionary = Dictionary(context)
-    private val store = ProgressStore(context).also {
-        // Where the story server sign-in was kept, before Claude stories were removed.
-        context.deleteSharedPreferences("secrets")
-    }
+    private val store = ProgressStore(context)
 
     private val reader by lazy { Reader(dictionary) }
 
@@ -408,8 +405,7 @@ class Repository(context: Context) {
             store.saveProgress(db, answer.progress)
             val logId = store.insertLog(db, answer.log)
             val production = if (answer.unlockedProduction) {
-                // Unlocked production cards come before any new word, oldest first.
-                store.insertNewCard(db, card.wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
+                store.insertNewCard(db, card.wordId, Direction.PRODUCTION, now / 1000)
                     .takeIf { it > 0 }
             } else {
                 null
@@ -433,7 +429,7 @@ class Repository(context: Context) {
             store.updateCard(db, known.card)
             store.saveProgress(db, known.progress)
             if (known.unlockedProduction) {
-                store.insertNewCard(db, card.wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
+                store.insertNewCard(db, card.wordId, Direction.PRODUCTION, now / 1000)
             }
         }
     }
@@ -563,7 +559,7 @@ class Repository(context: Context) {
                 store.updateCard(db, known.card)
                 store.saveProgress(db, known.progress)
                 if (known.unlockedProduction) {
-                    store.insertNewCard(db, wordId, Direction.PRODUCTION, now / 1000 - PRODUCTION_FIRST)
+                    store.insertNewCard(db, wordId, Direction.PRODUCTION, now / 1000)
                 }
             }
         }
@@ -684,7 +680,7 @@ class Repository(context: Context) {
     private var pathSynced = false
 
     /** Saves the chapters and grammar pages on first use, so they can be opened like any story. */
-    private fun savedPath(now: Long): Map<String, SavedStory> {
+    private fun savedPath(): Map<String, SavedStory> {
         if (!pathSynced) {
             val stories = catalog.chapters.map { it.second.story } + catalog.grammar.map { it.page }
             store.syncPathStories(stories.map { p -> SavedStory(0, p.id, p.title, p.body, p.translations) })
@@ -701,8 +697,8 @@ class Repository(context: Context) {
     }
 
     /** Every story that comes with the app, in order, with each chapter and what you haven't learned of it. */
-    fun storyPath(now: Long): List<SeriesEntry> {
-        val saved = savedPath(now)
+    fun storyPath(): List<SeriesEntry> {
+        val saved = savedPath()
         val gap = gaps()
         val seen = seenGrammar()
         return catalog.series.map { series ->
@@ -715,18 +711,18 @@ class Repository(context: Context) {
     }
 
     /** The story a saved chapter belongs to, and the chapter. */
-    fun chapterOf(story: SavedStory, now: Long): ChapterEntry? =
-        storyPath(now).flatMap { it.chapters }.firstOrNull { it.chapter.story.id == story.pathId }
+    fun chapterEntry(story: SavedStory): ChapterEntry? =
+        storyPath().flatMap { it.chapters }.firstOrNull { it.chapter.story.id == story.pathId }
 
     /** How many words in a chapter you haven't learned yet, and its new grammar, or null off the path. */
-    fun stepToLearn(story: SavedStory, now: Long): StepToLearn? {
-        val entry = chapterOf(story, now) ?: return null
+    fun stepToLearn(story: SavedStory): StepToLearn? {
+        val entry = chapterEntry(story) ?: return null
         return StepToLearn(entry.gap.words.count { it.wordId != null }, entry.newTopic)
     }
 
     /** Why [chapterId] is locked: what it's missing, and where to pick that up. */
-    fun lockInfo(chapterId: String, now: Long): LockInfo? {
-        val path = storyPath(now)
+    fun lockInfo(chapterId: String): LockInfo? {
+        val path = storyPath()
         val chapters = path.flatMap { it.chapters }
         val entry = chapters.firstOrNull { it.chapter.story.id == chapterId } ?: return null
         val missing = entry.gap.words.mapNotNull { it.wordId }.toSet()
@@ -753,10 +749,10 @@ class Repository(context: Context) {
     }
 
     /** Every grammar topic, newest you've met first, then the ones you haven't, in the order they come. */
-    fun grammarRows(now: Long): List<GrammarRow> {
-        val saved = savedPath(now)
+    fun grammarRows(): List<GrammarRow> {
+        val saved = savedPath()
         val seen = seenGrammar()
-        val chapters = storyPath(now).flatMap { it.chapters }
+        val chapters = storyPath().flatMap { it.chapters }
         val rows = catalog.grammar.mapNotNull { topic ->
             val page = saved[topic.page.id] ?: return@mapNotNull null
             val taughtIn = chapters.filter { it.chapter.topic == topic.id }.let { c -> c.firstOrNull { it.read } ?: c.firstOrNull() }
@@ -767,7 +763,7 @@ class Repository(context: Context) {
     }
 
     /** The saved story holding [topic]'s page. */
-    fun grammarPageId(topic: GrammarTopic, now: Long): Long? = savedPath(now)[topic.page.id]?.id
+    fun grammarPageId(topic: GrammarTopic): Long? = savedPath()[topic.page.id]?.id
 
     /** Grammar points you've been taught, or said you knew. */
     fun seenGrammar(): Set<String> =
@@ -926,7 +922,7 @@ class Repository(context: Context) {
 
     // ------------------------------------------------------------ backup
 
-    /** Write a copy of all your progress, settings and stories. The story sign-in isn't included. */
+    /** Write a copy of all your progress, settings and stories. */
     fun exportBackup(out: OutputStream) {
         store.checkpoint()
         appContext.getDatabasePath(ProgressStore.NAME).inputStream().use { it.copyTo(out) }
@@ -1058,7 +1054,7 @@ class Repository(context: Context) {
             .filter { (_, day) -> day != null && day > since }
             .sortedByDescending { it.key }
             .mapNotNull { (id, day) -> dictionary.word(id)?.let { RecentItem.NewWord(it) to day!! } }
-        val rows = grammarRows(now)
+        val rows = grammarRows()
         val learned = grammarDays()
         val newGrammar = rows.mapNotNull { row ->
             learned[row.topic.id]?.takeIf { row.seen && it > since }?.let { RecentItem.NewGrammar(row.topic, row.pageId) to it }
@@ -1083,7 +1079,7 @@ class Repository(context: Context) {
 
     /** What Home suggests: see [Suggest.next]. */
     private fun nextUp(now: Long): NextUp<ChapterEntry> {
-        val path = storyPath(now)
+        val path = storyPath()
         val chapters = path.flatMap { it.chapters }
         val place = readerPlace()
         val open = chapters.filter { it.ready && !it.read }
@@ -1133,7 +1129,6 @@ class Repository(context: Context) {
             CardState.REVIEW.value,
             limits.reviewDueBefore,
         )
-        val started = store.count("SELECT COUNT(*) FROM card WHERE direction = ?", Direction.RECOGNITION.value)
         val total = dictionary.wordCount()
         // New words come from the story path, so only unlocked production cards wait here.
         val newWaiting = store.count(
@@ -1157,7 +1152,7 @@ class Repository(context: Context) {
                 "SELECT COUNT(*) FROM card WHERE direction = ? AND state != ?",
                 Direction.RECOGNITION.value,
                 CardState.NEW.value,
-            ).coerceAtMost(started),
+            ),
             wordsTotal = total,
             today = today,
             answersPerDay = store.answersPerDay(today - 370),
@@ -1165,7 +1160,6 @@ class Repository(context: Context) {
     }
 
     companion object {
-        private const val PRODUCTION_FIRST = 10_000_000_000L
         private const val FORECAST_DAYS = 30
         private const val HISTORY_DAYS = 30
 
