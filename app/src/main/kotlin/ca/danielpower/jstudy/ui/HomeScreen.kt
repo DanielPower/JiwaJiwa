@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +37,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -56,8 +59,7 @@ import ca.danielpower.jstudy.core.Streak
 import ca.danielpower.jstudy.core.WordDay
 import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.Dashboard
-import ca.danielpower.jstudy.data.GrammarRow
-import ca.danielpower.jstudy.data.Word
+import ca.danielpower.jstudy.data.RecentItem
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -68,7 +70,7 @@ import kotlin.math.pow
 /**
  * Home: what to do next, then how far you've come. The next step is one
  * card with a quieter second option under it; below it the week's streak,
- * the words graph, the words started this week and the grammar met so far.
+ * the words graph, and the words and grammar met this week.
  */
 @Composable
 fun HomeScreen(d: Dashboard, vm: AppViewModel) {
@@ -80,8 +82,7 @@ fun HomeScreen(d: Dashboard, vm: AppViewModel) {
         NextCard(d, vm)
         StreakWeek(d.activeDays, d.streak, d.today)
         WordsSection(d.words)
-        if (d.newWords.isNotEmpty()) NewWords(d.newWords, d.newWordCount, vm)
-        if (d.grammar.isNotEmpty()) GrammarSection(d.grammar, vm)
+        RecentSection(d, vm)
     }
 }
 
@@ -486,59 +487,87 @@ private fun niceCeiling(n: Int): Int {
     return ceil(step).toInt().let { if (it % 2 == 0) it else it + 1 }
 }
 
-// ------------------------------------------------------------------ new words and grammar
+// ------------------------------------------------------------------ recent
 
+/** The week's new words (gold) and grammar (indigo) together, then the count of grammar met, which opens the Grammar list. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun NewWords(words: List<Word>, total: Int, vm: AppViewModel) {
+private fun RecentSection(d: Dashboard, vm: AppViewModel) {
     val gold = MaterialTheme.colorScheme.tertiary
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionLabel(ui("New words", "新しい言葉"))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (word in words) Chip(word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(word.id) }
-            if (total > words.size) {
-                Chip("+${total - words.size}", gold, gold.copy(alpha = 0.4f)) { vm.openDictionary(StatusFilter.STUDYING) }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun GrammarSection(rows: List<GrammarRow>, vm: AppViewModel) {
+    val indigo = MaterialTheme.colorScheme.secondary
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel(ui("Grammar", "文法"), Modifier.weight(1f))
-            Text("${rows.count { it.seen }} of ${rows.size}", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            SectionLabel(ui("Recent", "最近"), Modifier.weight(1f))
+            if (d.recent.isNotEmpty()) {
+                KeySwatch(gold, ui("words", "言葉"))
+                Spacer(Modifier.width(10.dp))
+                KeySwatch(indigo, ui("grammar", "文法"))
+            }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (row in rows) {
-                if (row.seen) {
-                    Chip(row.topic.title, MaterialTheme.colorScheme.onSurface, MaterialTheme.colorScheme.outlineVariant) { vm.openGrammar(row.pageId) }
-                } else {
-                    // Not met yet: dashed, and not opened from here, as in the Grammar list.
-                    Text(
-                        row.topic.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontFamily = Gothic,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.dashedOutline(MaterialTheme.colorScheme.outlineVariant, 4.dp).padding(horizontal = 8.dp, vertical = 3.dp),
-                    )
+        if (d.recent.isEmpty()) {
+            Text(
+                "Nothing new this week. Words and grammar you meet in stories show up here.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (item in d.recent) when (item) {
+                    is RecentItem.NewWord -> Chip(item.word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
+                    is RecentItem.NewGrammar -> Chip(
+                        item.topic.title,
+                        indigo,
+                        indigo.copy(alpha = 0.45f),
+                        indigo.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow),
+                    ) { vm.openGrammar(item.pageId) }
+                }
+                if (d.moreWords > 0) {
+                    Chip("+${d.moreWords}", gold, gold.copy(alpha = 0.4f)) { vm.openDictionary(StatusFilter.STUDYING) }
                 }
             }
         }
+        if (d.grammarTotal > 0) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Grammar met",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "${d.grammarMet} of ${d.grammarTotal} grammar ›",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = indigo,
+                    modifier = Modifier.clickable { vm.openDictionary(grammar = true) }.padding(vertical = 4.dp),
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun Chip(text: String, color: Color, border: Color, onClick: () -> Unit) {
+private fun KeySwatch(color: Color, label: String) {
+    Box(Modifier.size(8.dp).background(color, RoundedCornerShape(2.dp)))
+    Spacer(Modifier.width(4.dp))
+    Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun Chip(
+    text: String,
+    color: Color,
+    border: Color,
+    background: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    onClick: () -> Unit,
+) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
         fontFamily = Gothic,
         color = color,
         modifier = Modifier
-            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+            .background(background, WashiShape)
             .border(1.dp, border, WashiShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 3.dp),

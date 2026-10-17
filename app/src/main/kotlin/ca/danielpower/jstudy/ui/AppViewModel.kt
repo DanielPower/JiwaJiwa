@@ -701,7 +701,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val state = _screen.value as? Screen.StoryReader ?: return@launchIo
         val then = state.then ?: return@launchIo
         repo.topicOfPage(state.reading.story)?.let { topic ->
-            repo.markGrammarSeen(topic.points)
+            repo.learnGrammar(topic, now())
             topicForStory = topic
         }
         showStory(then.storyId)
@@ -837,14 +837,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------ dictionary
 
-    fun openDictionary(status: StatusFilter = StatusFilter.ALL) = launchIo {
+    /** The Dictionary tab, filtered to [status], or with its Grammar list showing when [grammar]. */
+    fun openDictionary(status: StatusFilter = StatusFilter.ALL, grammar: Boolean = false) = launchIo {
         trail.clear()
         if (entries == null) {
             entries = repo.dictionary.entries()
             entryIds = entries!!.mapTo(HashSet()) { it.id }
         }
         statuses = repo.wordStatuses()
-        val state = Screen.Dictionary("", emptySet(), status, emptyList())
+        val state = Screen.Dictionary("", emptySet(), status, emptyList(), if (grammar) repo.grammarRows(now()) else null)
         _screen.value = state.copy(rows = rows(state))
     }
 

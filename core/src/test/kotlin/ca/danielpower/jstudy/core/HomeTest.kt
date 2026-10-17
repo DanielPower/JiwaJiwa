@@ -103,6 +103,23 @@ class HomeTest {
         assertEquals(listOf(WordDay(10, 1, 1, 0), WordDay(11, 1, 1, 0)), days)
     }
 
+    // ------------------------------------------------------------ recent
+
+    @Test
+    fun `recent items run newest first, a day's grammar before its words`() {
+        val words = listOf("店長" to 12L, "面接" to 12L, "明日" to 10L)
+        val grammar = listOf("～たい" to 11L, "～て" to 12L)
+        assertEquals(listOf("～て", "店長", "面接", "～たい", "明日") to 0, Recent.pick(words, grammar, shown = 8))
+    }
+
+    @Test
+    fun `grammar is never left out, and words fill the rest`() {
+        val words = listOf("a" to 5L, "b" to 4L, "c" to 3L)
+        val grammar = listOf("x" to 1L, "y" to 2L)
+        assertEquals(listOf("a", "y", "x") to 2, Recent.pick(words, grammar, shown = 3))
+        assertEquals(listOf("y", "x") to 3, Recent.pick(words, grammar, shown = 1))
+    }
+
     // ------------------------------------------------------------ streak
 
     @Test

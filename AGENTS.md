@@ -160,8 +160,9 @@ Other features (all shipped):
   finished; arrows go back a week at a time), the words graph (seen, known
   and mastered as nested bands, 30 days or all, replayed from the review
   log by `WordHistory`; words marked known or imported count from the
-  start), the words started this week ("New words", in the seen colour),
-  and the grammar topics met. A chapter left part way reopens on its page
+  start), then "Recent": the week's new words (gold) and grammar topics
+  (indigo) in one row, newest first, every topic kept (`Recent.pick`), with
+  a "N of M grammar" link to the Grammar list. A chapter left part way reopens on its page
   (the `reader_place` value), unless the reader style has changed since.
 - Renshuu import: takes the higher of the two masteries per word, skips
   suspended words, never stores the Renshuu key. Renshuu's `edict_ent` is
@@ -280,7 +281,9 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   at most one per chapter; the same topic can be listed on several
   chapters, and whichever you reach first teaches it. Each topic has a full
   page: opened before the chapter, it ends with a button into the chapter,
-  which marks its points seen (the `grammar_seen` value, no cards). It's
+  which marks its points seen (the `grammar_seen` value, no cards) and
+  the day the topic was learned (`grammar_days`, `id:day` pairs; topics
+  learned before it existed have no day). It's
   also on the Grammar list on the Words tab, and a grammar point's note in
   the reader links to its topic's page; Back returns to the same page of
   the story.

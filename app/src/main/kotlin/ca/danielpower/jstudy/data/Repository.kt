@@ -35,6 +35,7 @@ import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.Candidate
 import ca.danielpower.jstudy.core.NextUp
 import ca.danielpower.jstudy.core.Pace
+import ca.danielpower.jstudy.core.Recent
 import ca.danielpower.jstudy.core.Streak
 import ca.danielpower.jstudy.core.Suggest
 import ca.danielpower.jstudy.core.WordDay
@@ -77,11 +78,19 @@ data class Dashboard(
     val streak: Int,
     /** Words seen, known and mastered at the end of each day, up to today. */
     val words: List<WordDay>,
-    /** Words started in the last week, newest first, and how many there are in all. */
-    val newWords: List<Word>,
-    val newWordCount: Int,
-    val grammar: List<GrammarRow>,
+    /** Words started and grammar learned in the last week, newest first ([Recent.pick]). */
+    val recent: List<RecentItem>,
+    /** Recent words left out of [recent]. */
+    val moreWords: Int,
+    val grammarMet: Int,
+    val grammarTotal: Int,
 )
+
+/** A word or grammar topic on Home's Recent row. */
+sealed interface RecentItem {
+    data class NewWord(val word: Word) : RecentItem
+    data class NewGrammar(val topic: GrammarTopic, val pageId: Long) : RecentItem
+}
 
 /** Where you left a chapter: its page, in the reader style the pages were laid out with. */
 data class ReaderPlace(val storyId: Long, val page: Int, val style: String)
@@ -764,9 +773,27 @@ class Repository(context: Context) {
     fun seenGrammar(): Set<String> =
         store.getValue("grammar_seen")?.split(',')?.filter { it.isNotEmpty() }?.toSet().orEmpty()
 
-    fun markGrammarSeen(ids: Collection<String>) {
-        store.setValues(mapOf("grammar_seen" to (seenGrammar() + ids).sorted().joinToString(",")))
+    /** Marks [topic]'s points seen, and the study day it was learned, unless it already has one. */
+    fun learnGrammar(topic: GrammarTopic, now: Long) {
+        val days = grammarDays().toMutableMap()
+        days.putIfAbsent(topic.id, clock().dayOf(now))
+        store.setValues(
+            mapOf(
+                "grammar_seen" to (seenGrammar() + topic.points).sorted().joinToString(","),
+                "grammar_days" to days.entries.sortedBy { it.key }.joinToString(",") { "${it.key}:${it.value}" },
+            ),
+        )
     }
+
+    /**
+     * The study day each grammar topic was learned, by topic id. Topics
+     * learned before the app kept these have none.
+     */
+    private fun grammarDays(): Map<String, Long> =
+        store.getValue("grammar_days")?.split(',').orEmpty().mapNotNull { entry ->
+            val (id, day) = entry.split(':').takeIf { it.size == 2 } ?: return@mapNotNull null
+            day.toLongOrNull()?.let { id to it }
+        }.toMap()
 
     /**
      * Finishing a path story: each word due for review that you read without
@@ -1026,8 +1053,17 @@ class Repository(context: Context) {
         val firsts = listOfNotNull(firstDays.values.filterNotNull().minOrNull(), active.minOrNull())
         val from = minOf(firsts.minOrNull() ?: today, today - MIN_GRAPH_DAYS + 1)
         val words = WordHistory.days(firstDays, started.associate { it.wordId to it.mastery }, store.masteryChanges(), from, today)
-        val recent = firstDays.filterValues { it != null && it > today - NEW_WORD_DAYS }.entries
-            .sortedWith(compareByDescending<Map.Entry<Long, Long?>> { it.value }.thenByDescending { it.key })
+        val since = today - RECENT_DAYS
+        val newWords = firstDays.entries
+            .filter { (_, day) -> day != null && day > since }
+            .sortedByDescending { it.key }
+            .mapNotNull { (id, day) -> dictionary.word(id)?.let { RecentItem.NewWord(it) to day!! } }
+        val rows = grammarRows(now)
+        val learned = grammarDays()
+        val newGrammar = rows.mapNotNull { row ->
+            learned[row.topic.id]?.takeIf { row.seen && it > since }?.let { RecentItem.NewGrammar(row.topic, row.pageId) to it }
+        }
+        val (recent, moreWords) = Recent.pick<RecentItem>(newWords, newGrammar, RECENT_SHOWN)
         return Dashboard(
             today = today,
             next = nextUp(now),
@@ -1035,9 +1071,10 @@ class Repository(context: Context) {
             activeDays = active,
             streak = Streak.current(active, today),
             words = words,
-            newWords = recent.take(NEW_WORDS_SHOWN).mapNotNull { dictionary.word(it.key) },
-            newWordCount = recent.size,
-            grammar = grammarRows(now),
+            recent = recent,
+            moreWords = moreWords,
+            grammarMet = rows.count { it.seen },
+            grammarTotal = rows.size,
         )
     }
 
@@ -1136,8 +1173,8 @@ class Repository(context: Context) {
         private const val MIN_GRAPH_DAYS = 7
 
         /** Words started within this many days are new on Home. */
-        private const val NEW_WORD_DAYS = 7
-        private const val NEW_WORDS_SHOWN = 6
+        private const val RECENT_DAYS = 7
+        private const val RECENT_SHOWN = 8
 
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12
