@@ -111,8 +111,8 @@ internal object Grammar {
     }
 
     /** Another pattern for the point [id], with its own [before]. */
-    private fun variant(id: String, steps: List<Step>, before: ((Morpheme) -> Boolean)?) {
-        rules += Rule(rules.first { it.point.id == id }.point, steps, before)
+    private fun variant(id: String, steps: List<Step>, before: ((Morpheme) -> Boolean)?, after: ((Morpheme?) -> Boolean)? = null) {
+        rules += Rule(rules.first { it.point.id == id }.point, steps, before, after)
     }
 
     init {
@@ -294,6 +294,11 @@ internal object Grammar {
             "A casual と言う or とは. It quotes what someone said (行くって, he says he's going), or brings up something to ask or talk about (ユキって誰？, who's Yuki?).",
             "ユキって誰？", "Who's Yuki?",
             listOf(particle("って")),
+        )
+        // だって ending a sentence after a noun is だ + って, "they say it's": 好きだって.
+        variant(
+            "tte", listOf(particle("だって")), before = { it.pos == "名詞" },
+            after = { it == null || it.pos == "記号" || it.pos2 == "終助詞" },
         )
         point(
             "jan", "～じゃん", 3, "…, right?, see?",
@@ -890,6 +895,8 @@ internal object Grammar {
             "食べた後で散歩します。", "I'll take a walk after eating.",
             listOf(past, base("後", "あと"), particle("で", "に").optional()),
         )
+        // After a noun: 仕事の後で.
+        variant("ato-de", listOf(base("後", "あと"), particle("で", "に").optional()), before = { it.pos == "助詞" && it.base == "の" })
         point(
             "uchi-ni", "～うちに", 3, "while (still)",
             "Do it while a state lasts, before it changes: 若いうちに, while you're young.",

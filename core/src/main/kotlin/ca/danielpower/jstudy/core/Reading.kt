@@ -647,7 +647,9 @@ internal class Morpheme(token: Token) {
     // 行っ(た) is 行く, "went", far more often than 行う, "carried out", which the tokenizer sometimes picks.
     private val went = token.baseForm == "行う" && surface == "行っ"
     val base: String = if (unknown) surface else if (went) "行く" else token.baseForm
-    private val reading: String? = if (went) "いっ" else token.reading.takeIf { it != "*" }?.let(Kana::toHiragana)
+    // 後 after の (仕事の後で) is あと; the tokenizer says のち.
+    private val after = surface == "後" && pos2 == "非自立"
+    private val reading: String? = if (went) "いっ" else if (after) "あと" else token.reading.takeIf { it != "*" }?.let(Kana::toHiragana)
 
     /** The reading in hiragana, or the surface if the tokenizer has none. */
     val readingOrSurface: String get() = reading ?: Kana.toHiragana(surface)

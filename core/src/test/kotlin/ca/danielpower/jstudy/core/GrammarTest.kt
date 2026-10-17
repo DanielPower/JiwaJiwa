@@ -110,6 +110,13 @@ class GrammarTest {
     }
 
     @Test
+    fun `after a noun, 後で is ato-de and だって is tte`() {
+        assertEquals(listOf("no", "ato-de", "wo", "ta"), points("仕事の後で、ラーメンを食べた。"))
+        assertEquals(listOf("ga", "tte"), points("ユキが好きだって。"))
+        assertEquals(listOf("あと"), reader.words("仕事の後で").filter { it.surface == "後" }.map { it.reading })
+    }
+
+    @Test
     fun `a conditional after another point keeps its own point`() {
         assertEquals(listOf("potential", "tara"), points("出られたら、うれしい。"))
         assertEquals(listOf("potential", "nakereba"), points("出られなきゃ。"))
