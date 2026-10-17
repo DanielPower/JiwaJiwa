@@ -19,7 +19,7 @@ Everyone met by the end, in the chapter that introduces them.
 - **母** (`share-house/a-call-from-home`): Alex's mom, back in Canada
 - **ソラ** (`new-housemate/the-new-guy`): takes Alex's old room; 19, from Hokkaido, starting university
 - **ダイチ** (`the-band/the-drummer`): drummer Yuki meets at the live house; loud and cheerful
-- **リナ** (`the-band/the-guitarist`): guitarist; cool, says little, kinder than she looks
+- **リン** (`the-band/the-guitarist`): guitarist; cool, says little, kinder than she looks
 - **田中** (`kentas-first-job/tanaka-san`): Kenta's senior at the game company; strict, fair, always polite
 - **佐藤** (`mihos-manga/waiting`): editor at the manga magazine; Miho met her at the publisher
 
@@ -64,14 +64,14 @@ Kenta is too shy to hand out flyers at work until Tanaka-san asks about them; sh
 
 ### 6. The words (`yukis-song/the-words`)
 
-Yuki plays the start of Alex's song for Rina, who asks who it's for and tells her to write down her happiest days; Daichi hears about Tanaka-san's drums, and Yuki walks home with new lines.
+Yuki plays the start of Alex's song for Rin, who asks who it's for and tells her to write down her happiest days; Daichi hears about Tanaka-san's drums, and Yuki walks home with new lines.
 
 - 149 words; 4 new of 4 allowed.
 - New: 二人 (ふたり, N5), 遅れる (おくれる, N4), 歩く (あるく, N5), 届く (とどく, N3).
 
 ### 7. Not enough (`yukis-song/not-enough`)
 
-Winter comes and the live house says hardly any tickets have sold, even after all the flyers; Daichi goes quiet, Rina reminds him of the night in the park, and Yuki still has no last line.
+Winter comes and the live house says hardly any tickets have sold, even after all the flyers; Daichi goes quiet, Rin reminds him of the night in the park, and Yuki still has no last line.
 
 - 162 words; 4 new of 4 allowed.
 - Teaches ～のに (`noni`).
@@ -93,7 +93,7 @@ Alex messages Sora alone: the box marked 'ticket' is full and he's bought a plan
 
 ### 10. Too much (`yukis-song/too-much`)
 
-Yuki wakes with a fever and almost no voice: everyone says she's practised too much, Kenta takes her to the doctor, who says no singing for three days, and Rina tells her not to say sorry.
+Yuki wakes with a fever and almost no voice: everyone says she's practised too much, Kenta takes her to the doctor, who says no singing for three days, and Rin tells her not to say sorry.
 
 - 173 words; 5 new of 5 allowed.
 - Teaches ～ほうがいい / ～すぎる (`hou-ga-ii`).
@@ -101,21 +101,21 @@ Yuki wakes with a fever and almost no voice: everyone says she's practised too m
 
 ### 11. Three days (`yukis-song/three-days`)
 
-Three days without singing: Miho brings manga and ice cream, Rina and Daichi report that Tanaka-san gave Daichi a drum lesson, Alex keeps his secret, and with the first snow Yuki finds the last words.
+Three days without singing: Miho brings manga and ice cream, Rin and Daichi report that Tanaka-san gave Daichi a drum lesson, Alex keeps his secret, and with the first snow Yuki finds the last words.
 
 - 170 words; 3 new of 5 allowed.
 - New: 体 (からだ, N5), 治る (なおる, N4), 出す (だす, N5).
 
 ### 12. Back at the studio (`yukis-song/back-at-the-studio`)
 
-Back at the studio, Yuki sings the finished song softly for the band; Daichi cries, Rina names it a good name, and they set the order, with 'Next Year' last. At home, Sora is acting strange on the phone.
+Back at the studio, Yuki sings the finished song softly for the band; Daichi cries, Rin names it a good name, and they set the order, with 'Next Year' last. At home, Sora is acting strange on the phone.
 
 - 183 words; 2 new of 5 allowed.
 - New: 順番 (じゅんばん, N3), よく (N5).
 
 ### 13. Shimokitazawa (`yukis-song/shimokitazawa`)
 
-The day of the show: Sora rushes off early, the band sound-checks at the little live house, Rina remembers seeing her favourite band there as a kid, and by evening Sora, Kenta and Tanaka-san still haven't come.
+The day of the show: Sora rushes off early, the band sound-checks at the little live house, Rin remembers seeing her favourite band there as a kid, and by evening Sora, Kenta and Tanaka-san still haven't come.
 
 - 196 words; 1 new of 5 allowed.
 - Teaches ～たことがある (`ta-koto`).

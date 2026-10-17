@@ -19,7 +19,7 @@ Everyone met by the end, in the chapter that introduces them.
 - **母** (`share-house/a-call-from-home`): Alex's mom, back in Canada
 - **ソラ** (`new-housemate/the-new-guy`): takes Alex's old room; 19, from Hokkaido, starting university
 - **ダイチ** (`the-band/the-drummer`): drummer Yuki meets at the live house; loud and cheerful
-- **リナ** (`the-band/the-guitarist`): guitarist; cool, says little, kinder than she looks
+- **リン** (`the-band/the-guitarist`): guitarist; cool, says little, kinder than she looks
 - **佐藤** (`mihos-manga/waiting`): editor at the manga magazine; Miho met her at the publisher
 
 ## Chapters
@@ -63,7 +63,7 @@ Between shifts at the shop Miho has only a few pages done; Kenta, who knows dead
 
 ### 6. Drawing the band (`mihos-manga/drawing-the-band`)
 
-Miho goes to the studio to draw the band as they play; Rina says the heroine's face is wrong, because on stage Yuki always smiles, and Daichi wants to look cooler.
+Miho goes to the studio to draw the band as they play; Rin says the heroine's face is wrong, because on stage Yuki always smiles, and Daichi wants to look cooler.
 
 - 117 words; 3 new of 3 allowed.
 - New: 前 (まえ, N5), 顔 (かお, not JLPT), もっと (N5).
@@ -85,7 +85,7 @@ On her day off Miho goes home to her mom's to look at her childhood notebooks, a
 
 ### 9. The ending (`mihos-manga/the-ending`)
 
-Miho can't get her manga's last page right and asks the band; Daichi wants the heroine to win, Rina says she doesn't have to, and Yuki remembers her first time on stage.
+Miho can't get her manga's last page right and asks the band; Daichi wants the heroine to win, Rin says she doesn't have to, and Yuki remembers her first time on stage.
 
 - 140 words; 3 new of 4 allowed.
 - New: そして (N5), 大事 (だいじ, N4), 心配 (しんぱい, N4).

@@ -48,6 +48,15 @@ class ReadingTest {
     }
 
     @Test
+    fun aCastNameIsANameNotAWord() {
+        val reader = Reader { text, _ -> if (text == "リン") LexiconMatch(60, "りん") else null }
+        assertEquals(WordKind.WORD, reader.words("リンが来た。").first { it.surface == "リン" }.kind)
+        val rin = reader.words("リンが来た。", names = setOf("リン")).first { it.surface == "リン" }
+        assertEquals(WordKind.NAME, rin.kind)
+        assertEquals(null, rin.wordId)
+    }
+
+    @Test
     fun wentIsGoNotCarryOut() {
         val reader = Reader { _, _ -> null }
         val w = reader.words("電車で行った。").first { it.surface == "行った" }

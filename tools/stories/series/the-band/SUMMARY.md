@@ -19,7 +19,7 @@ Everyone met by the end, in the chapter that introduces them.
 - **母** (`share-house/a-call-from-home`): Alex's mom, back in Canada
 - **ソラ** (`new-housemate/the-new-guy`): takes Alex's old room; 19, from Hokkaido, starting university
 - **ダイチ** (`the-band/the-drummer`): drummer Yuki meets at the live house; loud and cheerful
-- **リナ** (`the-band/the-guitarist`): guitarist; cool, says little, kinder than she looks
+- **リン** (`the-band/the-guitarist`): guitarist; cool, says little, kinder than she looks
 
 ## Chapters
 
@@ -33,7 +33,7 @@ Early summer: after playing bass in a friend's band, Yuki meets Daichi, a loud d
 
 ### 2. The guitarist (`the-band/the-guitarist`)
 
-Daichi takes Yuki to the park at night to meet Rina, a guitarist who says almost nothing, and the three of them play together.
+Daichi takes Yuki to the park at night to meet Rin, a guitarist who says almost nothing, and the three of them play together.
 
 - 94 words; 3 new of 3 allowed.
 - New: 日 (ひ, N4), 三 (さん, N5), 人 (にん, not JLPT).
@@ -55,7 +55,7 @@ Over ramen after practice, Daichi explains the festival picks a winning band, an
 
 ### 5. The name (`the-band/the-name`)
 
-The festival wants a band name: Daichi's ideas are all wrong, and quiet Rina comes up with 'Summer Snow'.
+The festival wants a band name: Daichi's ideas are all wrong, and quiet Rin comes up with 'Summer Snow'.
 
 - 101 words; 3 new of 3 allowed.
 - New: 違う (ちがう, N5), 決める (きめる, N4), 有名 (ゆうめい, N5).
@@ -84,7 +84,7 @@ All night in the hot studio, take after take, until a 'Snow' that's finally righ
 
 ### 9. We're in (`the-band/were-in`)
 
-Three days of waiting, then Daichi calls shouting that they're in; Rina calls too, to say just one word.
+Three days of waiting, then Daichi calls shouting that they're in; Rin calls too, to say just one word.
 
 - 98 words; 3 new of 3 allowed.
 - New: 三日 (みっか, N5), あの (N5), うれしい (N4).
@@ -111,9 +111,9 @@ Miho comes to watch practice, sketches the band as they play, and decides she wa
 - 94 words; 3 new of 3 allowed.
 - New: 絵 (え, N5), 描く (えがく, N3), かっこいい (not JLPT).
 
-### 13. Rina's song (`the-band/rinas-song`)
+### 13. Rin's song (`the-band/rins-song`)
 
-On a rainy day Rina looks angry and won't talk, until she plays the band a new song she's written; it has no words yet, and she wants Yuki's.
+On a rainy day Rin looks angry and won't talk, until she plays the band a new song she's written; it has no words yet, and she wants Yuki's.
 
 - 111 words; 3 new of 3 allowed.
 - Teaches ～みたい / ～そう (`mitai`).
@@ -121,21 +121,21 @@ On a rainy day Rina looks angry and won't talk, until she plays the band a new s
 
 ### 14. No words (`the-band/no-words`)
 
-Yuki tries all night to write words for Rina's tune and nothing comes, until Sora asks how she wrote 'Snow', and a walk in the park helps.
+Yuki tries all night to write words for Rin's tune and nothing comes, until Sora asks how she wrote 'Snow', and a walk in the park helps.
 
 - 95 words; 2 new of 3 allowed.
 - New: 難しい (むずかしい, N5), 会う (あう, N5).
 
 ### 15. The heat (`the-band/the-heat`)
 
-The studio's air conditioner is out on the hottest day yet; Rina turns up with ice cream for everyone, and Yuki sings the first few lines of her words.
+The studio's air conditioner is out on the hottest day yet; Rin turns up with ice cream for everyone, and Yuki sings the first few lines of her words.
 
 - 101 words; 3 new of 3 allowed.
 - New: エアコン (not JLPT), 死ぬ (しぬ, N5), アイス (not JLPT).
 
 ### 16. The string (`the-band/the-string`)
 
-A week before the festival, a string on Rina's guitar snaps; while Daichi runs out for a new one, Rina admits stages scare her too.
+A week before the festival, a string on Rin's guitar snaps; while Daichi runs out for a new one, Rin admits stages scare her too.
 
 - 100 words; 3 new of 3 allowed.
 - Teaches ～ちゃう / ～てしまう (`te-shimau`).
@@ -157,7 +157,7 @@ Over late-night ramen, loud Daichi tells Yuki quietly about the band he lost las
 
 ### 19. Try it (`the-band/try-it`)
 
-Yuki brings her finished words to the studio; Rina has her sing them, Daichi tries his drums on it, and the summer song gets a name.
+Yuki brings her finished words to the studio; Rin has her sing them, Daichi tries his drums on it, and the summer song gets a name.
 
 - 107 words; 3 new of 3 allowed.
 - Teaches ～てみる (`te-miru`).
@@ -165,21 +165,21 @@ Yuki brings her finished words to the studio; Rina has her sing them, Daichi tri
 
 ### 20. In the park (`the-band/in-the-park`)
 
-Three days before the festival, the band tries playing in the park at night for whoever's there; Rina's nerves ease, a child asks for more, and Sora sends Alex the video anyway.
+Three days before the festival, the band tries playing in the park at night for whoever's there; Rin's nerves ease, a child asks for more, and Sora sends Alex the video anyway.
 
 - 115 words; 2 new of 3 allowed.
 - New: 子供 (こども, N5), 拍手する (はくしゅ, N3).
 
 ### 21. The night before (`the-band/the-night-before`)
 
-The night before the festival, Yuki can't sleep: Sora brings ice cream, Kenta swears he's coming, Alex calls about the park video, and Rina can't sleep either.
+The night before the festival, Yuki can't sleep: Sora brings ice cream, Kenta swears he's coming, Alex calls about the park video, and Rin can't sleep either.
 
 - 117 words; 1 new of 3 allowed.
 - New: おやすみ (N2).
 
 ### 22. Only three songs (`the-band/only-three-songs`)
 
-Festival day: the other bands have long set lists and Summer Snow has only three songs, but Rina says three is enough.
+Festival day: the other bands have long set lists and Summer Snow has only three songs, but Rin says three is enough.
 
 - 132 words; 3 new of 3 allowed.
 - Teaches だけ / しか (`dake`).

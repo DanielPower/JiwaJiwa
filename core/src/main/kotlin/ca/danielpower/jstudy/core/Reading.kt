@@ -168,8 +168,8 @@ class Reader(private val lexicon: Lexicon) {
      * Paragraphs of words. Blank lines and single line breaks both start a new paragraph.
      * [readings] pins a word the reader gets wrong to the right one; see [words].
      */
-    fun read(text: String, readings: Map<String, String> = emptyMap()): List<List<ReadingWord>> =
-        paragraphs(text).map { words(Speech.of(it).text, readings) }
+    fun read(text: String, readings: Map<String, String> = emptyMap(), names: Set<String> = emptySet()): List<List<ReadingWord>> =
+        paragraphs(text).map { words(Speech.of(it).text, readings, names) }
 
     /**
      * [readings] maps a word, written as the text writes it, to its reading,
@@ -177,8 +177,9 @@ class Reader(private val lexicon: Lexicon) {
      * ほう of ～のほうが. A pinned word is looked up by that reading, and
      * left as it was if the dictionary doesn't have it. A pinned dictionary
      * form pins its conjugations too: 描く read かく makes 描いた かいた.
+     * [names] are always names, never words: リン the guitarist, not 燐.
      */
-    fun words(paragraph: String, readings: Map<String, String> = emptyMap()): List<ReadingWord> {
+    fun words(paragraph: String, readings: Map<String, String> = emptyMap(), names: Set<String> = emptySet()): List<ReadingWord> {
         val tokens = tokenizer.tokenize(paragraph).map(::Morpheme)
         val out = ArrayList<ReadingWord>()
         // The tokens each word was made from, for placing grammar points.
@@ -233,7 +234,10 @@ class Reader(private val lexicon: Lexicon) {
             }
             spans += from until i
         }
-        return withGrammar(if (readings.isEmpty()) out else out.map { pinned(it, readings) }, spans, tokens)
+        val read = out.map { w ->
+            if (w.surface in names) w.copy(kind = WordKind.NAME, wordId = null) else if (readings.isEmpty()) w else pinned(w, readings)
+        }
+        return withGrammar(read, spans, tokens)
     }
 
     /** [word] as [readings] reads it, if it pins it and the dictionary has it with that reading. */

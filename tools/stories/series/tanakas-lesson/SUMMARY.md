@@ -20,7 +20,7 @@ Everyone met by the end, in the chapter that introduces them.
 - **母** (`share-house/a-call-from-home`): Alex's mom, back in Canada
 - **ソラ** (`new-housemate/the-new-guy`): takes Alex's old room; 19, from Hokkaido, starting university
 - **ダイチ** (`the-band/the-drummer`): drummer Yuki meets at the live house; loud and cheerful
-- **リナ** (`the-band/the-guitarist`): guitarist; cool, says little, kinder than she looks
+- **リン** (`the-band/the-guitarist`): guitarist; cool, says little, kinder than she looks
 - **田中** (`kentas-first-job/tanaka-san`): Kenta's senior at the game company; strict, fair, always polite
 - **佐藤** (`mihos-manga/waiting`): editor at the manga magazine; Miho met her at the publisher
 

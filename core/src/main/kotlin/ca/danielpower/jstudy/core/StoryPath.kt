@@ -43,6 +43,8 @@ data class PathStory(
     val lesson: Boolean = false,
     /** Words the reader gets wrong in it, as written, with their reading ([Reader.words]). */
     val readings: Map<String, String> = emptyMap(),
+    /** Cast names written in katakana, read as names even where the dictionary has a word spelled the same (リン, not 燐). */
+    val names: Set<String> = emptySet(),
 )
 
 /** Someone in a story, as the chapter that introduces them describes them. */
@@ -159,6 +161,9 @@ object StoryPath {
             val note = n.jsonObject
             LessonNote(note.getValue("before").jsonPrimitive.int, note.text("text"))
         }
+        val names = root.getValue("series").jsonArray.flatMap { e ->
+            e.jsonObject.getValue("chapters").jsonArray.flatMap { c -> c.jsonObject["meets"]?.jsonArray.orEmpty() }
+        }.map { it.jsonObject.text("name") }.filter { Kana.isKana(it) }.toSet()
         val grammar = root["grammar"]?.jsonArray.orEmpty().map { e ->
             val o = e.jsonObject
             val id = o.text("id")
@@ -175,6 +180,7 @@ object StoryPath {
                     translations = o.texts("translations"),
                     notes = o.notes(),
                     lesson = true,
+                    names = names,
                 ),
             )
         }
@@ -199,6 +205,7 @@ object StoryPath {
                             teaches = topic?.let { topics[it]?.points }.orEmpty(),
                             notes = ch.notes(),
                             readings = ch["readings"]?.jsonObject.orEmpty().mapValues { it.value.jsonPrimitive.content },
+                            names = names,
                         ),
                         number = i + 1,
                         topic = topic,
@@ -250,11 +257,11 @@ object StoryPath {
     }
 
     /** The words a story's body counts, each once, in the order they first appear. */
-    fun words(reader: Reader, body: String, readings: Map<String, String> = emptyMap()): List<ReadingWord> =
-        reader.read(body, readings).flatten().filter { it.kind == WordKind.WORD }.distinctBy { it.key }
+    fun words(reader: Reader, body: String, readings: Map<String, String> = emptyMap(), names: Set<String> = emptySet()): List<ReadingWord> =
+        reader.read(body, readings, names).flatten().filter { it.kind == WordKind.WORD }.distinctBy { it.key }
 
     fun needs(reader: Reader, story: PathStory): StepNeeds {
-        val all = reader.read(story.body, story.readings).flatten()
+        val all = reader.read(story.body, story.readings, story.names).flatten()
         val counted = all.filter { it.kind == WordKind.WORD }
         return StepNeeds(
             words = counted.distinctBy { it.key }.map { StepWord(it.wordId, it.lemma) },

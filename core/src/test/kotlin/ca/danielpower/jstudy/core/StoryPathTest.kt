@@ -108,7 +108,7 @@ class StoryPathTest {
             // Grammar the reader can't explain would go untaught and unchecked: a particle or ending
             // with no grammar point, or a form of a word that no point covers and the dictionary
             // doesn't have whole (いらっしゃいませ is a word; いいじゃん needs じゃん).
-            fun unexplained(story: PathStory): String? = reader.read(story.body, story.readings).flatten()
+            fun unexplained(story: PathStory): String? = reader.read(story.body, story.readings, story.names).flatten()
                 .filter { it.grammar.isEmpty() && (it.kind == WordKind.GRAMMAR || it.conjugated) }
                 .takeIf { it.isNotEmpty() }
                 ?.let { w -> "no grammar point explains " + w.joinToString { it.surface } + " (add one to Grammar.kt)" }
@@ -121,7 +121,7 @@ class StoryPathTest {
                 // A pinned reading must be needed, and must take: the reader agrees once it's pinned.
                 for ((text, reading) in s.readings) {
                     // A dictionary form pins its conjugations too (描く pins 描いた).
-                    fun read(pins: Map<String, String>) = reader.read(s.body, pins).flatten().filter { it.surface == text || (it.kind == WordKind.WORD && it.lemma == text) }
+                    fun read(pins: Map<String, String>) = reader.read(s.body, pins, s.names).flatten().filter { it.surface == text || (it.kind == WordKind.WORD && it.lemma == text) }
                     val pinned = read(s.readings)
                     if (pinned.isEmpty()) problems += "${s.id}: readings: no word written $text"
                     else if (pinned.any { (it.surface == text && it.reading != reading) || it.wordId == null }) problems += "${s.id}: readings: the dictionary has no $text read $reading"

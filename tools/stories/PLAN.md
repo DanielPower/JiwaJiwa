@@ -71,7 +71,7 @@ New, each speaking only from the chapter whose `meets` introduces them:
 
 - **ソラ** (Sora): takes Alex's old room; 19, from Hokkaido, starting university. Polite and nervous at first (あのー, えーと, です), slowly casual, so the learner hears the switch.
 - **ダイチ** (Daichi): drummer Yuki meets at the live house. Loud and cheerful.
-- **リナ** (Rina): guitarist. Cool, says little, kinder than she looks. (Not リン, which the reader reads as 燐.)
+- **リン** (Rin): guitarist. Cool, says little, kinder than she looks. Katakana cast names are always read as names, so リン isn't 燐.
 - **田中さん** (Tanaka): Kenta's senior at the game company. Strict, fair, always polite.
 
 ### New Housemate (spring)
@@ -84,7 +84,7 @@ Kenta's first weeks at the game company, with polite speech at work beside his u
 
 ### The Band (summer)
 
-Yuki forms a band with Daichi and Rina. Practice in a rented studio, whether they can play the summer festival (出られる？), what happens if they win (勝ったら), the heat, a broken string, Yuki trying to write lyrics, and only three songs to their name (三曲しかない). Ends on the festival stage in the same park as The Share House's festival.
+Yuki forms a band with Daichi and Rin. Practice in a rented studio, whether they can play the summer festival (出られる？), what happens if they win (勝ったら), the heat, a broken string, Yuki trying to write lyrics, and only three songs to their name (三曲しかない). Ends on the festival stage in the same park as The Share House's festival.
 
 ### Miho's Manga
 

@@ -1,6 +1,6 @@
 {
   "title": "We're in",
-  "plot": "Three days of waiting, then Daichi calls shouting that they're in; Rina calls too, to say just one word.",
+  "plot": "Three days of waiting, then Daichi calls shouting that they're in; Rin calls too, to say just one word.",
   "paragraphs": [
     [["動画を送って、三日。", "Three days since we sent the video."], ["まだ、何も来ない。", "Nothing yet."]],
     [["私は、毎日、電話を見ている。", "I keep checking my phone every day."]],
@@ -13,21 +13,21 @@
     [["ダイチの声が、本当に大きい。", "Daichi's voice is seriously loud."], ["ソラにも、聞こえる。", "Even Sora can hear it."]],
     [["ソラ|「やった！ユキさん、やった！」", "\"Yes! Yuki, you did it!\""]],
     [["ユキ|「…本当に？」", "\"…Really?\""], ["ダイチ|「うん！動画が、最高だったんだ！」", "\"Really! It was the video!\""]],
-    [["ユキ|「リナは？」", "\"And Rina?\""], ["ダイチ|「電話した！リナは、『そう』って！」", "\"I called her! She said, 'Okay.'\""]],
-    [["私は、笑った。", "I laughed."], ["リナは、いつもそうだ。", "That's Rina all over."]],
+    [["ユキ|「リンは？」", "\"And Rin?\""], ["ダイチ|「電話した！リンは、『そう』って！」", "\"I called her! She said, 'Okay.'\""]],
+    [["私は、笑った。", "I laughed."], ["リンは、いつもそうだ。", "That's Rin all over."]],
     [["ダイチ|「もし勝ったら、店長のビールだ！」", "\"If we win, the manager's buying beer!\""], ["ユキ|「…練習しなくちゃ。」", "\"…We've got to practise.\""]],
     [["電話が終わった。", "The call ended."]],
-    [["また、電話が来た。", "The phone rang again."], ["次は、リナだ。", "This time it was Rina."]],
-    [["ユキ|「リナ？」", "\"Rina?\""]],
-    [["リナ|「…ユキ。」", "\"…Yuki.\""], ["リナ|「…うれしい。」", "\"…I'm happy.\""]],
+    [["また、電話が来た。", "The phone rang again."], ["次は、リンだ。", "This time it was Rin."]],
+    [["ユキ|「リン？」", "\"Rin?\""]],
+    [["リン|「…ユキ。」", "\"…Yuki.\""], ["リン|「…うれしい。」", "\"…I'm happy.\""]],
     [["ユキ|「…私も。」", "\"…Me too.\""]],
-    [["リナ|「…じゃあ。」", "\"…Bye.\""], ["電話が終わった。", "She hung up."]],
-    [["ソラ|「リナさんは？」", "\"What did Rina say?\""], ["ユキ|「…うれしいって。」", "\"…That she's happy.\""]],
+    [["リン|「…じゃあ。」", "\"…Bye.\""], ["電話が終わった。", "She hung up."]],
+    [["ソラ|「リンさんは？」", "\"What did Rin say?\""], ["ユキ|「…うれしいって。」", "\"…That she's happy.\""]],
     [["私も、うれしい。", "I'm happy too."], ["本当に、うれしい。", "Really happy."]],
     [["次の日の夜、三人でラーメンの店に来た。", "The next evening, the three of us went to the ramen shop."]],
     [["ダイチ|「店長！夏の雪、祭りに出られます！」", "\"Manager! Summer Snow got into the festival!\""]],
     [["店長|「出られるのか！最高じゃん！」", "\"You got in! That's awesome!\""]],
-    [["店長|「じゃあ、もし勝ったら、ビールとラーメンだな！」", "\"So if you win, it's beer and ramen!\""], ["ダイチ|「はい！」", "\"Yes!\""], ["リナ|「…卵も。」", "\"…And eggs.\""]],
+    [["店長|「じゃあ、もし勝ったら、ビールとラーメンだな！」", "\"So if you win, it's beer and ramen!\""], ["ダイチ|「はい！」", "\"Yes!\""], ["リン|「…卵も。」", "\"…And eggs.\""]],
     [["店長が、笑った。", "The manager laughed."], ["店長|「みんなが勝ったら、卵もな！」", "\"If you win, eggs too!\""]]
   ]
 }

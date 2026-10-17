@@ -1,6 +1,6 @@
 {
   "title": "Only three songs",
-  "plot": "Festival day: the other bands have long set lists and Summer Snow has only three songs, but Rina says three is enough.",
+  "plot": "Festival day: the other bands have long set lists and Summer Snow has only three songs, but Rin says three is enough.",
   "topic": "dake",
   "readings": {"弦": "げん"},
   "paragraphs": [
@@ -9,7 +9,7 @@
     [["公園は、もう人が多い。", "The park is already crowded."], ["ラーメンの店もある。", "There's even a ramen stall."]],
     [["店長|「ユキ！ラーメン、食べる？」", "\"Yuki! Want some ramen?\""], ["ユキ|「店長！ここにも、店？」", "\"Manager! You've got a stall here too?\""]],
     [["店長|「祭りの日だけ、ここでやってるんだ。」", "\"Only on festival day.\""]],
-    [["ダイチとリナも来た。", "Daichi and Rina arrived."], ["リナの荷物は、ギターだけ。", "All Rina's carrying is her guitar."], ["ダイチの荷物は…すごく大きい。", "Daichi's bag is… enormous."]],
+    [["ダイチとリンも来た。", "Daichi and Rin arrived."], ["リンの荷物は、ギターだけ。", "All Rin's carrying is her guitar."], ["ダイチの荷物は…すごく大きい。", "Daichi's bag is… enormous."]],
     [["ユキ|「ダイチ、それ、何？」", "\"Daichi, what's all that?\""], ["ダイチ|「水と、アイスと、弦！」", "\"Water, ice cream, and strings!\""]],
     [["ステージの前に、バンドの名前がある。", "In front of the stage, there's a list of the bands."]],
     [["私たちは、最後だ。", "We're last."]],
@@ -18,20 +18,20 @@
     [["ダイチ|「俺たちは…三曲しかない！」", "\"And we've… only got three!\""]],
     [["そうだ。", "It's true."], ["私たちの曲は、三曲しかない。", "We only have three songs."], ["『雪』と、『桜』と、『夏の夜』。", "'Snow', 'Cherry Blossoms', and 'Summer Night'."]],
     [["ユキ|「三曲だけで、大丈夫かな…」", "\"Will just three be okay, I wonder…\""]],
-    [["リナ|「…三曲しかない。」", "\"…We only have three.\""], ["リナ|「でも、いい曲が、三曲。」", "\"But it's three good songs.\""]],
-    [["リナ|「…それだけ。」", "\"…That's all.\""]],
-    [["ダイチが、リナを見た。", "Daichi looked at Rina."], ["私も、リナを見た。", "So did I."]],
-    [["ダイチ|「…リナ、かっこいい！」", "\"…Rina, that was so cool!\""], ["リナ|「…うるさい。」", "\"…You're loud.\""]],
+    [["リン|「…三曲しかない。」", "\"…We only have three.\""], ["リン|「でも、いい曲が、三曲。」", "\"But it's three good songs.\""]],
+    [["リン|「…それだけ。」", "\"…That's all.\""]],
+    [["ダイチが、リンを見た。", "Daichi looked at Rin."], ["私も、リンを見た。", "So did I."]],
+    [["ダイチ|「…リン、かっこいい！」", "\"…Rin, that was so cool!\""], ["リン|「…うるさい。」", "\"…You're loud.\""]],
     [["ユキ|「うん。三曲だけ。でも、私たちの三曲だ。」", "\"Yeah. Only three. But they're our three.\""]],
     [["ダイチ|「じゃあ、最高の三曲にしよう！」", "\"Then let's make them the best three songs ever!\""]],
     [["ステージは、一回だけ。", "We only get one go on that stage."], ["もう一回は、ない。", "There's no second try."]],
     [["私の手が、ちょっと…", "My hands are a little…"]],
-    [["リナが、私の手を見た。", "Rina looked at my hands."], ["リナ|「…ユキも？」", "\"…You too?\""], ["ユキ|「…私も。」", "\"…Me too.\""]],
+    [["リンが、私の手を見た。", "Rin looked at my hands."], ["リン|「…ユキも？」", "\"…You too?\""], ["ユキ|「…私も。」", "\"…Me too.\""]],
     [["ダイチ|「俺だけ、緊張してない！」", "\"I'm the only one who's not nervous!\""]],
     [["でも、ダイチの手も、ちょっと…", "But Daichi's hands are a little… too."]],
     [["三人で、笑った。", "The three of us laughed."]],
     [["店長|「勝ったら、ラーメン！みんなが勝ったら、ビール！」", "\"If you win, ramen! If you win, beer!\""]],
-    [["ダイチ|「勝つ！」", "\"We'll win!\""], ["リナ|「…ラーメン。」", "\"…Ramen.\""]],
+    [["ダイチ|「勝つ！」", "\"We'll win!\""], ["リン|「…ラーメン。」", "\"…Ramen.\""]],
     [["空は、まだ夏の空だ。", "The sky is still a summer afternoon sky."], ["夜まで、もうちょっとだけ。", "Just a little longer till night."]]
   ]
 }

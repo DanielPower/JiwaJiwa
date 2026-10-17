@@ -28,6 +28,8 @@ tools (core `src/stories`).
   chapter that introduces them (`meets`) on. Staff and strangers can go
   unnamed, or take a description as their label (`店員|「…」`,
   `男の人|「…」`), which may be used anywhere. Thinking aloud has no name.
+  A cast name written in katakana is always read as a name, even where the
+  dictionary has a word spelled the same (リン is the guitarist, not 燐).
 - English quotes are escaped in JSON: `"\"Morning!\""`.
 - When the reader picks the wrong word, pin it in the chapter's `readings`:
   the word as the text writes it, and its reading (`"readings": {"方":
