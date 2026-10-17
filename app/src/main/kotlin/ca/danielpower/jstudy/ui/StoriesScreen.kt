@@ -83,15 +83,14 @@ import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.Speech
 import ca.danielpower.jstudy.core.WordKind
-import ca.danielpower.jstudy.core.readStats
 import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderFont
 import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.SeriesEntry
 import ca.danielpower.jstudy.data.StoryReading
+import ca.danielpower.jstudy.data.Word
 import ca.danielpower.jstudy.data.levelLabel
-import kotlin.math.roundToInt
 
 // ------------------------------------------------------------------ list
 
@@ -1269,12 +1268,9 @@ private fun GrammarNote(point: GrammarPoint, onLesson: (() -> Unit)?) {
 
 // ------------------------------------------------------------------ end page
 
-/** Once the story's finished: how the read went, what it did for your words, and what to read next. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Once the story's finished: what you learned from it, and what to read next. */
 @Composable
 private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
-    val reading = state.reading
-    val stats = readStats(reading.paragraphs, reading.coverage, reading.story.readMillis)
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -1282,13 +1278,6 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
         val chapter = state.chapter
         if (chapter != null && !chapter.series.single) SectionLabel("Chapter ${chapter.chapter.number} done")
         Text(if (chapter != null && !chapter.series.single) chapter.chapter.story.title else ui("The end", "終わり"), style = MaterialTheme.typography.headlineSmall)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            EndStat(stats.characters.toString(), ui("Characters", "文字"))
-            EndStat("${(stats.knownShare * 100).roundToInt()}%", ui("Seen", "見た", "見る"))
-            EndStat(stats.millis?.let(::duration) ?: "–", ui("Time", "時間"))
-            EndStat(stats.charactersPerMinute?.let { "$it/min" } ?: "–", ui("Speed", "速さ"))
-        }
-
         state.impact?.let { WordImpact(it) }
         state.impact?.topic?.let { topic ->
             SectionLabel(ui("Grammar", "文法"), Modifier.padding(top = 8.dp))
@@ -1355,47 +1344,46 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
     }
 }
 
-/** What reading a path story did for your words: seen for it, and moved up to known or mastered. */
+/** What reading a path story did for your words: each word newly seen, or moved up to known or mastered. */
 @Composable
 private fun WordImpact(impact: ReadImpact) {
     SectionLabel(ui("Your words", "あなたの言葉", "あなた", "言葉"), Modifier.padding(top = 8.dp))
-    ImpactRow("New, now seen", impact.seen.size, masteryColor(0))
-    ImpactRow("Seen → known", impact.known.size, masteryColor(MasteryRules.HIDE_AT))
-    ImpactRow("Known → mastered", impact.mastered.size, masteryColor(MasteryRules.OFF_AT))
-    val moved = listOfNotNull(
-        impact.known.takeIf { it.isNotEmpty() }?.let { w -> w.joinToString("、") { it.display } + " moved to known." },
-        impact.mastered.takeIf { it.isNotEmpty() }?.let { w -> w.joinToString("、") { it.display } + if (w.size == 1) " is mastered." else " are mastered." },
-    )
-    if (moved.isNotEmpty()) {
-        Text(moved.joinToString(" "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val groups = listOf(
+        Triple("New", impact.seen, masteryColor(0)),
+        Triple("Seen → known", impact.known, masteryColor(MasteryRules.HIDE_AT)),
+        Triple("Known → mastered", impact.mastered, masteryColor(MasteryRules.OFF_AT)),
+    ).filter { it.second.isNotEmpty() }
+    if (groups.isEmpty()) {
+        Text("No changes to your words this time.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    for ((label, words, color) in groups) {
+        Column {
+            Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(label, style = MaterialTheme.typography.bodyLarge, color = color, modifier = Modifier.weight(1f))
+                Text(words.size.toString(), style = MaterialTheme.typography.titleMedium)
+            }
+            words.forEachIndexed { i, word ->
+                if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                ImpactWord(word)
+            }
+        }
     }
 }
 
+/** One word in the end page's lists: its spelling, its kana if that's in kanji, and its first meaning. */
 @Composable
-private fun ImpactRow(label: String, count: Int, color: Color) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, color = color, modifier = Modifier.weight(1f))
-        Text(count.toString(), style = MaterialTheme.typography.titleMedium)
+private fun ImpactWord(word: Word) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(word.display, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        if (word.showsKanji) Text(word.kana, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            word.senses.firstOrNull()?.glosses?.joinToString("; ").orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
     }
-}
-
-@Composable
-private fun RowScope.EndStat(value: String, label: String) {
-    Column(
-        Modifier
-            .weight(1f)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
-            .padding(vertical = 10.dp, horizontal = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(value, style = MaterialTheme.typography.titleMedium, maxLines = 1)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-    }
-}
-
-/** 45s, or 4:05 for minutes and seconds. */
-private fun duration(millis: Long): String {
-    val seconds = millis / 1000
-    return if (seconds < 60) "${seconds}s" else "%d:%02d".format(seconds / 60, seconds % 60)
 }
