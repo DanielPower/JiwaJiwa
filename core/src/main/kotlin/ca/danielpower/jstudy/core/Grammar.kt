@@ -49,8 +49,9 @@ internal object Grammar {
                 if (end <= start) continue
                 if (rule.after != null && !rule.after.invoke(tokens.getOrNull(end))) continue
                 val core = end - start
-                // Take in the endings that follow (いけ + ない, つもり + です) so the whole phrase lights up.
-                while (end < tokens.size && tokens[end].pos == "助動詞" && tokens[end].base in ENDINGS) end++
+                // Take in the endings that follow (いけ + ない, つもり + です) so the whole phrase lights up,
+                // but not a conditional (たら, なきゃ), which is a point of its own.
+                while (end < tokens.size && tokens[end].pos == "助動詞" && tokens[end].base in ENDINGS && !tokens[end].form.startsWith("仮定")) end++
                 found += Match(rule.point, start, end, core)
             }
         }
@@ -110,8 +111,8 @@ internal object Grammar {
     }
 
     /** Another pattern for the point [id], with its own [before]. */
-    private fun variant(id: String, steps: List<Step>, before: ((Morpheme) -> Boolean)?) {
-        rules += Rule(rules.first { it.point.id == id }.point, steps, before)
+    private fun variant(id: String, steps: List<Step>, before: ((Morpheme) -> Boolean)?, after: ((Morpheme?) -> Boolean)? = null) {
+        rules += Rule(rules.first { it.point.id == id }.point, steps, before, after)
     }
 
     init {
@@ -166,11 +167,14 @@ internal object Grammar {
             "友達と映画を見ました。", "I watched a movie with a friend.",
             listOf(Step(false) { it.pos == "助詞" && it.base == "と" && it.pos2 in setOf("格助詞", "並立助詞") && it.pos3 != "引用" }),
         )
+        variant("to", listOf(Step(false) { it.pos == "助詞" && it.base == "と" && it.pos3 == "引用" }), before = { it.pos == "名詞" })
         point(
             "to-quote", "～と", 4, "quoting: \"…\", that…",
             "Marks what was said, thought or heard, before verbs like 言う and 思う.",
             "「おはよう」と言いました。", "I said \"good morning\".",
             listOf(Step(false) { it.pos == "助詞" && it.base == "と" && it.pos3 == "引用" }),
+            // Quotes follow a closing 」 or 』 or a plain form; after a bare noun the tokenizer's 引用 is usually "with" (友達といる).
+            before = { it.surface in setOf("」", "』") || it.pos in setOf("動詞", "形容詞", "助動詞") || (it.pos == "助詞" && it.pos2 == "終助詞") },
         )
         point(
             "to-if", "～と", 4, "when, whenever, if",
@@ -195,6 +199,8 @@ internal object Grammar {
             "Turns a verb or adjective into a noun-like phrase (読むのが好き, I like reading), or stands for a thing already mentioned (赤いの, the red one).",
             "本を読むのが好きです。", "I like reading books.",
             listOf(dependentNoun("の")),
+            // The の of ～のかな or ～のだ explains (～んだ); this one is followed by a particle (読むのが, 赤いのを) or ends the sentence.
+            after = { it == null || it.pos == "記号" || (it.pos == "助詞" && it.base != "か") },
         )
         point(
             "ka", "か", 5, "question, or",
@@ -288,6 +294,11 @@ internal object Grammar {
             "A casual と言う or とは. It quotes what someone said (行くって, he says he's going), or brings up something to ask or talk about (ユキって誰？, who's Yuki?).",
             "ユキって誰？", "Who's Yuki?",
             listOf(particle("って")),
+        )
+        // だって ending a sentence after a noun is だ + って, "they say it's": 好きだって.
+        variant(
+            "tte", listOf(particle("だって")), before = { it.pos == "名詞" },
+            after = { it == null || it.pos == "記号" || it.pos2 == "終助詞" },
         )
         point(
             "jan", "～じゃん", 3, "…, right?, see?",
@@ -466,6 +477,12 @@ internal object Grammar {
             before = { it.base != "ん" },
         )
         point(
+            "na", "～な", 5, "(before a noun)",
+            "だ becomes な before a noun: a na-adjective like きれい describes with it (きれいな部屋, a beautiful room). A noun or na-adjective also takes it before ん or の (学生なんだ, 好きなの？).",
+            "きれいな部屋だね。", "It's a beautiful room, huh.",
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ダ" && it.form == "体言接続" }),
+        )
+        point(
             "deshou", "～でしょう / だろう", 5, "probably; right?",
             "A guess (明日は雨でしょう, it'll probably rain tomorrow). Said with a rise, でしょ? looks for agreement: \"right?\". だろう is the plain form.",
             "明日は雨でしょう。", "It'll probably rain tomorrow.",
@@ -482,7 +499,8 @@ internal object Grammar {
             "nai", "～ない", 5, "not (plain)",
             "The plain negative of a verb, as friends say it: 食べる, 食べない.",
             "肉は食べない。", "I don't eat meat.",
-            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ナイ" }),
+            // Not なきゃ, which is ～なければ.
+            listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ナイ" && !it.form.startsWith("仮定縮約") }),
         )
         point(
             "ta", "～た", 5, "did (plain past)",
@@ -619,6 +637,8 @@ internal object Grammar {
             "Change coming up to now (寒くなってきた, it's got cold), or doing something and coming back (買ってくる).",
             "だんだん寒くなってきました。", "It's been getting colder.",
             listOf(te, dependentVerb("くる", "来る")),
+            // Not ～ないで来る, "come without doing".
+            before = { it.base != "ない" },
         )
         point(
             "te-iku", "～ていく", 4, "go on; do and go",
@@ -858,6 +878,7 @@ internal object Grammar {
             "の or ん before だ or です explains or asks for an explanation: どうしたんですか, what's wrong?. It sounds softer and more involved than a bare statement. ～んじゃない？ suggests: isn't it that…?",
             "どうして来なかったんですか。", "Why didn't you come?",
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, Step(false) { it.pos == "助動詞" && it.type in setOf("特殊・ダ", "特殊・デス") }),
+            listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, particle("か")),
             // ～んじゃない: "isn't it that…?".
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, particle("じゃ")),
         )
@@ -874,6 +895,8 @@ internal object Grammar {
             "食べた後で散歩します。", "I'll take a walk after eating.",
             listOf(past, base("後", "あと"), particle("で", "に").optional()),
         )
+        // After a noun: 仕事の後で.
+        variant("ato-de", listOf(base("後", "あと"), particle("で", "に").optional()), before = { it.pos == "助詞" && it.base == "の" })
         point(
             "uchi-ni", "～うちに", 3, "while (still)",
             "Do it while a state lasts, before it changes: 若いうちに, while you're young.",

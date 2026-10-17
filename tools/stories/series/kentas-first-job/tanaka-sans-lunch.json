@@ -1,0 +1,21 @@
+{
+  "title": "Tanaka-san's lunch",
+  "plot": "Kenta learns what he may use at the office, and the one thing on Tanaka-san's desk he must not touch.",
+  "topic": "te-mo-ii",
+  "paragraphs": [
+    [["朝だ。", "Morning."], ["田中さんは、もう仕事をしている。", "Tanaka's already working."]],
+    [["ケンタ|「おはようございます！」", "\"Good morning!\""], ["田中|「おはようございます。」", "\"Good morning.\""]],
+    [["ケンタ|「田中さん、この机、使ってもいいですか？」", "\"Tanaka-san, may I use this desk?\""]],
+    [["田中|「はい。ケンタさんの机です。」", "\"Yes. It's your desk.\""], ["田中|「使ってもいいですよ。」", "\"Go ahead and use it.\""]],
+    [["ケンタ|「机で、コーヒーを飲んでもいいですか？」", "\"May I drink coffee at my desk?\""], ["田中|「はい、飲んでもいいです。」", "\"Yes, you may.\""]],
+    [["田中さんの机に、荷物がある。", "There's a bundle on Tanaka's desk."], ["ちょっと大きい。", "A fairly big one."]],
+    [["ケンタ|「これは何ですか？」", "\"What's this?\""], ["ケンタ|「触ってもいいですか？」", "\"May I touch it?\""]],
+    [["田中|「触ってはいけません。」", "\"You must not touch that.\""]],
+    [["ケンタ|「…新しいゲームですか？」", "\"…Is it the new game?\""]],
+    [["田中|「私の、お昼です。」", "\"It's my lunch.\""], ["ケンタ|「お昼…」", "\"Lunch…\""]],
+    [["田中|「お昼は、触ってはいけません。」", "\"Lunch must not be touched.\""], ["ケンタ|「…はい。」", "\"…Understood.\""]],
+    [["お昼。", "Noon."], ["田中さんのお昼は、本当に大きい。", "Tanaka's lunch really is big."]],
+    [["田中|「ケンタさん、卵、食べませんか？」", "\"Kenta, would you like an egg?\""], ["ケンタ|「食べてもいいですか？」", "\"Am I allowed?\""]],
+    [["田中|「はい。食べてもいいですよ。」", "\"Yes. Go ahead.\""], ["ケンタ|「…うまいです！」", "\"…It's delicious!\""]]
+  ]
+}

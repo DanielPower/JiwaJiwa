@@ -1,0 +1,7 @@
+{
+  "title": "Konbini run",
+  "blurb": "Midnight, two empty stomachs, and a konbini that never closes.",
+  "after": ["new-housemate/practice"],
+  "side": true,
+  "chapters": ["konbini-run"]
+}

@@ -105,7 +105,21 @@ class GrammarTest {
         assertEquals(listOf("te-shimau", "no-question"), points("帰っちゃうの？"))
         assertEquals(listOf("kamoshirenai"), points("雨かも。"))
         assertEquals(listOf("nakereba"), points("行かなきゃいけない。"))
+        assertEquals(listOf("nakereba"), points("もう行かなきゃ。"))
         assertEquals(listOf("ga", "n-desu"), points("これがいいんじゃない？"))
+    }
+
+    @Test
+    fun `after a noun, 後で is ato-de and だって is tte`() {
+        assertEquals(listOf("no", "ato-de", "wo", "ta"), points("仕事の後で、ラーメンを食べた。"))
+        assertEquals(listOf("ga", "tte"), points("ユキが好きだって。"))
+        assertEquals(listOf("あと"), reader.words("仕事の後で").filter { it.surface == "後" }.map { it.reading })
+    }
+
+    @Test
+    fun `a conditional after another point keeps its own point`() {
+        assertEquals(listOf("potential", "tara"), points("出られたら、うれしい。"))
+        assertEquals(listOf("potential", "nakereba"), points("出られなきゃ。"))
     }
 
     @Test
@@ -114,6 +128,16 @@ class GrammarTest {
         assertEquals(listOf("potential"), points("食べれる？"))
         assertEquals(listOf("ni", "passive"), points("先生に呼ばれた。"))
         assertEquals(listOf("causative", "passive"), points("食べさせられた。"))
+    }
+
+    @Test
+    fun `な before a noun, explaining の, and と after a noun`() {
+        assertEquals(listOf("na", "desu", "ne"), points("きれいな部屋だね。"))
+        assertEquals(listOf("na", "n-desu"), points("そうなんだ。"))
+        assertEquals(listOf("ta", "n-desu", "kana"), points("忘れたのかな。"))
+        assertEquals(listOf("no-nominal", "ga"), points("行くのが好き。"))
+        assertEquals(listOf("to"), points("友達といる。"))
+        assertEquals(listOf("to-quote"), points("「うん」と言った。").filter { it == "to-quote" })
     }
 
     @Test

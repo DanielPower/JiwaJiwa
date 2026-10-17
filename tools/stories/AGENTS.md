@@ -14,6 +14,7 @@ tools (core `src/stories`).
 | `series/<id>/story.json` | A story's `title`, `blurb`, the stories it follows (`after`: story ids, or a chapter id such as `share-house/yukis-gig` to mean the story up to that chapter), `side` for a side story, and `chapters`: its chapters' slugs in reading order. |
 | `series/<id>/<slug>.json` | One chapter each, named by its slug (lowercase words joined by hyphens, usually from its title: `trash-day.json`): `title`, a one-line `plot`, optional `topic` (one grammar topic it teaches), `meets` (people it introduces, `{"name", "about"}`) and `readings` (see below), and `paragraphs`, each a list of `[Japanese sentence, English]`, or a note (`{"note": "English…"}`) between two of them. Its id is the story's id and its slug (`share-house/trash-day`), which saved progress uses. To add or move a chapter, add its file and put its slug where it goes in `chapters`; never rename a slug or delete a chapter people may have read. |
 | `series/<id>/SUMMARY.md` | Written by the tools, never by hand: the cast so far, each chapter's plot, words and new words, and every word and grammar topic known by the end. |
+| `PLAN.md` | The approved plan for the stories being written next: grammar topics in order, and each story's cast and outline. |
 | `COVERAGE.md` | Written by the tools: how many of the most common words the stories use, the words left (most common first), and the grammar points left. |
 
 ## Conventions
@@ -27,10 +28,14 @@ tools (core `src/stories`).
   chapter that introduces them (`meets`) on. Staff and strangers can go
   unnamed, or take a description as their label (`店員|「…」`,
   `男の人|「…」`), which may be used anywhere. Thinking aloud has no name.
+  A cast name written in katakana is always read as a name, even where the
+  dictionary has a word spelled the same (リン is the guitarist, not 燐).
 - English quotes are escaped in JSON: `"\"Morning!\""`.
 - When the reader picks the wrong word, pin it in the chapter's `readings`:
   the word as the text writes it, and its reading (`"readings": {"方":
-  "かた"}` for あの方, where the reader sees the ほう of ～のほうが).
+  "かた"}` for あの方, where the reader sees the ほう of ～のほうが). A
+  pinned dictionary form pins its conjugations too: `{"描く": "かく"}`
+  makes 描いた かいた and 描けたら かけたら.
   Check the new words in the report: a wrong reading there means a wrong
   card. `StoryPathTest` fails if a pin isn't needed, or doesn't take.
 - Notes are rare: an aid for the odd spot where the reader needs cultural
@@ -71,6 +76,26 @@ The reader reads ～られる on a る verb (食べられる) and spoken 食べ�
 as "can" (the `potential` point), and ～れる / ～られる on a う verb or する
 as the passive. For a passive on a る verb, reword. It writes 来られる
 in kanji poorly (as 来る きたる), so use 来れる.
+
+Known misreadings to pin (`readings`) or reword around: 何時 reads as いつ
+(pin `"何時": "なんじ"`), 描く as えがく (pin `"描く": "かく"` when it means
+drawing), 弦 as つる (pin `"弦": "げん"`), 弾ける as はじける (reword: 弾けない,
+弾けた are fine), 勝ったら opening a sentence as 勝る (put a subject or もし
+first), ありがとうって as ありがと + 売る (write 『ありがとう』って), よし as 葦, いつか as 五日, いい straight after ！ as
+言う, and the ます of a quoted 「です、ます」 as
+増す. な before a noun (きれいな部屋) and before ん / の (そうなんだ) is taught
+with だ / です, so it's fine anywhere. ただいま, おかえり(なさい), いってきます
+and いってらっしゃい read as words, and ～ないで来る as "come without doing".
+ない on its own (ゴミがない) is the word 無い, and ありがとうございました is a
+different entry from ありがとうございます: both count as new words.
+
+More to reword around, found writing Phase 1: ～たことはない (write
+～たことがない), 大きすぎ and a bare し before すぎ (練習しすぎ is fine), 静かに
+as an adverb, 来るみたい (来る as きたる), 弾きたい (as はじく), 休めない (as
+休める), 聞けた (as 聞ける), ～てたんだって (たん as 歎), 変わったって (as
+～たって), なんで / 何の (the なん entry), よかった (as よい), あげる "give"
+(the 上げる entry), a stuttered ご、ごめん (後), 送りに行く (送り as a noun),
+終わり on its own (the stem of 終わる), and 何ページ (the なん entry).
 
 Then run, with the dictionary built (`python3 tools/dictionary/build_dictionary.py`):
 

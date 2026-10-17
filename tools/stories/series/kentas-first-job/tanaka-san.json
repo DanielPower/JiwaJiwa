@@ -1,0 +1,20 @@
+{
+  "title": "Tanaka-san",
+  "plot": "Kenta's first day on the new game, with Tanaka-san, his strict and very polite senior.",
+  "topic": "mashou",
+  "meets": [{"name": "田中", "about": "Kenta's senior at the game company; strict, fair, always polite"}],
+  "paragraphs": [
+    [["朝だ。", "Morning."], ["ケンタは、会社に来た。", "Kenta got to the office."]],
+    [["今日から、新しいゲームの仕事だ。", "Starting today, he's working on the new game."]],
+    [["田中|「ケンタさんですか？田中です。」", "\"Are you Kenta? I'm Tanaka.\""]],
+    [["ケンタ|「はい！よろしくお願いします！」", "\"Yes! Nice to meet you!\""], ["田中|「よろしくお願いします。」", "\"Nice to meet you.\""]],
+    [["田中|「ケンタさんの机は、ここです。」", "\"Your desk is here.\""], ["田中|「コーヒー、飲みませんか？」", "\"Would you like some coffee?\""], ["ケンタ|「あ、はい！」", "\"Oh, yes please!\""]],
+    [["田中|「じゃあ、始めましょうか。」", "\"Well then, shall we begin?\""], ["ケンタ|「はい。何をしますか？」", "\"Yes. What do I do?\""]],
+    [["田中|「ゲームをしましょう。」", "\"Let's play the game.\""], ["ケンタ|「…ゲーム、ですか？」", "\"…The game?\""]],
+    [["田中|「はい。会社の新しいゲームです。」", "\"Yes. The company's new game.\""], ["田中|「朝から夜まで、しましょう。」", "\"Let's play it from morning till night.\""]],
+    [["ケンタ|「仕事で、ゲーム…！」", "\"Games, for work…!\""], ["田中|「仕事ですよ、ケンタさん。」", "\"It is work, Kenta.\""]],
+    [["夜。", "Night."], ["田中|「今日は、ここまでです。帰りましょう。」", "\"That's it for today. Let's go home.\""]],
+    [["田中|「明日も、頑張りましょう。」", "\"Let's work hard tomorrow too.\""], ["ケンタ|「はい！ありがとうございます！」", "\"Yes! Thank you very much!\""]],
+    [["ケンタは帰った。", "Kenta went home."], ["田中さんは、まだ仕事をしている。", "Tanaka is still working."]]
+  ]
+}

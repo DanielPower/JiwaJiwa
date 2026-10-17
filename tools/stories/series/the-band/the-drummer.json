@@ -1,0 +1,31 @@
+{
+  "title": "The drummer",
+  "plot": "Early summer: after playing bass in a friend's band, Yuki meets Daichi, a loud drummer who saw her sing, and he wants to start a band with her.",
+  "topic": "potential",
+  "meets": [{"name": "ダイチ", "about": "drummer Yuki meets at the live house; loud and cheerful"}],
+  "paragraphs": [
+    [["夏の夜だ。", "A summer night."], ["今夜も、ライブの店でベースを弾いた。", "I played bass at the live house again tonight."]],
+    [["友達のバンドだ。", "A friend's band."], ["私のバンドじゃない。", "Not mine."]],
+    [["ライブが終わった。", "The show ended."]],
+    [["ダイチ|「ベースの人！最高だった！」", "\"Hey, bass player! You were amazing!\""]],
+    [["大きい声だ。", "A loud voice."], ["次のバンドの、ドラムの人だ。", "The drummer from the next band."]],
+    [["ダイチ|「俺、ダイチ！ドラム、やってる！」", "\"I'm Daichi! I play drums!\""]],
+    [["ダイチ|「春のオープンマイク、見たよ！『雪』の歌！」", "\"I saw you at the open mic in spring! The snow song!\""], ["ユキ|「…見たの？」", "\"…You saw that?\""]],
+    [["ダイチ|「ベースが弾けて、歌も歌える！最高じゃん！」", "\"You can play bass and you can sing! That's awesome!\""]],
+    [["ダイチ|「ユキさん、俺とバンド、やろう！」", "\"Yuki, start a band with me!\""], ["ユキ|「…バンド？」", "\"…A band?\""]],
+    [["ダイチ|「ドラムは俺！ベースと歌は、ユキさん！」", "\"Me on drums! You on bass and vocals!\""]],
+    [["ユキ|「ギターは？」", "\"And guitar?\""], ["ダイチ|「ギターは…まだいない！」", "\"Guitar… we don't have one yet!\""]],
+    [["うるさい人だ。", "What a loud guy."], ["でも、私はちょっと笑った。", "But I laughed a little."]],
+    [["ダイチ|「これ、見て！」", "\"Look at this!\""], ["公園の祭りの写真だ。", "A photo of the festival in the park."]],
+    [["ダイチ|「夏の祭りに、バンドのステージがあるんだ！」", "\"There's a band stage at the summer festival!\""]],
+    [["ユキ|「新しいバンドも、出られるの？」", "\"Can new bands play too?\""], ["ダイチ|「出られる！みんな出られる！」", "\"Yep! Everyone can!\""]],
+    [["ユキ|「でも、私、ステージで歌えるかな…」", "\"But can I sing on a stage, I wonder…\""], ["ダイチ|「歌えるよ！俺、見たから！」", "\"Sure you can! I saw you!\""]],
+    [["ユキ|「…考える。」", "\"…I'll think about it.\""], ["ダイチ|「明日、電話する！」", "\"I'll call you tomorrow!\""]],
+    [["帰って、部屋でまたベースを弾いた。", "I went home and played bass in my room again."]],
+    [["ソラ|「ユキさん、ライブ、どうだった？」", "\"Yuki, how was the show?\""]],
+    [["ユキ|「ドラムの人が、バンドをやろうって。」", "\"A drummer says we should start a band.\""]],
+    [["ソラ|「ユキさんのバンド！やるの？」", "\"Your own band! Are you doing it?\""]],
+    [["ユキ|「…やれるかな。」", "\"…Could I pull it off, I wonder.\""]],
+    [["ボン、ボン。", "Boom, boom."], ["ベースの音は、いつもと同じだ。", "The bass sounds the same as always."]]
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "title": "The pros' pages",
+  "plot": "Miho puts her page next to a pro's and only sees how bad hers is; Yuki says the pro draws better, but she likes Miho's more, because you can hear it.",
+  "topic": "yori",
+  "readings": {"描く": "かく"},
+  "paragraphs": [
+    [["店で、新しい雑誌を買った。", "I bought the new magazine at the shop."], ["プロのマンガが、たくさんある。", "It's full of manga by pros."]],
+    [["夜、部屋で、プロの絵と私の絵を見ている。", "At night in my room, I'm looking at a pro's drawing and at mine."]],
+    [["プロの絵は、私の絵よりきれい。", "The pro's drawing is cleaner than mine."], ["線も、プロのほうがきれいだ。", "The lines are cleaner too."]],
+    [["プロの主人公は、私の主人公より、かっこいい。", "The pro's hero is cooler than my heroine."]],
+    [["私の絵は、下手だ。", "My drawing's bad."], ["プロは、毎日描いているから、上手。", "The pros draw every day, so they're good."]],
+    [["次の日、店にユキが来た。", "The next day, Yuki came by the shop."]],
+    [["ユキ|「マンガ、どう？」", "\"How's the manga going?\""], ["ミホ|「…下手。」", "\"…It's bad.\""]],
+    [["ミホ|「見て。プロの絵と、私の絵。」", "\"Look. A pro's drawing, and mine.\""], ["ミホ|「どっちがいい？」", "\"Which is better?\""]],
+    [["ユキは、私の絵とプロの絵を、ゆっくり見た。", "Yuki took a slow look at both."]],
+    [["ユキ|「線は、プロのほうが上手。」", "\"The pro's lines are better.\""], ["ミホ|「…でしょ。」", "\"…Told you.\""]],
+    [["ユキ|「でも、ミホの絵のほうが、好き。」", "\"But I like yours better.\""], ["ミホ|「なんで？」", "\"Why?\""]],
+    [["ユキ|「ミホの絵は、音が聞こえる。」", "\"With yours, you can hear the music.\""], ["ユキ|「プロの絵より、うるさい。」", "\"It's louder than the pro's.\""]],
+    [["ミホ|「うるさい…それ、いいの？」", "\"Louder… Is that good?\""], ["ユキ|「いい。」", "\"It's good.\""], ["ユキ|「ダイチのドラムより、うるさい。」", "\"Louder than Daichi's drums.\""]],
+    [["ミホ|「ダイチさんより！？」", "\"Louder than Daichi!?\""]],
+    [["ユキ|「線は、練習したら、きれいになるよ。」", "\"The lines will get cleaner if you practise.\""]],
+    [["ユキ|「春の私の歌と、今の私の歌。」", "\"My singing in spring, and my singing now.\""], ["ユキ|「どっちが上手？」", "\"Which is better?\""]],
+    [["ミホ|「今のユキのほうが、上手！」", "\"Now-you, for sure!\""]],
+    [["ユキ|「でしょ？毎日、練習したから。」", "\"Right? Because I practised every day.\""], ["ユキ|「じゃあ、ミホも練習。」", "\"So you practise too.\""]],
+    [["夜、線を練習した。", "That night, I practised lines."], ["線、線、線。", "Lines, lines, lines."]],
+    [["朝の線より、ちょっときれいになった。", "They got a little cleaner than this morning's."]],
+    [["まだ、プロより下手。", "Still worse than a pro's."], ["でも、春の私より、上手だ。", "But better than me in spring."]]
+  ]
+}

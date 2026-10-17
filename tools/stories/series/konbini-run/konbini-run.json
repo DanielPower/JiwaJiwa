@@ -1,0 +1,20 @@
+{
+  "title": "Konbini run",
+  "plot": "A midnight konbini run with Yuki: no beer for nineteen-year-old Sora, but ramen with eggs.",
+  "paragraphs": [
+    [["夜だ。", "Night."], ["お腹がすいた。", "I'm hungry."]],
+    [["ソラ|「コンビニ、行こう。」", "\"Konbini time.\""]],
+    [["ユキ|「ソラ、コンビニ？私も行く！」", "\"Sora, the konbini? I'm coming too!\""]],
+    [["外は、ちょっと寒い。", "It's a bit cold outside."], ["春の夜だ。", "A spring night."]],
+    [["コンビニに来た。", "We came to the konbini."], ["店員|「いらっしゃいませ。」", "\"Welcome.\""]],
+    [["ユキ|「ビール、飲む？」", "\"Beer?\""], ["ソラ|「僕、まだ19だよ。」", "\"I'm only nineteen.\""], ["ユキ|「あ、そうか。じゃあ、水。」", "\"Oh, right. Water, then.\""]],
+    [["ユキ|「ラーメンも買おう。」", "\"Let's get ramen too.\""], ["ソラ|「買おう！」", "\"Let's!\""]],
+    [["ユキ|「卵も！」", "\"And eggs!\""], ["ソラ|「卵も！」", "\"Eggs too!\""]],
+    [["帰って、一緒にラーメンを食べた。", "We went back and ate ramen together."]],
+    [["ソラ|「うまい！」", "\"So good!\""], ["ユキ|「夜のラーメンは、うまいね。」", "\"Ramen at night is the best.\""]],
+    [["ユキ|「ソラ、もう敬語じゃないね。」", "\"Sora, you've stopped being polite.\""], ["ソラ|「あ…そうだね。」", "\"Oh… you're right.\""]],
+    [["ユキ|「今のソラ、いいと思うよ。」", "\"I like you this way.\""]],
+    [["ソラ|「ユキさんが『もういいよ』と言ったから。」", "\"Because you told me to drop it.\""], ["ユキ|「そうだったね。」", "\"So I did.\""]],
+    [["ユキ|「もう一回、コンビニ行く？」", "\"Another konbini run?\""], ["ソラ|「行かない！」", "\"No!\""]]
+  ]
+}

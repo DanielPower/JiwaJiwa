@@ -1,0 +1,26 @@
+{
+  "title": "The rules",
+  "plot": "The game comes out in summer, and Tanaka-san has rules: no photos, no telling friends, no sleeping at the office, no skipping lunch.",
+  "topic": "naide",
+  "paragraphs": [
+    [["朝だ。", "Morning."], ["ケンタは、ちょっと眠い。", "Kenta's a little sleepy."]],
+    [["ケンタ|「おはようございます…」", "\"Good morning…\""], ["田中|「おはようございます。」", "\"Good morning.\""]],
+    [["田中さんが、会社のみんなに言った。", "Tanaka spoke to everyone at the office."]],
+    [["田中|「新しいゲームは、夏に出ます。」", "\"The new game comes out in summer.\""], ["田中|「でも、まだ誰も知りません。」", "\"But nobody knows about it yet.\""]],
+    [["田中|「ゲームの写真を、撮らないでください。」", "\"Please don't take pictures of the game.\""]],
+    [["田中|「友達にも、言わないでください。」", "\"And please don't tell your friends.\""]],
+    [["ユキとソラにも…？", "Not even Yuki and Sora…?"]],
+    [["ケンタ|「あのー…友達にも、ですか？」", "\"Um… not even friends?\""], ["田中|「はい。友達にも、です。」", "\"Yes. Not even friends.\""]],
+    [["田中|「ケンタさん。」", "\"Kenta.\""], ["ケンタ|「はい！」", "\"Yes!\""]],
+    [["田中|「会社で、寝ないでください。」", "\"Please don't sleep at the office.\""], ["ケンタ|「…すみません。」", "\"…Sorry.\""]],
+    [["お昼だ。", "Noon."], ["田中|「ケンタさん、お昼に行きませんか？」", "\"Kenta, would you like to go to lunch?\""]],
+    [["ケンタ|「今日は、食べないで仕事をします。」", "\"Today I'll work through lunch.\""]],
+    [["田中|「朝は、食べましたか？」", "\"Did you eat this morning?\""], ["ケンタ|「…朝も、食べないで会社に来ました。」", "\"…I came in without eating this morning, too.\""]],
+    [["田中|「食べないで仕事をしてはいけません。」", "\"You mustn't work without eating.\""]],
+    [["田中|「行きましょう。」", "\"Let's go.\""], ["ケンタ|「…はい。」", "\"…Okay.\""]],
+    [["ラーメンは、うまかった。", "The ramen was great."]],
+    [["田中|「ケンタさん、毎日、夜まで頑張っていますね。」", "\"Kenta, you're working till night every day.\""], ["ケンタ|「…はい。」", "\"…Yes.\""]],
+    [["田中|「でも、寝ないで仕事をしてはいけません。」", "\"But you mustn't work without sleeping.\""]],
+    [["田中|「ケンタさん、明日は、寝ないで会社に来ないでくださいね。」", "\"Kenta, tomorrow, please don't come in without sleeping.\""], ["ケンタ|「…はい。」", "\"…Yes.\""]]
+  ]
+}

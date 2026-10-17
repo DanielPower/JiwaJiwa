@@ -1,0 +1,7 @@
+{
+  "title": "Alex's first morning",
+  "blurb": "The morning after the show, Alex wakes up back in the share house, to Yuki's coffee, a sleepy Kenta, and three days to fill.",
+  "after": ["yukis-song/after-the-show"],
+  "side": true,
+  "chapters": ["alexs-first-morning"]
+}
