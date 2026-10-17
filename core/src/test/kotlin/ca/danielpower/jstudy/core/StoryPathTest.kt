@@ -71,21 +71,10 @@ class StoryPathTest {
         assertEquals(catalog.series.size, catalog.series.map { it.id }.toSet().size, "story ids are unique")
     }
 
-    /** path.json is written from tools/stories; this catches a chapter changed without rewriting it. Needs python3. */
+    /** path.json is put together from tools/stories; this catches a chapter changed without rewriting it. */
     @Test
     fun `the bundled stories file is up to date with tools stories`() {
-        val out = File.createTempFile("path", ".json")
-        try {
-            val python = runCatching {
-                ProcessBuilder("python3", "../tools/stories/build.py", out.path).redirectErrorStream(true).start()
-            }.getOrNull()
-            assumeTrue(python != null, "python3 not found")
-            val log = python!!.inputStream.bufferedReader().readText()
-            assertEquals(0, python.waitFor(), log)
-            assertEquals(out.readText(), bundled.readText(), "path.json is out of date: run ./gradlew -PcoreOnly=true :core:stories")
-        } finally {
-            out.delete()
-        }
+        assertEquals(StorySource.pathJson(File("..")), bundled.readText(), "path.json is out of date: run ./gradlew -PcoreOnly=true :core:stories")
     }
 
     /**

@@ -1,0 +1,6 @@
+{
+  "title": "Midnight konbini",
+  "blurb": "Jet lag, an empty stomach, and a konbini that never closes.",
+  "after": ["arrival"],
+  "side": true
+}

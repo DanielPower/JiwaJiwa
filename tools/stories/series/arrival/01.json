@@ -1,0 +1,10 @@
+{
+  "title": "I'm here",
+  "plot": "Alex lands in Japan at last.",
+  "topic": "ta",
+  "meets": [{"name": "アレックス", "about": "from Canada, in Japan for a year"}],
+  "paragraphs": [
+    [["来た。", "I'm here."], ["ついに来た！", "Finally here!"]],
+    [["日本…ついに、ついに来た！", "Japan… finally, finally here!"]]
+  ]
+}

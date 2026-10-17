@@ -5,22 +5,23 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
 
-// The story tools: what's worked out from the bundled stories with the real
-// dictionary, written next to them so neither the app nor anyone writing a
-// story has to read every chapter. Not part of the app.
+// The story tools: the app's stories put together from tools/stories, and
+// what's worked out from them with the real dictionary, written next to them
+// so neither the app nor anyone writing a story has to read every chapter.
+// Not part of the app.
 //
 //   ./gradlew -PcoreOnly=true :core:stories
 //
-// writes path.json (tools/stories/build.py), then the index of each chapter's
-// words and grammar (stories/needs.json, which the app reads in place of
-// reading every chapter) and each story's SUMMARY.md. StoryPathTest checks
-// they're up to date. Needs the dictionary built first.
+// writes path.json (StorySource), the index of each chapter's words and
+// grammar (stories/needs.json, which the app reads in place of reading every
+// chapter) and each story's SUMMARY.md. StoryPathTest checks they're up to
+// date. Needs the dictionary built first.
 
-/** Writes the index and summaries for the repository at the one argument. */
+/** Writes the stories, their index and summaries for the repository at the one argument. */
 fun main(args: Array<String>) {
     StoryTools.open(File(args.single())).use { tools ->
         for ((file, text) in tools.outputs()) file.writeText(text)
-        println("Wrote ${tools.needsFile.relativeTo(tools.root)} and ${tools.catalog.series.size} summaries")
+        println("Wrote ${tools.catalog.chapters.size} chapters, their index and ${tools.catalog.series.size} summaries")
     }
 }
 
@@ -54,8 +55,12 @@ class JdbcLexicon(private val conn: Connection) : Lexicon {
 class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
     val lexicon = JdbcLexicon(conn)
     val reader = Reader(lexicon)
-    val catalog = StoryPath.parse(File(root, "app/src/main/assets/stories/path.json").readText())
+    val pathFile = File(root, "app/src/main/assets/stories/path.json")
     val needsFile = File(root, "app/src/main/assets/stories/needs.json")
+
+    /** path.json as tools/stories says it should be. Everything here is worked out from this, not the file. */
+    val pathJson = StorySource.pathJson(root)
+    val catalog = StoryPath.parse(pathJson)
 
     /** Each chapter's needs, read with the app's own reader and lookup. */
     val needs: Map<String, StepNeeds> by lazy {
@@ -160,7 +165,7 @@ class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
 
     /** Every file the tools write, with what goes in it. */
     fun outputs(): Map<File, String> =
-        mapOf(needsFile to StoryPath.writeNeeds(needs)) +
+        mapOf(pathFile to pathJson, needsFile to StoryPath.writeNeeds(needs)) +
             catalog.series.associate { File(root, "tools/stories/series/${it.id}/SUMMARY.md") to summary(it) }
 
     override fun close() = conn.close()

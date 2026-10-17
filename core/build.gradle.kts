@@ -37,15 +37,9 @@ dependencies {
     testImplementation("org.xerial:sqlite-jdbc:3.46.1.3")
 }
 
-val storiesJson by tasks.registering(Exec::class) {
-    description = "Writes the app's stories/path.json from tools/stories."
-    commandLine("python3", rootDir.resolve("tools/stories/build.py"))
-}
-
 tasks.register<JavaExec>("stories") {
     group = "stories"
-    description = "Writes path.json, the stories' index (needs.json) and each story's SUMMARY.md. Needs the dictionary built."
-    dependsOn(storiesJson)
+    description = "Writes the app's stories (path.json) from tools/stories, their index (needs.json) and each story's SUMMARY.md. Needs the dictionary built."
     classpath = stories.runtimeClasspath
     mainClass.set("ca.danielpower.jstudy.core.StoryToolsKt")
     args(rootDir)
@@ -56,6 +50,6 @@ tasks.test {
     // StoryPathTest reads the app's bundled stories, their index and summaries, and, when it's been built, the dictionary.
     inputs.file("../app/src/main/assets/stories/path.json").withPropertyName("stories")
     inputs.file("../app/src/main/assets/stories/needs.json").withPropertyName("storyNeeds")
-    inputs.files(fileTree("../tools/stories") { exclude("**/__pycache__/**") }).withPropertyName("storySources")
+    inputs.files(fileTree("../tools/stories")).withPropertyName("storySources")
     inputs.files(fileTree("../app/src/main/assets/databases") { include("dictionary.db") }).withPropertyName("dictionary")
 }
