@@ -1,5 +1,8 @@
 package ca.danielpower.jstudy.core
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
@@ -14,14 +17,15 @@ import java.sql.ResultSet
 //
 // writes path.json (StorySource), the index of each chapter's words and
 // grammar (stories/needs.json, which the app reads in place of reading every
-// chapter) and each story's SUMMARY.md. StoryPathTest checks they're up to
-// date. Needs the dictionary built first.
+// chapter), each story's SUMMARY.md and what's left of N5 and N4
+// (tools/stories/COVERAGE.md). StoryPathTest checks they're up to date. Needs
+// the dictionary built first.
 
 /** Writes the stories, their index and summaries for the repository at the one argument. */
 fun main(args: Array<String>) {
     StoryTools.open(File(args.single())).use { tools ->
         for ((file, text) in tools.outputs()) file.writeText(text)
-        println("Wrote ${tools.catalog.chapters.size} chapters, their index and ${tools.catalog.series.size} summaries")
+        println("Wrote ${tools.catalog.chapters.size} chapters, their index, ${tools.catalog.series.size} summaries and the coverage report")
     }
 }
 
@@ -44,6 +48,26 @@ class JdbcLexicon(private val conn: Connection) : Lexicon {
             "${getString(1)}/${getString(2)} N${getInt(3)}${if (getInt(4) == 1) " kana" else ""}"
         }.firstOrNull()
     }.orEmpty()
+
+    /** A word on the JLPT lists, as the coverage report shows it. */
+    data class Listed(val id: Long, val label: String, val gloss: String)
+
+    /**
+     * The words at JLPT [level] the reader can count, most frequent first.
+     * Particles and auxiliaries are left out: the reader treats them as grammar.
+     */
+    fun level(level: Int): List<Listed> = query(
+        """SELECT w.id, w.kanji, w.kana, w.usually_kana, s.pos, s.gloss FROM word w JOIN sense s ON s.word_id = w.id AND s.ord = 0
+           WHERE w.jlpt = ? ORDER BY COALESCE(w.freq_rank, 1000000000), w.id""",
+        level.toString(),
+    ) {
+        val kanji = getString(2)
+        val kana = getString(3)
+        val label = if (kanji == null || getInt(4) == 1) kana else "$kanji ($kana)"
+        val pos = Json.parseToJsonElement(getString(5)).jsonArray.map { it.jsonPrimitive.content }
+        val gloss = Json.parseToJsonElement(getString(6)).jsonArray.first().jsonPrimitive.content
+        Listed(getLong(1), label, gloss).takeIf { pos.none { it == "prt" || it.startsWith("aux") || it == "cop" } }
+    }.filterNotNull()
 
     private fun <T> query(sql: String, arg: String, row: ResultSet.() -> T): List<T> =
         conn.prepareStatement(sql).use { st ->
@@ -163,9 +187,60 @@ class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
         appendLine("${last.words.size} words: ${last.words.joinToString(" ") { lemmas[it] ?: it.toString() }}")
     }
 
+    /**
+     * COVERAGE.md: how much of N5 and N4 the stories cover, and what's left,
+     * to pick new words and grammar from. A word counts once a chapter uses
+     * it, and a grammar point once a chapter uses it or teaches its topic.
+     */
+    fun coverage(): String = buildString {
+        val used = needs.values.flatMap { n -> n.words.mapNotNull { it.wordId } }.toSet()
+        val grammar = needs.values.flatMap { it.grammar + it.teaches }.toSet()
+        appendLine("# What's left of N5 and N4")
+        appendLine()
+        appendLine("Written by `./gradlew -PcoreOnly=true :core:stories` from the stories. Don't edit it by hand.")
+        appendLine()
+        appendLine("What the stories cover so far, and what's left to bring in: pick a chapter's new words and grammar from here. A word counts once any chapter uses it, and a grammar point once a chapter uses it or teaches its topic.")
+        val levels = used.groupingBy { lexicon.entry(it)?.jlpt ?: 0 }.eachCount()
+        appendLine()
+        appendLine(
+            "The stories use ${used.size} words: " +
+                listOf(5, 4, 3, 2, 1).filter { it in levels }.joinToString(", ") { "${levels[it]} N$it" } +
+                (levels[0]?.let { ", and $it not on the JLPT lists" }.orEmpty()) + ".",
+        )
+        val points = grammarPoints()
+        for (level in listOf(5, 4)) {
+            val words = lexicon.level(level)
+            val wordsLeft = words.filter { it.id !in used }
+            val pointsAt = points.filter { it.level == level }
+            val pointsLeft = pointsAt.filter { it.id !in grammar }
+            appendLine()
+            appendLine("## N$level")
+            appendLine()
+            appendLine("- Grammar: ${pointsAt.size - pointsLeft.size} of ${pointsAt.size} points.")
+            appendLine("- Words: ${words.size - wordsLeft.size} of ${words.size}.")
+            appendLine()
+            appendLine("### Grammar left")
+            appendLine()
+            appendLine("A chapter can only use a point once a topic in grammar.json has it; the ones in a topic already name it.")
+            appendLine()
+            for (p in pointsLeft) {
+                val topic = catalog.topicOf(p.id)?.let { " (topic `${it.id}`)" }.orEmpty()
+                appendLine("- `${p.id}` ${p.pattern}: ${p.meaning}$topic")
+            }
+            appendLine()
+            appendLine("### Words left")
+            appendLine()
+            appendLine("Most common first, with their first meaning.")
+            for ((i, chunk) in wordsLeft.chunked(50).withIndex()) {
+                appendLine()
+                appendLine("${i * 50 + 1}–${i * 50 + chunk.size}: " + chunk.joinToString(" · ") { "${it.label} ${it.gloss}" })
+            }
+        }
+    }
+
     /** Every file the tools write, with what goes in it. */
     fun outputs(): Map<File, String> =
-        mapOf(pathFile to pathJson, needsFile to StoryPath.writeNeeds(needs)) +
+        mapOf(pathFile to pathJson, needsFile to StoryPath.writeNeeds(needs), File(root, "tools/stories/COVERAGE.md") to coverage()) +
             catalog.series.associate { File(root, "tools/stories/series/${it.id}/SUMMARY.md") to summary(it) }
 
     override fun close() = conn.close()

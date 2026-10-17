@@ -14,6 +14,7 @@ tools (core `src/stories`).
 | `series/<id>/story.json` | A story's `title`, `blurb`, the stories it follows (`after`: story ids, or a chapter id such as `share-house/yukis-gig` to mean the story up to that chapter), `side` for a side story, and `chapters`: its chapters' slugs in reading order. |
 | `series/<id>/<slug>.json` | One chapter each, named by its slug (lowercase words joined by hyphens, usually from its title: `trash-day.json`): `title`, a one-line `plot`, optional `topic` (one grammar topic it teaches) and `meets` (people it introduces, `{"name", "about"}`), and `paragraphs`, each a list of `[Japanese sentence, English]`, or a note (`{"note": "English…"}`) between two of them. Its id is the story's id and its slug (`share-house/trash-day`), which saved progress uses. To add or move a chapter, add its file and put its slug where it goes in `chapters`; never rename a slug or delete a chapter people may have read. |
 | `series/<id>/SUMMARY.md` | Written by the tools, never by hand: the cast so far, each chapter's plot, words and new words, and every word and grammar topic known by the end. |
+| `COVERAGE.md` | Written by the tools: how much of N5 and N4 the stories cover, and the grammar points and words left, most common first. |
 
 ## Conventions
 
@@ -36,7 +37,8 @@ tools (core `src/stories`).
 To continue a story you don't need the others: read its `SUMMARY.md`, its
 last chapter or two, and the conventions above. The summary's "Known at
 the end" is what a reader has by then. Use those words freely and bring
-back ones met only once or twice.
+back ones met only once or twice. Pick new words from `COVERAGE.md`, most
+common first, so the stories work through N5 and then N4.
 
 A chapter's new words must fit its allowance (3% of its running words, from
 3 to 10), it may teach one grammar topic (and should usually teach none,
@@ -48,8 +50,13 @@ Then run, with the dictionary built (`python3 tools/dictionary/build_dictionary.
     ./gradlew -PcoreOnly=true :core:stories :core:test
 
 `:core:stories` puts path.json together, reads every chapter with the app's
-reader and dictionary lookup, and writes `needs.json` and each `SUMMARY.md`.
-`StoryPathTest` checks the rules above, that the solver reaches every
-chapter, and that path.json, needs.json and the summaries are up to date;
-its report (`core/build/reports/story-path.txt`) lists each chapter's new
-words. Commit all of them with the chapter.
+reader and dictionary lookup, and writes `needs.json`, each `SUMMARY.md` and
+`COVERAGE.md`. `StoryPathTest` checks the rules above, that the solver
+reaches every chapter, and that all of those files are up to date; its
+report (`core/build/reports/story-path.txt`) lists each chapter's new words.
+Commit all of them with the chapter.
+
+Those files are worked out from every story, so two branches that each
+change a story both change them, and conflict when the second is merged or
+rebased. Never resolve them by hand: take either side, rerun
+`:core:stories`, and commit what it writes.

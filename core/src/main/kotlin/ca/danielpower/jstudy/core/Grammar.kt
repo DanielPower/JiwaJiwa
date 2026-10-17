@@ -860,3 +860,6 @@ internal object Grammar {
 
 /** The grammar point with [id], such as "wa" for the particle は. */
 fun grammarPoint(id: String): GrammarPoint? = Grammar.points.firstOrNull { it.id == id }
+
+/** Every grammar point the reader knows, in the order they're defined. */
+fun grammarPoints(): List<GrammarPoint> = Grammar.points

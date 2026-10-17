@@ -266,8 +266,11 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   `side` story has nothing new at all; and
   `StoryPath.solve` reaches every chapter from knowing nothing.
   Readiness only grows as you learn, so no reading order can get
-  stuck. It also checks path.json, needs.json and the summaries are up to
-  date. After editing a story, run `./gradlew -PcoreOnly=true :core:stories :core:test`.
+  stuck. It also checks path.json, needs.json, the summaries and
+  `tools/stories/COVERAGE.md` are up to date. After editing a story, run
+  `./gradlew -PcoreOnly=true :core:stories :core:test`; when those files
+  conflict in a merge or rebase, rerun `:core:stories` rather than resolving
+  them by hand.
 - Words: **seen** (has a card, mastery below 40), **known** (40, where
   furigana hides), **mastered** (70).
 - Opening a chapter shows its new grammar's page, then the chapter. New words aren't listed up front:
