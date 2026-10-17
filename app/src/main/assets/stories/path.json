@@ -443,7 +443,7 @@
      "id": "share-house/game-night",
      "title": "Game night",
      "plot": "Game night in Kenta's messy room lasts until morning.",
-     "body": "ケンタの部屋。ゴミが多い。ゲームも多い。\n\nケンタ|「アレックス、これやる？」\n\nアレックス|「やる！」\n\nアレックス|「…負けた。」\n\nアレックス|「もう一度！」\n\nアレックス|「…負けた！」\n\nケンタ|「もう一度？」\n\nアレックス|「もう一度！」\n\n朝までゲームだった。",
+     "body": "ケンタの部屋。ゴミが多い。ゲームも多い。\n\nケンタ|「アレックス、これやる？」\n\nアレックス|「やる！」\n\nアレックス|「…負けた。」\n\nアレックス|「もう一回！」\n\nアレックス|「…負けた！」\n\nケンタ|「もう一回？」\n\nアレックス|「もう一回！」\n\n朝までゲームだった。",
      "translations": [
       "Kenta's room, that night.",
       "There's a lot of trash.",
@@ -991,7 +991,7 @@
      "id": "kentas-side/kentas-side",
      "title": "Kenta's side",
      "plot": "Kenta's view of his life and his first game night with Alex.",
-     "body": "ゲームは好き。\n\n朝は眠い。今日も眠い。\n\nユキのコーヒーは好き。\n\n部屋はゴミが多い。でも、ゲームも多い。\n\n今夜もゲームだ。\n\nアレックスが来た。\n\nケンタ|「これ、やる？」\n\nアレックス|「やる！」\n\nアレックスが負けた。\n\nケンタ|「…もう一度？」\n\nアレックス|「もう一度！」\n\n朝までゲームだった。\n\n「おはよう…」\n\n「眠い…」",
+     "body": "ゲームは好き。\n\n朝は眠い。今日も眠い。\n\nユキのコーヒーは好き。\n\n部屋はゴミが多い。でも、ゲームも多い。\n\n今夜もゲームだ。\n\nアレックスが来た。\n\nケンタ|「これ、やる？」\n\nアレックス|「やる！」\n\nアレックスが負けた。\n\nケンタ|「…もう一回？」\n\nアレックス|「もう一回！」\n\n朝までゲームだった。\n\n「おはよう…」\n\n「眠い…」",
      "translations": [
       "I like games.",
       "Mornings, I'm sleepy.",

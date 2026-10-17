@@ -20,7 +20,7 @@ jmdict_seq,field,value
 #
 # Basic words the JLPT list leaves out or files too high, usually because it
 # lists their polite form or set phrase instead (ありがとうございます,
-# お願いします, お母さん). Each is taught in the first stories.
+# お願いします, お母さん, ～回). Each is taught in the first stories.
 1586820,jlpt,5
 1295060,jlpt,5
 1612820,jlpt,5
@@ -29,3 +29,4 @@ jmdict_seq,field,value
 1611580,jlpt,5
 1514990,jlpt,5
 1217700,jlpt,4
+1161310,jlpt,5
