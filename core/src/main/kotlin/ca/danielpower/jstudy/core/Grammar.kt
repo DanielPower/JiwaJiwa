@@ -595,11 +595,12 @@ internal object Grammar {
         )
         point(
             "te-wa-ikenai", "～てはいけない", 5, "must not",
-            "Says something isn't allowed. In speech it often shrinks to ～ちゃいけない or ～じゃいけない.",
+            "Says something isn't allowed. In speech it often shrinks to ～ちゃいけない or ～じゃいけない, and among friends to ～ちゃだめ.",
             "ここで泳いではいけません。", "You must not swim here.",
             listOf(te, particle("は"), dependentVerb("いける", "なる")),
             listOf(particle("ちゃ", "じゃ", pos2 = "接続助詞"), dependentVerb("いける", "なる")),
             listOf(te, particle("は"), base("だめ", "駄目")),
+            listOf(particle("ちゃ", "じゃ", pos2 = "接続助詞"), base("だめ", "駄目")),
         )
         point(
             "te-kara", "～てから", 5, "after doing",

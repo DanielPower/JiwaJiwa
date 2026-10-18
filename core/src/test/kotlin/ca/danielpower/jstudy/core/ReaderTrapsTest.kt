@@ -48,6 +48,7 @@ class ReaderTrapsTest {
         Case("行ったことはない。", "は", "は", "は", null, "ta-koto-ga-aru"),
         Case("大きすぎ！", "すぎ", "すぎる", "すぎ", null, "sugiru"),
         Case("練習しすぎ。", "すぎ", "すぎる", "すぎ", null, "sugiru"),
+        Case("部屋に入っちゃだめだよ。", "ちゃ", "ちゃ", "ちゃ", null, "te-wa-ikenai"),
         Case("静かに歩いた。", "に", "に", "に", null, "ku-adverb"),
         Case("楽しそうに歌った。", "に", "に", "に", null, "ku-adverb"),
         Case("ソラの笑う声。", "の", "の", "の", null, "no"),

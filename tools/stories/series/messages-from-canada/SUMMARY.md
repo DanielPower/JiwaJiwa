@@ -35,7 +35,7 @@ Back in Canada, Alex wakes to the first snow and sends a photo to the share hous
 
 Alex's new job is at a ramen shop in Canada; Yuki is at the manager's shop that night and shows him the photos, and the manager has questions about the eggs.
 
-- 122 words; 3 new of 3 allowed.
+- 121 words; 3 new of 3 allowed.
 - New: お客さん (おきゃくさん, not JLPT), 働く (はたらく, N5), 教える (おしえる, N5).
 
 ### 3. The weekend (`messages-from-canada/the-weekend`)
