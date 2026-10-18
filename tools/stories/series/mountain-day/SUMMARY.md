@@ -40,7 +40,7 @@ In the mountains it's finally cool; Daichi tires first on the climb, his ice cre
 
 Caught in the rain, they shelter in a little shop on the mountain where the owner gives them hot coffee; Rin plays for her, the rain stops, and on the way home Rin says she wants to come back.
 
-- 116 words; 0 new of 3 allowed.
+- 115 words; 0 new of 3 allowed.
 
 ## Known at the end
 

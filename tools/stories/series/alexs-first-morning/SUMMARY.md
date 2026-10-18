@@ -30,7 +30,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Alex wakes up on Kenta's floor the morning after the show, drinks Yuki's coffee again, Kenta thinks he dreamed him, and everyone wants a different day out.
 
-- 123 words; 0 new of 3 allowed.
+- 122 words; 0 new of 3 allowed.
 
 ## Known at the end
 

@@ -26,7 +26,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Sora is too polite to tell Yuki he doesn't drink coffee, so Kenta quietly drinks it for him, and Yuki decides Sora loves it.
 
-- 39 words; 0 new of 3 allowed.
+- 38 words; 0 new of 3 allowed.
 
 ## Known at the end
 

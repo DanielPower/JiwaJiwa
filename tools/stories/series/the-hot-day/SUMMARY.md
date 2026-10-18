@@ -26,7 +26,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Sora from Hokkaido wilts in his first real Tokyo summer day: he turns down Yuki's hot coffee, hides in the cold konbini, is dragged to hot ramen by Kenta, and ends the night in the park, deciding he might like Tokyo summers.
 
-- 190 words; 0 new of 5 allowed.
+- 189 words; 0 new of 5 allowed.
 
 ## Known at the end
 

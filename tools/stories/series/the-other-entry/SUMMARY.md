@@ -28,7 +28,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 A young man reads the contest in the new magazine at Miho's shop every day without buying it; Sora and Miho try to guess who he is, until he leaves his notebook behind and turns out to be entering too.
 
-- 259 words; 0 new of 7 allowed.
+- 262 words; 0 new of 7 allowed.
 
 ## Known at the end
 

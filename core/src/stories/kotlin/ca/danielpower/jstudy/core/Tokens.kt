@@ -37,8 +37,10 @@ internal object Tokens {
         // 方 after あの, この, その or どの is a person (あの方), not ～のほう.
         t.surface == "方" && prev?.pos == "連体詞" && prev.base in setOf("あの", "この", "その", "どの") ->
             t.copy(pos2 = "一般", pos3 = "*", reading = "かた")
-        // いい standing alone (すごい！いい！) is "good", not the stem of 言う.
-        t.surface == "いい" && t.base == "いう" && (prev == null || prev.pos == "記号") && (next == null || next.pos == "記号" || next.pos2 == "終助詞") ->
+        // いい standing alone (すごい！いい！) is "good", not the stem of 言う, and so is いい before です (はい！いいですよ！):
+        // a verb's stem never takes です.
+        t.surface == "いい" && t.base == "いう" &&
+            (((prev == null || prev.pos == "記号") && (next == null || next.pos == "記号" || next.pos2 == "終助詞")) || next?.base == "です") ->
             Morpheme("いい", "形容詞", "自立", "*", "基本形", "形容詞・イイ", "いい", "いい")
         // よし standing alone (よし、行こう！) is "all right!", not old-fashioned よい.
         t.surface == "よし" && t.pos == "形容詞" && (prev == null || prev.pos == "記号") && (next == null || next.pos == "記号") ->

@@ -25,7 +25,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 A summer shift where every customer wants water; then Yuki and Kenta come in for ramen anyway.
 
-- 55 words; 0 new of 3 allowed.
+- 54 words; 0 new of 3 allowed.
 
 ## Known at the end
 

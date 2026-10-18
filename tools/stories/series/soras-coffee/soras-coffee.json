@@ -11,8 +11,8 @@
     [["ケンタ|「ソラ、コーヒー、好き？」", "\"Sora, do you like coffee?\""], ["ソラ|「えーと…あのー…」", "\"Um… well…\""]],
     [["ケンタ|「…飲まないの？」", "\"…You're not drinking it?\""], ["ソラ|「コーヒーは、ちょっと…」", "\"Coffee's a bit… you know…\""]],
     [["ケンタ|「じゃあ、俺が飲む。」", "\"Then I'll drink it.\""], ["ケンタさんが、飲んだ。", "Kenta drank it."]],
-    [["ユキさんが来た。", "Yuki came back."], ["ユキ|「ソラ、もう飲んだ？もう一回？」", "\"Sora, finished already? Another?\""]],
-    [["ソラ|「えーと…」", "\"Um…\""], ["ケンタ|「…うん、もう一回。」", "\"…Yeah, another.\""]],
+    [["ユキさんが来た。", "Yuki came back."], ["ユキ|「ソラ、もう飲んだ？また飲む？」", "\"Sora, finished already? Another?\""]],
+    [["ソラ|「えーと…」", "\"Um…\""], ["ケンタ|「…うん、飲む。」", "\"…Yeah, another.\""]],
     [["ユキ|「ソラ、コーヒー、好きなんだね！」", "\"Sora, you really like coffee!\""], ["ソラ|「…はい。」", "\"…Yes.\""]]
   ]
 }

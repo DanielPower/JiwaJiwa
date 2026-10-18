@@ -27,7 +27,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 On his day off, Yuki and Sora drag Kenta to buy a new suit; the first is too expensive, the next one looks right, Yuki gets her photo, and by night the new suit is in with the trash.
 
-- 84 words; 0 new of 3 allowed.
+- 85 words; 0 new of 3 allowed.
 
 ## Known at the end
 

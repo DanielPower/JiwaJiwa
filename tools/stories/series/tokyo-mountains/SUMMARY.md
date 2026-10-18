@@ -20,7 +20,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Outside the station, Alex spots a tall mountain, and it turns out to be a building.
 
-- 22 words; 0 new of 3 allowed.
+- 21 words; 0 new of 3 allowed.
 
 ## Known at the end
 

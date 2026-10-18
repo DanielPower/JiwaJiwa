@@ -27,7 +27,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Kenta packs a huge konbini lunch to match Tanaka-san's; Yuki takes the beer, and at the office he and Tanaka-san trade food, and this time he may touch her lunch.
 
-- 81 words; 0 new of 3 allowed.
+- 80 words; 0 new of 3 allowed.
 
 ## Known at the end
 
