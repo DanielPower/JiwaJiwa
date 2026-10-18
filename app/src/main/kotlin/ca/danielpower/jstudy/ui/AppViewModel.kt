@@ -26,6 +26,11 @@ import ca.danielpower.jstudy.data.KanjiDetail
 import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderPlace
 import ca.danielpower.jstudy.data.ReaderStyle
+import ca.danielpower.jstudy.data.SpeechSettings
+import ca.danielpower.jstudy.audio.SpokenLine
+import ca.danielpower.jstudy.audio.StoryVoice
+import ca.danielpower.jstudy.core.SpokenVoice
+import ca.danielpower.jstudy.core.Voices
 import ca.danielpower.jstudy.data.Reminder
 import ca.danielpower.jstudy.data.Stats
 import ca.danielpower.jstudy.reminder.DailyReminder
@@ -236,6 +241,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _due = MutableStateFlow(0)
     val due: StateFlow<Int> = _due.asStateFlow()
 
+    /** How stories are read aloud. */
+    private val _speech = MutableStateFlow(SpeechSettings())
+    val speech: StateFlow<SpeechSettings> = _speech.asStateFlow()
+
+    // The phone's speech engine, started the first time something is read aloud or a reader opens.
+    private var voiceEngine: StoryVoice? = null
+    private val voice: StoryVoice get() = voiceEngine ?: StoryVoice(getApplication()).also { voiceEngine = it }
+    val voiceState: StateFlow<StoryVoice.State> get() = voice.state
+
     private lateinit var repo: Repository
     private var session: StudySession? = null
     // The grammar topic read before the open chapter, for its end page.
@@ -272,6 +286,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     init {
         launchIo {
             repo = Repository(getApplication())
+            _speech.value = repo.speechSettings()
             DailyReminder.schedule(getApplication(), repo.reminder())
             if (repo.needsSetup()) {
                 _screen.value = Screen.Setup(repo.levelCounts(), reminderMinute = null)
@@ -813,6 +828,62 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** A word tapped in the open story: you looked it up, so reading it doesn't count as recalling it. */
     fun lookedUp(wordId: Long) {
         lookedUpWords += wordId
+    }
+
+    // ------------------------------------------------------------ reading aloud
+
+    /** The open story read aloud from line [from] of its narration: each of the cast in their own voice, the rest in the narrator's. */
+    fun play(from: Int) {
+        val state = _screen.value as? Screen.StoryReader ?: return
+        val reading = state.reading
+        val settings = _speech.value
+        val cast = repo.castVoices()
+        voice.play(reading.story.id, from, settings.rate) { voices ->
+            val narrator = Voices.narrator(voices, settings.narrator)
+            val named = cast.map { it.first }.toSet()
+            val others = reading.speakers.filterNotNull().distinct().filter { it !in named }.map { it to Voices.forLabel(it) }
+            val speakers = Voices.assign(voices, narrator.name, cast + others)
+            reading.narration.map { SpokenLine(it.text, it.speaker?.let(speakers::get) ?: narrator) }
+        }
+    }
+
+    fun pausePlayback() = voice.pause()
+
+    /** Leaving the reader stops it reading. */
+    fun stopPlayback() {
+        voiceEngine?.stop()
+    }
+
+    /** A new page, while not reading: the next play starts from it, not where reading last stopped. */
+    fun forgetPlaybackPlace() {
+        voiceEngine?.forgetPlace()
+    }
+
+    fun setSpeechRate(rate: Float) {
+        setSpeech(_speech.value.copy(rate = rate))
+        // Carries on at the new speed from the line it's on.
+        val state = voice.state.value
+        if (state.playing) state.line?.let(::play)
+    }
+
+    /** A narrator's voice chosen in the reader: it says something, so you can hear it. */
+    fun setNarrator(name: String) {
+        setSpeech(_speech.value.copy(narrator = name))
+        voice.say("おはようございます。", _speech.value.rate) { SpokenVoice(name, 1f) }
+    }
+
+    private fun setSpeech(settings: SpeechSettings) {
+        _speech.value = settings
+        launchIo { repo.setSpeechSettings(settings) }
+    }
+
+    /** A word's speaker button: its reading, in the narrator's voice. */
+    fun sayWord(kana: String) {
+        voice.say(kana, _speech.value.rate) { voices -> Voices.narrator(voices, _speech.value.narrator) }
+    }
+
+    override fun onCleared() {
+        voiceEngine?.shutdown()
     }
 
     private fun refreshStory() {

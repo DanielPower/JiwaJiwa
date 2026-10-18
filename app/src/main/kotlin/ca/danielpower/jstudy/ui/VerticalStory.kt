@@ -99,6 +99,9 @@ fun VerticalStory(
     family: FontFamily,
     selected: Pair<Int, Int>?,
     lit: Set<Pair<Int, Int>>,
+    washed: Set<Pair<Int, Int>>,
+    spoken: Pair<Int, Int>?,
+    follow: Pair<Int, Int>?,
     onTap: (p: Int, i: Int) -> Unit,
     onHold: (p: Int, i: Int) -> Unit,
     openNote: Int?,
@@ -106,7 +109,7 @@ fun VerticalStory(
     onBlank: () -> Unit,
     onFinish: () -> Unit,
     startPage: Int,
-    onPageShown: (Int) -> Unit,
+    onPageShown: (page: Int, first: Pair<Int, Int>?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pieces = remember(reading) { pieces(reading) }
@@ -153,7 +156,8 @@ fun VerticalStory(
         val rubyDp = with(density) { rubyCell.toDp() }
         val ink = LocalContentColor.current
         val seal = MaterialTheme.colorScheme.primary
-        val highlight = seal.copy(alpha = 0.14f)
+        val highlight = seal.copy(alpha = HIGHLIGHT)
+        val wash = seal.copy(alpha = WASH)
         val nameColor = speakerColor()
         val nameCell = cell * NAME_RATIO
         val nameCellDp = with(density) { nameCell.toDp() }
@@ -165,7 +169,12 @@ fun VerticalStory(
         val stampPage = stampX == null || stampX < 0f
         val count = pages.size + if (stampPage) 1 else 0
 
-        StoryPager(count, reverse = true, startPage, onPageShown) { page ->
+        // The page with the word being read aloud, to turn to.
+        val followPage = follow?.let { (p, i) -> pages.indexOfFirst { page -> page.any { pieces[it].p == p && pieces[it].i == i } } }?.takeIf { it >= 0 }
+        val shown = { page: Int ->
+            onPageShown(page, pages.getOrNull(page)?.firstOrNull { !pieces[it].note }?.let { pieces[it].p to pieces[it].i })
+        }
+        StoryPager(count, reverse = true, startPage, shown, followPage) { page ->
             val onPage = pages.getOrNull(page).orEmpty()
             // Speakers whose lines start on this page, by the piece their line starts with.
             val names = onPage.filter { pieces[it].paragraphStart && reading.speakers.getOrNull(pieces[it].p) != null }
@@ -200,7 +209,12 @@ fun VerticalStory(
                             rubyCell = rubyDp,
                             color = if (unknown || isSelected) seal else ink,
                             sideline = unknown,
-                            background = if (isSelected || (piece.p to piece.i) in lit) highlight else Color.Transparent,
+                            spoken = spoken == (piece.p to piece.i),
+                            background = when {
+                                isSelected || (piece.p to piece.i) in lit -> highlight
+                                (piece.p to piece.i) in washed -> wash
+                                else -> Color.Transparent
+                            },
                             gestures = Modifier.storyWordGestures(
                                 onTap = { if (word.tappable()) onTap(piece.p, piece.i) else onBlank() },
                                 onHold = { onHold(piece.p, piece.i) },
@@ -264,10 +278,19 @@ private fun PieceView(
     rubyCell: Dp,
     color: Color,
     sideline: Boolean,
+    spoken: Boolean,
     background: Color,
     gestures: Modifier,
 ) {
     var modifier = Modifier.background(background).then(gestures)
+    if (spoken) {
+        // The word being read aloud: a heavier line down its left side.
+        val seal = MaterialTheme.colorScheme.primary
+        modifier = modifier.drawBehind {
+            val x = 1.dp.toPx()
+            drawLine(seal, Offset(x, 0f), Offset(x, size.height), strokeWidth = 2.5.dp.toPx())
+        }
+    }
     if (sideline) {
         // New words get a line down their left side, where underlines go in vertical text.
         modifier = modifier.drawBehind {

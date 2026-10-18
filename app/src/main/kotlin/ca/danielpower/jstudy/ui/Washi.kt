@@ -284,7 +284,9 @@ fun WashiNavBar(current: Tab, badges: Map<Tab, Int> = emptyMap(), onSelect: (Tab
 
 /** Line icons drawn on a 24 unit grid, tinted by whoever shows them. */
 object WashiIcons {
-    private fun icon(name: String, vararg paths: String): ImageVector {
+    private fun icon(name: String, vararg paths: String): ImageVector = icon(name, filled = false, *paths)
+
+    private fun icon(name: String, filled: Boolean, vararg paths: String): ImageVector {
         val builder = ImageVector.Builder(
             name = name,
             defaultWidth = 24.dp,
@@ -295,7 +297,7 @@ object WashiIcons {
         for (path in paths) {
             builder.addPath(
                 pathData = addPathNodes(path),
-                fill = null,
+                fill = if (filled) SolidColor(Color.Black) else null,
                 stroke = SolidColor(Color.Black),
                 strokeLineWidth = 1.8f,
                 strokeLineCap = StrokeCap.Round,
@@ -321,5 +323,9 @@ object WashiIcons {
     val Lock = icon("lock", "M7 11V8a5 5 0 0 1 10 0v3", "M5 11h14v10H5z")
     val Back = icon("back", "M15 5l-7 7 7 7")
     val Next = icon("next", "M9 5l7 7-7 7")
+    val Sound = icon("sound", "M4 9h4l5-4v14l-5-4H4z", "M16.5 8.5a5 5 0 0 1 0 7", "M19 6a8.5 8.5 0 0 1 0 12")
+    val Play = icon("play", filled = true, "M8 5l11 7-11 7z")
+    val Pause = icon("pause", filled = true, "M7 5h3v14H7z", "M14 5h3v14h-3z")
+    val Voice = icon("voice", "M8.5 8a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0 -7 0", "M5 20a7 7 0 0 1 14 0")
     val Undo = icon("undo", "M9 14L4 9l5-5", "M4 9h10a6 6 0 0 1 0 12h-3")
 }

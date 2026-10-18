@@ -269,7 +269,9 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-                    Box(Modifier.weight(1f)) { WordFace(word, showFurigana = true) }
+                    Box(Modifier.weight(1f, fill = false)) { WordFace(word, showFurigana = true) }
+                    SayButton(Modifier.padding(start = 8.dp, bottom = 14.dp)) { vm.sayWord(word.kana) }
+                    Spacer(Modifier.weight(1f))
                     LevelSeal(levelLabel(word.jlpt), Modifier.padding(start = 12.dp, bottom = 12.dp))
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface)

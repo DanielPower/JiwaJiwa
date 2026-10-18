@@ -1,7 +1,7 @@
 {
   "title": "A call from home",
   "plot": "Alex's mom calls from Canada; he tells her about friends and work.",
-  "meets": [{"name": "母", "about": "Alex's mom, back in Canada"}],
+  "meets": [{"name": "母", "about": "Alex's mom, back in Canada", "voice": "woman", "pitch": 0.9}],
   "paragraphs": [
     [["今夜、電話が来た。", "Tonight I got a phone call."], ["カナダの母だ。", "It's my mom, in Canada."]],
     {"note": "母 (はは) is how you speak of your own mother to others. Talking to her, or about someone else's mother, it's お母さん (おかあさん). Family words often come in pairs like this."},

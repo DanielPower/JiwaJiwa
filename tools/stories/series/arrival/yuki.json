@@ -1,7 +1,7 @@
 {
   "title": "Yuki",
   "plot": "Alex meets Yuki, his housemate, and gushes about Tokyo.",
-  "meets": [{"name": "ユキ", "about": "lives in the share house, makes coffee, plays bass"}],
+  "meets": [{"name": "ユキ", "about": "lives in the share house, makes coffee, plays bass", "voice": "woman"}],
   "paragraphs": [
     [["ユキ|「ユキだよ。よろしくね。」", "\"I'm Yuki. Nice to meet you.\""], ["アレックス|「よろしく！」", "\"Nice to meet you!\""]],
     {"note": "よろしく has no neat English match. Said on meeting someone, it asks them to treat you well from here on, like \"nice to meet you\" and \"I'm counting on you\" at once. It's also said when asking a favour."},

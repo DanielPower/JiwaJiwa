@@ -2,7 +2,7 @@
   "title": "The manager",
   "plot": "The manager offers Alex a part-time job, and he jumps at it.",
   "topic": "masu",
-  "meets": [{"name": "店長", "about": "runs the ramen shop, needs help"}],
+  "meets": [{"name": "店長", "about": "runs the ramen shop, needs help", "voice": "man", "pitch": 0.88}],
   "paragraphs": [
     [["店長が来た。", "The manager came over."]],
     [["店長|「ラーメン、うまいですか？」", "\"How's the ramen?\""], ["アレックス|「うまい！」", "\"Great!\""]],

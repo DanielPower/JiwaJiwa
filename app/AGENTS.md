@@ -18,6 +18,7 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 | `data/ProgressStore.kt` | The user's SQLite DB (`progress.db`): cards, word progress, review log, a `kv` settings table, stories. |
 | `data/Dictionary.kt` | The read-only dictionary DB, copied from assets on install or update. |
 | `data/RenshuuClient.kt` | Renshuu API client (`/list/all/vocab`, 50 per page). |
+| `audio/StoryVoice.kt` | The phone's text-to-speech, reading a story a line at a time in each speaker's voice. Which voice each speaker gets is core `Voices`; the lines are core `Narration`. |
 | `reminder/DailyReminder.kt` | Inexact daily alarm and notification. |
 
 ## Storage

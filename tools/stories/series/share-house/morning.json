@@ -1,7 +1,7 @@
 {
   "title": "Morning",
   "plot": "Alex meets Kenta, the sleepy housemate, one morning.",
-  "meets": [{"name": "ケンタ", "about": "the room next door, games all night"}],
+  "meets": [{"name": "ケンタ", "about": "the room next door, games all night", "voice": "man", "pitch": 1.08}],
   "paragraphs": [
     [["朝だ。", "It's morning."], ["外はきれいだ。", "It's nice out."]],
     [["アレックス|「おはよう！」", "\"Morning!\""], ["ケンタ|「…おはよう。」", "\"…Morning.\""]],

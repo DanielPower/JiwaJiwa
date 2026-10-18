@@ -1,5 +1,6 @@
 package ca.danielpower.jstudy.ui
 
+import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -7,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -45,21 +47,27 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.LinkAnnotation
@@ -84,6 +92,9 @@ import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.GrammarPoint
 import ca.danielpower.jstudy.core.HorizontalText
 import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.Narration
+import ca.danielpower.jstudy.core.PhoneVoice
+import ca.danielpower.jstudy.core.Voices
 import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.ReadingWord
@@ -95,6 +106,7 @@ import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderFont
 import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.SeriesEntry
+import ca.danielpower.jstudy.data.SpeechSettings
 import ca.danielpower.jstudy.data.StoryReading
 import ca.danielpower.jstudy.data.Word
 import ca.danielpower.jstudy.data.levelLabel
@@ -550,6 +562,18 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     var open by remember(reading.story.id) { mutableStateOf<Opened?>(null) }
     // Or a chapter's note, by the paragraph whose marker opened it.
     var note by remember(reading.story.id) { mutableStateOf<Int?>(null) }
+    // Or the reading-aloud speed and voice, from the playback bar.
+    var audio by remember { mutableStateOf(false) }
+    val voice by vm.voiceState.collectAsState()
+    val speech by vm.speech.collectAsState()
+    // The line being read aloud, or the one reading stopped at, in this story.
+    val lineIndex = voice.line?.takeIf { voice.key == reading.story.id }
+    val line = lineIndex?.let { reading.narration.getOrNull(it) }
+    val playing = voice.playing && line != null
+    val spoken = line?.let { l -> voice.offset?.let { l.p to l.wordAt(it) } }
+    // The first word on the page showing, where reading starts with nothing else to start from.
+    var pageFirst by remember(reading.story.id) { mutableStateOf<Pair<Int, Int>?>(null) }
+    DisposableEffect(reading.story.id) { onDispose { vm.stopPlayback() } }
     val openWord = open?.let { reading.word(it.p, it.i) }
     val openSentence = open?.takeIf { it.sentence }?.let { reading.sentence(it.p, it.i) }
     // Shaded along with the open word: the rest of its grammar patterns, or the whole sentence.
@@ -562,15 +586,25 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         indices.map { o.p to it }.toSet()
     }.orEmpty()
     val selected = open?.takeIf { !it.sentence }?.key
+    // Washed lightly: the sentence being read aloud, or else the tapped word's, where reading would start.
+    val washed = when {
+        line != null -> line.words.map { line.p to it }.toSet()
+        selected != null -> reading.sentence(selected.first, selected.second)?.words?.map { selected.first to it }?.toSet().orEmpty()
+        else -> emptySet()
+    }
     val close = {
         open = null
         note = null
         menu = false
+        audio = false
     }
     val tap = { key: Pair<Int, Int> ->
         menu = false
         note = null
+        audio = false
         open = if (selected == key) null else Opened(key.first, key.second, sentence = false)
+        // While reading aloud, a tapped word's sentence is where it carries on: how you go back.
+        if (playing) Narration.lineOf(reading.narration, key.first, key.second)?.let(vm::play)
         // Looking a word up means reading it doesn't count towards its mastery.
         val id = reading.word(key.first, key.second)?.takeIf { it.kind == WordKind.WORD }?.wordId
         if (id != null) vm.lookedUp(id)
@@ -578,17 +612,44 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val hold = { key: Pair<Int, Int> ->
         menu = false
         note = null
+        audio = false
         open = Opened(key.first, key.second, sentence = true)
     }
     val tapNote = { p: Int ->
         menu = false
+        audio = false
         open = null
         note = if (note == p) null else p
     }
-    BackHandler(enabled = open != null || note != null || menu, onBack = close)
+    val togglePlay = {
+        if (playing) {
+            vm.pausePlayback()
+        } else if (voice.missing) {
+            open = null
+            note = null
+            menu = false
+            audio = true
+        } else {
+            // From the tapped word's sentence, else where reading stopped, else the page's first.
+            val start = selected?.let { Narration.lineOf(reading.narration, it.first, it.second) }
+                ?: lineIndex
+                ?: pageFirst?.let { Narration.lineOf(reading.narration, it.first, it.second) }
+                ?: 0
+            vm.play(start)
+        }
+        Unit
+    }
+    val pageShown = { page: Int, first: Pair<Int, Int>? ->
+        vm.readerAt(page)
+        pageFirst = first
+        // Turned by hand while stopped: play starts from the new page.
+        if (!voice.playing) vm.forgetPlaybackPlace()
+    }
+    val anyOpen = open != null || note != null || menu || audio
+    BackHandler(enabled = anyOpen, onBack = close)
 
     // A tap in the story that isn't on a word clears the pane.
-    val tapToClear = if (open != null || note != null || menu) Modifier.pointerInput(Unit) { detectTapGestures { close() } } else Modifier
+    val tapToClear = if (anyOpen) Modifier.pointerInput(Unit) { detectTapGestures { close() } } else Modifier
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::storyBackPressed)
@@ -600,6 +661,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 WashiIconButton(WashiIcons.Settings, "Reader settings", {
                     open = null
                     note = null
+                    audio = false
                     menu = !menu
                 })
             }
@@ -610,6 +672,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             val n = note?.let { reading.notes[it] }
             when {
                 menu -> ReaderMenu(style, vm::setReaderStyle)
+                audio -> AudioMenu(speech, voice.voices, voice.missing, vm::setSpeechRate, vm::setNarrator)
                 n != null -> NoteCard(n)
                 o == null -> Text(
                     "Tap a word to see what it means. Hold one to read its sentence in English.",
@@ -627,6 +690,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                         forgotten = state.forgotten,
                         onForgot = vm::toggleForgot,
                         onLesson = vm::openGrammar,
+                        onSay = vm::sayWord,
                     )
                 }
             }
@@ -646,6 +710,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     family = style.font.family,
                     selected = selected,
                     lit = lit,
+                    washed = washed,
+                    spoken = spoken,
                     onTap = tap,
                     onHold = hold,
                     onBlank = close,
@@ -659,6 +725,9 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     family = style.font.family,
                     selected = selected,
                     lit = lit,
+                    washed = washed,
+                    spoken = spoken,
+                    follow = if (playing) spoken ?: line?.let { it.p to it.words.first } else null,
                     onTap = { p, i -> tap(p to i) },
                     onHold = { p, i -> hold(p to i) },
                     openNote = note,
@@ -666,7 +735,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     onBlank = close,
                     onFinish = vm::finishStory,
                     startPage = state.startPage,
-                    onPageShown = vm::readerAt,
+                    onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
                 )
             } else {
@@ -676,6 +745,9 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     family = style.font.family,
                     selected = selected,
                     lit = lit,
+                    washed = washed,
+                    spoken = spoken,
+                    follow = if (playing) spoken ?: line?.let { it.p to it.words.first } else null,
                     onTap = { p, i -> tap(p to i) },
                     onHold = { p, i -> hold(p to i) },
                     openNote = note,
@@ -683,11 +755,145 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     onBlank = close,
                     onFinish = vm::finishStory,
                     startPage = state.startPage,
-                    onPageShown = vm::readerAt,
+                    onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
                 )
             }
+            if (state.impact == null) {
+                PlaybackBar(
+                    playing = playing,
+                    rate = speech.rate,
+                    open = audio,
+                    onPlay = togglePlay,
+                    onMenu = {
+                        open = null
+                        note = null
+                        menu = false
+                        audio = !audio
+                    },
+                )
+            }
         }
+    }
+}
+
+/**
+ * The bar under the story for reading it aloud: the speed on the left and
+ * the voices on the right, which open their menu in the pane, and play in
+ * the middle. Sentences play on by themselves; tapping one moves there.
+ */
+@Composable
+private fun PlaybackBar(playing: Boolean, rate: Float, open: Boolean, onPlay: () -> Unit, onMenu: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val tint = if (open) scheme.primary else scheme.onSurface
+    HorizontalDivider(color = scheme.outlineVariant)
+    Row(
+        Modifier.fillMaxWidth().height(44.dp).background(scheme.surfaceContainerLow).padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(1f)) {
+            Box(
+                Modifier
+                    .clip(WashiShape)
+                    .border(1.dp, if (open) scheme.primary else scheme.outlineVariant, WashiShape)
+                    .clickable(onClick = onMenu)
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            ) {
+                Text(rateLabel(rate), style = MaterialTheme.typography.labelLarge, color = tint)
+            }
+        }
+        Box(
+            Modifier
+                .size(32.dp)
+                .clip(WashiShape)
+                .background(scheme.primary)
+                .clickable(onClick = onPlay),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                if (playing) WashiIcons.Pause else WashiIcons.Play,
+                contentDescription = if (playing) "Pause" else "Read aloud",
+                tint = scheme.onPrimary,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+            CompositionLocalProvider(LocalContentColor provides tint) {
+                WashiIconButton(WashiIcons.Voice, "Voice and speed", onMenu)
+            }
+        }
+    }
+}
+
+private fun rateLabel(rate: Float) = String.format(java.util.Locale.ROOT, "%.1f×", rate)
+
+/**
+ * Reading aloud's settings, in the pane like the reader's: the speed, and the
+ * narrator's voice, which says something when chosen. The cast speak in
+ * their own voices. With no Japanese voice on the phone, how to get one.
+ */
+@Composable
+private fun AudioMenu(
+    speech: SpeechSettings,
+    voices: List<PhoneVoice>,
+    missing: Boolean,
+    onRate: (Float) -> Unit,
+    onNarrator: (String) -> Unit,
+) {
+    if (missing) {
+        val context = LocalContext.current
+        Column(
+            Modifier.fillMaxSize().padding(horizontal = 32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                "Your phone has no Japanese voice yet. Add one in its text-to-speech settings to hear stories read aloud.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            TextButton(onClick = {
+                runCatching { context.startActivity(Intent("com.android.settings.TTS_SETTINGS").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }) {
+                Text("Open speech settings", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+            }
+        }
+        return
+    }
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        MenuRow("Speed") {
+            for (rate in SpeechSettings.RATES) {
+                MenuOption(speech.rate == rate, { onRate(rate) }) {
+                    Text(rateLabel(rate), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                }
+            }
+        }
+        val labels = Voices.labels(voices)
+        val chosen = Voices.narrator(voices, speech.narrator).name
+        MenuRow("Narrator") {
+            // Phones have a few voices; a row of more than four scrolls.
+            val scroll = voices.size > 4
+            Row(
+                Modifier.weight(1f).then(if (scroll) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                voices.forEachIndexed { i, v ->
+                    MenuOption(v.name == chosen, { onNarrator(v.name) }, fixed = scroll) {
+                        Text(labels[i], style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                    }
+                }
+            }
+        }
+        Text(
+            "Tap a voice to hear it. Everyone in the stories has a voice of their own.",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 78.dp),
+        )
     }
 }
 
@@ -702,6 +908,9 @@ private fun HorizontalStory(
     family: FontFamily,
     selected: Pair<Int, Int>?,
     lit: Set<Pair<Int, Int>>,
+    washed: Set<Pair<Int, Int>>,
+    spoken: Pair<Int, Int>?,
+    follow: Pair<Int, Int>?,
     onTap: (p: Int, i: Int) -> Unit,
     onHold: (p: Int, i: Int) -> Unit,
     openNote: Int?,
@@ -709,7 +918,7 @@ private fun HorizontalStory(
     onBlank: () -> Unit,
     onFinish: () -> Unit,
     startPage: Int,
-    onPageShown: (Int) -> Unit,
+    onPageShown: (page: Int, first: Pair<Int, Int>?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -768,7 +977,12 @@ private fun HorizontalStory(
         } ?: 0.0
         val stampPage = pages.isEmpty() || used + with(density) { STAMP_ACROSS_HEIGHT.toPx() } > height
         val count = pages.size + if (stampPage) 1 else 0
-        StoryPager(count, reverse = false, startPage, onPageShown) { page ->
+        // The page with the word being read aloud, to turn to.
+        val followPage = follow?.let { (p, i) -> pages.indexOfFirst { page -> page.any { it.paragraph == p && i in it.words } } }?.takeIf { it >= 0 }
+        val shown = { page: Int ->
+            onPageShown(page, pages.getOrNull(page)?.firstOrNull()?.let { it.paragraph to it.words.first })
+        }
+        StoryPager(count, reverse = false, startPage, shown, followPage) { page ->
             Column(Modifier.fillMaxSize().padding(horizontal = PAGE_PADDING_H, vertical = PAGE_PADDING)) {
                 pages.getOrNull(page).orEmpty().forEachIndexed { n, line ->
                     if (n > 0 && line.words.first == 0) Spacer(Modifier.height(PARAGRAPH_GAP))
@@ -807,6 +1021,8 @@ private fun HorizontalStory(
                                 reading = reading,
                                 selected = selected == (p to i),
                                 lit = (p to i) in lit,
+                                washed = (p to i) in washed,
+                                spoken = spoken == (p to i),
                                 onTap = { if (word.tappable()) onTap(p, i) else onBlank() },
                                 onHold = { onHold(p, i) },
                                 size = size.sp,
@@ -839,6 +1055,8 @@ private fun LessonPage(
     family: FontFamily,
     selected: Pair<Int, Int>?,
     lit: Set<Pair<Int, Int>>,
+    washed: Set<Pair<Int, Int>>,
+    spoken: Pair<Int, Int>?,
     onTap: (Pair<Int, Int>) -> Unit,
     onHold: (Pair<Int, Int>) -> Unit,
     onBlank: () -> Unit,
@@ -867,6 +1085,8 @@ private fun LessonPage(
                         reading = reading,
                         selected = selected == (p to i),
                         lit = (p to i) in lit,
+                        washed = (p to i) in washed,
+                        spoken = spoken == (p to i),
                         onTap = { if (word.tappable()) onTap(p to i) else onBlank() },
                         onHold = { onHold(p to i) },
                         size = size.sp,
@@ -896,10 +1116,16 @@ internal fun StoryPager(
     reverse: Boolean,
     startPage: Int,
     onPageShown: (Int) -> Unit,
+    followPage: Int?,
     page: @Composable (Int) -> Unit,
 ) {
     val state = rememberPagerState(startPage.coerceIn(0, (count - 1).coerceAtLeast(0))) { count }
-    LaunchedEffect(state) { snapshotFlow { state.settledPage }.collect(onPageShown) }
+    val shown by rememberUpdatedState(onPageShown)
+    LaunchedEffect(state) { snapshotFlow { state.settledPage }.collect { shown(it) } }
+    // Reading aloud turns the page when it reaches the next one.
+    LaunchedEffect(followPage) {
+        if (followPage != null && followPage != state.currentPage) state.animateScrollToPage(followPage)
+    }
     Column(Modifier.fillMaxSize()) {
         HorizontalPager(state, Modifier.weight(1f).fillMaxWidth(), reverseLayout = reverse, verticalAlignment = Alignment.Top) {
             page(it)
@@ -930,6 +1156,10 @@ internal fun StoryReading.showsRuby(word: ReadingWord): Boolean {
 }
 
 internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME || grammar.isNotEmpty()
+
+/** A tapped word's shading, and the lighter wash on its sentence or the one read aloud. */
+internal const val HIGHLIGHT = 0.14f
+internal const val WASH = 0.06f
 
 /** Furigana's size against the text it sits on. */
 internal const val RUBY_RATIO = 10f / 22f
@@ -981,6 +1211,8 @@ private fun StoryWord(
     reading: StoryReading,
     selected: Boolean,
     lit: Boolean,
+    washed: Boolean,
+    spoken: Boolean,
     onTap: () -> Unit,
     onHold: () -> Unit,
     size: TextUnit,
@@ -992,8 +1224,15 @@ private fun StoryWord(
     val showRuby = reading.showsRuby(word)
     val color = if (unknown || selected) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
+    val seal = MaterialTheme.colorScheme.primary
     var modifier: Modifier = Modifier
-    if (selected || lit) modifier = modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), WashiShape)
+    if (selected || lit) modifier = modifier.background(seal.copy(alpha = HIGHLIGHT), WashiShape)
+    else if (washed) modifier = modifier.background(seal.copy(alpha = WASH), WashiShape)
+    // The word being read aloud: a line under it, below any underline it has.
+    if (spoken) modifier = modifier.drawBehind {
+        val y = this.size.height - 1.dp.toPx()
+        drawLine(seal, Offset(0f, y), Offset(this.size.width, y), strokeWidth = 2.dp.toPx())
+    }
     modifier = modifier.storyWordGestures(onTap, onHold)
     Box(modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
@@ -1088,11 +1327,11 @@ private fun MenuRow(label: String, options: @Composable RowScope.() -> Unit) {
 
 /** One choice in a menu row: ink when chosen, an ink outline when not, like a chip. */
 @Composable
-private fun RowScope.MenuOption(selected: Boolean, onClick: () -> Unit, content: @Composable () -> Unit) {
+private fun RowScope.MenuOption(selected: Boolean, onClick: () -> Unit, fixed: Boolean = false, content: @Composable () -> Unit) {
     val ink = MaterialTheme.colorScheme.onSurface
     Box(
         Modifier
-            .weight(1f)
+            .then(if (fixed) Modifier.width(76.dp) else Modifier.weight(1f))
             .height(38.dp)
             .clip(WashiShape)
             .background(if (selected) ink else Color.Transparent)
@@ -1176,6 +1415,7 @@ private fun WordCard(
     forgotten: Set<Long>,
     onForgot: (Long) -> Unit,
     onLesson: (Long) -> Unit,
+    onSay: (String) -> Unit,
 ) {
     val entry = word.wordId?.let { reading.words[it] }
     // A particle or ending on its own: the card explains its grammar and has no dictionary entry.
@@ -1201,6 +1441,8 @@ private fun WordCard(
             if (!grammarOnly && kana != title) {
                 Text(kana, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            // A particle on its own isn't said as it is in a sentence (は is wa), so it has no button.
+            if (!grammarOnly) SayButton { onSay(kana) }
         }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
@@ -1261,6 +1503,14 @@ private fun WordCard(
                 for (point in points) GrammarNote(point, lessonFor(point))
             }
         }
+    }
+}
+
+/** A speaker that says a word's reading. */
+@Composable
+internal fun SayButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(modifier.size(36.dp).clip(WashiShape).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Icon(WashiIcons.Sound, contentDescription = "Say it", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
     }
 }
 

@@ -170,6 +170,20 @@ Other features (all shipped):
   suspended words, never stores the Renshuu key. Renshuu's `edict_ent` is
   the JMdict id, which is jstudy's word id. Entries without one (kana,
   する verbs, phrases, names) are skipped on purpose.
+- Reading aloud (Daniel, 2026-10-18): a slim bar under the reader (speed
+  on the left, play in the middle, voice on the right) reads the story with
+  the phone's text-to-speech, a sentence at a time, each sentence playing on
+  into the next. No skip buttons: tapping a word while it plays moves there.
+  Play starts at the tapped word's sentence (washed lightly behind the
+  vermilion word), else where it paused, else the page showing. A line
+  follows the word being said, and the page turns itself. Each of the cast
+  has their own voice (`voice` and `pitch` in a chapter's `meets`); the
+  narrator's voice is the user's pick and reads everything else. Unnamed
+  speakers are voiced by their label (`Voices.forLabel`). Speed and narrator
+  open in the pane like the reader settings. Word cards and word pages have
+  a speaker button that says the word's reading. Daniel weighed recorded
+  cloud voices and on-phone AI voices and chose the phone's own voices
+  (2026-10-18).
 - Claude-written stories, and the story server they went through, were
   removed (Daniel, 2026-10-15); they may be rebuilt later. Stories are the
   bundled ones only. Tapping a word

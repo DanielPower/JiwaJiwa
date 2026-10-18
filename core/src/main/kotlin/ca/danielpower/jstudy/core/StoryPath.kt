@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonArray
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -47,8 +48,8 @@ data class PathStory(
     val names: Set<String> = emptySet(),
 )
 
-/** Someone in a story, as the chapter that introduces them describes them. */
-data class CastMember(val name: String, val about: String)
+/** Someone in a story, as the chapter that introduces them describes them, and how they sound. */
+data class CastMember(val name: String, val about: String, val voice: CastVoice? = null)
 
 /** One chapter of a story: [number] counts from 1. */
 data class Chapter(
@@ -114,6 +115,9 @@ data class StoryCatalog(val series: List<PathSeries>, val grammar: List<GrammarT
 
     /** The chapters that introduce [topic], in order. */
     fun teaching(topic: String): List<Pair<PathSeries, Chapter>> = chapters.filter { it.second.topic == topic }
+
+    /** Everyone in the stories, each once, in the order the stories list them. */
+    val cast: List<CastMember> get() = chapters.flatMap { it.second.meets }.distinctBy { it.name }
 }
 
 /** A word a step counts: its dictionary entry, or only its dictionary form when it has none. */
@@ -210,7 +214,8 @@ object StoryPath {
                         topic = topic,
                         meets = ch["meets"]?.jsonArray.orEmpty().map { m ->
                             val member = m.jsonObject
-                            CastMember(member.text("name"), member.text("about"))
+                            val voice = member["voice"]?.jsonPrimitive?.content?.let { CastVoice.parse(it, member["pitch"]?.jsonPrimitive?.floatOrNull) }
+                            CastMember(member.text("name"), member.text("about"), voice)
                         },
                         plot = ch["plot"]?.jsonPrimitive?.content.orEmpty(),
                     )

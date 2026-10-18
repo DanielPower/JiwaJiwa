@@ -1,7 +1,7 @@
 {
   "title": "The guitarist",
   "plot": "Daichi takes Yuki to the park at night to meet Rin, a guitarist who says almost nothing, and the three of them play together.",
-  "meets": [{"name": "リン", "about": "guitarist; cool, says little, kinder than she looks"}],
+  "meets": [{"name": "リン", "about": "guitarist; cool, says little, kinder than she looks", "voice": "woman", "pitch": 0.9}],
   "paragraphs": [
     [["次の日、ダイチから電話が来た。", "The next day, Daichi called."]],
     [["ダイチ|「ユキさん！ギターの人、いたよ！」", "\"Yuki! I found a guitarist!\""]],
