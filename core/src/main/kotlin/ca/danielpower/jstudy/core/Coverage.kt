@@ -8,9 +8,7 @@ data class Coverage(
     val knownWords: Int,
     /** Distinct new words in order of first appearance. */
     val newWords: List<ReadingWord>,
-) {
-    val knownShare get() = if (words == 0) 1.0 else knownWords.toDouble() / words
-}
+)
 
 /** [isKnown] says whether a dictionary word counts as known; words with no entry never do. */
 fun coverage(paragraphs: List<List<ReadingWord>>, isKnown: (Long) -> Boolean): Coverage {

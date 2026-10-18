@@ -11,6 +11,7 @@ import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.MasteryChange
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.ReviewLog
+import ca.danielpower.jstudy.core.StartSource
 import ca.danielpower.jstudy.core.WordProgress
 
 data class WordStatus(val state: CardState, val suspended: Boolean, val mastery: Int)
@@ -18,7 +19,7 @@ data class WordStatus(val state: CardState, val suspended: Boolean, val mastery:
 data class ReviewEntry(val at: Long, val correct: Boolean, val masteryAfter: Int)
 
 /** A word with a started recognition card: its first day, mastery now, and mastery before its first review, if it's had one. */
-data class StartedWord(val wordId: Long, val introducedDay: Long?, val mastery: Int, val firstBefore: Int?)
+data class StartedWord(val wordId: Long, val introducedDay: Long?, val mastery: Int, val source: StartSource)
 
 /** A story that comes with the app (a chapter or a grammar topic's page), as saved with whether you've read it. */
 data class SavedStory(
@@ -53,8 +54,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 reps INTEGER NOT NULL,
                 lapses INTEGER NOT NULL,
                 introduced_day INTEGER,
-                -- Unused since mastery is derived from stability (version 4).
-                last_mastery_day INTEGER,
+                start_source INTEGER NOT NULL DEFAULT 0,
                 sort_key INTEGER NOT NULL,
                 suspended INTEGER NOT NULL DEFAULT 0,
                 UNIQUE (word_id, direction)
@@ -87,7 +87,8 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 difficulty REAL NOT NULL,
                 due_at INTEGER NOT NULL,
                 mastery_before INTEGER NOT NULL,
-                mastery_after INTEGER NOT NULL
+                mastery_after INTEGER NOT NULL,
+                kind INTEGER NOT NULL DEFAULT 0
             )
             """,
         )
@@ -101,6 +102,14 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         if (oldVersion < 4) deriveMastery(db)
         if (oldVersion < 8) keepOnlyBundledStories(db)
         if (oldVersion < 9) dropRemovedCards(db)
+        // Version 10: how each word was started, so only story words count against the daily limit.
+        if (oldVersion < 10 && hasColumn(db, "card", "id") && !hasColumn(db, "card", "start_source")) {
+            db.execSQL("ALTER TABLE card ADD COLUMN start_source INTEGER NOT NULL DEFAULT 0")
+        }
+        // Also version 10: reads in stories and known words are logged apart from answers.
+        if (oldVersion < 10 && hasColumn(db, "review_log", "id") && !hasColumn(db, "review_log", "kind")) {
+            db.execSQL("ALTER TABLE review_log ADD COLUMN kind INTEGER NOT NULL DEFAULT 0")
+        }
     }
 
     /**
@@ -279,6 +288,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             put("reps", card.reps)
             put("lapses", card.lapses)
             putNullable("introduced_day", card.introducedDay)
+            put("start_source", card.startSource.value)
         }
         db.update("card", values, "id = ?", arrayOf(card.id.toString()))
     }
@@ -321,7 +331,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             """
             SELECT c.direction, l.reviewed_at, l.correct, l.mastery_after
             FROM review_log l JOIN card c ON c.id = l.card_id
-            WHERE c.word_id = ? ORDER BY l.reviewed_at DESC
+            WHERE c.word_id = ? AND l.kind = 0 ORDER BY l.reviewed_at DESC
             """,
             arrayOf(wordId.toString()),
         ).use { c ->
@@ -352,13 +362,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             if (c.moveToFirst()) WordProgress(wordId, c.getInt(0), c.getInt(1) != 0) else WordProgress(wordId)
         }
 
-    /** The words at [mastery] or higher. */
-    fun wordsAtMastery(mastery: Int): Set<Long> =
-        readableDatabase.rawQuery(
-            "SELECT word_id FROM word_progress WHERE mastery >= ?",
-            arrayOf(mastery.toString()),
-        ).use { c -> buildSet { while (c.moveToNext()) add(c.getLong(0)) } }
-
     fun saveProgress(db: SQLiteDatabase, progress: WordProgress) {
         val values = ContentValues().apply {
             put("word_id", progress.wordId)
@@ -384,6 +387,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             put("due_at", log.dueAt)
             put("mastery_before", log.masteryBefore)
             put("mastery_after", log.masteryAfter)
+            put("kind", log.kind.value)
         }
         return db.insert("review_log", null, values)
     }
@@ -395,21 +399,21 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
     /** Answers per study day, from [fromDay] on. */
     fun answersPerDay(fromDay: Long): Map<Long, Int> =
         readableDatabase.rawQuery(
-            "SELECT day, COUNT(*) FROM review_log WHERE day >= ? GROUP BY day",
+            "SELECT day, COUNT(*) FROM review_log WHERE day >= ? AND kind = 0 GROUP BY day",
             arrayOf(fromDay.toString()),
         ).use { c -> buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1)) } }
 
     /** Answers and right answers per study day, from [fromDay] on. */
     fun answersAndRightPerDay(fromDay: Long): Map<Long, Pair<Int, Int>> =
         readableDatabase.rawQuery(
-            "SELECT day, COUNT(*), SUM(correct) FROM review_log WHERE day >= ? GROUP BY day",
+            "SELECT day, COUNT(*), SUM(correct) FROM review_log WHERE day >= ? AND kind = 0 GROUP BY day",
             arrayOf(fromDay.toString()),
         ).use { c -> buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1) to c.getInt(2)) } }
 
     /** Right answers and all answers on cards that were in review (not still learning), from [fromDay] on. */
     fun reviewRecall(fromDay: Long): Pair<Int, Int> =
         readableDatabase.rawQuery(
-            "SELECT COALESCE(SUM(correct), 0), COUNT(*) FROM review_log WHERE state_before = ? AND day >= ?",
+            "SELECT COALESCE(SUM(correct), 0), COUNT(*) FROM review_log WHERE state_before = ? AND day >= ? AND kind = 0",
             arrayOf(CardState.REVIEW.value.toString(), fromDay.toString()),
         ).use { c ->
             c.moveToFirst()
@@ -430,7 +434,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         writableDatabase.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { it.moveToFirst() }
     }
 
-    /** Study days with at least one review, newest first. */
     /** When each story you've finished was finished. */
     fun storyReadTimes(): List<Long> =
         readableDatabase.rawQuery("SELECT read_at FROM story WHERE read_at IS NOT NULL", null).use { c ->
@@ -438,15 +441,14 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         }
 
     /**
-     * Each started word's first day, with its mastery now and its mastery
-     * before its first review, from the recognition card. A word that came
-     * in with mastery (marked known or imported) has more than 0 there.
+     * Each started word's first day, its mastery now and how it was started,
+     * from the recognition card. Words filled in or imported before version 10
+     * have no first day.
      */
     fun startedWords(): List<StartedWord> =
         readableDatabase.rawQuery(
             """
-            SELECT c.word_id, c.introduced_day, COALESCE(p.mastery, 0),
-                (SELECT l.mastery_before FROM review_log l WHERE l.card_id = c.id ORDER BY l.reviewed_at, l.id LIMIT 1)
+            SELECT c.word_id, c.introduced_day, COALESCE(p.mastery, 0), c.start_source
             FROM card c LEFT JOIN word_progress p ON p.word_id = c.word_id
             WHERE c.direction = ? AND c.state != ?
             """,
@@ -454,7 +456,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         ).use { c ->
             buildList {
                 while (c.moveToNext()) {
-                    add(StartedWord(c.getLong(0), if (c.isNull(1)) null else c.getLong(1), c.getInt(2), if (c.isNull(3)) null else c.getInt(3)))
+                    add(StartedWord(c.getLong(0), if (c.isNull(1)) null else c.getLong(1), c.getInt(2), StartSource.of(c.getInt(3))))
                 }
             }
         }
@@ -471,8 +473,9 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             arrayOf(Direction.RECOGNITION.value.toString()),
         ).use { c -> buildList { while (c.moveToNext()) add(MasteryChange(c.getLong(0), c.getLong(1), c.getInt(2), c.getInt(3))) } }
 
+    /** Study days with at least one answer, newest first. */
     fun studyDays(): List<Long> =
-        readableDatabase.rawQuery("SELECT DISTINCT day FROM review_log ORDER BY day DESC", null).use { c ->
+        readableDatabase.rawQuery("SELECT DISTINCT day FROM review_log WHERE kind = 0 ORDER BY day DESC", null).use { c ->
             buildList { while (c.moveToNext()) add(c.getLong(0)) }
         }
 
@@ -533,6 +536,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         reps = c.getInt(9),
         lapses = c.getInt(10),
         introducedDay = if (c.isNull(11)) null else c.getLong(11),
+        startSource = StartSource.of(c.getInt(12)),
     )
 
     private fun ContentValues.putNullable(key: String, value: Any?) {
@@ -547,8 +551,8 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 9
+        const val VERSION = 10
         private const val CARD_COLUMNS =
-            "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day"
+            "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, start_source"
     }
 }

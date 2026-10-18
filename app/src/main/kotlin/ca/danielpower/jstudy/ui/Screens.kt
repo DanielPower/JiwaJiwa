@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -138,88 +139,95 @@ fun App(vm: AppViewModel, screen: Screen) {
 @Composable
 private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
     val due = summary.newCards + summary.learning + summary.reviews
+    val answered = summary.reviewedToday.takeIf { it > 0 }?.let { "$it answered so far, ${100 * summary.correctToday / it}% right" }
     Column(
         modifier = Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
-        Text(ui("Review", "復習"), style = MaterialTheme.typography.headlineMedium)
+        Text("Review", style = MaterialTheme.typography.headlineMedium)
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SectionLabel(ui("Today", "今日"))
-            Text(
-                when (due) {
-                    0 -> ui("All done", "終わり")
-                    1 -> "1 card"
-                    else -> "$due cards"
-                },
-                fontFamily = Gothic,
-                fontWeight = FontWeight.Bold,
-                fontSize = 44.sp,
-                lineHeight = 48.sp,
-            )
-            if (summary.reviewedToday > 0) {
-                val accuracy = 100 * summary.correctToday / summary.reviewedToday
+        if (due == 0) {
+            // Nothing due: the same 済 as Home's Done card.
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                DoneSeal()
+                Text("Done for today", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                answered?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                SectionLabel("Today")
                 Text(
-                    "${summary.reviewedToday} answered so far, $accuracy% right",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    if (due == 1) "1 card" else "$due cards",
+                    fontFamily = Gothic,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 44.sp,
+                    lineHeight = 48.sp,
                 )
+                answered?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-        }
 
-        Column {
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface)
-            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                Count(ui("新 New", "新しい"), summary.newCards, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Count(ui("習 Learning", "学習中"), summary.learning, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f).padding(start = 16.dp))
-                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Count(ui("復 Review", "復習"), summary.reviews, MaterialTheme.colorScheme.secondary, Modifier.weight(1f).padding(start = 16.dp))
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface)
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                    Count("新 New", summary.newCards, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Count("習 Learning", summary.learning, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f).padding(start = 16.dp))
+                    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Count("復 Review", summary.reviews, MaterialTheme.colorScheme.secondary, Modifier.weight(1f).padding(start = 16.dp))
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SectionLabel(ui("Study days", "勉強した日"), Modifier.weight(1f))
+                SectionLabel("Study days", Modifier.weight(1f))
                 Text(
-                    ui("Stats", "統計"),
+                    "Stats ›",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable(onClick = vm::openStats).padding(horizontal = 8.dp, vertical = 4.dp),
                 )
-                Text(
-                    if (summary.streak == 1) "1 day streak" else "${summary.streak} day streak",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                )
             }
-            StudyHeatmap(summary.answersPerDay, summary.today)
-            Text(
-                buildString {
-                    append("${summary.wordsStarted} of ${summary.wordsTotal} words started")
-                    if (summary.daysAhead > 0) {
-                        append(if (summary.daysAhead == 1) "  ·  1 day ahead" else "  ·  ${summary.daysAhead} days ahead")
-                    }
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            StudyHeatmap(summary.answersPerDay, summary.readDays, summary.today)
         }
 
         Spacer(Modifier.weight(1f))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (summary.anythingDue) {
-                PrimaryButton(onClick = vm::startReview, modifier = Modifier.fillMaxWidth().height(58.dp)) {
-                    Text(ui("Start studying", "勉強を始める"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        if (due > 0) {
+            PrimaryButton(onClick = vm::startReview, modifier = Modifier.fillMaxWidth().height(58.dp)) {
+                Text("Start studying", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SecondaryButton(onClick = vm::studyMore, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Text("Study more", fontSize = 16.sp)
                 }
-            } else {
-                PrimaryButton(onClick = vm::studyMore, modifier = Modifier.fillMaxWidth().height(58.dp)) {
-                    Text(ui("Study more", "もっと勉強する"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
+                Text(
+                    buildString {
+                        append("Brings tomorrow's reviews forward.")
+                        if (summary.daysAhead == 1) append(" You're 1 day ahead.")
+                        if (summary.daysAhead > 1) append(" You're ${summary.daysAhead} days ahead.")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
+    }
+}
+
+/** A large 済 ("done") seal, grained like the reader's 読了. */
+@Composable
+private fun DoneSeal() {
+    val seal = MaterialTheme.colorScheme.primary
+    Box(
+        Modifier.size(88.dp).stampGrain().border(3.dp, seal, RoundedCornerShape(6.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("済", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 52.sp, color = seal)
     }
 }
 
@@ -245,7 +253,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            WashiIconButton(WashiIcons.Close, "Close", vm::goHome)
+            WashiIconButton(WashiIcons.Close, "Close", vm::closeReview)
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally)) {
                 QueueCount("新", state.counts.new, MaterialTheme.colorScheme.primary)
                 QueueCount("習", state.counts.learning, MaterialTheme.colorScheme.tertiary)
@@ -269,9 +277,9 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
         ) {
             CardTopper(
                 stageMark(state.current.card.state) + " " + if (production) {
-                    ui("English → Japanese", "英語 → 日本語", "英語", "日本語")
+                    "English → Japanese"
                 } else {
-                    ui("Japanese → English", "日本語 → 英語", "日本語", "英語")
+                    "Japanese → English"
                 },
                 production,
             )
@@ -308,7 +316,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                         }
                         if (!revealed && word.showsKanji && state.current.furigana == FuriganaMode.HIDDEN) {
                             Text(
-                                ui("Tap the word for its reading", "押して読み方を見る", "押す", "読む", "見る"),
+                                "Tap the word for its reading",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 8.dp),
@@ -331,7 +339,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Text(ui("Mastery", "習熟度"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Mastery", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         MasteryBar(state.current.mastery, Modifier.weight(1f))
                         Text("${state.current.mastery}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                     }
@@ -345,14 +353,14 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
         ) {
             if (state.revealed) {
                 GradeButton(right = false, onClick = { vm.answer(false) }, modifier = Modifier.weight(1f).height(72.dp)) {
-                    GradeLabel("×", ui("Wrong", "間違い"))
+                    GradeLabel("×", "Wrong")
                 }
                 GradeButton(right = true, onClick = { vm.answer(true) }, modifier = Modifier.weight(1f).height(72.dp)) {
-                    GradeLabel("○", ui("Right", "正解"))
+                    GradeLabel("○", "Right")
                 }
             } else {
                 SecondaryButton(onClick = vm::reveal, modifier = Modifier.fillMaxWidth().height(72.dp)) {
-                    Text(ui("Show answer", "答えを見る"), fontSize = 18.sp)
+                    Text("Show answer", fontSize = 18.sp)
                 }
             }
         }
@@ -495,11 +503,11 @@ private fun WaitingScreen(state: Screen.Waiting, vm: AppViewModel) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(ui("Just a moment", "少々お待ちください", "少々", "待つ"), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Just a moment", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
         Text("The next card is due in $minutes min", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Spacer(Modifier.height(24.dp))
-        SecondaryButton(onClick = vm::goHome) { Text(ui("Home", "ホーム")) }
+        SecondaryButton(onClick = vm::goHome) { Text("Home") }
     }
 }
 
@@ -516,7 +524,7 @@ private fun DoneScreen(summary: Summary, onStudyMore: () -> Unit, onHome: () -> 
         ) {
             Text("済", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 52.sp, color = MaterialTheme.colorScheme.primary)
         }
-        Text(ui("Done for today", "今日はここまで"), style = MaterialTheme.typography.headlineMedium)
+        Text("Done for today", style = MaterialTheme.typography.headlineMedium)
         if (summary.reviewedToday > 0) {
             val accuracy = 100 * summary.correctToday / summary.reviewedToday
             Text(
@@ -525,13 +533,13 @@ private fun DoneScreen(summary: Summary, onStudyMore: () -> Unit, onHome: () -> 
             )
         }
         Text(
-            "Study more brings tomorrow's reviews forward and adds the next new words.",
+            "Study more brings tomorrow's reviews forward, with any English → Japanese cards waiting.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(8.dp))
-        PrimaryButton(onClick = onStudyMore, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text(ui("Study more", "もっと勉強する"), fontSize = 18.sp) }
-        SecondaryButton(onClick = onHome, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text(ui("Home", "ホーム"), fontSize = 18.sp) }
+        PrimaryButton(onClick = onStudyMore, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Study more", fontSize = 18.sp) }
+        SecondaryButton(onClick = onHome, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Home", fontSize = 18.sp) }
     }
 }

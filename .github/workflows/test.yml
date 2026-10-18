@@ -1,7 +1,8 @@
 name: Tests
 
 # Unit tests, as checks on every pull request and every push to main. These
-# don't need the dictionary database, so they finish well before the APK
+# don't need the dictionary database (StoryPathTest skips without it and runs
+# in "Check pull request" instead), so they finish well before the APK
 # builds in "Check pull request" and "Build and release".
 on:
   pull_request:

@@ -991,11 +991,13 @@ internal object Grammar {
     }
 
     /** Every point, for listing and tests. */
-    val points: List<GrammarPoint> get() = rules.map { it.point }.distinctBy { it.id }
+    val points: List<GrammarPoint> by lazy { rules.map { it.point }.distinctBy { it.id } }
+
+    val byId: Map<String, GrammarPoint> by lazy { points.associateBy { it.id } }
 }
 
 /** The grammar point with [id], such as "wa" for the particle は. */
-fun grammarPoint(id: String): GrammarPoint? = Grammar.points.firstOrNull { it.id == id }
+fun grammarPoint(id: String): GrammarPoint? = Grammar.byId[id]
 
 /** Every grammar point the reader knows, in the order they're defined. */
 fun grammarPoints(): List<GrammarPoint> = Grammar.points

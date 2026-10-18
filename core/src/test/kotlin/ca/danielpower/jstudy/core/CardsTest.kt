@@ -55,9 +55,38 @@ class CardsTest {
         val read = reviewer.read(card, progress, now)
         val right = reviewer.answer(card, progress, true, now)
         assertTrue(read.log.correct)
+        assertEquals(LogKind.READ, read.log.kind, "logged as a read, not an answer")
+        assertEquals(LogKind.ANSWER, right.log.kind)
         assertTrue(read.progress.mastery > progress.mastery)
         assertTrue(read.progress.mastery < right.progress.mastery)
         assertTrue(read.card.dueAt < right.card.dueAt)
+        assertEquals(5.0, read.card.difficulty, "a read says nothing about how hard the word is")
+        val halfway = 10.0 + (right.card.stability!! - 10.0) * Reviewer.READ_SHARE
+        assertEquals(halfway, read.card.stability!!, 1e-9)
+    }
+
+    @Test
+    fun `ten reads, counting the one that starts it, take a new word to known`() {
+        val start = at("2026-10-14T12:00")
+        var card = reviewer.introduce(Card(1, 7, Direction.RECOGNITION), start)
+        var progress = WordProgress(7)
+        assertFalse(reviewer.readCounts(card, start + 3_600_000), "not again the day it was started")
+        val masteries = mutableListOf(progress.mastery)
+        var now = start
+        repeat(9) {
+            // The next time it can count: the next study day while learning, then whenever it's due.
+            now = if (card.state == CardState.LEARNING) clock.startOf(clock.dayOf(now) + 1) + 3_600_000 else card.dueAt
+            assertTrue(reviewer.readCounts(card, now))
+            val read = reviewer.read(card, progress, now)
+            assertEquals(LogKind.READ, read.log.kind)
+            card = read.card
+            progress = read.progress
+            masteries += progress.mastery
+        }
+        assertEquals(CardState.REVIEW, card.state)
+        assertEquals(Fsrs().startingDifficulty(Rating.GOOD), card.difficulty)
+        assertTrue(masteries[8] < MasteryRules.HIDE_AT, "nine reads: $masteries")
+        assertTrue(masteries[9] >= MasteryRules.HIDE_AT, "ten reads: $masteries")
     }
 
     @Test
@@ -69,6 +98,58 @@ class CardsTest {
         assertEquals(2, second.card.reps)
         assertEquals(clock.dayOf(now), second.card.introducedDay)
         assertEquals(at("2026-10-11T20:00"), second.card.lastReviewAt)
+    }
+
+    @Test
+    fun `a word filled in by reading level starts that day, and relearning it doesn't change how`() {
+        val now = at("2026-10-10T20:00")
+        val known = reviewer.markKnownFor(Card(id = 1, wordId = 7, direction = Direction.RECOGNITION), WordProgress(7), 15, 40, now, Random(1))
+        val missed = reviewer.answer(known.card, known.progress, correct = false, now = known.card.dueAt)
+        assertEquals(CardState.RELEARNING, missed.card.state)
+        val relearned = reviewer.answer(missed.card, missed.progress, correct = true, now = missed.card.dueAt)
+        assertEquals(clock.dayOf(now), relearned.card.introducedDay)
+        assertEquals(StartSource.LEVEL, relearned.card.startSource)
+    }
+
+    @Test
+    fun `marking a word known starts it today, apart from the day's new words`() {
+        val now = at("2026-10-10T20:00")
+        val today = clock.dayOf(now)
+        val fresh = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)
+        val known = reviewer.markKnown(fresh, WordProgress(7), 50, now, Random(1))
+        assertEquals(today, known.card.introducedDay)
+        assertEquals(StartSource.KNOWN, known.card.startSource)
+        // Logged as a mastery change for the words graph, not as an answer.
+        assertEquals(LogKind.KNOWN, known.log.kind)
+        assertEquals(0 to 50, known.log.masteryBefore to known.log.masteryAfter)
+        assertEquals(today, known.log.day)
+        val reviewed = reviewer.answer(known.card, known.progress, correct = true, now = known.card.dueAt)
+        assertEquals(today, reviewed.card.introducedDay)
+        assertEquals(StartSource.KNOWN, reviewed.card.startSource)
+
+        // Started by a story today, then known: still today's, no longer one of its new words.
+        val startedToday = reviewer.introduce(fresh, now)
+        assertEquals(StartSource.KNOWN, reviewer.markKnown(startedToday, WordProgress(7), 50, now, Random(1)).card.startSource)
+
+        // Started on an earlier day: that day stays, as one of its new words.
+        val earlier = reviewer.introduce(fresh, at("2026-10-01T20:00"))
+        val later = reviewer.markKnown(earlier, WordProgress(7), 50, now, Random(1)).card
+        assertEquals(earlier.introducedDay, later.introducedDay)
+        assertEquals(StartSource.STORY, later.startSource)
+
+        // Imported: dated today too, as an import.
+        val imported = reviewer.markKnown(fresh, WordProgress(7), 50, now, Random(1), StartSource.IMPORT).card
+        assertEquals(today, imported.introducedDay)
+        assertEquals(StartSource.IMPORT, imported.startSource)
+        // Imported again a week later: the first import's day stays.
+        val again = reviewer.markKnown(imported, WordProgress(7), 70, at("2026-10-17T20:00"), Random(1), StartSource.IMPORT).card
+        assertEquals(today, again.introducedDay)
+    }
+
+    @Test
+    fun `stored start sources map back and only stories and known words are recent`() {
+        for (s in StartSource.entries) assertEquals(s, StartSource.of(s.value))
+        assertEquals(listOf(StartSource.STORY, StartSource.KNOWN), StartSource.entries.filter { it.recent })
     }
 
     @Test

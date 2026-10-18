@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Used to import progress from Renshuu and to have Claude write stories. -->
+    <!-- Used to import progress from Renshuu. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- The daily reminder: showing it, and setting its alarm again after a restart. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

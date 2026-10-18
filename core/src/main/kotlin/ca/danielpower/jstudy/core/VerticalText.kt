@@ -50,6 +50,10 @@ object VerticalText {
                     start--
                 }
                 if (start < k && (start == 0 || spots[start - 1].col != col)) start = k
+                // Nor overflow the next column with what it carries.
+                val carried = (start until k).sumOf { runs[it].chars.size }
+                val end = wrapRow + carried
+                if (start < k && end + n > rows && !(n == 1 && run.chars[0] in Kinsoku.HANGING && end == rows)) start = k
                 col++
                 row = wrapRow
                 for (j in start until k) {

@@ -189,7 +189,7 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
                 ReadKind.START -> NextContent("Start here", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
                 ReadKind.CONTINUE -> NextContent("Continue · page ${c.resumePage + 1}", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
                 ReadKind.LESSON -> NextContent(
-                    "Next · lesson first",
+                    "Next · grammar lesson",
                     colors.secondary,
                     "${e.newTopic?.title ?: ""}, then ${shortName(e)}",
                     seriesLine(e, c),
@@ -197,7 +197,7 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
                     reviewAlt(next.orReview),
                     vm::startReview,
                 )
-                ReadKind.NEXT -> NextContent(ui("Next", "次"), colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
+                ReadKind.NEXT -> NextContent("Next", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
                 ReadKind.SIDE -> NextContent(
                     "Nothing new to learn",
                     green,
@@ -278,7 +278,7 @@ private fun StreakWeek(days: Set<Long>, streak: Int, today: Long) {
     var week by rememberSaveable(today) { mutableLongStateOf(thisWeek) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel(ui("Streak", "連続"), Modifier.weight(1f))
+            SectionLabel("Streak", Modifier.weight(1f))
             Text(
                 buildAnnotatedString {
                     withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("$streak") }
@@ -364,7 +364,7 @@ private fun WordsSection(words: List<WordDay>) {
     var all by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel(ui("Words", "言葉"), Modifier.weight(1f))
+            SectionLabel("Words", Modifier.weight(1f))
             RangeToggle(all) { all = it }
         }
         val last = words.lastOrNull()
@@ -396,7 +396,7 @@ private const val GRAPH_DAYS = 30
 private fun RangeToggle(all: Boolean, onChange: (Boolean) -> Unit) {
     val ink = MaterialTheme.colorScheme.onSurface
     Row(Modifier.border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, WashiShape)) {
-        for ((label, value) in listOf("30 days" to false, ui("All", "全部") to true)) {
+        for ((label, value) in listOf("30 days" to false, "All" to true)) {
             val on = all == value
             Text(
                 label,
@@ -497,11 +497,11 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
     val indigo = MaterialTheme.colorScheme.secondary
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel(ui("Recent", "最近"), Modifier.weight(1f))
+            SectionLabel("Recent", Modifier.weight(1f))
             if (d.recent.isNotEmpty()) {
-                KeySwatch(gold, ui("words", "言葉"))
+                KeySwatch(gold, "words")
                 Spacer(Modifier.width(10.dp))
-                KeySwatch(indigo, ui("grammar", "文法"))
+                KeySwatch(indigo, "grammar")
             }
         }
         if (d.recent.isEmpty()) {
@@ -511,8 +511,10 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
+            // +N opens the row in place to show the rest of the week.
+            var expanded by rememberSaveable { mutableStateOf(false) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (item in d.recent) when (item) {
+                for (item in if (expanded) d.allRecent else d.recent) when (item) {
                     is RecentItem.NewWord -> Chip(item.word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
                     is RecentItem.NewGrammar -> Chip(
                         item.topic.title,
@@ -522,7 +524,12 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                     ) { vm.openGrammar(item.pageId) }
                 }
                 if (d.moreWords > 0) {
-                    Chip("+${d.moreWords}", gold, gold.copy(alpha = 0.4f)) { vm.openDictionary(StatusFilter.STUDYING) }
+                    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (expanded) {
+                        Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
+                    } else {
+                        Chip("+${d.moreWords}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
+                    }
                 }
             }
         }

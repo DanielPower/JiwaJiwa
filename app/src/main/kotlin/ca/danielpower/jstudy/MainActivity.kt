@@ -8,16 +8,12 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ca.danielpower.jstudy.ui.App
-import ca.danielpower.jstudy.ui.AppLanguage
 import ca.danielpower.jstudy.ui.AppViewModel
 import ca.danielpower.jstudy.ui.JStudyTheme
-import ca.danielpower.jstudy.ui.LocalAppLanguage
 import ca.danielpower.jstudy.ui.Screen
 import ca.danielpower.jstudy.ui.SetupPage
 import ca.danielpower.jstudy.ui.isDark
@@ -36,15 +32,11 @@ class MainActivity : ComponentActivity() {
                 val style = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark }
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
-            val language by vm.language.collectAsStateWithLifecycle()
-            val appLanguage = remember(language) { AppLanguage(language, vm::lookUpLabel) }
             JStudyTheme(theme) {
-                CompositionLocalProvider(LocalAppLanguage provides appLanguage) {
-                    val screen by vm.screen.collectAsStateWithLifecycle()
-                    val firstPage = (screen as? Screen.Setup)?.page == SetupPage.WELCOME
-                    BackHandler(enabled = screen !is Screen.Home && screen !is Screen.Loading && !firstPage) { vm.back() }
-                    App(vm, screen)
-                }
+                val screen by vm.screen.collectAsStateWithLifecycle()
+                val firstPage = (screen as? Screen.Setup)?.page == SetupPage.WELCOME
+                BackHandler(enabled = screen !is Screen.Home && screen !is Screen.Loading && !firstPage) { vm.back() }
+                App(vm, screen)
             }
         }
     }

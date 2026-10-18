@@ -200,7 +200,7 @@ class Reader(private val lexicon: Lexicon) {
                 }
                 t.isInflectingHead || comesWithout(tokens, i) || (t.isSuruNoun && tokens.getOrNull(i + 1)?.isSuru == true) -> {
                     val end = chainEnd(tokens, i + if (t.isSuruNoun) 2 else 1)
-                    out += inflected(tokens.subList(i, end))
+                    out += inflected(tokens.subList(i, end), tokens.getOrNull(end))
                     i = end
                 }
                 t.pos == "名詞" && t.pos2 == "形容動詞語幹" -> {
@@ -209,7 +209,7 @@ class Reader(private val lexicon: Lexicon) {
                     val end = chainEnd(tokens, i + 1)
                     val group = tokens.subList(i, end)
                     if (end > i + 1 && labels(group).isNotEmpty()) {
-                        out += inflected(group)
+                        out += inflected(group, tokens.getOrNull(end))
                         i = end
                     } else {
                         out += content(t)
@@ -413,7 +413,7 @@ class Reader(private val lexicon: Lexicon) {
         return i
     }
 
-    private fun inflected(group: List<Morpheme>): ReadingWord {
+    private fun inflected(group: List<Morpheme>, after: Morpheme?): ReadingWord {
         val head = group[0]
         val suru = head.isSuruNoun && group.getOrNull(1)?.isSuru == true
         val lemma = if (suru) head.surface else head.base
@@ -429,7 +429,7 @@ class Reader(private val lexicon: Lexicon) {
             reading = group.joinToString("") { it.readingOrSurface },
             kind = WordKind.WORD,
             wordId = id,
-            conjugation = labels(group),
+            conjugation = labels(group, after),
             ruby = group.flatMap { ruby(it.surface, it.readingOrSurface) },
         )
         if (suru || !head.type.startsWith("一段")) return word
@@ -482,9 +482,9 @@ class Reader(private val lexicon: Lexicon) {
         private val CONNECTIVES = setOf("て", "で", "ば", "ながら", "つつ")
         private val CONJUNCTIONS = setOf("でも", "けど", "だけど", "だって")
         /** Nouns the tokenizer sometimes files as dependent (grammar) nouns, though they're words: 日 in 最後の日です. */
-private val TIME_NOUNS = setOf("日")
+        private val TIME_NOUNS = setOf("日")
 
-private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "おかえり", "いってきます", "いってらっしゃい")
+        private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "おかえり", "いってきます", "いってらっしゃい")
         private val CONTRACTIONS = setOf("ちゃう", "じゃう", "ちまう", "とく", "てる", "でる")
         private val E_TO_U = mapOf('え' to 'う', 'け' to 'く', 'せ' to 'す', 'て' to 'つ', 'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る', 'げ' to 'ぐ')
 
@@ -498,13 +498,21 @@ private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "お�
         /** Loading the IPADIC dictionary takes a moment, so it happens once, on first use. */
         val tokenizer: Tokenizer by lazy { Tokenizer() }
 
-        /** What a conjugated word's attached pieces do, in order and without repeats. */
-        internal fun labels(group: List<Morpheme>): List<String> {
+        /**
+         * What a conjugated word's attached pieces do, in order and without
+         * repeats. [after] is what follows the word, if anything.
+         */
+        internal fun labels(group: List<Morpheme>, after: Morpheme? = null): List<String> {
             val out = LinkedHashSet<String>()
             val head = group[0]
             val rest = group.drop(1)
             val chain = rest.joinToString("") { it.surface }
-            if (MUST.any { chain.contains(it) }) out += "must"
+            // A bare なきゃ or なくちゃ is "must" where it ends the clause (もう行かなきゃ。),
+            // and "if not" before more of it (行かなきゃわからない).
+            val unless = CONTRACTED_MUST.any { chain.endsWith(it) } && after != null &&
+                after.pos != "記号" && after.pos2 != "終助詞" && after.base !in MUST_AFTER
+            if (unless) out += listOf("negative", "conditional (if)")
+            if (MUST.any { chain.contains(it) } && !unless) out += "must"
             for ((i, t) in rest.withIndex()) {
                 val next = rest.getOrNull(i + 1)
                 when {
@@ -527,10 +535,14 @@ private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "お�
                             else -> out += "past"
                         }
                         "たい" -> out += "want to"
-                        "う", "よう" -> if (rest.getOrNull(i - 1)?.form?.startsWith("未然") == true && rest.getOrNull(i - 1)?.base in setOf("だ", "です")) {
-                            // だろう and でしょう
-                        } else {
-                            out += "volitional (let's)"
+                        "う", "よう" -> (if (i == 0) head else rest[i - 1]).let { prev ->
+                            when {
+                                // だろう and でしょう
+                                prev.form.startsWith("未然") && prev.base in setOf("だ", "です") -> {}
+                                // An adjective's or a negative's presumptive: 高かろう, 行かなかろう.
+                                prev.pos == "形容詞" || (prev.pos == "助動詞" && prev.base in setOf("ない", "たい")) -> out += "probably"
+                                else -> out += "volitional (let's)"
+                            }
                         }
                         "まい" -> out += "negative volitional"
                         "です" -> {
@@ -575,6 +587,9 @@ private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "お�
         }
 
         private val MUST = listOf("なければなら", "なければいけ", "なくてはなら", "なくてはいけ", "なきゃ", "なくちゃ")
+        private val CONTRACTED_MUST = listOf("なきゃ", "なくちゃ")
+        /** Words after a bare なきゃ that still make it "must": ～なきゃいけない, ～なきゃだめ. */
+        private val MUST_AFTER = setOf("いける", "なる", "だめ", "ダメ", "駄目")
 
         private val AUXILIARY_VERBS = mapOf(
             "いる" to "ongoing or resulting state",

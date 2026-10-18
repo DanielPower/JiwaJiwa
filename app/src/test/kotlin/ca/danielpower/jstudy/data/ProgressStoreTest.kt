@@ -7,7 +7,9 @@ import androidx.test.core.app.ApplicationProvider
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
+import ca.danielpower.jstudy.core.LogKind
 import ca.danielpower.jstudy.core.ReviewLog
+import ca.danielpower.jstudy.core.StartSource
 import ca.danielpower.jstudy.core.WordProgress
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -52,13 +54,13 @@ class ProgressStoreTest {
 
         val reviewed = fresh.copy(
             state = CardState.RELEARNING, step = 0, stability = 2.5, difficulty = 6.25,
-            dueAt = 123_456, lastReviewAt = 100_000, reps = 4, lapses = 1, introducedDay = 20_000,
+            dueAt = 123_456, lastReviewAt = 100_000, reps = 4, lapses = 1, introducedDay = 20_000, startSource = StartSource.IMPORT,
         )
         store.transaction { store.updateCard(it, reviewed) }
         assertEquals(reviewed, store.card(id))
 
         // Nulls go back as nulls.
-        val cleared = reviewed.copy(step = null, stability = null, difficulty = null, lastReviewAt = null, introducedDay = null)
+        val cleared = reviewed.copy(step = null, stability = null, difficulty = null, lastReviewAt = null, introducedDay = null, startSource = StartSource.STORY)
         store.transaction { store.updateCard(it, cleared) }
         assertEquals(cleared, store.card(id))
     }
@@ -300,5 +302,49 @@ class ProgressStoreTest {
         assertEquals(0, store.progress(-1).mastery)
         assertEquals(50, store.progress(7).mastery)
         assertNull(store.getValue("kana_known"))
+    }
+    @Test
+    fun upgradingToVersion10AddsStartSource() {
+        store.close()
+        context.deleteDatabase(ProgressStore.NAME)
+        val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(path, null).use { db ->
+            ProgressStore(context).onCreate(db)
+            // A version 9 card table, without start_source.
+            db.execSQL("DROP TABLE card")
+            db.execSQL(
+                "CREATE TABLE card (id INTEGER PRIMARY KEY AUTOINCREMENT, word_id INTEGER NOT NULL, direction INTEGER NOT NULL, " +
+                    "state INTEGER NOT NULL, step INTEGER, stability REAL, difficulty REAL, due_at INTEGER NOT NULL, " +
+                    "last_review_at INTEGER, reps INTEGER NOT NULL, lapses INTEGER NOT NULL, introduced_day INTEGER, " +
+                    "sort_key INTEGER NOT NULL, suspended INTEGER NOT NULL DEFAULT 0, UNIQUE (word_id, direction))",
+            )
+            db.execSQL(
+                "INSERT INTO card (word_id, direction, state, due_at, reps, lapses, introduced_day, sort_key) VALUES (7, 0, 2, 0, 1, 0, 20000, 0)",
+            )
+            db.version = 9
+        }
+
+        store = ProgressStore(context)
+        val card = store.cards("word_id = ?", arrayOf("7"), "id").single()
+        assertEquals(20_000L, card.introducedDay)
+        assertEquals(StartSource.STORY, card.startSource)
+        // The review log gains its kind column too, and old rows are answers.
+        store.transaction { store.insertLog(it, log(card.id, day = 5, correct = true).copy(kind = LogKind.READ)) }
+        assertEquals(1, store.count("SELECT COUNT(*) FROM review_log WHERE kind = 1"))
+    }
+
+    @Test
+    fun readsInStoriesStayOutOfAnswerStats() {
+        val id = store.transaction { store.insertNewCard(it, wordId = 7, direction = Direction.RECOGNITION, sortKey = 1) }
+        store.transaction {
+            store.insertLog(it, log(id, day = 10, correct = true))
+            store.insertLog(it, log(id, day = 10, correct = true).copy(kind = LogKind.READ))
+            store.insertLog(it, log(id, day = 11, correct = true).copy(kind = LogKind.READ))
+        }
+        assertEquals(mapOf(10L to 1), store.answersPerDay(0))
+        assertEquals(1 to 1, store.reviewRecall(0))
+        assertEquals(listOf(10L), store.studyDays())
+        assertEquals(3, store.masteryChanges().size)
+        assertEquals("the word page lists answers only", 1, store.logs(7).size)
     }
 }

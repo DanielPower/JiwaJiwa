@@ -4,7 +4,7 @@ import kotlin.random.Random
 
 data class StudySettings(
     /**
-     * New words and kana a day before the app suggests reading something with
+     * New words a day before the app suggests reading something with
      * nothing new, or reviewing. A suggestion, never a lock. Unlocked
      * production cards in reviews fill what's left of it.
      */

@@ -27,6 +27,15 @@ class HorizontalTextTest {
     }
 
     @Test
+    fun `keeps an opening bracket behind rather than overflow the next line`() {
+        val words = listOf(FlowWord("あ", 1f), FlowWord("「", 1f), FlowWord("長い言葉", 4f))
+        // The bracket and the word together fit a line of 5, so the bracket moves down with it.
+        assertEquals(listOf(0..0, 1..2), HorizontalText.lines(words, 5f))
+        // In a line of 4 they don't, so the bracket stays rather than push the word past the edge.
+        assertEquals(listOf(0..1, 2..2), HorizontalText.lines(words, 4f))
+    }
+
+    @Test
     fun `leaves room for a first line's indent and the wrapped lines' own`() {
         val words = "あいうえおかき".map { FlowWord(it.toString(), 1f) }
         val lines = HorizontalText.lines(words, 5f, indent = 2f, wrapIndent = 3f)

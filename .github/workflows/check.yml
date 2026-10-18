@@ -40,6 +40,20 @@ jobs:
           python3 tools/dictionary/build_dictionary.py
           git diff --exit-code tools/dictionary/build_report.md
 
+      # The core tests in test.yml run without the dictionary, which skips
+      # StoryPathTest; here it's built, so the stories are checked before merging.
+      - name: Check the stories
+        run: ./gradlew :core:test
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-check-report
+          path: |
+            core/build/reports/tests/test
+            core/build/reports/story-path.txt
+          retention-days: 14
+
       # The release build runs the same checks as a real release. The debug
       # build has its own app id, so it installs next to the release app.
       - name: Build

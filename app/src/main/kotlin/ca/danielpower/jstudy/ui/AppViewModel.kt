@@ -17,8 +17,6 @@ import ca.danielpower.jstudy.core.ReadLevel
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
-import ca.danielpower.jstudy.core.UiLabel
-import ca.danielpower.jstudy.core.UiLanguage
 import ca.danielpower.jstudy.data.BackupException
 import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.Dashboard
@@ -45,7 +43,6 @@ import ca.danielpower.jstudy.data.WordDetail
 import ca.danielpower.jstudy.data.WordStatus
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
@@ -70,11 +67,11 @@ data class ReviewCard(
 
 data class ReviewCounts(val new: Int, val learning: Int, val review: Int)
 
-enum class StatusFilter(val label: UiLabel) {
-    ALL(UiLabel("All", "全部")),
-    NOT_STARTED(UiLabel("Not started", "未学習")),
-    STUDYING(UiLabel("Studying", "勉強中", listOf("勉強"))),
-    SUSPENDED(UiLabel("Suspended", "保留中")),
+enum class StatusFilter(val label: String) {
+    ALL("All"),
+    NOT_STARTED("Not started"),
+    STUDYING("Studying"),
+    SUSPENDED("Suspended"),
     ;
 
     fun matches(status: WordStatus?): Boolean {
@@ -235,15 +232,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _limit = MutableStateFlow<LimitPrompt?>(null)
     val limit: StateFlow<LimitPrompt?> = _limit.asStateFlow()
 
-    /** Which UI labels are in Japanese: the ones whose words you've mastered. */
-    private val _language = MutableStateFlow(UiLanguage.ENGLISH)
-    val language: StateFlow<UiLanguage> = _language.asStateFlow()
-
     /** Cards a review session would show now, for the Review tab's badge. */
     private val _due = MutableStateFlow(0)
     val due: StateFlow<Int> = _due.asStateFlow()
-    private val labelRequests = Channel<UiLabel>(Channel.UNLIMITED)
-    private val requestedLabels = ConcurrentHashMap.newKeySet<String>()
 
     private lateinit var repo: Repository
     private var session: StudySession? = null
@@ -275,14 +266,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var masteryAtOpen: Map<Long, Int> = emptyMap()
     // Tapped on the main thread, read when the story ends.
     private val lookedUpWords: MutableSet<Long> = ConcurrentHashMap.newKeySet()
+    // The chapter end page a review was started from, for closing it.
+    private var reviewFrom: Screen.StoryReader? = null
 
     init {
         launchIo {
             repo = Repository(getApplication())
-            val cached = repo.cachedLabelWords()
-            requestedLabels += cached.keys
-            _language.value = UiLanguage(cached, repo.masteredWords())
-            lookUpLabels()
             DailyReminder.schedule(getApplication(), repo.reminder())
             if (repo.needsSetup()) {
                 _screen.value = Screen.Setup(repo.levelCounts(), reminderMinute = null)
@@ -300,37 +289,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun now() = System.currentTimeMillis()
 
-    /**
-     * Find the words in a label the first time it's shown. It stays English
-     * until then, which is only ever once: the answer is kept.
-     */
-    fun lookUpLabel(label: UiLabel) {
-        if (!_language.value.knows(label) && requestedLabels.add(label.key)) labelRequests.trySend(label)
-    }
-
-    // Outside the lock, so a screen full of new labels doesn't hold up the screen itself.
-    private fun lookUpLabels() = viewModelScope.launch(Dispatchers.IO) {
-        for (first in labelRequests) {
-            val batch = mutableListOf(first)
-            while (true) batch += labelRequests.tryReceive().getOrNull() ?: break
-            // A label that can't be looked up just stays English.
-            val words = runCatching { repo.labelWords(batch) }.getOrNull() ?: continue
-            _language.update { it.withWords(words) }
-        }
-    }
-
-    /** Pick up mastery changes, so labels turn Japanese as you learn their words. */
-    private fun refreshLanguage() {
-        val mastered = repo.masteredWords()
-        _language.update { it.withMastered(mastered) }
-        // Most screens refresh this on the way in, so the badge rides along.
+    /** Recount the Review tab's badge. Most screens do this on the way in. */
+    private fun refreshBadge() {
         val summary = repo.summary(now())
         _due.value = summary.newCards + summary.learning + summary.reviews
     }
 
 
     private fun showHome() {
-        refreshLanguage()
+        reviewFrom = null
+        refreshBadge()
         trail.clear()
         session = null
         undo = null
@@ -339,29 +307,47 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun goHome() = launchIo { showHome() }
 
+    /** Leave a review: back to the chapter end page it started from, else Home. */
+    fun closeReview() = launchIo {
+        val from = reviewFrom ?: return@launchIo showHome()
+        reviewFrom = null
+        session = null
+        undo = null
+        refreshBadge()
+        _screen.value = from.copy(pace = from.pace?.let { repo.pace(now()) })
+    }
+
     fun openReviewTab() = launchIo { showReviewTab() }
 
     private fun showReviewTab() {
-        refreshLanguage()
+        refreshBadge()
         trail.clear()
         session = null
         undo = null
         _screen.value = Screen.ReviewTab(repo.summary(now()))
     }
 
-    /** The system back button: word page to dictionary, import to settings, story to stories, anything else home. */
+    /**
+     * The system back button: word page to where it was opened, import to
+     * settings, story to stories, stats to the Review tab, a review to the
+     * chapter end page it started from, anything else home.
+     */
     fun back() {
         when (_screen.value) {
+            is Screen.Review, is Screen.Waiting, is Screen.Done -> closeReview()
             is Screen.WordPage -> closeWord()
             is Screen.KanjiPage -> goBack()
             is Screen.RenshuuImport -> closeImport()
             is Screen.StoryReader, is Screen.Series -> storyBack()
             is Screen.Setup -> setupBack()
+            is Screen.StatsPage -> openReviewTab()
             else -> goHome()
         }
     }
 
     fun startReview() = launchIo {
+        // From a chapter's end page, closing the review comes back to it.
+        reviewFrom = (_screen.value as? Screen.StoryReader)?.takeIf { it.impact != null }
         session = repo.session(now())
         undo = null
         advance()
@@ -377,7 +363,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Show the next card, or the waiting or done screen. */
     private fun advance() {
         val s = session ?: return showHome()
-        refreshLanguage()
+        refreshBadge()
         val counts = ReviewCounts(s.newRemaining, s.learningRemaining, s.reviewRemaining)
         val card = s.next(now())
         if (card == null) {
@@ -440,7 +426,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun showSettings(backupMessage: String?) {
-        refreshLanguage()
+        refreshBadge()
         val attribution = repo.dictionary.meta("attribution").orEmpty()
         _screen.value = Screen.Settings(
             settings = repo.settings(),
@@ -455,7 +441,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Read at [level] from now on; raising it fills in that level's words and the easier ones. */
     fun setReadLevel(level: Int) = launchIo {
         repo.setReadLevel(level, now())
-        refreshLanguage()
+        refreshBadge()
         _screen.update { if (it is Screen.Settings) it.copy(readLevel = repo.readLevel()) else it }
     }
 
@@ -515,7 +501,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             display.edit().clear().commit()
             _theme.value = ThemeMode.AUTO
             DailyReminder.schedule(getApplication(), repo.reminder())
-            refreshLanguage()
+            refreshBadge()
             _screen.value = Screen.Setup(repo.levelCounts(), reminderMinute = null)
         }
     }
@@ -610,7 +596,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun showStories() {
-        val path = repo.storyPath(now())
+        val path = repo.storyPath()
         _screen.value = Screen.Stories(
             path = path,
             pace = repo.pace(now()),
@@ -629,13 +615,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openSeries(id: String) = launchIo { showSeries(id) }
 
     private fun showSeries(id: String) {
-        val entry = repo.storyPath(now()).firstOrNull { it.series.id == id } ?: return showStories()
+        val entry = repo.storyPath().firstOrNull { it.series.id == id } ?: return showStories()
         _screen.value = Screen.Series(entry)
     }
 
     /** Tapping a locked chapter: what it's missing, and where to find it. */
     fun showLock(chapterId: String) = launchIo {
-        val lock = repo.lockInfo(chapterId, now()) ?: return@launchIo
+        val lock = repo.lockInfo(chapterId) ?: return@launchIo
         _screen.update { if (it is Screen.Series) it.copy(lock = lock) else it }
     }
 
@@ -647,14 +633,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val grammarFrom = beforeGrammar
         val chapter = when (screen) {
             // A grammar page before a chapter goes back to its chapters.
-            is Screen.StoryReader -> if (screen.reading.lesson == null) screen.chapter else screen.then?.let { repo.story(it.storyId) }?.let { repo.chapterOf(it, now()) }
+            is Screen.StoryReader -> if (screen.reading.lesson == null) screen.chapter else screen.then?.let { repo.story(it.storyId) }?.let { repo.chapterEntry(it) }
             else -> null
         }
         when {
             screen is Screen.Series && screen.lock != null -> closeLock()
             screen is Screen.StoryReader && screen.reading.lesson != null && grammarFrom != null -> {
                 beforeGrammar = null
-                _screen.value = if (grammarFrom is Screen.Dictionary) grammarFrom.copy(grammar = repo.grammarRows(now())) else grammarFrom
+                if (grammarFrom is Screen.Dictionary) _screen.value = grammarFrom.copy(grammar = repo.grammarRows()) else returnTo(grammarFrom)
             }
             chapter != null && !chapter.series.single -> showSeries(chapter.series.id)
             else -> showStories()
@@ -672,14 +658,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openStory(id: Long, anyway: Boolean = false) = launchIo {
         _limit.value = null
         val story = repo.story(id) ?: return@launchIo showStories()
-        val learn = repo.stepToLearn(story, now())
+        val learn = repo.stepToLearn(story)
         val adding = learn?.newWords ?: 0
         val pace = repo.pace(now())
         if (!anyway && pace.over(adding)) {
-            val chapter = repo.chapterOf(story, now())
+            val chapter = repo.chapterEntry(story)
             _limit.value = LimitPrompt(
                 id, story.title, chapter?.takeIf { !it.series.single }?.let { "Chapter ${it.chapter.number}" },
-                adding, pace.newToday, nothingNew(repo.storyPath(now())).isNotEmpty(),
+                adding, pace.newToday, nothingNew(repo.storyPath()).isNotEmpty(),
             )
             return@launchIo
         }
@@ -689,8 +675,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** On towards reading [story]: its new grammar's page, then the story. */
     private fun continueChapter(story: SavedStory, learn: StepToLearn?) {
-        val page = learn?.topic?.let { repo.grammarPageId(it, now()) } ?: return showStory(story.id)
-        val chapter = repo.chapterOf(story, now())
+        val page = learn?.topic?.let { repo.grammarPageId(it) } ?: return showStory(story.id)
+        val chapter = repo.chapterEntry(story)
         val name = if (chapter != null && !chapter.series.single) "chapter ${chapter.chapter.number}: ${chapter.chapter.story.title}" else story.title
         beforeGrammar = null
         showStory(page, then = NextStep(story.id, "Read $name"))
@@ -719,7 +705,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * A grammar topic's page, from the Words tab or a grammar point in a
+     * A grammar topic's page, from the Grammar list or a grammar point in a
      * story; Back returns there, to the same page of the story. From one
      * grammar page to another, Back skips the first.
      */
@@ -754,13 +740,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             startPage = repo.readerPlace()?.takeIf { it.storyId == id && it.style == style.toString() }?.page ?: 0
             readerPage = startPage
         }
-        val chapter = repo.chapterOf(reading.story, now())
+        val chapter = repo.chapterEntry(reading.story)
         _screen.value = Screen.StoryReader(reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage)
     }
 
     /** After [chapter]: its story's next open, unread chapter, or else the next story on the path that has one. */
     private fun nextStep(chapter: ChapterEntry): NextStep? {
-        val path = repo.storyPath(now())
+        val path = repo.storyPath()
         val here = path.firstOrNull { it.series.id == chapter.series.id }
         val sameStory = here?.chapters?.let { c -> c.drop(c.indexOfFirst { it.story.id == chapter.story.id } + 1) + c }
             ?.firstOrNull { it.ready && !it.read && it.story.id != chapter.story.id }
@@ -782,6 +768,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         repo.readWords(story, lookedUpWords.toSet(), at)
         repo.forgetWords(state.forgotten, at)
         val started = repo.startStoryWords(story, at)
+        // The words read and started change what's due.
+        refreshBadge()
         val after = repo.masteries(state.reading.words.keys)
         fun crossed(line: Int) = after.filter { (id, m) -> (masteryAtOpen[id] ?: 0) < line && m >= line }.keys
         val words = state.reading.words
@@ -791,7 +779,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
             topic = topicForStory,
         )
-        val rest = nothingNew(repo.storyPath(at)).firstOrNull { it.story.id != story.id }?.let {
+        val rest = nothingNew(repo.storyPath()).firstOrNull { it.story.id != story.id }?.let {
             val name = if (it.series.single) it.series.title else "${it.series.title} ${it.chapter.number}"
             NextStep(it.story.id, "Next: $name · nothing new")
         }
@@ -830,7 +818,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun refreshStory() {
         val state = _screen.value as? Screen.StoryReader ?: return
         val reading = repo.readStory(state.reading.story.id) ?: return
-        val chapter = repo.chapterOf(reading.story, now())
+        val chapter = repo.chapterEntry(reading.story)
         val next = chapter?.let(::nextStep)
         _screen.update { if (it is Screen.StoryReader) it.copy(reading = reading, chapter = chapter, next = next) else it }
     }
@@ -845,7 +833,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             entryIds = entries!!.mapTo(HashSet()) { it.id }
         }
         statuses = repo.wordStatuses()
-        val state = Screen.Dictionary("", emptySet(), status, emptyList(), if (grammar) repo.grammarRows(now()) else null)
+        val state = Screen.Dictionary("", emptySet(), status, emptyList(), if (grammar) repo.grammarRows() else null)
         _screen.value = state.copy(rows = rows(state))
     }
 
@@ -884,9 +872,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** The Words tab's Grammar list in place of the words, or back to the words. */
+    /** The Dictionary tab's Grammar list in place of the words, or back to the words. */
     fun showGrammar(show: Boolean) = launchIo {
-        val rows = if (show) repo.grammarRows(now()) else null
+        val rows = if (show) repo.grammarRows() else null
         _screen.update { if (it is Screen.Dictionary) it.copy(grammar = rows) else it }
     }
 
@@ -901,14 +889,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openWord(wordId: Long) = launchIo {
         when (val current = _screen.value) {
             is Screen.Dictionary -> lastDictionary = current
-            is Screen.KanjiPage, is Screen.StoryReader -> trail.addLast(current)
-            else -> {}
+            // Anywhere else (Home's Recent words, a kanji page, a story) is where Back returns.
+            else -> trail.addLast(current)
         }
         showWord(wordId)
     }
 
     private fun showWord(wordId: Long) {
-        refreshLanguage()
+        refreshBadge()
         val detail = repo.wordDetail(wordId) ?: return
         val settings = repo.settings()
         _screen.value = Screen.WordPage(detail, repo.clock(settings))

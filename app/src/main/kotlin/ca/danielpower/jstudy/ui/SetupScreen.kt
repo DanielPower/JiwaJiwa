@@ -54,14 +54,14 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
         ) {
             if (index > 0) {
                 SecondaryButton(onClick = vm::setupBack, modifier = Modifier.weight(1f).height(58.dp)) {
-                    Text(ui("Back", "戻る"), fontSize = 18.sp)
+                    Text("Back", fontSize = 18.sp)
                 }
             }
             PrimaryButton(
                 onClick = if (last) vm::finishSetup else vm::setupNext,
                 modifier = Modifier.weight(1f).height(58.dp),
             ) {
-                Text(if (last) ui("Start", "始める") else ui("Next", "次へ"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(if (last) "Start" else "Next", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -102,7 +102,7 @@ private fun Example(japanese: String, name: String, description: String) {
 
 @Composable
 private fun ColumnScope.WelcomePage() {
-    Title(ui("Welcome", "ようこそ"))
+    Title("Welcome")
     Body(
         "Jiwa Jiwa teaches Japanese through stories written for learners. Each one brings a few new words " +
             "and some grammar, and the words you meet come back as flashcards, just before you'd forget them.",
@@ -112,7 +112,7 @@ private fun ColumnScope.WelcomePage() {
 
 @Composable
 private fun ColumnScope.LevelPage(state: Screen.Setup, vm: AppViewModel) {
-    Title(ui("Your level", "レベル"))
+    Title("Your level")
     Help(
         "Words are grouped by the levels of the JLPT, the Japanese-Language Proficiency Test. " +
             "N5 is the first level and N1 the last.",
@@ -135,7 +135,7 @@ private fun ColumnScope.LevelPage(state: Screen.Setup, vm: AppViewModel) {
 @Composable
 internal fun ReadLevelChips(selected: Int, onSelect: (Int) -> Unit) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        WashiChip(selected = selected == ReadLevel.NONE, onClick = { onSelect(ReadLevel.NONE) }, label = ui("None", "なし"))
+        WashiChip(selected = selected == ReadLevel.NONE, onClick = { onSelect(ReadLevel.NONE) }, label = "None")
         for (level in 5 downTo 1) {
             WashiChip(selected = selected == level, onClick = { onSelect(level) }, label = "N$level")
         }
@@ -160,7 +160,7 @@ private fun ReadLevelSummary(readLevel: Int, levelCounts: Map<Int, Int>) {
 
 @Composable
 private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
-    Title(ui("Daily reminder", "毎日の通知"))
+    Title("Daily reminder")
     val pickReminder = rememberReminderPicker { minute -> vm.editSetup { it.copy(reminderMinute = minute) } }
     val reminder = state.reminderMinute
     Body(
@@ -173,10 +173,10 @@ private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
     )
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         SecondaryButton(onClick = { pickReminder(reminder) }) {
-            Text(if (reminder == null) ui("Choose a time", "時間を選ぶ") else ui("Change time", "時間を変える"))
+            Text(if (reminder == null) "Choose a time" else "Change time")
         }
         if (reminder != null) {
-            SecondaryButton(onClick = { vm.editSetup { it.copy(reminderMinute = null) } }) { Text(ui("No reminder", "通知しない")) }
+            SecondaryButton(onClick = { vm.editSetup { it.copy(reminderMinute = null) } }) { Text("No reminder") }
         }
     }
     Help(

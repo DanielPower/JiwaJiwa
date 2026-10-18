@@ -54,23 +54,23 @@ fun SettingsScreen(
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::goHome)
-            Text(ui("Settings", "設定"), style = MaterialTheme.typography.headlineMedium)
+            Text("Settings", style = MaterialTheme.typography.headlineMedium)
         }
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Section(ui("Appearance", "見た目", "見る", "目"))
+            Section("Appearance")
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(ui("Theme", "テーマ"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                Text("Theme", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (mode in ThemeMode.entries) {
-                        WashiChip(selected = theme == mode, onClick = { onTheme(mode) }, label = ui(mode.label))
+                        WashiChip(selected = theme == mode, onClick = { onTheme(mode) }, label = mode.label)
                     }
                 }
             }
 
-            Section(ui("Daily study", "毎日の勉強"))
+            Section("Daily study")
             Text("Level you can already read", style = MaterialTheme.typography.bodyLarge)
             // Raising the level fills in mastery, so it asks first; lowering it changes nothing.
             var pendingLevel by remember { mutableStateOf<Int?>(null) }
@@ -94,7 +94,7 @@ fun SettingsScreen(
                             vm.setReadLevel(level)
                         }) { Text("Fill in") }
                     },
-                    dismissButton = { TextButton(onClick = { pendingLevel = null }) { Text(ui("Cancel", "やめる")) } },
+                    dismissButton = { TextButton(onClick = { pendingLevel = null }) { Text("Cancel") } },
                 )
             }
             Text(
@@ -102,7 +102,7 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Stepper(ui("New words per day", "一日の新しい言葉"), "${s.newPerDay}") { d ->
+            Stepper("New words per day", "${s.newPerDay}") { d ->
                 update { s.copy(newPerDay = (s.newPerDay + d * 5).coerceIn(5, 100)) }
             }
             Text(
@@ -125,12 +125,12 @@ fun SettingsScreen(
                 update { s.copy(rolloverHour = (s.rolloverHour + d + 24) % 24) }
             }
 
-            Section(ui("Reminder", "通知"))
+            Section("Reminder")
             val r = state.reminder
             val pickReminder = rememberReminderPicker { vm.setReminder(Reminder(enabled = true, minuteOfDay = it)) }
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(ui("Daily reminder", "毎日の通知"), style = MaterialTheme.typography.bodyLarge)
+                    Text("Daily reminder", style = MaterialTheme.typography.bodyLarge)
                     Text(
                         "A notification when cards are waiting. Nothing if you're done for the day.",
                         style = MaterialTheme.typography.bodySmall,
@@ -144,20 +144,20 @@ fun SettingsScreen(
             }
             if (r.enabled && r.minuteOfDay != null) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(ui("Remind me at", "時間"), modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Text("Remind me at", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     SecondaryButton(onClick = { pickReminder(r.minuteOfDay) }) { Text(reminderTime(r.minuteOfDay)) }
                 }
             }
 
-            Section(ui("Import", "インポート"))
+            Section("Import")
             Text(
                 "Bring in the mastery of words you've studied on Renshuu.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            SecondaryButton(onClick = onImport) { Text(ui("Import from Renshuu", "Renshuuからインポート", "インポート")) }
+            SecondaryButton(onClick = onImport) { Text("Import from Renshuu") }
 
-            Section(ui("Backup", "バックアップ"))
+            Section("Backup")
             Text(
                 "Save your progress, settings and stories to a file, or restore them from one.",
                 style = MaterialTheme.typography.bodyMedium,
@@ -172,9 +172,9 @@ fun SettingsScreen(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 SecondaryButton(onClick = { export.launch("jiwajiwa-${LocalDate.now()}.jstudy") }, modifier = Modifier.weight(1f)) {
-                    Text(ui("Save backup", "バックアップを保存"))
+                    Text("Save backup")
                 }
-                SecondaryButton(onClick = { restoring = true }, modifier = Modifier.weight(1f)) { Text(ui("Restore", "戻す")) }
+                SecondaryButton(onClick = { restoring = true }, modifier = Modifier.weight(1f)) { Text("Restore") }
             }
             state.backupMessage?.let {
                 Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -188,22 +188,22 @@ fun SettingsScreen(
                         TextButton(onClick = {
                             restoring = false
                             restore.launch(arrayOf("*/*"))
-                        }) { Text(ui("Choose file", "ファイルを選ぶ")) }
+                        }) { Text("Choose file") }
                     },
-                    dismissButton = { TextButton(onClick = { restoring = false }) { Text(ui("Cancel", "やめる")) } },
+                    dismissButton = { TextButton(onClick = { restoring = false }) { Text("Cancel") } },
                 )
             }
 
-            Section(ui("Reset", "消す"))
+            Section("Reset")
             Text(
-                "Erase all your progress, settings and stories, sign out, " +
+                "Erase all your progress, settings and stories, " +
                     "and start again from first-run setup.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             var resetting by remember { mutableStateOf(false) }
             SecondaryButton(onClick = { resetting = true }) {
-                Text(ui("Reset everything", "全部消す"), color = MaterialTheme.colorScheme.error)
+                Text("Reset everything", color = MaterialTheme.colorScheme.error)
             }
             if (resetting) {
                 AlertDialog(
@@ -212,20 +212,20 @@ fun SettingsScreen(
                     text = {
                         Text(
                             "All your cards, mastery, review history, settings and stories " +
-                                "will be deleted, and you'll be signed out. This can't be undone. Save a backup first if you might want them back.",
+                                "will be deleted. This can't be undone. Save a backup first if you might want them back.",
                         )
                     },
                     confirmButton = {
                         TextButton(onClick = {
                             resetting = false
                             vm.resetAll()
-                        }) { Text(ui("Reset", "消す"), color = MaterialTheme.colorScheme.error) }
+                        }) { Text("Reset", color = MaterialTheme.colorScheme.error) }
                     },
-                    dismissButton = { TextButton(onClick = { resetting = false }) { Text(ui("Cancel", "やめる")) } },
+                    dismissButton = { TextButton(onClick = { resetting = false }) { Text("Cancel") } },
                 )
             }
 
-            Section(ui("About", "このアプリについて", "この", "アプリ"))
+            Section("About")
             Text(
                 "Word list and dictionary data:\n" + state.attribution.split("; ").joinToString("\n") { "• $it" } +
                     "\n\nThis app uses the JMdict/EDICT and KANJIDIC dictionary files. These files are the property of " +

@@ -60,7 +60,7 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | Workflow | When | What |
 | --- | --- | --- |
 | `test.yml` (Tests) | every PR, every push to main | core tests, app unit tests, dictionary tests, as separate checks |
-| `check.yml` (Check pull request) | every PR, or by hand on any branch | builds the dictionary and the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
+| `check.yml` (Check pull request) | every PR, or by hand on any branch | builds the dictionary, runs the core tests with it (so `StoryPathTest` checks the stories, which it skips in Tests), and builds the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
 | `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
 
@@ -159,8 +159,10 @@ Other features (all shipped):
   Mon–Sun streak (a day counts with a review answered or a chapter
   finished; arrows go back a week at a time), the words graph (seen, known
   and mastered as nested bands, 30 days or all, replayed from the review
-  log by `WordHistory`; words marked known or imported count from the
-  start), then "Recent": the week's new words (gold) and grammar topics
+  log by `WordHistory`; every word counts from the day it was started,
+  however it was: words marked known, imported or filled in by reading
+  level don't back-fill the past), then "Recent": the week's new words from stories or marked known by hand (gold;
+  imported and level-filled words stay out) and grammar topics
   (indigo) in one row, newest first, every topic kept (`Recent.pick`), with
   a "N of M grammar" link to the Grammar list. A chapter left part way reopens on its page
   (the `reader_place` value), unless the reader style has changed since.
@@ -197,12 +199,8 @@ Other features (all shipped):
   Settings, and fit the pane without scrolling.
   Both layouts follow Japanese line-break rules (`core/Kinsoku.kt`,
   `VerticalText.kt`, `HorizontalText.kt`).
-- The app's own text turns Japanese as you learn: each label shows in
-  English until every word in its Japanese is mastered (the furigana-off
-  mastery, 70), then in Japanese. Labels are written as
-  `ui("English", "日本語")`; the words are found by reading the Japanese with
-  the story reader, so there's no word list to maintain. Explanations and
-  text with numbers in it stay English for now.
+- The app's own text is English. (Labels that turned Japanese as you
+  mastered their words were removed on 2026-10-18.)
 - Visual design is "Washi" (paper, ink, vermilion seal) with light, dark and
   auto themes. See `app/AGENTS.md`.
 
@@ -263,10 +261,13 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.
-- Pace (`core/Pace`, `Repository.pace`): a soft daily limit on new words
+- Pace (`Pace` in `core/Session.kt`, `Repository.pace`): a soft daily limit on new words
   started (`newPerDay`, default 20, from the rollover hour), and a
-  review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this"
-  and imports start nothing, so they don't count. Past either, the Read
+  review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this",
+  "Mark known", Renshuu imports and reading-level pre-fill (Daniel,
+  2026-10-18) date a word started that day but don't count against the
+  limit: the card's `start_source` (`StartSource`) says how it began, and
+  only story words count. Past either, the Read
   tab leads with open chapters that have nothing new, tapping a chapter
   that adds more shows a sheet suggesting them first ("Read it anyway"
   carries on), and a chapter's end offers one before the next chapter.
@@ -288,7 +289,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   which marks its points seen (the `grammar_seen` value, no cards) and
   the day the topic was learned (`grammar_days`, `id:day` pairs; topics
   learned before it existed have no day). It's
-  also on the Grammar list on the Words tab, and a grammar point's note in
+  also on the Grammar list on the Dictionary tab, and a grammar point's note in
   the reader links to its topic's page; Back returns to the same page of
   the story.
 - `StoryPathTest` checks the stories against the built dictionary (skipped
@@ -308,9 +309,15 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   they're red and underlined in the text, and tapping one shows it.
   Finishing starts every word
   in it you haven't started as a card (`Repository.startStoryWords`).
-- At the end of a chapter, each word due for review that you read without
-  tapping counts as an FSRS Hard review (`Reviewer.read`): less than a
-  Right answer, since context helps. The end page shows how many words were
+- At the end of a chapter, each word you read without tapping counts as a
+  small part of a Right answer (`Reviewer.read`) if it's due for review, or
+  still in learning and last seen on an earlier day (`Reviewer.readCounts`).
+  It gets 6% (`Reviewer.READ_SHARE`) of the stability gain FSRS gives Good
+  and keeps its difficulty, since context helps; a learning word moves to
+  review, from stability 1 if it has none. Ten reads, counting the one that
+  starts the word, take it to mastery 40 (CardsTest). It's logged as a read (`review_log.kind`, as are words marked known),
+  so it moves mastery and the words graph but stays out of answer counts,
+  recall, the heatmap and the daily review cap. The end page shows how many words were
   seen, moved to known and moved to mastered, the grammar topic, anyone
   you met, and the next chapter.
 

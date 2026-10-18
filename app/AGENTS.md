@@ -1,6 +1,6 @@
 # app/AGENTS.md
 
-The Android app: Kotlin, Jetpack Compose, minSdk 26, target/compile SDK 35.
+The Android app: Kotlin, Jetpack Compose, minSdk 26, target/compile SDK 36.
 It can't be built in cloud agent containers (Google's Maven hosts are
 blocked there), so CI is the build check. Keep logic in `core` where you can.
 
@@ -25,12 +25,13 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 - Plain `SQLiteOpenHelper`, not Room (avoids KSP and prepackaged-DB schema
   validation). Settings live in the progress DB's `kv` table, not DataStore,
   so a backup carries them.
-- `ProgressStore.VERSION` is 8. Schema changes need an `onUpgrade` step, and
+- `ProgressStore.VERSION` is 10. Schema changes need an `onUpgrade` step, and
   backups from older versions must still restore (they're upgraded when
   reopened). A backup from a newer version is refused.
 - SharedPreferences hold only what must not go in a backup or must load
   before the DB: `display` (theme, read on
-  the first frame), `dictionary` (asset copy bookkeeping).
+  the first frame), `dictionary` (asset copy bookkeeping), `labels` (the
+  words in each UI label, see "UI text").
 - The dictionary DB (`assets/databases/dictionary.db`, about 85 MB, all of
   JMdict) is built by `tools/dictionary` and isn't committed. JLPT words
   have level 1–5 and a `study_order`; others have level 0 and no order.
@@ -56,24 +57,15 @@ labels or legend. The review page's mastery bar stays ink.
 
 ## UI text
 
-Write UI labels through `ui("English", "日本語")` (`ui/Labels.kt`), or a
-`UiLabel` for text kept outside a composable (enums, lists). A label shows in
-Japanese once you've mastered every word in it. Its words are found by
-reading the Japanese the first time it's shown, off the main thread, and
-kept in the `labels` SharedPreferences (cleared when the app updates) so
-later launches start in the right language. Pass the dictionary spellings
-after the Japanese (`ui("Vertical", "縦書き", "縦", "書く")`) only where the
-automatic split goes wrong or picks a word outside the JLPT lists; a label
-with a word or loanword the dictionary lacks stays English. Prefer Japanese
-built from JLPT words, which you'll actually study. Explanatory sentences
-and text with numbers stay plain English.
+UI text is plain English strings. Design marks such as the 新/習/復
+counters and the 済/読了 seals stay Japanese.
 
 ## Tests
 
 `src/test/kotlin`, JUnit 4. Tests that need Android (SQLite, `Context`) use
 `@RunWith(RobolectricTestRunner::class)`; Robolectric is pinned to SDK 34 in
 `src/test/resources/robolectric.properties`. `ProgressStoreTest` covers the
-DB layer including the version 3 → 4 migration; add a migration test with
+DB layer including its migrations (3 → 4, 7 → 8, 8 → 9, 9 → 10); add a migration test with
 any schema change. Run with `./gradlew :app:testDebugUnitTest` (CI only in
 cloud containers).
 

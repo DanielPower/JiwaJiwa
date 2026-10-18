@@ -107,7 +107,7 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(ui("Read", "読む"), style = MaterialTheme.typography.headlineMedium)
+        Text("Read", style = MaterialTheme.typography.headlineMedium)
 
         // The stories that come with the app, shown once a chapter is within reach.
         val shown = state.path.filter { it.shown }
@@ -126,13 +126,13 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            SectionLabel(ui("Your path", "あなたの道", "あなた", "道"), Modifier.padding(top = 8.dp))
+            SectionLabel("Your path", Modifier.padding(top = 8.dp))
             val listed = state.nothingNew.filter { it.series.single }.map { it.series.id }.toSet()
             for (entry in shown.filter { it.series.id !in listed }) {
                 Box(Modifier.alpha(0.65f)) { PathRow(entry) { vm.openPathStory(entry) } }
             }
         } else {
-            SectionLabel(ui("Ready to read", "読める物語", "読める", "物語"))
+            SectionLabel("Ready to read")
             for (entry in shown) PathRow(entry) { vm.openPathStory(entry) }
         }
         val waiting = state.path.size - shown.size
@@ -194,7 +194,7 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
                 val next = entry.next
                 Text(
                     when {
-                        done -> ui("Read", "読んだ", "読む")
+                        done -> "Read"
                         next == null -> "More opens up as you learn"
                         !single -> "Chapter ${next.chapter.number} ready"
                         else -> newLabel(next)
@@ -216,7 +216,7 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
 @Composable
 private fun newLabel(entry: ChapterEntry): String {
     val words = entry.gap.words.size
-    if (words == 0 && entry.newTopic == null) return ui("Nothing new", "新しい言葉なし", "新しい", "言葉")
+    if (words == 0 && entry.newTopic == null) return "Nothing new"
     return listOfNotNull(
         words.takeIf { it > 0 }?.let { if (it == 1) "1 new word" else "$it new words" },
         entry.newTopic?.title,
@@ -229,7 +229,7 @@ private fun PaceMeter(pace: Pace) {
     val color = if (pace.atLimit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(Modifier.fillMaxWidth()) {
-            Text(ui("Today", "今日"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text("Today", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             Text(
                 "${pace.newToday} of ${pace.limit} new",
                 style = MaterialTheme.typography.labelMedium,
@@ -300,7 +300,7 @@ private fun NothingNewRow(entry: ChapterEntry, onClick: () -> Unit) {
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            ui("Nothing new", "新しい言葉なし", "新しい", "言葉"),
+            "Nothing new",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium,
             color = rightGreen(),
@@ -344,7 +344,7 @@ fun SeriesScreen(state: Screen.Series, vm: AppViewModel) {
                     Text(entry.series.blurb, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (entry.cast.isNotEmpty()) {
-                    SectionLabel(ui("People so far", "登場人物", "登場", "人物"))
+                    SectionLabel("People so far")
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         for (person in entry.cast) CastChip(person.name)
                         if (entry.moreCast) CastChip("？", dashed = true)
@@ -851,7 +851,7 @@ private fun LessonPage(
         modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Tag(ui("Grammar", "文法"), MaterialTheme.colorScheme.secondary)
+        Tag("Grammar", MaterialTheme.colorScheme.secondary)
         for (p in 0..reading.paragraphs.size) {
             for (note in notes[p].orEmpty()) Text(note.text, style = MaterialTheme.typography.bodyLarge)
             val words = reading.paragraphs.getOrNull(p) ?: continue
@@ -1046,7 +1046,7 @@ private fun ReaderMenu(style: ReaderStyle, onChange: (ReaderStyle) -> Unit) {
         Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        MenuRow(ui("Size", "大きさ")) {
+        MenuRow("Size") {
             ReaderStyle.SIZES.forEachIndexed { i, size ->
                 MenuOption(style.size == size, { onChange(style.copy(size = size)) }) {
                     // Each step a little bigger, as a sample; the real sizes wouldn't fit the buttons.
@@ -1054,19 +1054,19 @@ private fun ReaderMenu(style: ReaderStyle, onChange: (ReaderStyle) -> Unit) {
                 }
             }
         }
-        MenuRow(ui("Font", "文字")) {
+        MenuRow("Font") {
             for (font in ReaderFont.entries) {
                 MenuOption(style.font == font, { onChange(style.copy(font = font)) }) {
                     Text(font.label, fontFamily = font.family, fontSize = 15.sp, maxLines = 1)
                 }
             }
         }
-        MenuRow(ui("Direction", "向き")) {
+        MenuRow("Direction") {
             MenuOption(!style.vertical, { onChange(style.copy(vertical = false)) }) {
-                Text(ui("Horizontal", "横書き", "横", "書く"), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                Text("Horizontal", style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
             MenuOption(style.vertical, { onChange(style.copy(vertical = true)) }) {
-                Text(ui("Vertical", "縦書き", "縦", "書く"), style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                Text("Vertical", style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
         }
     }
@@ -1231,9 +1231,9 @@ private fun WordCard(
                     Text(
                         levelLabel(entry.jlpt) + "  ·  " + when {
                             // A story's words you haven't started join your reviews when you finish it; a grammar page has none.
-                            status == null -> ui("New", "新しい") + if (reading.lesson == null) ", joins your reviews when you finish" else ""
+                            status == null -> "New" + if (reading.lesson == null) ", joins your reviews when you finish" else ""
                             status.suspended -> "Suspended"
-                            status.state == CardState.NEW -> ui("New", "新しい")
+                            status.state == CardState.NEW -> "New"
                             else -> "Mastery ${status.mastery}"
                         },
                         style = MaterialTheme.typography.labelMedium,
@@ -1331,18 +1331,18 @@ private fun GrammarNote(point: GrammarPoint, onLesson: (() -> Unit)?) {
     }
 }
 
-/** "Grammar · N5", filling the row, and the Lesson → link when there's a page for it. */
+/** "Grammar · N5", filling the row, and the Grammar lesson → link when there's a page for it. */
 @Composable
 private fun RowScope.GrammarLevel(point: GrammarPoint, onLesson: (() -> Unit)?) {
     Text(
-        ui("Grammar", "文法") + "  ·  " + levelLabel(point.level),
+        "Grammar" + "  ·  " + levelLabel(point.level),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.weight(1f),
     )
     if (onLesson != null) {
         TextButton(onClick = onLesson) {
-            Text("Lesson →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+            Text("Grammar lesson →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
         }
     }
 }
@@ -1366,10 +1366,10 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
     ) {
         val chapter = state.chapter
         if (chapter != null && !chapter.series.single) SectionLabel("Chapter ${chapter.chapter.number} done")
-        Text(if (chapter != null && !chapter.series.single) chapter.chapter.story.title else ui("The end", "終わり"), style = MaterialTheme.typography.headlineSmall)
+        Text(if (chapter != null && !chapter.series.single) chapter.chapter.story.title else "The end", style = MaterialTheme.typography.headlineSmall)
         state.impact?.let { WordImpact(it, state.knewNew, state.pace, vm::openWord, vm::toggleKnewNew) }
         state.impact?.topic?.let { topic ->
-            SectionLabel(ui("Grammar", "文法"), Modifier.padding(top = 8.dp))
+            SectionLabel("Grammar", Modifier.padding(top = 8.dp))
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(topic.title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.secondary)
                 Text(topic.titleEn, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1422,15 +1422,6 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
                 Text(nextStep.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        if (chapter != null && !chapter.series.single) {
-            SecondaryButton(onClick = { vm.openSeries(chapter.series.id) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Back to chapters")
-            }
-        } else {
-            SecondaryButton(onClick = vm::openStories, modifier = Modifier.fillMaxWidth()) {
-                Text(ui("Back to stories", "物語に戻る", "物語", "戻る"))
-            }
-        }
     }
 }
 
@@ -1441,7 +1432,7 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
  */
 @Composable
 private fun WordImpact(impact: ReadImpact, knewNew: Set<Long>, pace: Pace?, onWord: (Long) -> Unit, onKnewNew: (Long) -> Unit) {
-    SectionLabel(ui("Your words", "あなたの言葉", "あなた", "言葉"), Modifier.padding(top = 8.dp))
+    SectionLabel("Your words", Modifier.padding(top = 8.dp))
     val known = impact.seen.filter { it.id in knewNew } + impact.known
     val groups = listOf(
         Triple("New", impact.seen, masteryColor(0)),

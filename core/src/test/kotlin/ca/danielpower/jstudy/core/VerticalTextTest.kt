@@ -50,6 +50,14 @@ class VerticalTextTest {
     }
 
     @Test
+    fun `keeps an opening bracket behind rather than overflow the next column`() {
+        val runs = listOf(VerticalRun(listOf("あ")), VerticalRun(listOf("「")), VerticalRun(listOf("か", "き", "く")))
+        assertEquals(listOf("あ「", "かきく"), columns("", 3, runs))
+        // With room for both in the next column, the bracket moves down as usual.
+        assertEquals(listOf("あい", "「かきく"), columns("", 4, runs.take(1) + VerticalRun(listOf("い")) + runs.drop(1)))
+    }
+
+    @Test
     fun `keeps a kanji run with its furigana in one column`() {
         val runs = listOf(VerticalRun(listOf("あ")), VerticalRun(listOf("あ")), VerticalRun(listOf("靴", "下")))
         assertEquals(listOf(VerticalSpot(0, 0), VerticalSpot(0, 1), VerticalSpot(1, 0)), VerticalText.place(runs, 3))
