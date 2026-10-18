@@ -319,7 +319,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   It gets 6% (`Reviewer.READ_SHARE`) of the stability gain FSRS gives Good
   and keeps its difficulty, since context helps; a learning word moves to
   review, from stability 1 if it has none. Ten reads, counting the one that
-  starts the word, take it to mastery 40 (CardsTest). It's logged as a read (`review_log.read`),
+  starts the word, take it to mastery 40 (CardsTest). It's logged as a read (`review_log.kind`, as are words marked known),
   so it moves mastery and the words graph but stays out of answer counts,
   recall, the heatmap and the daily review cap. The end page shows how many words were
   seen, moved to known and moved to mastered, the grammar topic, anyone

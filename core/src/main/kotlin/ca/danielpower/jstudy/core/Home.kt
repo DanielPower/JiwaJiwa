@@ -83,9 +83,9 @@ data class MasteryChange(val wordId: Long, val day: Long, val before: Int, val a
 object WordHistory {
     /**
      * One [WordDay] for each day from [from] to [to], replaying [changes]
-     * (oldest first). [started] is each started word's first day, null when
-     * it has none (filled in by reading level, or imported); [mastery] is each one's
-     * mastery now, for words with no reviews. Words with no first day or
+     * (oldest first): answers, reads and marked-known changes. [started] is
+     * each started word's first day, null when it has none; [mastery] is each
+     * one's mastery now, for words with no changes logged. Words with no first day or
      * review count from the start, since there's no telling when they came.
      * Mastery can drop after a missed review, so known and mastered can too.
      */

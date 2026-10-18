@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
+import ca.danielpower.jstudy.core.LogKind
 import ca.danielpower.jstudy.core.ReviewLog
 import ca.danielpower.jstudy.core.StartSource
 import ca.danielpower.jstudy.core.WordProgress
@@ -327,9 +328,9 @@ class ProgressStoreTest {
         val card = store.cards("word_id = ?", arrayOf("7"), "id").single()
         assertEquals(20_000L, card.introducedDay)
         assertEquals(StartSource.STORY, card.startSource)
-        // The review log gains its read column too, and old rows are answers.
-        store.transaction { store.insertLog(it, log(card.id, day = 5, correct = true).copy(read = true)) }
-        assertEquals(1, store.count("SELECT COUNT(*) FROM review_log WHERE read = 1"))
+        // The review log gains its kind column too, and old rows are answers.
+        store.transaction { store.insertLog(it, log(card.id, day = 5, correct = true).copy(kind = LogKind.READ)) }
+        assertEquals(1, store.count("SELECT COUNT(*) FROM review_log WHERE kind = 1"))
     }
 
     @Test
@@ -337,12 +338,13 @@ class ProgressStoreTest {
         val id = store.transaction { store.insertNewCard(it, wordId = 7, direction = Direction.RECOGNITION, sortKey = 1) }
         store.transaction {
             store.insertLog(it, log(id, day = 10, correct = true))
-            store.insertLog(it, log(id, day = 10, correct = true).copy(read = true))
-            store.insertLog(it, log(id, day = 11, correct = true).copy(read = true))
+            store.insertLog(it, log(id, day = 10, correct = true).copy(kind = LogKind.READ))
+            store.insertLog(it, log(id, day = 11, correct = true).copy(kind = LogKind.READ))
         }
         assertEquals(mapOf(10L to 1), store.answersPerDay(0))
         assertEquals(1 to 1, store.reviewRecall(0))
         assertEquals(listOf(10L), store.studyDays())
         assertEquals(3, store.masteryChanges().size)
+        assertEquals("the word page lists answers only", 1, store.logs(7).size)
     }
 }

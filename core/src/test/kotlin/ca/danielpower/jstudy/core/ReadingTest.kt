@@ -182,6 +182,17 @@ class ReadingTest {
         assertEquals(listOf("past"), word("きれいだった").conjugation)
         assertEquals(listOf("probably"), word("食べるだろう").conjugation)
         assertEquals(listOf("polite", "probably"), word("行くでしょう").conjugation)
+        assertEquals(listOf("probably"), word("高かろう").conjugation)
+    }
+
+    @Test
+    fun `a bare なきゃ is must at the end of a clause and if-not before more of it`() {
+        assertEquals(listOf("must"), reader.words("もう行かなきゃ。")[1].conjugation)
+        assertEquals(listOf("must"), reader.words("行かなきゃね")[0].conjugation)
+        assertEquals(listOf("must"), reader.words("行かなきゃだめだ")[0].conjugation)
+        assertEquals(listOf("negative", "conditional (if)"), reader.words("行かなきゃわからない")[0].conjugation)
+        assertEquals(listOf("must"), reader.words("行かなきゃいけない")[0].conjugation)
+        assertEquals(listOf("must"), reader.words("行かなきゃならない")[0].conjugation)
     }
 
     @Test

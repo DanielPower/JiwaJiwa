@@ -327,7 +327,7 @@ class Repository(context: Context) {
             // Production cards fill what today's new words leave of the daily limit.
             newIntroducedToday = store.count("SELECT COUNT(*) FROM card WHERE introduced_day = ? AND start_source = 0", today),
             reviewsDoneToday = store.count(
-                "SELECT COUNT(*) FROM review_log WHERE day = ? AND state_before = ? AND read = 0",
+                "SELECT COUNT(*) FROM review_log WHERE day = ? AND state_before = ? AND kind = 0",
                 today,
                 CardState.REVIEW.value,
             ),
@@ -361,8 +361,8 @@ class Repository(context: Context) {
 
     /**
      * The new words you've started today, against the daily limit,
-     * and the reviews due today. "I know these" and imports start nothing,
-     * so they don't count.
+     * and the cards a review session would show now. Words marked known,
+     * imported or filled in by level don't count against the limit.
      */
     fun pace(now: Long): Pace {
         val settings = settings()
@@ -375,11 +375,7 @@ class Repository(context: Context) {
                 Direction.PRODUCTION.value,
             ),
             limit = settings.newPerDay,
-            reviewsDue = store.count(
-                "SELECT COUNT(*) FROM card WHERE state = ? AND due_at < ? AND suspended = 0",
-                CardState.REVIEW.value,
-                clock.startOf(today + 1),
-            ),
+            reviewsDue = queue(settings, clock, now).total,
             reviewNudge = settings.reviewNudge,
         )
     }
@@ -429,6 +425,7 @@ class Repository(context: Context) {
         store.transaction { db ->
             store.updateCard(db, known.card)
             store.saveProgress(db, known.progress)
+            store.insertLog(db, known.log)
             if (known.unlockedProduction) {
                 store.insertNewCard(db, card.wordId, Direction.PRODUCTION, now / 1000)
             }
@@ -559,6 +556,7 @@ class Repository(context: Context) {
                 val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default, StartSource.IMPORT)
                 store.updateCard(db, known.card)
                 store.saveProgress(db, known.progress)
+                store.insertLog(db, known.log)
                 if (known.unlockedProduction) {
                     store.insertNewCard(db, wordId, Direction.PRODUCTION, now / 1000)
                 }
@@ -892,6 +890,7 @@ class Repository(context: Context) {
                 val known = reviewer.markKnownFor(card, before, days, within, now, Random.Default)
                 store.updateCard(db, known.card)
                 store.saveProgress(db, known.progress.copy(productionUnlocked = before.productionUnlocked))
+                store.insertLog(db, known.log)
             }
         }
     }
@@ -1029,7 +1028,7 @@ class Repository(context: Context) {
             recallAll = store.reviewRecall(Long.MIN_VALUE),
             levels = levels,
             wordsStarted = statuses.values.count { it.state != CardState.NEW },
-            totalAnswers = store.count("SELECT COUNT(*) FROM review_log WHERE read = 0"),
+            totalAnswers = store.count("SELECT COUNT(*) FROM review_log WHERE kind = 0"),
             studyDays = store.studyDays().size,
         )
     }
@@ -1094,10 +1093,10 @@ class Repository(context: Context) {
             teachesGrammar = entry.newTopic != null,
             resumePage = place?.takeIf { it.storyId == entry.story.id }?.page ?: 0,
         )
-        val summary = summary(now)
+        val pace = pace(now)
         return Suggest.next(
-            pace(now),
-            due = summary.newCards + summary.learning + summary.reviews,
+            pace,
+            due = pace.reviewsDue,
             current = current?.let(::candidate),
             side = side?.let(::candidate),
             anyRead = chapters.any { it.read },
@@ -1116,24 +1115,25 @@ class Repository(context: Context) {
 
     // ------------------------------------------------------------ summary
 
-    fun summary(now: Long): Summary {
-        val settings = settings()
-        val clock = clock(settings)
-        val today = clock.dayOf(now)
+    /** What a review session would show now: the one count behind the Review badge, the Read tab and Home. */
+    private data class Queue(val newCards: Int, val learning: Int, val reviews: Int) {
+        val total get() = newCards + learning + reviews
+    }
+
+    private fun queue(settings: StudySettings, clock: StudyClock, now: Long): Queue {
         val limits = limits(settings, clock, now)
         val reviewsDue = store.count(
             "SELECT COUNT(*) FROM card WHERE state = ? AND due_at < ? AND suspended = 0",
             CardState.REVIEW.value,
             limits.reviewDueBefore,
         )
-        val total = dictionary.wordCount()
         // New words come from the story path, so only unlocked production cards wait here.
         val newWaiting = store.count(
             "SELECT COUNT(*) FROM card WHERE state = ? AND direction = ? AND suspended = 0",
             CardState.NEW.value,
             Direction.PRODUCTION.value,
         )
-        return Summary(
+        return Queue(
             newCards = minOf(limits.newCards, newWaiting),
             learning = store.count(
                 "SELECT COUNT(*) FROM card WHERE state IN (?, ?) AND suspended = 0",
@@ -1141,10 +1141,23 @@ class Repository(context: Context) {
                 CardState.RELEARNING.value,
             ),
             reviews = minOf(limits.reviews, reviewsDue),
+        )
+    }
+
+    fun summary(now: Long): Summary {
+        val settings = settings()
+        val clock = clock(settings)
+        val today = clock.dayOf(now)
+        val queue = queue(settings, clock, now)
+        val total = dictionary.wordCount()
+        return Summary(
+            newCards = queue.newCards,
+            learning = queue.learning,
+            reviews = queue.reviews,
             streak = Streak.current(activeDays(clock), today),
             daysAhead = ahead().daysAhead,
-            reviewedToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND read = 0", today),
-            correctToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND correct = 1 AND read = 0", today),
+            reviewedToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND kind = 0", today),
+            correctToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND correct = 1 AND kind = 0", today),
             wordsStarted = store.count(
                 "SELECT COUNT(*) FROM card WHERE direction = ? AND state != ?",
                 Direction.RECOGNITION.value,

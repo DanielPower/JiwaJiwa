@@ -55,8 +55,8 @@ class CardsTest {
         val read = reviewer.read(card, progress, now)
         val right = reviewer.answer(card, progress, true, now)
         assertTrue(read.log.correct)
-        assertTrue(read.log.read, "logged as a read, not an answer")
-        assertFalse(right.log.read)
+        assertEquals(LogKind.READ, read.log.kind, "logged as a read, not an answer")
+        assertEquals(LogKind.ANSWER, right.log.kind)
         assertTrue(read.progress.mastery > progress.mastery)
         assertTrue(read.progress.mastery < right.progress.mastery)
         assertTrue(read.card.dueAt < right.card.dueAt)
@@ -78,7 +78,7 @@ class CardsTest {
             now = if (card.state == CardState.LEARNING) clock.startOf(clock.dayOf(now) + 1) + 3_600_000 else card.dueAt
             assertTrue(reviewer.readCounts(card, now))
             val read = reviewer.read(card, progress, now)
-            assertTrue(read.log.read)
+            assertEquals(LogKind.READ, read.log.kind)
             card = read.card
             progress = read.progress
             masteries += progress.mastery
@@ -119,6 +119,10 @@ class CardsTest {
         val known = reviewer.markKnown(fresh, WordProgress(7), 50, now, Random(1))
         assertEquals(today, known.card.introducedDay)
         assertEquals(StartSource.KNOWN, known.card.startSource)
+        // Logged as a mastery change for the words graph, not as an answer.
+        assertEquals(LogKind.KNOWN, known.log.kind)
+        assertEquals(0 to 50, known.log.masteryBefore to known.log.masteryAfter)
+        assertEquals(today, known.log.day)
         val reviewed = reviewer.answer(known.card, known.progress, correct = true, now = known.card.dueAt)
         assertEquals(today, reviewed.card.introducedDay)
         assertEquals(StartSource.KNOWN, reviewed.card.startSource)

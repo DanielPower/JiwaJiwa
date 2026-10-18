@@ -15,7 +15,8 @@ object HorizontalText {
      * Breaks a paragraph's [words] into lines no wider than [maxWidth]. Rather
      * than start a line with closing punctuation or end one with an opening
      * bracket, the words before the break move down too, as long as some of
-     * the line stays behind. A word wider than a line gets a line of its own.
+     * the line stays behind and the next one still fits. A word wider than a
+     * line gets a line of its own.
      * The first line starts [indent] in, and the rest [wrapIndent] in.
      */
     fun lines(words: List<FlowWord>, maxWidth: Float, indent: Float = 0f, wrapIndent: Float = 0f): List<IntRange> {
@@ -31,8 +32,11 @@ object HorizontalText {
                 var start = k
                 while (start > lineStart + 1 && bad(start)) start--
                 if (bad(start)) start = k
+                // Carrying words down mustn't overflow the next line either.
+                fun carried() = (start until k).sumOf { words[it].width.toDouble() }.toFloat()
+                if (carried() + word.width > maxWidth - wrapIndent) start = k
                 starts += start
-                x = (start until k).sumOf { words[it].width.toDouble() }.toFloat()
+                x = carried()
             }
             x += word.width
         }

@@ -84,6 +84,23 @@ data class WordProgress(
     val productionUnlocked: Boolean = false,
 )
 
+/** What a [ReviewLog] row records. Stored in the app's database: don't renumber. */
+enum class LogKind(val value: Int) {
+    /** A Wrong or Right answer to a card. */
+    ANSWER(0),
+
+    /** A word read in a story ([Reviewer.read]). */
+    READ(1),
+
+    /** A word marked known, imported or filled in by reading level. */
+    KNOWN(2),
+    ;
+
+    companion object {
+        fun of(value: Int) = entries.first { it.value == value }
+    }
+}
+
 data class ReviewLog(
     val cardId: Long,
     val reviewedAt: Long,
@@ -98,8 +115,8 @@ data class ReviewLog(
     val dueAt: Long,
     val masteryBefore: Int,
     val masteryAfter: Int,
-    /** A due word read in a story, not an answer: it moves mastery, but stays out of review stats and the review cap. */
-    val read: Boolean = false,
+    /** Only answers count in review stats and the review cap; reads and known words just move mastery. */
+    val kind: LogKind = LogKind.ANSWER,
 )
 
 data class Answer(
@@ -225,7 +242,7 @@ class Reviewer(
                 dueAt = dueAt,
                 masteryBefore = progress.mastery,
                 masteryAfter = newMastery,
-                read = read,
+                kind = if (read) LogKind.READ else LogKind.ANSWER,
             ),
         )
     }
@@ -292,20 +309,36 @@ class Reviewer(
         val unlock = card.direction == Direction.RECOGNITION &&
             !progress.productionUnlocked &&
             newMastery >= MasteryRules.PRODUCTION_AT
+        val updated = card.copy(
+            state = CardState.REVIEW,
+            step = null,
+            // At 90% target retention the FSRS interval equals the stability.
+            stability = days.toDouble(),
+            difficulty = fsrs.startingDifficulty(Rating.GOOD),
+            dueAt = clock.startOf(today + firstDue),
+            lastReviewAt = now,
+            introducedDay = if (startsToday) today else card.introducedDay,
+            startSource = if (startsToday) source else card.startSource,
+        )
         return Known(
-            card = card.copy(
-                state = CardState.REVIEW,
-                step = null,
-                // At 90% target retention the FSRS interval equals the stability.
-                stability = days.toDouble(),
-                difficulty = fsrs.startingDifficulty(Rating.GOOD),
-                dueAt = clock.startOf(today + firstDue),
-                lastReviewAt = now,
-                introducedDay = if (startsToday) today else card.introducedDay,
-                startSource = if (startsToday) source else card.startSource,
-            ),
+            card = updated,
             progress = progress.copy(mastery = newMastery, productionUnlocked = progress.productionUnlocked || unlock),
             unlockedProduction = unlock,
+            log = ReviewLog(
+                cardId = card.id,
+                reviewedAt = now,
+                day = today,
+                correct = true,
+                stateBefore = card.state,
+                stateAfter = CardState.REVIEW,
+                elapsedDays = card.lastReviewAt?.let { (today - clock.dayOf(it)).toInt().coerceAtLeast(0) },
+                stabilityAfter = updated.stability!!,
+                difficultyAfter = updated.difficulty!!,
+                dueAt = updated.dueAt,
+                masteryBefore = progress.mastery,
+                masteryAfter = newMastery,
+                kind = LogKind.KNOWN,
+            ),
         )
     }
 }
@@ -314,4 +347,6 @@ data class Known(
     val card: Card,
     val progress: WordProgress,
     val unlockedProduction: Boolean,
+    /** Its mastery change, so the words graph shows it. */
+    val log: ReviewLog,
 )
