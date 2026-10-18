@@ -82,6 +82,23 @@ class Fsrs(
         }
     }
 
+    /**
+     * A review card seen in context rather than tested: it gains [share] of
+     * the stability a Good review would give, and its difficulty stays put,
+     * since nothing showed how hard the word is.
+     */
+    fun read(memory: FsrsMemory, elapsedDays: Int?, share: Double, fuzz: Random? = null): FsrsResult {
+        require(memory.state == FsrsState.REVIEW)
+        val s0 = requireNotNull(memory.stability)
+        val good = review(memory, Rating.GOOD, elapsedDays).memory.stability!!
+        val s = clampStability(s0 + (good - s0) * share)
+        val days = nextInterval(s)
+        return FsrsResult(
+            memory.copy(stability = s),
+            FsrsInterval.Days(if (fuzz != null) fuzzed(days, fuzz) else days),
+        )
+    }
+
     private fun updated(memory: FsrsMemory, rating: Rating, elapsedDays: Int?): Pair<Double, Double> {
         val s = memory.stability
         val d = memory.difficulty

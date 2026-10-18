@@ -119,14 +119,16 @@ class Reviewer(
         grade(card, progress, if (correct) Rating.GOOD else Rating.AGAIN, now, fuzz)
 
     /**
-     * A due word read in a story without looking it up. It counts as a pass,
-     * but as FSRS's Hard rather than Good: context helps in a story, so it
-     * moves mastery less than getting the card right in a review.
+     * A due review word read in a story without looking it up. Context helps
+     * in a story, so it's worth [READ_SHARE] of a Right answer's stability
+     * gain, and leaves difficulty alone.
      */
-    fun read(card: Card, progress: WordProgress, now: Long, fuzz: Random? = null): Answer =
-        grade(card, progress, Rating.HARD, now, fuzz).let { it.copy(log = it.log.copy(read = true)) }
+    fun read(card: Card, progress: WordProgress, now: Long, fuzz: Random? = null): Answer {
+        require(card.state == CardState.REVIEW)
+        return grade(card, progress, Rating.GOOD, now, fuzz, read = true)
+    }
 
-    private fun grade(card: Card, progress: WordProgress, rating: Rating, now: Long, fuzz: Random?): Answer {
+    private fun grade(card: Card, progress: WordProgress, rating: Rating, now: Long, fuzz: Random?, read: Boolean = false): Answer {
         require(card.wordId == progress.wordId)
         val correct = rating != Rating.AGAIN
         val today = clock.dayOf(now)
@@ -145,7 +147,7 @@ class Reviewer(
             )
         }
         val elapsed = card.lastReviewAt?.let { (today - clock.dayOf(it)).toInt().coerceAtLeast(0) }
-        val result = fsrs.review(memory, rating, elapsed, fuzz)
+        val result = if (read) fsrs.read(memory, elapsed, READ_SHARE, fuzz) else fsrs.review(memory, rating, elapsed, fuzz)
 
         val dueAt = when (val interval = result.interval) {
             is FsrsInterval.Minutes -> now + (interval.minutes * 60_000).toLong()
@@ -201,8 +203,14 @@ class Reviewer(
                 dueAt = dueAt,
                 masteryBefore = progress.mastery,
                 masteryAfter = newMastery,
+                read = read,
             ),
         )
+    }
+
+    companion object {
+        /** Share of a Right answer's stability gain that reading a due word gives. */
+        const val READ_SHARE = 0.5
     }
 
     /**

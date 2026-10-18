@@ -60,6 +60,9 @@ class CardsTest {
         assertTrue(read.progress.mastery > progress.mastery)
         assertTrue(read.progress.mastery < right.progress.mastery)
         assertTrue(read.card.dueAt < right.card.dueAt)
+        assertEquals(5.0, read.card.difficulty, "a read says nothing about how hard the word is")
+        val halfway = 10.0 + (right.card.stability!! - 10.0) * Reviewer.READ_SHARE
+        assertEquals(halfway, read.card.stability!!, 1e-9)
     }
 
     @Test

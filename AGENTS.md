@@ -314,8 +314,9 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   Finishing starts every word
   in it you haven't started as a card (`Repository.startStoryWords`).
 - At the end of a chapter, each word due for review that you read without
-  tapping counts as an FSRS Hard review (`Reviewer.read`): less than a
-  Right answer, since context helps. It's logged as a read (`review_log.read`),
+  tapping counts as half a Right answer (`Reviewer.read`): it gets half
+  the stability gain FSRS gives Good and keeps its difficulty, since
+  context helps. It's logged as a read (`review_log.read`),
   so it moves mastery and the words graph but stays out of answer counts,
   recall, the heatmap and the daily review cap. The end page shows how many words were
   seen, moved to known and moved to mastered, the grammar topic, anyone
