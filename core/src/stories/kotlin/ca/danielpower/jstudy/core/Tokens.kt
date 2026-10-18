@@ -4,7 +4,7 @@ package ca.danielpower.jstudy.core
  * Repairs to tokens the tokenizer gets wrong in everyday speech, before the
  * reader puts them into words. Each is a pattern IPADIC misreads the same way
  * every time, so a story can be written naturally rather than around it.
- * ReadingTest has an example of each.
+ * ReaderTrapsTest has an example of each.
  */
 internal object Tokens {
     /** Verbs a quote goes with. */
