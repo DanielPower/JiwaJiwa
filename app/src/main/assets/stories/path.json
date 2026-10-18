@@ -2772,10 +2772,7 @@
       "\"…A manga's a bit…\"",
       "But the me in Miho's drawing is smiling.",
       "It's a good drawing."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "the-band/rins-song",
@@ -2974,9 +2971,6 @@
       "\"Rin laughed!\"",
       "\"…You're loud.\""
      ],
-     "readings": {
-      "弦": "げん"
-     },
      "topic": "te-shimau"
     },
     {
@@ -3187,10 +3181,7 @@
       "We all laughed.",
       "The park at night.",
       "Three days until the festival."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "the-band/the-night-before",
@@ -3252,10 +3243,7 @@
       "\"Good night, Rin.\"",
       "Outside, it's a quiet summer night.",
       "It's not a lonely night."
-     ],
-     "readings": {
-      "弦": "げん"
-     }
+     ]
     },
     {
      "id": "the-band/only-three-songs",
@@ -3310,9 +3298,6 @@
       "The sky is still a summer afternoon sky.",
       "Just a little longer till night."
      ],
-     "readings": {
-      "弦": "げん"
-     },
      "topic": "dake"
     },
     {
@@ -3374,11 +3359,7 @@
       "Rin looked at me too.",
       "\"…Let's go.\"",
       "The three of us went up onto the stage."
-     ],
-     "readings": {
-      "描く": "かく",
-      "弦": "げん"
-     }
+     ]
     },
     {
      "id": "the-band/summer-snow",
@@ -3521,9 +3502,6 @@
       "\"Go for it, Miho!\"",
       "Back home, I drew some more in my room."
      ],
-     "readings": {
-      "描く": "かく"
-     },
      "topic": "ni-iku"
     },
     {
@@ -3579,10 +3557,7 @@
       "Yuki laughed a little.",
       "I drew a new picture in my notebook.",
       "My heroine, playing bass and singing."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "mihos-manga/the-publisher",
@@ -3625,10 +3600,7 @@
       "\"But I want to be in a real magazine too.\"",
       "\"You will. I know it.\"",
       "When I got home, I drew some more."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "mihos-manga/the-pros-pages",
@@ -3672,9 +3644,6 @@
       "Still worse than a pro's.",
       "But better than me in spring."
      ],
-     "readings": {
-      "描く": "かく"
-     },
      "topic": "yori"
     },
     {
@@ -3728,10 +3697,7 @@
       "From the next day on, I drew a little every day.",
       "A little in the morning, a little at night.",
       "Rough drawings, all the way to the end."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "mihos-manga/drawing-the-band",
@@ -3780,10 +3746,7 @@
       "Yuki's face was smiling a little, too.",
       "When I got home, I redrew the heroine's face on the pages.",
       "I drew late into the night."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "mihos-manga/when-i-was-a-kid",
@@ -3839,9 +3802,6 @@
       "And I went back to drawing.",
       "When I'm listening to Yuki sing, my lines get a little cleaner."
      ],
-     "readings": {
-      "描く": "かく"
-     },
      "topic": "toki"
     },
     {
@@ -3892,10 +3852,7 @@
       "I read it again on the train.",
       "Old me was trying so hard.",
       "Now-me has to try hard too."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "mihos-manga/the-ending",
@@ -3949,10 +3906,7 @@
       "It's not wrong anymore.",
       "She doesn't have to come first.",
       "That's how my manga ends."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "mihos-manga/the-deadline",
@@ -4013,9 +3967,6 @@
       "\"…Miho, go to sleep.\"",
       "Once I got back to my room, I slept until night."
      ],
-     "readings": {
-      "描く": "かく"
-     },
      "topic": "mae-ni"
     },
     {
@@ -4083,9 +4034,6 @@
       "\"I don't know! But I'm going to the publisher tomorrow!\"",
       "\"…I'm coming too.\""
      ],
-     "readings": {
-      "描く": "かく"
-     },
      "meets": [
       {
        "name": "佐藤",
@@ -4158,10 +4106,7 @@
       "I'd love to show old me this card.",
       "I can't wait to go and show her the next one.",
       "That night, I drew my new manga."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     }
    ]
   },
@@ -4331,9 +4276,6 @@
       "So are weekends in Canada.",
       "But I miss them a little."
      ],
-     "readings": {
-      "描く": "かく"
-     },
      "topic": "ya"
     },
     {
@@ -4388,10 +4330,7 @@
       "\"…I'm going to bed.\"",
       "I laughed again, a little.",
       "When Miho's magazine comes, I'll read it with Mom."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "messages-from-canada/morning-game",
@@ -4664,9 +4603,6 @@
       "The song I started last autumn, because Alex was going home.",
       "I want to sing this song at the winter show."
      ],
-     "readings": {
-      "描く": "かく"
-     },
      "topic": "te-kureru"
     },
     {
@@ -4784,10 +4720,7 @@
       "\"Yeah. I'll do my best.\"",
       "That night, I put the poster up by my window.",
       "The three of us in the picture are smiling in the night sky."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "yukis-song/the-flyers",
@@ -4909,10 +4842,7 @@
       "\"Sora made them, Miho drew them, Tanaka-san handed them out…\"",
       "Yuki laughed.",
       "\"You too, Kenta.\""
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "yukis-song/the-words",
@@ -5320,10 +5250,7 @@
       "\"Yuki, what is it? You look happy.\"",
       "\"…It's a secret.\"",
       "\"…This house has a lot of secrets.\""
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     },
     {
      "id": "yukis-song/back-at-the-studio",
@@ -5478,9 +5405,6 @@
       "No messages.",
       "\"…Everyone's late.\""
      ],
-     "readings": {
-      "弦": "げん"
-     },
      "topic": "ta-koto"
     },
     {
@@ -6231,10 +6155,7 @@
       "\"Then the one after the next one!\"",
       "We all laughed.",
       "The ramen was great again tonight."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     }
    ],
    "side": true
@@ -7914,10 +7835,7 @@
       "The room went quiet.",
       "Daichi is already asleep.",
       "Smiling, on top of his bag."
-     ],
-     "readings": {
-      "弦": "げん"
-     }
+     ]
     }
    ],
    "side": true
@@ -8026,10 +7944,7 @@
       "Where's his train going, I wonder.",
       "But I'm a little happy.",
       "I'm not the only one in the contest."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     }
    ],
    "side": true
@@ -8100,10 +8015,7 @@
       "Rin smiled a little too.",
       "The rainy shop is quiet.",
       "The sound of Rin's pages, and of my lines."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     }
    ],
    "side": true
@@ -8156,10 +8068,7 @@
       "My very first manga notebook.",
       "The kid me was always drawing too.",
       "I went back to the last page."
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     }
    ],
    "side": true
@@ -8420,10 +8329,7 @@
       "\"Because you're the heroine.\"",
       "\"…I'm not the heroine.\"",
       "\"But I'll do my best at the show.\""
-     ],
-     "readings": {
-      "描く": "かく"
-     }
+     ]
     }
    ],
    "side": true
@@ -9038,10 +8944,7 @@
       "\"Then let's decide the words and the name, the three of us.\"",
       "A new song, on new strings.",
       "Our new song."
-     ],
-     "readings": {
-      "弦": "げん"
-     }
+     ]
     }
    ],
    "side": true

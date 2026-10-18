@@ -34,14 +34,26 @@ fun main(args: Array<String>) {
 
 /** The dictionary the app is built with, read over JDBC, looking words up as the app does. */
 class JdbcLexicon(private val conn: Connection) : Lexicon {
-    override fun find(text: String, reading: String?): LexiconMatch? =
-        bestHomograph(query(HOMOGRAPHS_SQL, text) { Homograph(getLong(1), getString(2), getInt(3), getInt(4)) }, reading) { id ->
-            query("SELECT text FROM form WHERE word_id = ?", id.toString()) { getString(1) }
-        }
+    override fun find(text: String, reading: String?): LexiconMatch? = find(text, reading, null)
 
-    override fun verbs(text: String): List<VerbEntry> = verbEntries(
-        query(VERBS_SQL, text) { SenseRow(getLong(1), getString(2), getInt(3) == 1, getString(4), getString(5), getString(6)) },
-    )
+    override fun find(text: String, reading: String?, wordClass: WordClass?): LexiconMatch? =
+        bestHomograph(homographs(text), reading, wordClass) { id -> forms.getOrPut(id) { query("SELECT text FROM form WHERE word_id = ?", id.toString()) { getString(1) } } }
+
+    override fun verbs(text: String): List<VerbEntry> = verbs.getOrPut(text) {
+        verbEntries(query(VERBS_SQL, text) { SenseRow(getLong(1), getString(2), getInt(3) == 1, getString(4), getString(5), getString(6), getInt(7)) })
+    }
+
+    // The stories look the same words up thousands of times.
+    private val homographCache = HashMap<String, List<Homograph>>()
+    private val forms = HashMap<Long, List<String>>()
+    private val verbs = HashMap<String, List<VerbEntry>>()
+
+    private fun homographs(text: String) = homographCache.getOrPut(text) {
+        query(HOMOGRAPHS_SQL, text) {
+            val pos = getString(5).orEmpty().split('|').filter { it.isNotBlank() }.flatMap { arr -> Json.parseToJsonElement(arr).jsonArray.map { it.jsonPrimitive.content } }
+            Homograph(getLong(1), getString(2), getInt(3), getInt(4), WordClass.of(pos))
+        }
+    }
 
     /** An entry's kana and JLPT level (0 for none). */
     data class Entry(val kana: String, val jlpt: Int)

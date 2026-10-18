@@ -882,6 +882,11 @@ internal object Grammar {
             // ～んじゃない: "isn't it that…?".
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, particle("じゃ")),
         )
+        // ～んだって, "I hear that…": the だって is ～って's (だ + って), the ん this point's.
+        variant(
+            "n-desu", listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }), before = null,
+            after = { it?.pos == "助詞" && it.base == "だって" },
+        )
         point(
             "mae-ni", "～前に", 5, "before doing",
             "After a plain present verb: before that happens. After \"noun + の\" it can mean \"in front of\" instead.",

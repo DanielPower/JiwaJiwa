@@ -3,8 +3,52 @@ package ca.danielpower.jstudy.core
 import com.atilika.kuromoji.ipadic.Token
 import com.atilika.kuromoji.ipadic.Tokenizer
 
-/** A dictionary entry matched to a word, and the entry's reading of that spelling in hiragana. */
-data class LexiconMatch(val wordId: Long, val reading: String)
+/**
+ * A dictionary entry matched to a word, and the entry's reading of that
+ * spelling in hiragana. [jlpt] is its level (0 for none) and [classes] what
+ * kinds of word its senses are, when the dictionary says.
+ */
+data class LexiconMatch(val wordId: Long, val reading: String, val jlpt: Int = 0, val classes: Set<WordClass> = emptySet())
+
+/** What kind of word a dictionary entry is, as far as telling homographs apart goes. */
+enum class WordClass(vararg val codes: String) {
+    NOUN("n", "pn", "adj-no", "num", "ctr"),
+    VERB("v"),
+    I_ADJECTIVE("adj-i", "adj-ix"),
+    NA_ADJECTIVE("adj-na"),
+    ADVERB("adv", "n-adv", "n-t"),
+    INTERJECTION("int"),
+    PRENOUN("adj-pn"),
+    CONJUNCTION("conj"),
+    ;
+
+    companion object {
+        /** The classes of the JMdict part-of-speech codes [codes] (n, v5k, adj-i, …). */
+        fun of(codes: Collection<String>): Set<WordClass> =
+            codes.flatMap { code -> entries.filter { c -> c.codes.any { code == it || (code.startsWith(it) && it in PREFIXES) } } }.toSet()
+
+        private val PREFIXES = setOf("v", "adv", "n")
+
+        /** The class IPADIC gives [m], when it's one a dictionary entry can have. */
+        internal fun of(m: Morpheme): WordClass? = when (m.pos) {
+            "名詞" -> when (m.pos2) {
+                "形容動詞語幹" -> NA_ADJECTIVE
+                // Suffixes (さん, 時) and dependent nouns are filed every which way.
+                "接尾", "非自立" -> null
+                // A noun that works as an adverb: いつか "someday", not 五日.
+                "副詞可能" -> ADVERB
+                else -> NOUN
+            }
+            "動詞" -> VERB
+            "形容詞" -> I_ADJECTIVE
+            "副詞" -> ADVERB
+            "感動詞" -> INTERJECTION
+            "連体詞" -> PRENOUN
+            "接続詞" -> CONJUNCTION
+            else -> null
+        }
+    }
+}
 
 /** Finds dictionary entries for the words in a story. */
 fun interface Lexicon {
@@ -13,6 +57,9 @@ fun interface Lexicon {
      * word's reading in hiragana when known, to choose between homographs.
      */
     fun find(text: String, reading: String?): LexiconMatch?
+
+    /** As [find], preferring an entry of the kind of word [wordClass] says (五日 is a noun, いつか "someday" an adverb). */
+    fun find(text: String, reading: String?, wordClass: WordClass?): LexiconMatch? = find(text, reading)
 
     /** The verbs spelled [text], for telling a potential form (話せる) from a verb of its own (売れる). See [verbEntries]. */
     fun verbs(text: String): List<VerbEntry> = emptyList()
@@ -23,50 +70,56 @@ fun interface Lexicon {
  * potential form itself: its first meaning is "to be able to …" (話せる,
  * 読める), or a sense notes it (取れる, 撮れる).
  */
-data class VerbEntry(val id: Long, val kana: String, val godan: Boolean, val usuallyKana: Boolean, val potential: Boolean)
+data class VerbEntry(val id: Long, val kana: String, val godan: Boolean, val usuallyKana: Boolean, val potential: Boolean, val jlpt: Int = 0)
 
 /** Every sense of the entries with a spelling (the one argument), for [verbEntries]. */
 const val VERBS_SQL =
-    "SELECT w.id, w.kana, w.usually_kana, s.pos, s.gloss, s.info FROM form f JOIN word w ON w.id = f.word_id " +
+    "SELECT w.id, w.kana, w.usually_kana, s.pos, s.gloss, s.info, w.jlpt FROM form f JOIN word w ON w.id = f.word_id " +
         "JOIN sense s ON s.word_id = w.id WHERE f.text = ? ORDER BY w.id, s.ord"
 
 /** One row of [VERBS_SQL]: parts of speech and glosses as the JSON arrays the dictionary stores. */
-data class SenseRow(val id: Long, val kana: String, val usuallyKana: Boolean, val pos: String, val gloss: String, val info: String?)
+data class SenseRow(val id: Long, val kana: String, val usuallyKana: Boolean, val pos: String, val gloss: String, val info: String?, val jlpt: Int = 0)
 
-/** The verbs among the entries [rows] (from [VERBS_SQL]) describe. The app and the story tools both use this. */
+/** The verbs among the entries [rows] (from [VERBS_SQL]) describe. */
 fun verbEntries(rows: List<SenseRow>): List<VerbEntry> = rows.groupBy { it.id }.values.mapNotNull { senses ->
     val first = senses.first()
     if (!first.pos.contains("\"v")) return@mapNotNull null
     val able = first.gloss.startsWith("[\"to be able to") || first.gloss.startsWith("[\"to be possible to") ||
         senses.any { it.info?.contains("potential") == true }
-    VerbEntry(first.id, first.kana, first.pos.contains("\"v5"), first.usuallyKana, able)
+    VerbEntry(first.id, first.kana, first.pos.contains("\"v5"), first.usuallyKana, able, first.jlpt)
 }
 
-/** A dictionary entry with a spelling a word was written in, for [bestHomograph]. */
-data class Homograph(val id: Long, val kana: String, val jlpt: Int, val rank: Int)
+/** A dictionary entry with a spelling a word was written in, for [bestHomograph]. [classes] are its senses' kinds of word. */
+data class Homograph(val id: Long, val kana: String, val jlpt: Int, val rank: Int, val classes: Set<WordClass> = emptySet())
 
-/** The entries that have a spelling (the one argument), for [bestHomograph]: id, kana, JLPT level, frequency rank. */
+/**
+ * The entries that have a spelling (the one argument), for [bestHomograph]: id, kana, JLPT level, frequency rank,
+ * and every sense's parts of speech (JSON arrays joined by |).
+ */
 const val HOMOGRAPHS_SQL =
-    "SELECT w.id, w.kana, w.jlpt, COALESCE(w.freq_rank, 1000000000) FROM form f JOIN word w ON w.id = f.word_id WHERE f.text = ?"
+    "SELECT w.id, w.kana, w.jlpt, COALESCE(w.freq_rank, 1000000000), (SELECT group_concat(s.pos, '|') FROM sense s WHERE s.word_id = w.id) " +
+        "FROM form f JOIN word w ON w.id = f.word_id WHERE f.text = ?"
 
 /**
  * The entry for a word among the [homographs] spelled the way it is. One with
- * a kana spelling matching [reading] wins, then JLPT words, then the more
- * frequent. JLPT only breaks ties here: the frequency list ranks spellings,
- * not entries, so a rare homograph shares a common word's rank (右舞 has
- * うまい's), and the JLPT lists name the entry learners mean. [forms] gives
- * an entry's spellings. The app and the story tools both look words up this
- * way, so a story's index matches what the app reads.
+ * a kana spelling matching [reading] wins, then one of the kind of word
+ * [wordClass] says (いつか the adverb, not 五日), then JLPT words, then the
+ * more frequent. JLPT only breaks ties here: the frequency list ranks
+ * spellings, not entries, so a rare homograph shares a common word's rank
+ * (右舞 has うまい's), and the JLPT lists name the entry learners mean.
+ * [forms] gives an entry's spellings.
  */
-fun bestHomograph(homographs: List<Homograph>, reading: String?, forms: (Long) -> List<String>): LexiconMatch? {
+fun bestHomograph(homographs: List<Homograph>, reading: String?, wordClass: WordClass? = null, forms: (Long) -> List<String>): LexiconMatch? {
     val candidates = homographs.distinctBy { it.id }
     if (candidates.isEmpty()) return null
     val wanted = reading?.let(Kana::toHiragana)
     val readingMatches = if (wanted == null) emptySet() else candidates.filter { cand ->
         Kana.toHiragana(cand.kana) == wanted || forms(cand.id).any { Kana.isKana(it) && Kana.toHiragana(it) == wanted }
     }.map { it.id }.toSet()
-    val best = candidates.minWith(compareBy<Homograph>({ it.id !in readingMatches }, { it.jlpt == 0 }, { it.rank }, { it.id }))
-    return LexiconMatch(best.id, if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana))
+    val best = candidates.minWith(
+        compareBy<Homograph>({ it.id !in readingMatches }, { wordClass != null && wordClass !in it.classes }, { it.jlpt == 0 }, { it.rank }, { it.id }),
+    )
+    return LexiconMatch(best.id, if (best.id in readingMatches) wanted!! else Kana.toHiragana(best.kana), best.jlpt, best.classes)
 }
 
 /** Splits Japanese text into words with Kuromoji (IPADIC) and matches them to the dictionary. */
@@ -88,7 +141,7 @@ class Reader(private val lexicon: Lexicon) {
      * [names] are always names, never words: リン the guitarist, not 燐.
      */
     fun words(paragraph: String, readings: Map<String, String> = emptyMap(), names: Set<String> = emptySet()): List<ReadingWord> {
-        val tokens = Tokens.repair(tokenizer.tokenize(paragraph).map { it.morpheme() })
+        val tokens = purposeStems(Tokens.repair(tokenizer.tokenize(paragraph).map { it.morpheme() }))
         val out = ArrayList<ReadingWord>()
         // The tokens each word was made from, for placing grammar points.
         val spans = ArrayList<IntRange>()
@@ -108,7 +161,7 @@ class Reader(private val lexicon: Lexicon) {
                 }
                 t.isInflectingHead || comesWithout(tokens, i) || (t.isSuruNoun && tokens.getOrNull(i + 1)?.isSuru == true) -> {
                     val end = chainEnd(tokens, i + if (t.isSuruNoun) 2 else 1)
-                    out += inflected(tokens.subList(i, end), tokens.getOrNull(end))
+                    out += bareStem(t, tokens.getOrNull(end), end == i + 1) ?: inflected(tokens.subList(i, end), tokens.getOrNull(end))
                     i = end
                 }
                 t.pos == "名詞" && t.pos2 == "形容動詞語幹" -> {
@@ -142,10 +195,53 @@ class Reader(private val lexicon: Lexicon) {
             }
             spans += from until i
         }
-        val read = out.map { w ->
-            if (w.surface in names) w.copy(kind = WordKind.NAME, wordId = null) else if (readings.isEmpty()) w else pinned(w, readings)
+        val pins = DEFAULT_READINGS + readings
+        val read = out.map { w -> if (w.surface in names) w.copy(kind = WordKind.NAME, wordId = null) else pinned(w, pins) }
+        return stutters(withGrammar(read, spans, tokens))
+    }
+
+    /**
+     * A stuttered start (ご、ごめん) is the word to come, not a word of its
+     * own: it's left as plain text, neither counted nor explained.
+     */
+    private fun stutters(words: List<ReadingWord>): List<ReadingWord> = words.mapIndexed { k, w ->
+        val next = words.getOrNull(k + 2)
+        if (w.kind != WordKind.PUNCTUATION && w.surface.length <= 2 && Kana.isKana(w.surface) && words.getOrNull(k + 1)?.surface == "、" &&
+            next != null && next.surface.length > w.surface.length && next.surface.startsWith(w.surface)
+        ) {
+            ReadingWord(w.surface, w.surface, w.reading, WordKind.PUNCTUATION, null, emptyList(), listOf(Ruby(w.surface, null)))
+        } else {
+            w
         }
-        return withGrammar(read, spans, tokens)
+    }
+
+    /**
+     * A verb's stem on its own at the end of a clause (終わり。, 休みは) is
+     * the noun the dictionary has for it: "the end", not "ending, and…".
+     */
+    private fun bareStem(t: Morpheme, next: Morpheme?, alone: Boolean): ReadingWord? {
+        if (!alone || t.pos != "動詞" || t.form != "連用形") return null
+        val ends = next == null || (next.pos == "記号" && next.pos2 != "読点") ||
+            (next.pos == "助詞" && next.base in setOf("は", "が", "も", "を", "の")) || (next.pos == "助動詞" && next.base in setOf("だ", "です"))
+        if (!ends) return null
+        val noun = lexicon.find(t.surface, t.readingOrSurface, WordClass.NOUN)?.takeIf { WordClass.NOUN in it.classes } ?: return null
+        return plain(listOf(t), WordKind.WORD, noun.wordId).copy(lemma = t.surface, reading = noun.reading, ruby = ruby(t.surface, noun.reading))
+    }
+
+    /**
+     * A verb's stem the tokenizer takes for its noun before ～に行く (送りに
+     * 行く, "go to see off"): the verb, so ～に行く explains it, unless the
+     * noun is a word learners know.
+     */
+    private fun purposeStems(tokens: List<Morpheme>): List<Morpheme> = tokens.mapIndexed { k, t ->
+        val after = tokens.getOrNull(k + 2)
+        if (t.pos != "名詞" || t.pos2 != "一般" || tokens.getOrNull(k + 1)?.base != "に" || after?.pos != "動詞" || after.base !in MOVING) return@mapIndexed t
+        val u = I_TO_U[t.surface.last()] ?: return@mapIndexed t
+        val verb = t.surface.dropLast(1) + u
+        // A noun of its own is where you go (祭りに行く); only a rare one is the stem (送りに行く).
+        val godan = lexicon.verbs(verb).filter { it.godan }.maxOfOrNull { it.jlpt } ?: return@mapIndexed t
+        if (godan == 0 || (lexicon.find(t.surface, t.readingOrSurface, WordClass.NOUN)?.jlpt ?: 0) > 0) return@mapIndexed t
+        t.copy(pos = "動詞", pos2 = "自立", pos3 = "*", form = "連用形", type = "五段", base = verb)
     }
 
     /** [word] as [readings] reads it, if it pins it and the dictionary has it with that reading. */
@@ -192,6 +288,9 @@ class Reader(private val lexicon: Lexicon) {
         return words.mapIndexed { w, word ->
             val mine = uses.filter { w in it.first..it.last }
             when {
+                // しれない in ～かもしれない is part of the point, not a word to learn.
+                mine.any { it.point.id == "kamoshirenai" } && word.lemma in setOf("しれる", "知れる") ->
+                    word.copy(kind = WordKind.GRAMMAR, wordId = null, grammar = mine)
                 mine.isNotEmpty() -> word.copy(grammar = mine)
                 word.conjugated && !word.stem -> phrase(word)
                 // A time noun the tokenizer files with grammar but no point explains is a word: 日 in 休みの日, 最後の日です.
@@ -329,7 +428,7 @@ class Reader(private val lexicon: Lexicon) {
         val id = if (suru) {
             lexicon.find(head.surface + "する", reading + "する") ?: lexicon.find(head.surface, reading)
         } else {
-            lexicon.find(head.base, reading)
+            lexicon.find(head.base, reading, WordClass.of(head))
         }?.wordId
         val word = ReadingWord(
             surface = group.joinToString("") { it.surface },
@@ -342,7 +441,14 @@ class Reader(private val lexicon: Lexicon) {
         )
         if (suru || !head.type.startsWith("一段")) return word
         val (verb, verbText) = potential(head.base, reading) ?: return word
-        return word.copy(lemma = verbText, wordId = verb.wordId, conjugation = (listOf("potential") + word.conjugation).distinct())
+        val potential = word.copy(lemma = verbText, wordId = verb.wordId, conjugation = (listOf("potential") + word.conjugation).distinct())
+        // Read as that verb's potential: 弾ける as ひける, not はじける.
+        val stem = reading.dropLast(1)
+        val wanted = verb.reading.dropLast(1) + (U_TO_E[verb.reading.last()] ?: return potential)
+        if (stem == wanted || verbText == "来る" || !potential.reading.startsWith(stem)) return potential
+        val read = wanted + potential.reading.removePrefix(stem)
+        val headRead = wanted + head.readingOrSurface.removePrefix(stem)
+        return potential.copy(reading = read, ruby = ruby(head.surface, headRead) + group.drop(1).flatMap { ruby(it.surface, it.readingOrSurface) })
     }
 
     /**
@@ -356,11 +462,18 @@ class Reader(private val lexicon: Lexicon) {
     private fun potential(base: String, reading: String): Pair<LexiconMatch, String>? {
         // 来れる, the spoken potential of 来る ("can come"), the one irregular verb with one.
         if (base == "来れる" || base == "これる") return lexicon.find("来る", "くる")?.let { it to "来る" }
+        // しれる of ～かもしれない is grammar, not "can know".
+        if (base == "しれる" || base == "知れる") return null
         val godan = godanOf(base) ?: return null
-        val godanReading = godanOf(reading) ?: return null
-        val verb = lexicon.verbs(godan).firstOrNull { it.godan && Kana.toHiragana(it.kana) == godanReading } ?: return null
+        val read = godanOf(reading) ?: return null
+        val verbs = lexicon.verbs(godan).filter { it.godan }
+        // An entry has one kana of its own, but a pinned reading may be another of its readings (描く read かく).
+        val godanReading = DEFAULT_READINGS[godan]?.takeIf { r -> verbs.any { Kana.toHiragana(it.kana) == r } } ?: read
+        val verb = verbs.firstOrNull { Kana.toHiragana(it.kana) == godanReading } ?: return null
         val own = lexicon.verbs(base).filter { Kana.toHiragana(it.kana) == reading }
-        if (own.any { !it.potential && !(it.usuallyKana && base.any(::isKanji)) }) return null
+        // A rare verb of its own loses to a common verb's potential: a story's 休めない is "can't rest", not 休める "to rest something".
+        val rare = verb.jlpt > 0 && own.all { it.jlpt == 0 || it.jlpt < verb.jlpt - 2 }
+        if (!rare && own.any { !it.potential && !(it.usuallyKana && base.any(::isKanji)) }) return null
         return LexiconMatch(verb.id, godanReading) to godan
     }
 
@@ -368,8 +481,10 @@ class Reader(private val lexicon: Lexicon) {
         // Numbers written in kanji (三, 百, 何) and counters (時, 円, 人) are words to learn; digits aren't.
         val name = t.pos2 == "固有名詞" || (t.isNumber && t.surface.any(Char::isDigit)) ||
             (t.pos2 == "接尾" && !t.isCounter) || (t.unknown && Kana.isKana(t.surface))
-        val id = if (t.unknown && name) null else lexicon.find(t.base, t.readingOrSurface)?.wordId
-        return plain(listOf(t), if (name) WordKind.NAME else WordKind.WORD, id)
+        val match = if (t.unknown && name) null else lexicon.find(t.base, t.readingOrSurface, WordClass.of(t))
+        // The tokenizer files some everyday words as names (毎日 the newspaper, 日本 the country): a word on the JLPT lists is a word.
+        val word = t.pos2 == "固有名詞" && t.surface.any(::isKanji) && (match?.jlpt ?: 0) > 0
+        return plain(listOf(t), if (name && !word) WordKind.NAME else WordKind.WORD, match?.wordId)
     }
 
     private fun plain(group: List<Morpheme>, kind: WordKind, id: Long?): ReadingWord {
@@ -392,8 +507,19 @@ class Reader(private val lexicon: Lexicon) {
         /** Nouns the tokenizer sometimes files as dependent (grammar) nouns, though they're words: 日 in 最後の日です. */
         private val TIME_NOUNS = setOf("日")
 
+        /**
+         * Spellings the tokenizer reads the rarer way, read the everyday way
+         * unless a chapter pins them otherwise (see [words]).
+         */
+        val DEFAULT_READINGS = mapOf("何時" to "なんじ", "描く" to "かく", "弦" to "げん", "弾く" to "ひく", "日本" to "にほん")
+
+        /** Verbs of going or coming that a purpose (～に行く) goes with. */
+        private val MOVING = setOf("行く", "来る", "帰る", "戻る", "出る", "出かける")
+        private val I_TO_U = mapOf('い' to 'う', 'き' to 'く', 'し' to 'す', 'ち' to 'つ', 'に' to 'ぬ', 'び' to 'ぶ', 'み' to 'む', 'り' to 'る', 'ぎ' to 'ぐ')
+
         private val SET_PHRASES = listOf("ただいま", "おかえりなさい", "おかえり", "いってきます", "いってらっしゃい")
         private val CONTRACTIONS = setOf("ちゃう", "じゃう", "ちまう", "とく", "てる", "でる")
+        private val U_TO_E by lazy { E_TO_U.entries.associate { it.value to it.key } }
         private val E_TO_U = mapOf('え' to 'う', 'け' to 'く', 'せ' to 'す', 'て' to 'つ', 'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る', 'げ' to 'ぐ')
 
         /** The う verb whose potential [text] would be: 話せる to 話す. Null when it can't be one. */

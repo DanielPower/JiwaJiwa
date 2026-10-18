@@ -20,7 +20,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Outside the station, Alex spots a tall mountain, and it turns out to be a building.
 
-- 23 words; 0 new of 3 allowed.
+- 22 words; 0 new of 3 allowed.
 
 ## Known at the end
 
@@ -28,4 +28,4 @@ Read in order after the stories it follows, a reader knows these by the end of t
 
 Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`).
 
-14 words: 来る ついに 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ
+15 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ
