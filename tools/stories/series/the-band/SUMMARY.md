@@ -42,7 +42,7 @@ Daichi takes Yuki to the park at night to meet Rin, a guitarist who says almost 
 
 First practice in a rented studio: Daichi's drums drown out everything, and they play 'Snow' again and again until morning.
 
-- 102 words; 3 new of 3 allowed.
+- 101 words; 3 new of 3 allowed.
 - New: スタジオ (N1), 借りる (かりる, N5), 聞こえる (きこえる, N4).
 
 ### 4. If we win (`the-band/if-we-win`)
@@ -137,7 +137,7 @@ The studio's air conditioner is out on the hottest day yet; Rin turns up with ic
 
 A week before the festival, a string on Rin's guitar snaps; while Daichi runs out for a new one, Rin admits stages scare her too.
 
-- 100 words; 3 new of 3 allowed.
+- 99 words; 3 new of 3 allowed.
 - Teaches ～ちゃう / ～てしまう (`te-shimau`).
 - New: 切れる (きれる, N3), 弦 (げん, not JLPT), 三つ (みっつ, N5).
 

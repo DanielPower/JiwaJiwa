@@ -187,14 +187,14 @@ Summer, the day before the open mic: Yuki wonders if her voice will hold, and ev
 
 Open mic night: Yuki's voice won't come out, until her friends call her name from the crowd.
 
-- 76 words; 3 new of 3 allowed.
+- 75 words; 3 new of 3 allowed.
 - New: 手 (て, N5), ステージ (N2), 笑う (わらう, N4).
 
 ### 24. Snow in summer (`new-housemate/snow-in-summer`)
 
 Yuki starts again and sings her snow song, the crowd goes quiet to listen, and Alex sees the video.
 
-- 90 words; 2 new of 3 allowed.
+- 89 words; 2 new of 3 allowed.
 - New: 終わる (おわる, N5), 静か (しずか, N5).
 
 ### 25. The next song (`new-housemate/the-next-song`)
