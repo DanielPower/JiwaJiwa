@@ -801,7 +801,7 @@ class Repository(context: Context) {
         val ids = StoryPath.words(reader, story.body, readings(story), names(story)).mapNotNull { it.wordId }
         for (id in ids.distinct() - lookedUp) {
             val card = recognitionCard(id) ?: continue
-            if (card.state != CardState.REVIEW || card.dueAt > now || store.isSuspended(id)) continue
+            if (!reviewer.readCounts(card, now) || store.isSuspended(id)) continue
             val before = store.progress(id)
             save(card, before, reviewer.read(card, before, now, Random.Default), now)
         }

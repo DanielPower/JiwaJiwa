@@ -66,6 +66,30 @@ class CardsTest {
     }
 
     @Test
+    fun `ten reads, counting the one that starts it, take a new word to known`() {
+        val start = at("2026-10-14T12:00")
+        var card = reviewer.introduce(Card(1, 7, Direction.RECOGNITION), start)
+        var progress = WordProgress(7)
+        assertFalse(reviewer.readCounts(card, start + 3_600_000), "not again the day it was started")
+        val masteries = mutableListOf(progress.mastery)
+        var now = start
+        repeat(9) {
+            // The next time it can count: the next study day while learning, then whenever it's due.
+            now = if (card.state == CardState.LEARNING) clock.startOf(clock.dayOf(now) + 1) + 3_600_000 else card.dueAt
+            assertTrue(reviewer.readCounts(card, now))
+            val read = reviewer.read(card, progress, now)
+            assertTrue(read.log.read)
+            card = read.card
+            progress = read.progress
+            masteries += progress.mastery
+        }
+        assertEquals(CardState.REVIEW, card.state)
+        assertEquals(Fsrs().startingDifficulty(Rating.GOOD), card.difficulty)
+        assertTrue(masteries[8] < MasteryRules.HIDE_AT, "nine reads: $masteries")
+        assertTrue(masteries[9] >= MasteryRules.HIDE_AT, "ten reads: $masteries")
+    }
+
+    @Test
     fun `answers count reps and keep the first study day`() {
         val now = at("2026-10-10T20:00")
         val card = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)

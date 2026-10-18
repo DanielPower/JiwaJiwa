@@ -313,10 +313,13 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   they're red and underlined in the text, and tapping one shows it.
   Finishing starts every word
   in it you haven't started as a card (`Repository.startStoryWords`).
-- At the end of a chapter, each word due for review that you read without
-  tapping counts as a small part of a Right answer (`Reviewer.read`): it
-  gets 3% (`Reviewer.READ_SHARE`) of the stability gain FSRS gives Good
-  and keeps its difficulty, since context helps. It's logged as a read (`review_log.read`),
+- At the end of a chapter, each word you read without tapping counts as a
+  small part of a Right answer (`Reviewer.read`) if it's due for review, or
+  still in learning and last seen on an earlier day (`Reviewer.readCounts`).
+  It gets 6% (`Reviewer.READ_SHARE`) of the stability gain FSRS gives Good
+  and keeps its difficulty, since context helps; a learning word moves to
+  review, from stability 1 if it has none. Ten reads, counting the one that
+  starts the word, take it to mastery 40 (CardsTest). It's logged as a read (`review_log.read`),
   so it moves mastery and the words graph but stays out of answer counts,
   recall, the heatmap and the daily review cap. The end page shows how many words were
   seen, moved to known and moved to mastered, the grammar topic, anyone

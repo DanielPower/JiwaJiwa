@@ -119,20 +119,41 @@ class Reviewer(
         grade(card, progress, if (correct) Rating.GOOD else Rating.AGAIN, now, fuzz)
 
     /**
-     * A due review word read in a story without looking it up. Context helps
-     * in a story, so it's worth [READ_SHARE] of a Right answer's stability
-     * gain, and leaves difficulty alone.
+     * Whether reading [card]'s word in a story without looking it up counts
+     * as a [read]: a review card once it's due, or a word still in learning
+     * at most once a study day, so a word only ever read still grows.
+     */
+    fun readCounts(card: Card, now: Long): Boolean = when (card.state) {
+        CardState.REVIEW -> card.dueAt <= now
+        CardState.LEARNING -> lastSeenDay(card)?.let { it < clock.dayOf(now) } ?: false
+        else -> false
+    }
+
+    /**
+     * A word read in a story without looking it up. Context helps in a
+     * story, so it's worth [READ_SHARE] of a Right answer's stability gain,
+     * and leaves difficulty alone. A word still in learning goes to review,
+     * from [READ_START_STABILITY] if no answer has given it one yet.
      */
     fun read(card: Card, progress: WordProgress, now: Long, fuzz: Random? = null): Answer {
-        require(card.state == CardState.REVIEW)
+        require(card.state == CardState.REVIEW || card.state == CardState.LEARNING)
         return grade(card, progress, Rating.GOOD, now, fuzz, read = true)
     }
+
+    private fun lastSeenDay(card: Card): Long? = card.lastReviewAt?.let { clock.dayOf(it) } ?: card.introducedDay
 
     private fun grade(card: Card, progress: WordProgress, rating: Rating, now: Long, fuzz: Random?, read: Boolean = false): Answer {
         require(card.wordId == progress.wordId)
         val correct = rating != Rating.AGAIN
         val today = clock.dayOf(now)
-        val memory = if (card.state == CardState.NEW) {
+        val memory = if (read) {
+            FsrsMemory(
+                state = FsrsState.REVIEW,
+                step = null,
+                stability = card.stability ?: READ_START_STABILITY,
+                difficulty = card.difficulty ?: fsrs.startingDifficulty(Rating.GOOD),
+            )
+        } else if (card.state == CardState.NEW) {
             FsrsMemory.NEW
         } else {
             FsrsMemory(
@@ -146,7 +167,8 @@ class Reviewer(
                 difficulty = card.difficulty,
             )
         }
-        val elapsed = card.lastReviewAt?.let { (today - clock.dayOf(it)).toInt().coerceAtLeast(0) }
+        val since = if (read) lastSeenDay(card) else card.lastReviewAt?.let { clock.dayOf(it) }
+        val elapsed = since?.let { (today - it).toInt().coerceAtLeast(0) }
         val result = if (read) fsrs.read(memory, elapsed, READ_SHARE, fuzz) else fsrs.review(memory, rating, elapsed, fuzz)
 
         val dueAt = when (val interval = result.interval) {
@@ -209,8 +231,15 @@ class Reviewer(
     }
 
     companion object {
-        /** Share of a Right answer's stability gain that reading a due word gives. */
-        const val READ_SHARE = 0.03
+        /**
+         * Share of a Right answer's stability gain that a read gives. With
+         * [READ_START_STABILITY], ten reads, counting the one that starts the
+         * word, take a new word to mastery 40.
+         */
+        const val READ_SHARE = 0.06
+
+        /** Stability (mastery 0) a read starts from for a word no answer has given one yet. */
+        const val READ_START_STABILITY = 1.0
     }
 
     /**
