@@ -53,6 +53,9 @@ internal object Tokens {
         t.surface == "すぎ" && t.pos == "名詞" && prev != null &&
             ((prev.pos == "形容詞" && prev.form == "ガル接続") || (prev.pos == "動詞" && prev.form == "連用形")) ->
             Morpheme("すぎ", "動詞", "非自立", "*", "連用形", "一段", "すぎる", "すぎ")
+        // ます quoted with です (「です、ます」) is the ending, not 鱒, a trout.
+        t.surface == "ます" && t.pos == "名詞" && prev?.pos == "記号" && before?.base == "です" ->
+            Morpheme("ます", "助動詞", "*", "*", "基本形", "特殊・マス", "ます", "ます")
         else -> t
     }
 

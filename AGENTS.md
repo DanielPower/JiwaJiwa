@@ -25,7 +25,7 @@ Guiding rules from Daniel:
 
 | Path | What it is |
 | --- | --- |
-| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kanji readings, romaji, the story path, Kuromoji word splitting, Renshuu import planning. No Android imports. |
+| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kanji readings, romaji, the story path, Renshuu import planning, and (in `src/stories`, not shipped) the story tools that split the stories into words with Kuromoji. No Android imports. |
 | `app/` | The Android app: Jetpack Compose UI, SQLite storage, reminder, backup. |
 | `tools/dictionary/` | Python (stdlib only) build of the bundled dictionary DB from pinned sources. |
 | `tools/fsrs/` | Generates `core/src/test/resources/fsrs_vectors.tsv` from py-fsrs. |
@@ -228,6 +228,8 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   grammar are worked out when the stories change and shipped in
   `stories/needs.json` (Daniel, 2026-10-17), so the app never reads every
   chapter: at a few hundred chapters that would take seconds on a phone.
+  The text is split into words at build time too (`stories/read/`, 2026-10-18),
+  so the app has no tokenizer and shows exactly what the checks passed.
   All of it is our own writing for adults, casual speech first: Alex, on a
   one-year working holiday in Tokyo, a share house, a ramen shop job, a
   cast met a few at a time. **Arrival** is the prologue, then **Ramen

@@ -13,7 +13,7 @@ Every push to `main` builds a release APK and publishes it on the
 | Path | What it is |
 | --- | --- |
 | `app/` | The Android app (Kotlin, Jetpack Compose) |
-| `core/` | Pure-Kotlin study logic: FSRS, the review session, mastery and furigana rules, and the story path (Kuromoji word splitting, conjugation notes, grammar) |
+| `core/` | Pure-Kotlin study logic: FSRS, the review session, mastery and furigana rules, and the story path (stories split into words at build time with Kuromoji, conjugation notes, grammar) |
 | `tools/dictionary/` | Builds `app/src/main/assets/databases/dictionary.db` from pinned sources |
 | `tools/stories/` | The bundled stories and grammar topics, as they're written (see its AGENTS.md) |
 | `tools/fsrs/` | Generates the FSRS reference vectors the core tests replay |
