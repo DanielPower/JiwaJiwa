@@ -344,10 +344,10 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                 SectionLabel("Actions")
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SecondaryButton(onClick = { vm.markKnown(MasteryRules.HIDE_AT) }, modifier = Modifier.weight(1f).height(48.dp)) {
-                        Text(if (started) "Set as known" else "Mark known")
+                        Text("I know this")
                     }
                     SecondaryButton(onClick = { vm.markKnown(MasteryRules.OFF_AT) }, modifier = Modifier.weight(1f).height(48.dp)) {
-                        Text(if (started) "Set as mastered" else "Mark mastered")
+                        Text("I know this well")
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {

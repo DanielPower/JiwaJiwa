@@ -535,7 +535,7 @@ class Repository(context: Context) {
         return RenshuuImport.plan(terms, { it in ids }, local)
     }
 
-    /** Mark each word known at its mastery, as "Mark known" does, in one transaction. */
+    /** Mark each word known at its mastery, as "I know this" does, in one transaction. */
     fun importMastery(updates: Map<Long, Int>, now: Long) {
         val settings = settings()
         val reviewer = Reviewer(Fsrs(), clock(settings))

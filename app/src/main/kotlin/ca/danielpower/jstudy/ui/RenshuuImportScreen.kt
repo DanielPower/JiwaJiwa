@@ -31,43 +31,45 @@ import ca.danielpower.jstudy.core.ImportPlan
 
 @Composable
 fun RenshuuImportScreen(step: ImportStep, vm: AppViewModel) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Import from Renshuu", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-            if (step !is ImportStep.Applying) TextButton(onClick = vm::closeImport) { Text("Close") }
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            WashiIconButton(WashiIcons.Back, "Back", vm::closeImport, enabled = step !is ImportStep.Applying)
         }
-        when (step) {
-            is ImportStep.EnterKey -> EnterKey(step.error, vm::fetchRenshuu)
-            is ImportStep.Fetching -> {
-                Text(
-                    if (step.pages > 0) "Downloading your words, page ${step.page} of ${step.pages}…" else "Connecting to Renshuu…",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                if (step.pages > 0) {
-                    LinearProgressIndicator(progress = { step.page.toFloat() / step.pages }, modifier = Modifier.fillMaxWidth())
-                } else {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text("Import from Renshuu", style = MaterialTheme.typography.headlineMedium)
+            when (step) {
+                is ImportStep.EnterKey -> EnterKey(step.error, vm::fetchRenshuu)
+                is ImportStep.Fetching -> {
+                    Text(
+                        if (step.pages > 0) "Downloading your words, page ${step.page} of ${step.pages}…" else "Connecting to Renshuu…",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    if (step.pages > 0) {
+                        LinearProgressIndicator(progress = { step.page.toFloat() / step.pages }, modifier = Modifier.fillMaxWidth())
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
                 }
-            }
-            is ImportStep.Preview -> Preview(step.plan, onImport = vm::applyImport, onCancel = vm::closeImport)
-            ImportStep.Applying -> Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator()
-                Text("Importing…", style = MaterialTheme.typography.bodyLarge)
-            }
-            is ImportStep.Done -> {
-                Text(
-                    if (step.updated == 1) "Imported 1 word." else "Imported ${step.updated} words.",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    "Their first reviews are spread over the coming days and weeks.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                PrimaryButton(onClick = vm::goHome) { Text("Done") }
+                is ImportStep.Preview -> Preview(step.plan, onImport = vm::applyImport, onCancel = vm::closeImport)
+                ImportStep.Applying -> Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator()
+                    Text("Importing…", style = MaterialTheme.typography.bodyLarge)
+                }
+                is ImportStep.Done -> {
+                    Text(
+                        if (step.updated == 1) "Imported 1 word." else "Imported ${step.updated} words.",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        "Their first reviews are spread over the coming days and weeks.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    PrimaryButton(onClick = vm::closeImport) { Text("Done") }
+                }
             }
         }
     }
@@ -120,7 +122,7 @@ private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit
         PrimaryButton(onClick = onCancel) { Text("Close") }
     } else {
         Text(
-            "Each word is marked known at its mastery, as \"Mark known\" on a word's page does, and gets reviews to match.",
+            "Each word is marked known at its mastery, as \"I know this\" on a word's page does, and gets reviews to match.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
