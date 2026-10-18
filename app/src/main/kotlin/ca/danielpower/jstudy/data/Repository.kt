@@ -28,7 +28,6 @@ import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.core.WordProgress
 import ca.danielpower.jstudy.core.Coverage
-import ca.danielpower.jstudy.core.Reader
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.CastMember
 import ca.danielpower.jstudy.core.Chapter
@@ -46,6 +45,7 @@ import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.StepGap
 import ca.danielpower.jstudy.core.StepNeeds
 import ca.danielpower.jstudy.core.StoryPath
+import ca.danielpower.jstudy.core.StoryText
 import ca.danielpower.jstudy.core.coverage
 import ca.danielpower.jstudy.core.sentenceRanges
 import kotlin.random.Random
@@ -263,7 +263,6 @@ class Repository(context: Context) {
     val dictionary = Dictionary(context)
     private val store = ProgressStore(context)
 
-    private val reader by lazy { Reader(dictionary) }
 
     // ------------------------------------------------------------ settings
 
@@ -592,7 +591,7 @@ class Repository(context: Context) {
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
-        val paragraphs = reader.read(story.body, readings(story), names(story))
+        val paragraphs = paragraphs(story)
         val ids = paragraphs.flatten().mapNotNull { it.wordId }.toSet()
         val statuses = store.wordStatuses()
         return StoryReading(
@@ -618,11 +617,17 @@ class Repository(context: Context) {
             .groupBy({ it.before - 1 }, { it.text })
             .mapValues { it.value.joinToString("\n\n") }
 
-    /** The words the reader gets wrong in a chapter, pinned to their readings. */
-    private fun readings(story: SavedStory): Map<String, String> = chapterOf(story)?.readings.orEmpty()
+    /** The bundled pages split into words as the story tools read them, a story's file at a time (core [StoryText]). */
+    private val texts = HashMap<String, Map<String, List<List<ReadingWord>>>>()
 
-    /** The cast names a chapter or grammar page reads as names, not words. */
-    private fun names(story: SavedStory): Set<String> = (chapterOf(story) ?: topicOfPage(story)?.page)?.names.orEmpty()
+    /** [story]'s paragraphs of words. */
+    private fun paragraphs(story: SavedStory): List<List<ReadingWord>> {
+        val file = StoryText.file(story.pathId)
+        val pages = synchronized(texts) {
+            texts.getOrPut(file) { StoryText.parse(appContext.assets.open("stories/read/$file").bufferedReader().use { it.readText() }) }
+        }
+        return pages[story.pathId].orEmpty()
+    }
 
     /** Each grammar point's topic page, saved when the path was. */
     private fun lessons(): Map<String, Long> {
@@ -767,7 +772,7 @@ class Repository(context: Context) {
      */
     fun readWords(story: SavedStory, lookedUp: Set<Long>, now: Long) {
         val reviewer = Reviewer(Fsrs(), clock())
-        val ids = StoryPath.words(reader, story.body, readings(story), names(story)).mapNotNull { it.wordId }
+        val ids = StoryPath.words(paragraphs(story)).mapNotNull { it.wordId }
         for (id in ids.distinct() - lookedUp) {
             val card = recognitionCard(id) ?: continue
             if (!reviewer.readCounts(card, now) || store.isSuspended(id)) continue
@@ -791,7 +796,7 @@ class Repository(context: Context) {
      */
     fun startStoryWords(story: SavedStory, now: Long): List<Long> {
         val isKnown = known(store.wordStatuses())
-        val ids = StoryPath.words(reader, story.body, readings(story), names(story)).mapNotNull { it.wordId }.distinct()
+        val ids = StoryPath.words(paragraphs(story)).mapNotNull { it.wordId }.distinct()
             .filter { !isKnown(it) && dictionary.word(it) != null }
         for (id in ids) start(id, now)
         return ids

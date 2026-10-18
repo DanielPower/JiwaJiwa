@@ -13,7 +13,7 @@ class StoryPathTest {
 
     @Test
     fun `a story counts each word once, and skips grammar and names`() {
-        val words = StoryPath.words(reader, "タマは猫が好きです。猫は魚を食べます。")
+        val words = StoryPath.words(reader.read("タマは猫が好きです。猫は魚を食べます。"))
         assertEquals(listOf("猫", "好き", "魚", "食べる"), words.map { it.lemma })
     }
 
@@ -25,7 +25,7 @@ class StoryPathTest {
     }
 
     private fun needs(body: String, teaches: List<String> = emptyList()) =
-        StoryPath.needs(reader, PathStory("x", "A title in English", body, emptyList(), teaches))
+        StoryPath.needs(PathStory("x", "A title in English", body, emptyList(), teaches), reader.read(body))
 
     @Test
     fun `a step needs its grammar, but not its English title's`() {
@@ -104,11 +104,11 @@ class StoryPathTest {
             val report = StringBuilder()
             val problems = ArrayList<String>()
 
-            fun sentences(story: PathStory) = reader.read(story.body).sumOf { sentenceRanges(it).size }
+            fun sentences(story: PathStory) = tools.text.getValue(story.id).sumOf { sentenceRanges(it).size }
             // Grammar the reader can't explain would go untaught and unchecked: a particle or ending
             // with no grammar point, or a form of a word that no point covers and the dictionary
             // doesn't have whole (いらっしゃいませ is a word; いいじゃん needs じゃん).
-            fun unexplained(story: PathStory): String? = reader.read(story.body, story.readings, story.names).flatten()
+            fun unexplained(story: PathStory): String? = tools.text.getValue(story.id).flatten()
                 .filter { it.grammar.isEmpty() && (it.kind == WordKind.GRAMMAR || it.conjugated) }
                 .takeIf { it.isNotEmpty() }
                 ?.let { w -> "no grammar point explains " + w.joinToString { it.surface } + " (add one to Grammar.kt)" }
@@ -161,7 +161,7 @@ class StoryPathTest {
                     if (c.plot.isBlank()) problems += "$id: no plot line"
                     // The topic's example, shown before reading, uses only words you have by then.
                     catalog.topic(c.topic)?.example?.let { (jp, _) ->
-                        val unknown = StoryPath.words(reader, jp).filter { it.wordId !in step.words }
+                        val unknown = StoryPath.words(reader.read(jp)).filter { it.wordId !in step.words }
                         if (unknown.isNotEmpty()) problems += "$id: ${c.topic} example has new words ${unknown.map { it.lemma }}"
                     }
                     report.appendLine("$id ${c.story.title}  words ${gap.words.size}/${gap.allowance}, total ${step.words.size}${c.topic?.let { "; teaches $it" }.orEmpty()}")
@@ -185,6 +185,9 @@ class StoryPathTest {
             for ((file, text) in tools.outputs()) {
                 if (!file.exists() || file.readText() != text) problems += "${file.relativeTo(root)} is out of date: run ./gradlew -PcoreOnly=true :core:stories"
             }
+            for (file in tools.staleText()) problems += "${file.relativeTo(root)} is from a story that's gone: run ./gradlew -PcoreOnly=true :core:stories"
+            // The app shows the stories as the tools read them.
+            for ((file, text) in StoryText.write(tools.text)) assertEquals(tools.text.filterKeys { StoryText.file(it) == file }, StoryText.parse(text), "$file reads back as written")
             assertEquals(needs, StoryPath.parseNeeds(StoryPath.writeNeeds(needs), catalog), "the index reads back as written")
 
             File("build/reports").mkdirs()

@@ -21,19 +21,23 @@ val stories: SourceSet by sourceSets.creating {
     runtimeClasspath += sourceSets.main.get().output
 }
 configurations[stories.implementationConfigurationName].extendsFrom(configurations.implementation.get())
+// The tools share the reader's internals (its tokens and grammar patterns) with the app's code.
+kotlin.target.compilations.getByName("stories").associateWith(kotlin.target.compilations.getByName("main"))
+kotlin.target.compilations.getByName("test").associateWith(kotlin.target.compilations.getByName("stories"))
 
 dependencies {
-    // Japanese tokenizer for reading stories (IPADIC dictionary bundled in the jar).
-    implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
     // JSON for the bundled stories file.
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
 
     testImplementation(kotlin("test"))
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
-    // The story tools read the built dictionary, and StoryPathTest checks the stories with them.
+    // The story tools read the stories with a Japanese tokenizer (IPADIC dictionary bundled in the jar)
+    // and the built dictionary, and StoryPathTest checks the stories with them. The app ships what they read.
+    "storiesImplementation"("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
     "storiesImplementation"("org.xerial:sqlite-jdbc:3.46.1.3")
     testImplementation(stories.output)
+    testImplementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
     testImplementation("org.xerial:sqlite-jdbc:3.46.1.3")
 }
 
