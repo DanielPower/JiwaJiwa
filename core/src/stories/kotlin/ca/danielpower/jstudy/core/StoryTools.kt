@@ -4,6 +4,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
+import java.io.FileDescriptor
+import java.io.FileOutputStream
+import java.io.PrintStream
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
@@ -15,30 +18,61 @@ import java.sql.ResultSet
 //
 //   ./gradlew -PcoreOnly=true :core:stories
 //
-// writes path.json (StorySource), the index of each chapter's words and
-// grammar (stories/needs.json, which the app reads in place of reading every
-// chapter), each story's SUMMARY.md and what's left of the most common
-// words and grammar (tools/stories/COVERAGE.md). StoryPathTest checks they're up to date. Needs
-// the dictionary built first.
+// writes each story's SUMMARY.md and what's left of the most common words
+// and grammar (tools/stories/COVERAGE.md), and prints what's wrong with the
+// stories (StoryCheck). StoryPathTest checks they're up to date. Needs the
+// dictionary built first. To check the chapter you're writing:
+//
+//   ./gradlew -PcoreOnly=true :core:stories -Pchapter=new-housemate/through-the-wall
+//
+// What the app bundles isn't committed: the app build writes it
+// (:core:storyAssets, StoryAssetsTool.kt). That's the path (path.json, put
+// together by StorySource), the index of each chapter's words and grammar
+// (needs.json, which the app reads in place of reading every chapter) and
+// every chapter and grammar page split into words (read/, which the app shows).
 
-/** Writes the stories, their index and summaries for the repository at the one argument. */
+/**
+ * Writes the stories' summaries and the coverage report for the repository
+ * at the first argument, then says what's wrong with them: everything, or, given a
+ * chapter as the second argument, all about that one.
+ */
 fun main(args: Array<String>) {
-    StoryTools.open(File(args.single())).use { tools ->
+    System.setOut(PrintStream(FileOutputStream(FileDescriptor.out), true, "UTF-8"))
+    StoryTools.open(File(args[0])).use { tools ->
         for ((file, text) in tools.outputs()) file.writeText(text)
-        println("Wrote ${tools.catalog.chapters.size} chapters, their index, ${tools.catalog.series.size} summaries and the coverage report")
+        println("Read ${tools.catalog.chapters.size} chapters; wrote ${tools.catalog.series.size} summaries and the coverage report")
+        val check = StoryCheck(tools)
+        val chapter = args.getOrNull(1)?.takeIf { it.isNotBlank() }
+        when {
+            chapter != null -> print(check.chapter(StoryCheck.pageId(chapter)))
+            check.problems.isEmpty() -> println("No problems.")
+            else -> println("Problems:\n" + check.problems.distinct().joinToString("\n"))
+        }
     }
 }
 
 /** The dictionary the app is built with, read over JDBC, looking words up as the app does. */
 class JdbcLexicon(private val conn: Connection) : Lexicon {
-    override fun find(text: String, reading: String?): LexiconMatch? =
-        bestHomograph(query(HOMOGRAPHS_SQL, text) { Homograph(getLong(1), getString(2), getInt(3), getInt(4)) }, reading) { id ->
-            query("SELECT text FROM form WHERE word_id = ?", id.toString()) { getString(1) }
-        }
+    override fun find(text: String, reading: String?): LexiconMatch? = find(text, reading, null)
 
-    override fun verbs(text: String): List<VerbEntry> = verbEntries(
-        query(VERBS_SQL, text) { SenseRow(getLong(1), getString(2), getInt(3) == 1, getString(4), getString(5), getString(6)) },
-    )
+    override fun find(text: String, reading: String?, wordClass: WordClass?): LexiconMatch? =
+        bestHomograph(homographs(text), reading, wordClass) { id -> forms.getOrPut(id) { query("SELECT text FROM form WHERE word_id = ?", id.toString()) { getString(1) } } }
+
+    override fun verbs(text: String): List<VerbEntry> = verbs.getOrPut(text) {
+        verbEntries(query(VERBS_SQL, text) { SenseRow(getLong(1), getString(2), getInt(3) == 1, getString(4), getString(5), getString(6), getInt(7)) })
+    }
+
+    // The stories look the same words up thousands of times.
+    private val homographCache = HashMap<String, List<Homograph>>()
+    private val forms = HashMap<Long, List<String>>()
+    private val verbs = HashMap<String, List<VerbEntry>>()
+
+    private fun homographs(text: String) = homographCache.getOrPut(text) {
+        query(HOMOGRAPHS_SQL, text) {
+            val pos = getString(5).orEmpty().split('|').filter { it.isNotBlank() }.flatMap { arr -> Json.parseToJsonElement(arr).jsonArray.map { it.jsonPrimitive.content } }
+            Homograph(getLong(1), getString(2), getInt(3), getInt(4), WordClass.of(pos))
+        }
+    }
 
     /** An entry's kana and JLPT level (0 for none). */
     data class Entry(val kana: String, val jlpt: Int)
@@ -52,6 +86,17 @@ class JdbcLexicon(private val conn: Connection) : Lexicon {
             "${getString(1)}/${getString(2)} N${getInt(3)}${if (getInt(4) == 1) " kana" else ""}"
         }.firstOrNull()
     }.orEmpty()
+
+    /**
+     * Entries written [text] a learner more likely means than [id], when [id]
+     * isn't on the JLPT lists and they are, read differently: 弦 read つる, a
+     * bowstring, where げん, a guitar string, is the N1 word.
+     */
+    fun likelier(text: String, id: Long): List<Homograph> {
+        val all = homographs(text).distinctBy { it.id }
+        val chosen = all.firstOrNull { it.id == id }?.takeIf { it.jlpt == 0 } ?: return emptyList()
+        return all.filter { it.jlpt != 0 && Kana.toHiragana(it.kana) != Kana.toHiragana(chosen.kana) }
+    }
 
     /** A word as the coverage report shows it: 言う (いう), its first meaning, and its JLPT level (0 for none). */
     data class Listed(val id: Long, val label: String, val gloss: String, val jlpt: Int)
@@ -87,16 +132,19 @@ class JdbcLexicon(private val conn: Connection) : Lexicon {
 class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
     val lexicon = JdbcLexicon(conn)
     val reader = Reader(lexicon)
-    val pathFile = File(root, "app/src/main/assets/stories/path.json")
-    val needsFile = File(root, "app/src/main/assets/stories/needs.json")
 
     /** path.json as tools/stories says it should be. Everything here is worked out from this, not the file. */
     val pathJson = StorySource.pathJson(root)
     val catalog = StoryPath.parse(pathJson)
 
-    /** Each chapter's needs, read with the app's own reader and lookup. */
+    /** Every chapter and grammar page, read: what the app shows (stories/read), by id. */
+    val text: Map<String, List<List<ReadingWord>>> by lazy {
+        (catalog.chapters.map { it.second.story } + catalog.grammar.map { it.page }).associate { it.id to reader.read(it.body, it.readings, it.names) }
+    }
+
+    /** Each chapter's needs, from how it reads. */
     val needs: Map<String, StepNeeds> by lazy {
-        catalog.chapters.associate { (_, c) -> c.story.id to StoryPath.needs(reader, c.story) }
+        catalog.chapters.associate { (_, c) -> c.story.id to StoryPath.needs(c.story, text.getValue(c.story.id)) }
     }
 
     private val bySeries = catalog.series.associateBy { it.id }
@@ -240,7 +288,7 @@ class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
 
     /** Every file the tools write, with what goes in it. */
     fun outputs(): Map<File, String> =
-        mapOf(pathFile to pathJson, needsFile to StoryPath.writeNeeds(needs), File(root, "tools/stories/COVERAGE.md") to coverage()) +
+        mapOf(File(root, "tools/stories/COVERAGE.md") to coverage()) +
             catalog.series.associate { File(root, "tools/stories/series/${it.id}/SUMMARY.md") to summary(it) }
 
     override fun close() = conn.close()

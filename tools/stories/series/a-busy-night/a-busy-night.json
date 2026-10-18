@@ -3,7 +3,7 @@
   "plot": "Eating alone at the ramen shop, Sora finds the manager on his own on a packed night, helps carry water and beer until closing, and gets ramen with egg for it.",
   "paragraphs": [
     [["夜だ。", "Night."], ["ユキさんは、友達のバンドのライブだ。", "Yuki's playing a gig with her friend's band."], ["ケンタさんは、まだ会社だ。", "Kenta's still at work."]],
-    [["僕は一人で、ラーメンの店に来た。", "I came to the ramen shop by myself."]],
+    [["僕は一人で、ラーメン屋に来た。", "I came to the ramen shop by myself."]],
     [["店長|「いらっしゃいませ！」", "\"Welcome!\""], ["店が、うるさい。", "The shop is loud."], ["人が多い。", "It's packed."]],
     [["店長|「あ、ソラさん！こんばんは！」", "\"Oh, Sora! Good evening!\""], ["店長は、一人だ。", "The manager is on his own."]],
     [["ソラ|「店長、今日は一人ですか？」", "\"Are you on your own tonight?\""], ["店長|「はい。バイトの人が、休みなんです。」", "\"Yes. My part-timer has the night off.\""]],
@@ -22,7 +22,7 @@
     [["ラーメンを食べた。", "I ate the ramen."], ["熱い。", "Hot."], ["うまい。", "Delicious."]],
     [["店長|「アレックスさんも、ここでバイトをしていたんですよ。」", "\"Alex used to work here too, you know.\""], ["ソラ|「はい、知っています。」", "\"Yes, I know.\""]],
     [["部屋に帰った。", "I went home."], ["ユキ|「ソラ、どうしたの？疲れてるね。」", "\"Sora, what happened? You look wiped out.\""]],
-    [["ソラ|「ラーメンの店で…仕事。」", "\"At the ramen shop… work.\""], ["ユキ|「仕事？」", "\"Work?\""]],
+    [["ソラ|「ラーメン屋で…仕事。」", "\"At the ramen shop… work.\""], ["ユキ|「仕事？」", "\"Work?\""]],
     [["ソラ|「今日は、僕も店長のバイト。」", "\"Tonight, I was the manager's part-timer too.\""], ["ユキ|「アレックスと、同じだね。」", "\"Just like Alex.\""]]
   ]
 }

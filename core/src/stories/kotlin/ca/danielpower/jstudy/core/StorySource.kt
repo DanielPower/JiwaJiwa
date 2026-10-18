@@ -131,6 +131,26 @@ object StorySource {
         }
     }
 
+    /**
+     * Each page's Japanese sentences as written beside their English, by id
+     * (arrival/narita, grammar/wa), so a check can name the one sentence the
+     * reader splits in two.
+     */
+    fun sentences(root: File): Map<String, List<String>> {
+        val dir = dir(root)
+        val out = LinkedHashMap<String, List<String>>()
+        for (folder in File(dir, "series").listFiles { f -> f.isDirectory }.orEmpty()) {
+            for (file in folder.listFiles { f -> f.name.endsWith(".json") && f.name != "story.json" }.orEmpty()) {
+                out["${folder.name}/${file.name.removeSuffix(".json")}"] = read(file).jsonObject.getValue("paragraphs").jsonArray
+                    .filterIsInstance<JsonArray>().flatMap { p -> p.map { pair(it).first } }
+            }
+        }
+        for (t in read(File(dir, "grammar.json")).jsonArray) {
+            out["grammar/${t.jsonObject.text("id")}"] = t.jsonObject.getValue("parts").jsonArray.filterIsInstance<JsonArray>().map { pair(it).first }
+        }
+        return out
+    }
+
     private fun pair(e: JsonElement): Pair<String, String> {
         val (jp, en) = e.jsonArray.map { it.jsonPrimitive.content }.also { require(it.size == 2) { "expected [Japanese, English]: $e" } }
         return jp to en

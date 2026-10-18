@@ -237,8 +237,8 @@ fun SettingsScreen(
                     "filtered and ranked) and is licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)." +
                     "\n\nIcons: the settings cog is from Lucide, under the ISC License." +
                     "\n\nFonts: Zen Kaku Gothic New, Zen Old Mincho and Zen Maru Gothic, under the SIL Open Font License." +
-                    "\n\nSoftware: Kuromoji (Atilika) with the IPADIC dictionary (NAIST), AndroidX, Jetpack Compose, Kotlin and " +
-                    "kotlinx.serialization, under the Apache License 2.0.",
+                    "\n\nSoftware: AndroidX, Jetpack Compose, Kotlin and kotlinx.serialization, under the Apache License 2.0. " +
+                    "The stories were split into words with Kuromoji (Atilika) and the IPADIC dictionary (NAIST).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

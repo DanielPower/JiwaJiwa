@@ -1,7 +1,6 @@
 {
   "title": "Celebration ramen",
   "plot": "Everyone celebrates Miho's honourable mention at the manager's ramen shop, until she says who her next manga is about and they all turn to look at Kenta.",
-  "readings": {"描く": "かく"},
   "paragraphs": [
     [["夜、みんなで、店長の店に来た。", "That night, we all came to the manager's shop."]],
     [["ユキと、ソラさんと、ケンタさん。", "Yuki, Sora and Kenta."], ["ダイチさんと、リンさんも。", "Daichi and Rin too."]],
@@ -23,7 +22,7 @@
     [["ユキ|「…ケンタじゃん。」", "\"…It's Kenta.\""], ["ソラ|「ケンタさんじゃん。」", "\"It's Kenta.\""]],
     [["ケンタ|「…かっこよく描いて。」", "\"…Draw me cool.\""], ["ダイチ|「俺と同じ！」", "\"Same as me!\""]],
     [["店長|「私も、描いてください！」", "\"Draw me too, please!\""], ["ミホ|「店長も！？」", "\"You too!?\""]],
-    [["店長|「ラーメンの店の、店長です！」", "\"The manager of a ramen shop!\""]],
+    [["店長|「ラーメン屋の、店長です！」", "\"The manager of a ramen shop!\""]],
     [["ミホ|「じゃあ、次の次のマンガ！」", "\"Then the one after the next one!\""]],
     [["みんなで、笑った。", "We all laughed."], ["ラーメンは、今日も、うまかった。", "The ramen was great again tonight."]]
   ]

@@ -19,15 +19,15 @@ Everyone met by the end, in the chapter that introduces them.
 
 Alex lands in Japan at last.
 
-- 6 words; 2 new of 3 allowed.
+- 7 words; 3 new of 3 allowed.
 - Teaches ～た (`ta`).
-- New: 来る (くる, N5), ついに (N3).
+- New: 来る (くる, N5), ついに (N3), 日本 (にほん, N3).
 
 ### 2. Narita (`arrival/narita`)
 
 Narita: a big airport and crowds of people.
 
-- 7 words; 3 new of 3 allowed.
+- 8 words; 3 new of 3 allowed.
 - Teaches だ / です (`da`).
 - New: 大きい (おおきい, N5), 空港 (くうこう, N4), 人 (ひと, N5).
 
@@ -43,14 +43,14 @@ Alex pushes through the airport crowds looking for the station.
 
 From the train window, Alex sees mountains and thinks Japan is beautiful.
 
-- 10 words; 3 new of 3 allowed.
+- 11 words; 3 new of 3 allowed.
 - New: 外 (そと, N5), 山 (やま, N5), きれい (N5).
 
 ### 5. Tokyo (`arrival/tokyo`)
 
 Tokyo: tall buildings, crowds, and the mountains far off.
 
-- 18 words; 3 new of 3 allowed.
+- 16 words; 3 new of 3 allowed.
 - Teaches は (`wa`).
 - New: ビル (N4), 高い (たかい, N5), あ (N4).
 
@@ -103,9 +103,9 @@ Both are starving; the konbini would do, but…
 
 Yuki suggests the big-bowl ramen shop past the station.
 
-- 11 words; 2 new of 3 allowed.
+- 11 words; 3 new of 3 allowed.
 - Teaches ～たい (`tai`).
-- New: ラーメン (not JLPT), 食べる (たべる, N5).
+- New: ラーメン (not JLPT), 食べる (たべる, N5), 向こう (むこう, N5).
 
 ## Known at the end
 
@@ -113,4 +113,4 @@ Read in order after the stories it follows, a reader knows these by the end of t
 
 Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`).
 
-28 words: 来る ついに 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる
+30 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう

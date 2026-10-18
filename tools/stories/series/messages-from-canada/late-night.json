@@ -2,7 +2,7 @@
   "title": "Late night",
   "plot": "Yuki can't sleep and messages Alex in the middle of the Tokyo night; they talk about what they can see from their windows, what he misses most, and a new song she won't send him yet.",
   "paragraphs": [
-    [["仕事の休みの時間に、メッセージが来た。", "On my break at work, a message came in."], ["ユキだ。", "It was Yuki."]],
+    [["仕事をしているとき、メッセージが来た。", "I was at work when a message came in."], ["ユキだ。", "It was Yuki."]],
     [["ユキ|「アレックス、起きてる？」", "\"Alex, are you up?\""]],
     [["アレックス|「起きてるよ。カナダは、まだ仕事の時間だよ。」", "\"I'm up. I'm still at work here.\""]],
     [["アレックス|「ユキは？東京は、もう寝る時間でしょ？」", "\"What about you? Isn't it time for bed in Tokyo?\""]],
@@ -26,7 +26,7 @@
     [["アレックス|「夜に、コーヒーを飲むから、寝られないんだよ！」", "\"You can't sleep because you drink coffee at night!\""]],
     [["ユキ|「曲を書くのは、楽しい。でも、夜は、寝られない。」", "\"Writing songs is fun. But I can't sleep at night.\""]],
     [["アレックス|「新しい曲？聞きたい！」", "\"A new song? I want to hear it!\""]],
-    [["ユキ|「…まだ、終わってない。」", "\"…It's not finished yet.\""]],
+    [["ユキ|「…まだ、できてない。」", "\"…It's not finished yet.\""]],
     [["アレックス|「終わったら、送って！」", "\"Send it to me when it's done!\""]],
     [["ユキ|「…送らない。」", "\"…I'm not sending it.\""], ["アレックス|「なんで！？」", "\"Why not?!\""]],
     [["ユキ|「…秘密。」", "\"…It's a secret.\""]],

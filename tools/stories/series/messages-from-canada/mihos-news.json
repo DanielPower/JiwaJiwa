@@ -1,9 +1,8 @@
 {
   "title": "Miho's news",
   "plot": "Miho sends a photo of the magazine page with her name on it; Alex wants a copy, reads her manga that night, cries a little at the last page, and works out who the next one is about.",
-  "readings": {"描く": "かく"},
   "paragraphs": [
-    [["ラーメンの店で、休みの時間に、電話を見た。", "On my break at the ramen shop, I checked my phone."]],
+    [["ラーメン屋で、仕事の後で、スマホを見た。", "After work at the ramen shop, I checked my phone."]],
     [["ミホ|「アレックスさん！見て！」", "\"Alex! Look!\""]],
     [["写真が来た。", "A photo came in."], ["雑誌のページだ。", "A page from a magazine."]],
     [["『佳作』と、ミホの名前。", "'Honourable mention', and Miho's name."]],
@@ -25,7 +24,7 @@
     [["ユキ|「違う。」", "\"No.\""], ["ミホ|「違う！」", "\"No!\""]],
     [["ソラ|「ユキさんだよ。」", "\"It's Yuki.\""], ["ケンタ|「ユキだ。」", "\"It's Yuki.\""]],
     [["アレックス|「このドラムの人は、ダイチだね。汗が、すごい。」", "\"And the drummer's Daichi. Look at all that sweat.\""]],
-    [["ソラ|「ダイチさん、『俺の汗が、雑誌に出た！』って、すごくうれしかったよ。」", "\"Daichi was so happy. 'My sweat's in a magazine!'\""]],
+    [["ソラ|「ダイチさん、『俺の汗が、雑誌に出た！』って、すごく元気だったよ。」", "\"Daichi was so pumped. 'My sweat's in a magazine!'\""]],
     [["アレックス|「最後のページで、ちょっと泣いた。」", "\"I cried a bit at the last page.\""]],
     [["ミホ|「アレックスさんも！？」", "\"You too, Alex?!\""]],
     [["アレックス|「母にも、見せた。」", "\"I showed my mom, too.\""], ["アレックス|「母は、『絵が、きれい』って。」", "\"She says the art's beautiful.\""]],

@@ -1,9 +1,11 @@
 # tools/stories/AGENTS.md
 
 The stories that come with the app, as they're written. The app reads
-`app/src/main/assets/stories/path.json` (the text) and `needs.json` (each
-chapter's words and grammar), both put together from here by the story
-tools (core `src/stories`).
+`stories/path.json` (the text), `needs.json` (each chapter's words and
+grammar) and `stories/read/` (every chapter split into words, which the
+reader shows), all put together from here by the story tools (core
+`src/stories`) when the app is built; none of them is committed. The app
+has no tokenizer of its own: what the check passes is exactly what it shows.
 
 ## Layout
 
@@ -33,11 +35,13 @@ tools (core `src/stories`).
 - English quotes are escaped in JSON: `"\"Morning!\""`.
 - When the reader picks the wrong word, pin it in the chapter's `readings`:
   the word as the text writes it, and its reading (`"readings": {"方":
-  "かた"}` for あの方, where the reader sees the ほう of ～のほうが). A
-  pinned dictionary form pins its conjugations too: `{"描く": "かく"}`
-  makes 描いた かいた and 描けたら かけたら.
-  Check the new words in the report: a wrong reading there means a wrong
-  card. `StoryPathTest` fails if a pin isn't needed, or doesn't take.
+  "ほう"}`). A pinned dictionary form pins its conjugations too. Few
+  chapters need one: the reader already reads 何時 なんじ, 描く かく, 弦
+  げん, 弾く ひく and 日本 にほん everywhere (`DEFAULT_READINGS` in the
+  reader), and あの方 as かた. Check the new words the chapter check lists:
+  a wrong reading there means a wrong card. It also lists the kanji words
+  off the JLPT lists, the likeliest to be read the wrong way. The check
+  fails if a pin isn't needed, or doesn't take.
 - Notes are rare: an aid for the odd spot where the reader needs cultural
   context the dialogue doesn't make clear, or an exception in the language
   explained. Most chapters have none. A note goes after the paragraph it's
@@ -73,34 +77,25 @@ label's row in `LABEL_POINTS` too (see core/AGENTS.md). A changed form no point 
 entry (いらっしゃいませ) is read as that word instead. でも, けど, だけど and
 だって opening a sentence are words, not grammar.
 
-The reader reads ～られる on a る verb (食べられる) and spoken 食べれる, 来れる
-as "can" (the `potential` point), and ～れる / ～られる on a う verb or する
-as the passive. For a passive on a る verb, reword. It writes 来られる
-in kanji poorly (as 来る きたる), so use 来れる.
+The reader reads ～られる on a る verb (食べられる, 来られる) and spoken
+食べれる, 来れる as "can" (the `potential` point), and ～れる / ～られる on a
+う verb or する as the passive. For a passive on a る verb, reword.
 
-Known misreadings to pin (`readings`) or reword around: 何時 reads as いつ
-(pin `"何時": "なんじ"`), 描く as えがく (pin `"描く": "かく"` when it means
-drawing), 弦 as つる (pin `"弦": "げん"`), 弾ける as はじける (reword: 弾けない,
-弾けた are fine), 勝ったら opening a sentence as 勝る (put a subject or もし
-first), ありがとうって as ありがと + 売る (write 『ありがとう』って), よし as 葦, いつか as 五日, いい straight after ！ as
-言う, and the ます of a quoted 「です、ます」 as
-増す. な before a noun (きれいな部屋) and before ん / の (そうなんだ) is taught
-with だ / です, so it's fine anywhere. ただいま, おかえり(なさい), いってきます
-and いってらっしゃい read as words, and ～ないで来る as "come without doing".
-ない on its own (ゴミがない) is the word 無い, and ありがとうございました is a
-different entry from ありがとうございます: both count as new words.
+Write naturally: the reader handles everyday speech the tokenizer gets wrong
+(the repairs in `Tokens.kt`, each with a case in `ReaderTrapsTest`). If it
+misreads something new, fix the reader and add the case rather than
+rewording around it. What's left, by design rather than misreading: ない on
+its own (ゴミがない, ことはない) is the word 無い; ありがとうございました,
+よかった (良い) and the なん of 何ページ or なんで are entries of their own,
+so each counts as a new word; 男 in 男の人 is a word (as a speaker label it
+isn't counted); and と opening a sentence (…と、思う) reads as "if", so
+keep it after the quote. な before a noun (きれいな部屋) and before ん / の
+(そうなんだ) is taught with だ / です, so it's fine anywhere. ただいま,
+おかえり(なさい), いってきます and いってらっしゃい read as words.
 
-More to reword around, found writing Phase 1: ～たことはない (write
-～たことがない), 大きすぎ and a bare し before すぎ (練習しすぎ is fine), 静かに
-as an adverb, 来るみたい (来る as きたる), 弾きたい (as はじく), 休めない (as
-休める), 聞けた (as 聞ける), ～てたんだって (たん as 歎), 変わったって (as
-～たって), なんで / 何の (the なん entry), よかった (as よい), あげる "give"
-(the 上げる entry), a stuttered ご、ごめん (後), 送りに行く (送り as a noun),
-終わり on its own (the stem of 終わる), and 何ページ (the なん entry).
-Also: 弾きました (as はじく; 弾いた is fine), の marking the subject in a
-description (ソラの笑う声), ～そうに as an adverb, ～かもしれません (しれる is
-a new word; かも is taught), 男の人 in narration (男 is a new word; it's fine
-as a speaker label, or write あの人), and と opening a sentence (…と、思う).
+Use a new grammar point where a native speaker would, not in every line:
+a chapter that teaches ので still has friends say から, and one that
+teaches ～たことがある doesn't use it for a single night remembered.
 
 Sentences split at 。, ！ and ？ only: a line ending in … alone runs into
 the next one, and so do several 『…』 lyric lines in one paragraph, which
@@ -108,16 +103,28 @@ breaks the sentence and translation count. End it with 。 or give each line
 its own paragraph. A side story is held to the length rule too, counting
 the main chapters before the one it follows.
 
-Then run, with the dictionary built (`python3 tools/dictionary/build_dictionary.py`):
+Then check it, with the dictionary built (`python3 tools/dictionary/build_dictionary.py`):
+
+    ./gradlew -PcoreOnly=true :core:stories -Pchapter=new-housemate/through-the-wall
+
+That takes a few seconds: it reads every chapter, writes each `SUMMARY.md`
+and `COVERAGE.md`,
+and prints what you need for the chapter you name (by id or by its file):
+its new words with their readings against the allowance, grammar not
+taught yet, anything the checks below find, naming the sentence when a
+translation doesn't line up, and the kanji words to check are read as
+meant. Without `-Pchapter` it prints every problem in the stories.
+
+The checks (`StoryCheck`) are the rules above, and that the solver reaches
+every chapter. A new word in one chapter can push another over its
+allowance further on, so read the full list before you're done. Before
+committing, run the tests too:
 
     ./gradlew -PcoreOnly=true :core:stories :core:test
 
-`:core:stories` puts path.json together, reads every chapter with the app's
-reader and dictionary lookup, and writes `needs.json`, each `SUMMARY.md` and
-`COVERAGE.md`. `StoryPathTest` checks the rules above, that the solver
-reaches every chapter, and that all of those files are up to date; its
-report (`core/build/reports/story-path.txt`) lists each chapter's new words.
-Commit all of them with the chapter.
+`StoryPathTest` fails on any problem and on files out of date; its report
+(`core/build/reports/story-path.txt`) lists each chapter's new words.
+Commit all of the written files with the chapter.
 
 Those files are worked out from every story, so two branches that each
 change a story both change them, and conflict when the second is merged or

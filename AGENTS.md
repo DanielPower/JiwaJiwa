@@ -25,7 +25,7 @@ Guiding rules from Daniel:
 
 | Path | What it is |
 | --- | --- |
-| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kanji readings, romaji, the story path, Kuromoji word splitting, Renshuu import planning. No Android imports. |
+| `core/` | Pure-Kotlin (JVM) study logic: FSRS, cards and mastery, the daily queue, kanji readings, romaji, the story path, Renshuu import planning, and (in `src/stories`, not shipped) the story tools that split the stories into words with Kuromoji. No Android imports. |
 | `app/` | The Android app: Jetpack Compose UI, SQLite storage, reminder, backup. |
 | `tools/dictionary/` | Python (stdlib only) build of the bundled dictionary DB from pinned sources. |
 | `tools/fsrs/` | Generates `core/src/test/resources/fsrs_vectors.tsv` from py-fsrs. |
@@ -221,13 +221,18 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - New words and grammar come from the path instead of reviews.
   Reviews and the home count no longer introduce words; only
   unlocked production cards are new there.
-- The path (`app/src/main/assets/stories/path.json`, written from
+- The path (`stories/path.json` in the app's assets, written from
   `tools/stories`, a file per chapter named by its slug, with each story's
   order in its `story.json`; see `tools/stories/AGENTS.md`) is
   stories made of chapters, plus grammar topics. Each chapter's words and
   grammar are worked out when the stories change and shipped in
   `stories/needs.json` (Daniel, 2026-10-17), so the app never reads every
   chapter: at a few hundred chapters that would take seconds on a phone.
+  The text is split into words at build time too (`stories/read/`, 2026-10-18),
+  so the app has no tokenizer and shows exactly what the checks passed. The
+  app build writes all three (`:core:storyAssets`); they aren't committed
+  (Daniel, 2026-10-18: agents can't always run the tools, and committed
+  output drifts).
   All of it is our own writing for adults, casual speech first: Alex, on a
   one-year working holiday in Tokyo, a share house, a ramen shop job, a
   cast met a few at a time. **Arrival** is the prologue, then **Ramen
@@ -298,7 +303,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   `side` story has nothing new at all; and
   `StoryPath.solve` reaches every chapter from knowing nothing.
   Readiness only grows as you learn, so no reading order can get
-  stuck. It also checks path.json, needs.json, the summaries and
+  stuck. It also checks the summaries and
   `tools/stories/COVERAGE.md` are up to date. After editing a story, run
   `./gradlew -PcoreOnly=true :core:stories :core:test`; when those files
   conflict in a merge or rebase, rerun `:core:stories` rather than resolving

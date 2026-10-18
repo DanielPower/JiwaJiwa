@@ -17,10 +17,10 @@
     [["田中さんの机にも、お昼がある。", "Tanaka-san's lunch is on her desk too."], ["本当に、大きい。", "Truly huge."]],
     [["田中|「ケンタさんのお昼も、大きいですね。」", "\"Your lunch is big too, Kenta-san.\""], ["ケンタ|「はい！田中さんと一緒です！」", "\"Yes! Same as yours!\""]],
     [["田中|「卵が、多いですね。」", "\"That's a lot of eggs.\""]],
-    [["ケンタ|「田中さん、卵、食べませんか？」", "\"Tanaka-san, would you like an egg?\""], ["田中|「食べてもいいですか？」", "\"May I?\""], ["ケンタ|「はい！食べてもいいです！」", "\"Yes! Go ahead!\""]],
+    [["ケンタ|「田中さん、卵、食べませんか？」", "\"Tanaka-san, would you like an egg?\""], ["田中|「食べてもいいですか？」", "\"May I?\""], ["ケンタ|「はい！いいですよ！」", "\"Yes! Go ahead!\""]],
     [["田中|「じゃあ、ケンタさんも、私のお昼、食べませんか？」", "\"Then won't you have some of my lunch, Kenta-san?\""]],
     [["ケンタ|「…触ってもいいんですか？」", "\"…I'm allowed to touch it?\""], ["田中|「今日は、いいですよ。」", "\"Today, you are.\""]],
-    [["田中さんのお昼は、うまい。", "Tanaka-san's lunch is delicious."], ["ケンタ|「うまいです！」", "\"It's great!\""]],
+    [["田中さんのお昼は、うまい。", "Tanaka-san's lunch is delicious."], ["ケンタ|「おいしいです！」", "\"It's great!\""]],
     [["ケンタは、ちょっと眠い。", "Kenta is a little sleepy now."], ["田中|「ケンタさん、仕事ですよ。」", "\"Kenta-san, back to work.\""], ["ケンタ|「…はい。」", "\"…Yes.\""]]
   ]
 }

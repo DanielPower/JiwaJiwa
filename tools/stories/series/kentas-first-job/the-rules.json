@@ -19,8 +19,8 @@
     [["田中|「食べないで仕事をしてはいけません。」", "\"You mustn't work without eating.\""]],
     [["田中|「行きましょう。」", "\"Let's go.\""], ["ケンタ|「…はい。」", "\"…Okay.\""]],
     [["ラーメンは、うまかった。", "The ramen was great."]],
-    [["田中|「ケンタさん、毎日、夜まで頑張っていますね。」", "\"Kenta, you're working till night every day.\""], ["ケンタ|「…はい。」", "\"…Yes.\""]],
+    [["田中|「ケンタさん、いつも、夜まで頑張っていますね。」", "\"Kenta, you're always working till night.\""], ["ケンタ|「…はい。」", "\"…Yes.\""]],
     [["田中|「でも、寝ないで仕事をしてはいけません。」", "\"But you mustn't work without sleeping.\""]],
-    [["田中|「ケンタさん、明日は、寝ないで会社に来ないでくださいね。」", "\"Kenta, tomorrow, please don't come in without sleeping.\""], ["ケンタ|「…はい。」", "\"…Yes.\""]]
+    [["田中|「ケンタさん、今夜は、寝てくださいね。」", "\"Kenta, tonight, please get some sleep.\""], ["ケンタ|「…はい。」", "\"…Yes.\""]]
   ]
 }

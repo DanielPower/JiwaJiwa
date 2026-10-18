@@ -1,7 +1,6 @@
 {
   "title": "Miho's reader",
   "plot": "At the manga shop a kid picks up the magazine with Miho's manga and loves its heroine; Miho admits she drew it, writes her name in it, and promises the kid, who can't go to a night show, the video of the real band.",
-  "readings": {"描く": "かく"},
   "paragraphs": [
     [["今日も、マンガの店で、働いている。", "I'm working at the manga shop again today."]],
     [["店の前に、ユキのライブのチラシを置いた。", "I put flyers for Yuki's show out in front of the shop."], ["ソラが作ってくれたチラシだ。", "The ones Sora made."]],
@@ -30,7 +29,7 @@
     [["お母さん|「土曜日の夜なので、ちょっと…」", "\"It's on a Saturday night, so…\""]],
     [["子供は、ちょっと寂しそうだ。", "The kid looked a little sad."]],
     [["ミホ|「じゃあ、ライブの動画を、撮ってもらうね。」", "\"Then I'll have someone film the show.\""]],
-    [["ミホ|「友達が、撮ってくれるので、また、店に来たとき、見せるね。」", "\"My friend's going to film it, so I'll show you when you come in again.\""]],
+    [["ミホ|「友達が、撮ってくれるから、また、店に来たとき、見せるね。」", "\"My friend's going to film it, so I'll show you when you come in again.\""]],
     [["子供|「絶対！？」", "\"Promise?!\""], ["ミホ|「絶対。」", "\"Promise.\""]],
     [["お母さん|「ありがとうございます。」", "\"Thank you so much.\""]],
     [["子供と、お母さんは、雑誌を買って、帰った。", "The kid and their mom bought the magazine and left."]],
@@ -39,7 +38,7 @@
     [["ミホ|「ユキ！今日、店で、子供が、私のマンガを買ってくれた！」", "\"Yuki! A kid bought my manga at the shop today!\""], ["ミホ|「名前も、書いたよ！」", "\"I wrote my name in it, too!\""]],
     [["ユキ|「すごい。ミホ、もうプロだね。」", "\"Amazing. You're a pro now, Miho.\""]],
     [["ミホ|「プロじゃないよ！」", "\"I'm not a pro!\""]],
-    [["ミホ|「その子供、ユキの歌も、聞きたいって。」", "\"That kid wants to hear you sing, too.\""], ["ミホ|「主人公だから。」", "\"Because you're the heroine.\""]],
+    [["ミホ|「あの子供、ユキの歌も、聞きたいって。」", "\"That kid wants to hear you sing, too.\""], ["ミホ|「主人公だから。」", "\"Because you're the heroine.\""]],
     [["ユキ|「…主人公じゃない。」", "\"…I'm not the heroine.\""]],
     [["ユキ|「でも、ライブ、頑張る。」", "\"But I'll do my best at the show.\""]]
   ]

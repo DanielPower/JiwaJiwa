@@ -190,9 +190,11 @@ internal object Grammar {
         )
         point(
             "no", "の", 5, "'s, of",
-            "Links two nouns: the first describes the second, often as owner (私の本, my book) or kind (日本語の本, a Japanese book).",
+            "Links two nouns: the first describes the second, often as owner (私の本, my book) or kind (日本語の本, a Japanese book). In a description before a noun it can say who does it, as が would: ソラの笑う声, the sound of Sora laughing.",
             "これは私の傘です。", "This is my umbrella.",
             listOf(particle("の", pos2 = "連体化")),
+            // The の of ソラの笑う声, standing for が.
+            listOf(particle("の", pos2 = "格助詞")),
         )
         point(
             "no-nominal", "～の", 5, "the one, the act of",
@@ -593,11 +595,12 @@ internal object Grammar {
         )
         point(
             "te-wa-ikenai", "～てはいけない", 5, "must not",
-            "Says something isn't allowed. In speech it often shrinks to ～ちゃいけない or ～じゃいけない.",
+            "Says something isn't allowed. In speech it often shrinks to ～ちゃいけない or ～じゃいけない, and among friends to ～ちゃだめ.",
             "ここで泳いではいけません。", "You must not swim here.",
             listOf(te, particle("は"), dependentVerb("いける", "なる")),
             listOf(particle("ちゃ", "じゃ", pos2 = "接続助詞"), dependentVerb("いける", "なる")),
             listOf(te, particle("は"), base("だめ", "駄目")),
+            listOf(particle("ちゃ", "じゃ", pos2 = "接続助詞"), base("だめ", "駄目")),
         )
         point(
             "te-kara", "～てから", 5, "after doing",
@@ -685,13 +688,15 @@ internal object Grammar {
 
         // Verbs that change form.
         point(
-            "ku-adverb", "～く", 5, "-ly (adverb)",
-            "An i-adjective swaps い for く to say how something is done: 早い, fast; 早く起きる, get up early. いい becomes よく.",
+            "ku-adverb", "～く / ～に", 5, "-ly (adverb)",
+            "An i-adjective swaps い for く to say how something is done: 早い, fast; 早く起きる, get up early. いい becomes よく. A na-adjective takes に instead: 静かに歩く, walk quietly.",
             "早く起きた。", "I got up early.",
             listOf(Step(false) { it.pos == "形容詞" && it.form == "連用テ接続" }),
             // Not the く of くて, くない and くなる, which belong to those patterns.
             after = { next -> next == null || next.base !in setOf("て", "ない", "ある", "なる", "は", "も") },
         )
+        // The に of a na-adjective, or of ～そう, used as an adverb: 静かに, 楽しそうに.
+        variant("ku-adverb", listOf(particle("に", pos2 = "副詞化")), before = null)
         point(
             "imperative", "～ろ / ～え", 3, "do it! (command)",
             "The plain command: 食べろ, 行け. Blunt: coaches, manga and close friends use it. ～て and ～なさい are softer.",
@@ -881,6 +886,11 @@ internal object Grammar {
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, particle("か")),
             // ～んじゃない: "isn't it that…?".
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, particle("じゃ")),
+        )
+        // ～んだって, "I hear that…": the だって is ～って's (だ + って), the ん this point's.
+        variant(
+            "n-desu", listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }), before = null,
+            after = { it?.pos == "助詞" && it.base == "だって" },
         )
         point(
             "mae-ni", "～前に", 5, "before doing",

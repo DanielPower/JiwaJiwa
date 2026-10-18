@@ -2,17 +2,8 @@ package ca.danielpower.jstudy.data
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import ca.danielpower.jstudy.core.HOMOGRAPHS_SQL
-import ca.danielpower.jstudy.core.Homograph
 import ca.danielpower.jstudy.core.Kana
 import ca.danielpower.jstudy.core.Kanji
-import ca.danielpower.jstudy.core.Lexicon
-import ca.danielpower.jstudy.core.LexiconMatch
-import ca.danielpower.jstudy.core.SenseRow
-import ca.danielpower.jstudy.core.VERBS_SQL
-import ca.danielpower.jstudy.core.VerbEntry
-import ca.danielpower.jstudy.core.bestHomograph
-import ca.danielpower.jstudy.core.verbEntries
 import org.json.JSONArray
 import java.io.File
 
@@ -59,7 +50,7 @@ fun levelLabel(jlpt: Int) = if (jlpt in 1..5) "N$jlpt" else "Other"
  * It holds every JMdict entry. The JLPT words have a level and a place in
  * the study order; the rest (level 0) are there to look up while reading.
  */
-class Dictionary(context: Context) : Lexicon {
+class Dictionary(context: Context) {
     private val db: SQLiteDatabase
 
     /** Changes whenever the app, and so possibly the dictionary, is updated. */
@@ -232,24 +223,6 @@ class Dictionary(context: Context) : Lexicon {
 
     /** Words on the JLPT lists. */
     fun wordCount(): Int = db.rawQuery("SELECT COUNT(*) FROM word WHERE jlpt > 0", null).use { it.moveToFirst(); it.getInt(0) }
-
-    /** The entry for a word spelled [text] (core [bestHomograph]). */
-    override fun find(text: String, reading: String?): LexiconMatch? {
-        val homographs = db.rawQuery(HOMOGRAPHS_SQL, arrayOf(text)).use { c ->
-            buildList { while (c.moveToNext()) add(Homograph(c.getLong(0), c.getString(1), c.getInt(2), c.getInt(3))) }
-        }
-        return bestHomograph(homographs, reading) { forms(it) }
-    }
-
-    override fun verbs(text: String): List<VerbEntry> = verbEntries(
-        db.rawQuery(VERBS_SQL, arrayOf(text)).use { c ->
-            buildList {
-                while (c.moveToNext()) {
-                    add(SenseRow(c.getLong(0), c.getString(1), c.getInt(2) == 1, c.getString(3), c.getString(4), if (c.isNull(5)) null else c.getString(5)))
-                }
-            }
-        },
-    )
 
     /** A kanji's entry, or null for a character KANJIDIC2 doesn't have. */
     fun kanji(literal: String): Kanji? = kanjiRows("literal = ?", arrayOf(literal)).firstOrNull()

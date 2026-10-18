@@ -47,7 +47,7 @@ Sora meets Kenta, half asleep in a suit, on his way to the game company.
 
 Yuki shows Sora around Shimokitazawa, and he says えーと a lot.
 
-- 46 words; 3 new of 3 allowed.
+- 45 words; 3 new of 3 allowed.
 - Teaches あのー / えーと (`filler`).
 - New: 何 (なに, N5), ある (N5), また (N5).
 
@@ -55,7 +55,7 @@ Yuki shows Sora around Shimokitazawa, and he says えーと a lot.
 
 Ramen night with Yuki and Kenta; the manager remembers Alex and welcomes Sora.
 
-- 45 words; 3 new of 3 allowed.
+- 44 words; 3 new of 3 allowed.
 - New: こんばんは (N2), いつも (N5), みんな (N5).
 
 ### 6. Miho's shop (`new-housemate/mihos-shop`)
@@ -69,7 +69,7 @@ Sora finds the manga shop, meets Miho, and his bag ends up huge again.
 
 Late at night, Sora hears someone singing in Yuki's room.
 
-- 36 words; 3 new of 3 allowed.
+- 37 words; 3 new of 3 allowed.
 - Teaches ～じゃない / じゃん (`janai`).
 - New: 歌 (うた, N5), 声 (こえ, N5), 知る (しる, N5).
 
@@ -113,7 +113,7 @@ Yuki shows Sora her notebook of songs, written since Alex left, and sings him on
 
 Miho brings news of an open mic at the live house, and everyone's going.
 
-- 49 words; 3 new of 3 allowed.
+- 47 words; 3 new of 3 allowed.
 - Teaches ～よう / ～おう (`volitional`).
 - New: オープン (N1), マイク (N3), 言う (いう, N5).
 
@@ -121,8 +121,8 @@ Miho brings news of an open mic at the live house, and everyone's going.
 
 At the live house, people take turns at the mic; Yuki only watches, and Kenta turns up late.
 
-- 59 words; 3 new of 3 allowed.
-- New: こっち (N5), ギター (N5), 上手 (じょうず, N5).
+- 58 words; 3 new of 3 allowed.
+- New: ライブハウス (not JLPT), こっち (N5), ギター (N5).
 
 ### 15. The way home (`new-housemate/the-way-home`)
 
@@ -150,14 +150,14 @@ Gaming on Kenta's day off, Sora learns Yuki wrote a song for Alex last year and 
 
 Every night Yuki practises the snow song; she still won't say she'll sing, so Sora decides to do something.
 
-- 72 words; 3 new of 3 allowed.
+- 73 words; 3 new of 3 allowed.
 - New: 毎日 (まいにち, N5), 練習 (れんしゅう, N5), 考える (かんがえる, N4).
 
 ### 19. The sign-up (`new-housemate/the-sign-up`)
 
 Sora writes Yuki's name on the open mic list, and Yuki hears about it before he can tell her.
 
-- 69 words; 3 new of 3 allowed.
+- 67 words; 3 new of 3 allowed.
 - Teaches ～って / ～という (`tte`).
 - New: 名前 (なまえ, N5), 書く (かく, N5), 字 (じ, N4).
 
@@ -187,26 +187,26 @@ Summer, the day before the open mic: Yuki wonders if her voice will hold, and ev
 
 Open mic night: Yuki's voice won't come out, until her friends call her name from the crowd.
 
-- 77 words; 3 new of 3 allowed.
+- 73 words; 3 new of 3 allowed.
 - New: 手 (て, N5), ステージ (N2), 笑う (わらう, N4).
 
 ### 24. Snow in summer (`new-housemate/snow-in-summer`)
 
 Yuki starts again and sings her snow song, the crowd goes quiet to listen, and Alex sees the video.
 
-- 90 words; 2 new of 3 allowed.
+- 89 words; 2 new of 3 allowed.
 - New: 終わる (おわる, N5), 静か (しずか, N5).
 
 ### 25. The next song (`new-housemate/the-next-song`)
 
 The morning after: coffee, a new photo for Sora's wall, and Yuki's plans for her own band and an unfinished song.
 
-- 106 words; 0 new of 3 allowed.
+- 107 words; 0 new of 3 allowed.
 
 ## Known at the end
 
 Read in order after the stories it follows, a reader knows these by the end of the last chapter.
 
-Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます (`masu`), から / まで (`kara-made`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), か (`ka`), で (`de`), から (`kara-because`), と (`to`), ～んだ / ～の？ (`n-desu`), あのー / えーと (`filler`), ～じゃない / じゃん (`janai`), ～けど / ～が (`keredo`), ～よう / ～おう (`volitional`), ～と思う / ～と (`to-omou`), ～って / ～という (`tte`), かな / かも (`kana`).
+Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます / か (`masu`), から / まで (`kara-made`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), で (`de`), から (`kara-because`), と (`to`), ～んだ / ～の？ (`n-desu`), あのー / えーと (`filler`), ～じゃない / じゃん (`janai`), ～けど / ～が (`keredo`), ～よう / ～おう (`volitional`), ～と思う / ～と (`to-omou`), ～って / ～という (`tte`), かな / かも (`kana`).
 
-176 words: 来る ついに 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる うまい チケット 買う これ 卵 ビール 熱い ゆっくり 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ はい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 友達 写真 撮る 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に いる 荷物 大学 この 今 僕 スーツ 俺 する 何 ある また こんばんは いつも みんな 誰 読む そう 歌 声 知る 聞く 私 バンド まだ 明日 疲れる 一人 どう 大丈夫 敬語 ほら 同じ ノート たくさん 作る オープン マイク 言う こっち ギター 上手 楽しい 次 無理 最高 思う たぶん できる 忙しい 去年 毎日 練習 考える 名前 書く 字 なんで 怒る バカ 久しぶり 動画 送る 出る 忘れる 緊張する 手 ステージ 笑う 終わる 静か
+181 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう うまい チケット 買う これ 卵 ビール 熱い ゆっくり ラーメン屋 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ 日 はい おいしい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 写真 撮る 友達 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に いる 荷物 大学 この 今 僕 スーツ 俺 する 何 ある また こんばんは いつも みんな 誰 読む そう 歌 声 知る 聞く 私 バンド まだ 明日 疲れる 一人 どう 大丈夫 敬語 ほら 同じ ノート たくさん 作る オープン マイク 言う ライブハウス こっち ギター 楽しい 次 無理 最高 思う たぶん できる 忙しい 去年 毎日 練習 考える 名前 書く 字 なんで 怒る バカ 久しぶり 動画 送る 出る 忘れる 緊張する 手 ステージ 笑う 終わる 静か

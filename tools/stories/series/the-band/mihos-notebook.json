@@ -1,7 +1,6 @@
 {
   "title": "Miho's notebook",
   "plot": "Miho comes to watch practice, sketches the band as they play, and decides she wants to draw a manga about them.",
-  "readings": {"描く": "かく"},
   "paragraphs": [
     [["今日は、ミホがスタジオに来た。", "Today, Miho came to the studio."], ["ミホの手に、ノートがある。", "She has a notebook in her hand."]],
     [["ミホ|「ユキ！来たよ！」", "\"Yuki! I'm here!\""]],
@@ -18,7 +17,7 @@
     [["リン|「…うれしい。」", "\"…I like it.\""]],
     [["ダイチ|「俺の絵、汗がすごい！」", "\"Mine's dripping with sweat!\""], ["ミホ|「ダイチさん、いつも汗がすごいから。」", "\"Because you're always dripping with sweat.\""]],
     [["ミホ|「ユキ、かっこよくなったね。」", "\"Yuki, you've got so cool.\""], ["ユキ|「…そう？」", "\"…Have I?\""]],
-    [["ミホ|「春のユキは、ステージで緊張してた。」", "\"In spring you were so nervous on stage.\""], ["ミホ|「今のユキは、大きく歌ってる。」", "\"Now you sing out loud.\""]],
+    [["ミホ|「オープンマイクのユキは、ステージで緊張してた。」", "\"At the open mic you were so nervous on stage.\""], ["ミホ|「今のユキは、大きい声で歌ってる。」", "\"Now you sing out loud.\""]],
     [["ミホ|「私、このバンドのマンガ、描きたい！」", "\"I want to draw a manga about this band!\""]],
     [["ユキ|「マンガ？このバンドの？」", "\"A manga? About this band?\""]],
     [["ミホ|「うん！ベースで歌う人と、うるさいドラムと、静かなギター！」", "\"Yep! A bassist who sings, a loud drummer, and a quiet guitarist!\""]],

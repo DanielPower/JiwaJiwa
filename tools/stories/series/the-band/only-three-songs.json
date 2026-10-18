@@ -2,11 +2,10 @@
   "title": "Only three songs",
   "plot": "Festival day: the other bands have long set lists and Summer Snow has only three songs, but Rin says three is enough.",
   "topic": "dake",
-  "readings": {"弦": "げん"},
   "paragraphs": [
     [["祭りの日だ。", "Festival day."], ["朝から、すごく暑い。", "Blazing hot from the morning."]],
     [["公園に、大きいステージがある。", "There's a big stage in the park."], ["去年、アレックスと花火を見た公園だ。", "The park where I watched fireworks with Alex last year."]],
-    [["公園は、もう人が多い。", "The park is already crowded."], ["ラーメンの店もある。", "There's even a ramen stall."]],
+    [["公園は、もう人が多い。", "The park is already crowded."], ["ラーメン屋もある。", "There's even a ramen stall."]],
     [["店長|「ユキ！ラーメン、食べる？」", "\"Yuki! Want some ramen?\""], ["ユキ|「店長！ここにも、店？」", "\"Manager! You've got a stall here too?\""]],
     [["店長|「祭りの日だけ、ここでやってるんだ。」", "\"Only on festival day.\""]],
     [["ダイチとリンも来た。", "Daichi and Rin arrived."], ["リンの荷物は、ギターだけ。", "All Rin's carrying is her guitar."], ["ダイチの荷物は…すごく大きい。", "Daichi's bag is… enormous."]],
@@ -30,7 +29,7 @@
     [["ダイチ|「俺だけ、緊張してない！」", "\"I'm the only one who's not nervous!\""]],
     [["でも、ダイチの手も、ちょっと…", "But Daichi's hands are a little… too."]],
     [["三人で、笑った。", "The three of us laughed."]],
-    [["店長|「勝ったら、ラーメン！みんなが勝ったら、ビール！」", "\"If you win, ramen! If you win, beer!\""]],
+    [["店長|「勝ったら、ラーメン！ビールも！」", "\"If you win, ramen! And beer!\""]],
     [["ダイチ|「勝つ！」", "\"We'll win!\""], ["リン|「…ラーメン。」", "\"…Ramen.\""]],
     [["空は、まだ夏の空だ。", "The sky is still a summer afternoon sky."], ["夜まで、もうちょっとだけ。", "Just a little longer till night."]]
   ]

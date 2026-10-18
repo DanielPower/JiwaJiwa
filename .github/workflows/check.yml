@@ -59,6 +59,14 @@ jobs:
       - name: Build
         run: ./gradlew :app:assembleRelease :app:bundleRelease :app:assembleDebug
 
+      # The stories aren't committed: the build writes them, so check they made it in.
+      - name: Check the stories are bundled
+        run: |
+          unzip -l app/build/outputs/apk/debug/app-debug.apk > apk.txt
+          grep -q "assets/stories/path.json" apk.txt
+          grep -q "assets/stories/needs.json" apk.txt
+          grep -q "assets/stories/read/arrival.json" apk.txt
+
       - uses: actions/upload-artifact@v4
         id: apk
         with:

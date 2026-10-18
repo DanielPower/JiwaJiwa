@@ -2,7 +2,6 @@
   "title": "Shimokitazawa",
   "plot": "The day of the show: Sora rushes off early, the band sound-checks at the little live house, Rin remembers seeing her favourite band there as a kid, and by evening Sora, Kenta and Tanaka-san still haven't come.",
   "topic": "ta-koto",
-  "readings": {"弦": "げん"},
   "paragraphs": [
     [["ライブの日。", "The day of the show."]],
     [["朝、ソラは、すごく早く、家を出た。", "In the morning, Sora left the house really early."]],
@@ -14,11 +13,11 @@
     [["駅の前に、チラシがある。", "There's a flyer up outside the station."], ["ソラのチラシだ。", "One of Sora's."], ["ミホの絵の、三人。", "The three of us, in Miho's picture."]],
     [["店は、駅から近い。", "The live house is close to the station."], ["小さい店だ。", "It's a small place."]],
     [["ダイチとリンも、来た。", "Daichi and Rin arrived too."]],
-    [["ダイチ|「ここが、下北沢の店！」", "\"So this is the place!\""], ["ダイチ|「リン、下北沢で、歌ったことがある？」", "\"Rin, have you ever played in Shimokitazawa?\""]],
+    [["ダイチ|「ここが、下北沢の店！」", "\"So this is the place!\""], ["ダイチ|「リン、下北沢で、弾いたことがある？」", "\"Rin, have you ever played in Shimokitazawa?\""]],
     [["リン|「…ない。」", "\"…No.\""]],
     [["店の人|「『夏の雪』ですね。今日は、よろしくお願いします。」", "\"You must be Summer Snow. Thanks for coming today.\""]],
-    [["店の人|「ライブの店で、歌ったことはありますか？」", "\"Have you played a live house before?\""]],
-    [["ユキ|「オープンマイクで、一回だけ。」", "\"Once, at an open mic.\""], ["ユキ|「バンドで歌ったことがないです。」", "\"I've never played one with a band.\""]],
+    [["店の人|「ライブハウスで、歌ったことはありますか？」", "\"Have you played a live house before?\""]],
+    [["ユキ|「オープンマイクで、一回だけ。」", "\"Once, at an open mic.\""], ["ユキ|「バンドでは、ないです。」", "\"Never with a band.\""]],
     [["ダイチ|「俺は、あります！前のバンドで。」", "\"I have! With my old band.\""]],
     [["ダイチの声が、ちょっと小さくなった。", "Daichi's voice went a little quiet."], ["前のバンド。", "His old band."], ["去年、終わったバンドだ。", "The band that ended last year."]],
     [["リン|「…私は、ここで弾いたことがない。」", "\"…I've never played here.\""]],
@@ -44,7 +43,7 @@
     [["ミホと、佐藤さんがいる。", "Miho and Sato were there."], ["佐藤|「主人公さん！今日は、楽しみです。」", "\"Our heroine! I'm looking forward to tonight.\""]],
     [["ユキ|「…主人公じゃないです。」", "\"…I'm not the heroine.\""]],
     [["でも、ソラがいない。", "But Sora wasn't there."], ["ケンタも、田中さんも、まだ来ない。", "Kenta and Tanaka-san hadn't come yet, either."]],
-    [["電話を見た。", "I checked my phone."], ["メッセージは、ない。", "No messages."]],
+    [["スマホを見た。", "I checked my phone."], ["メッセージは、ない。", "No messages."]],
     [["ユキ|「…みんな、遅いね。」", "\"…Everyone's late.\""]]
   ]
 }

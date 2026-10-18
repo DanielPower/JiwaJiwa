@@ -242,7 +242,7 @@ object StoryPath {
     fun parseNeeds(json: String, catalog: StoryCatalog): Map<String, StepNeeds> {
         val root = Json.parseToJsonElement(json).jsonObject
         return catalog.chapters.associate { (_, c) ->
-            val o = root[c.story.id]?.jsonObject ?: error("stories/needs.json has no ${c.story.id}: run ./gradlew -PcoreOnly=true :core:stories")
+            val o = root[c.story.id]?.jsonObject ?: error("stories/needs.json has no ${c.story.id}")
             c.story.id to StepNeeds(
                 words = o.getValue("words").jsonArray.map { w ->
                     val parts = w.jsonArray.map { it.jsonPrimitive }
@@ -255,12 +255,13 @@ object StoryPath {
         }
     }
 
-    /** The words a story's body counts, each once, in the order they first appear. */
-    fun words(reader: Reader, body: String, readings: Map<String, String> = emptyMap(), names: Set<String> = emptySet()): List<ReadingWord> =
-        reader.read(body, readings, names).flatten().filter { it.kind == WordKind.WORD }.distinctBy { it.key }
+    /** The words [paragraphs] count, each once, in the order they first appear. */
+    fun words(paragraphs: List<List<ReadingWord>>): List<ReadingWord> =
+        paragraphs.flatten().filter { it.kind == WordKind.WORD }.distinctBy { it.key }
 
-    fun needs(reader: Reader, story: PathStory): StepNeeds {
-        val all = reader.read(story.body, story.readings, story.names).flatten()
+    /** What reading [story] asks of you, from its [paragraphs] as the story tools read them. */
+    fun needs(story: PathStory, paragraphs: List<List<ReadingWord>>): StepNeeds {
+        val all = paragraphs.flatten()
         val counted = all.filter { it.kind == WordKind.WORD }
         return StepNeeds(
             words = counted.distinctBy { it.key }.map { StepWord(it.wordId, it.lemma) },

@@ -3,7 +3,7 @@
   "plot": "Sora writes Yuki's name on the open mic list, and Yuki hears about it before he can tell her.",
   "topic": "tte",
   "paragraphs": [
-    [["今日は、大学が休みだ。", "No classes today."], ["僕は一人で、ライブの店に来た。", "I came to the live house on my own."]],
+    [["今日は、大学が休みだ。", "No classes today."], ["僕は一人で、ライブハウスに来た。", "I came to the live house on my own."]],
     [["店に、人がいない。", "There's nobody in."], ["店の人|「いらっしゃいませ。」", "\"Welcome.\""]],
     [["ソラ|「あのー、夏のオープンマイクは…」", "\"Um, about the summer open mic…\""], ["店の人|「はい。ここに、名前を書いてください。」", "\"Sure. Please write your name here.\""]],
     [["店の人|「オープンマイクで、歌うんですか？」", "\"Are you going to sing?\""], ["ソラ|「えーと…僕じゃないです。友達です。」", "\"Um… not me. A friend.\""]],
@@ -13,7 +13,7 @@
     [["店の外で、名前を考えた。", "Outside, I thought about that name."], ["ユキさんの名前。", "Yuki's name."], ["僕の字だ。", "In my handwriting."]],
     [["ソラ|「ユキさん、ごめん…」", "\"Sorry, Yuki…\""]],
     [["夜。", "That night."]],
-    [["ケンタ|「ソラ、今日、どこに行ったの？」", "\"Sora, where'd you go today?\""], ["ソラ|「ライブの店。ユキさんの名前を書いた。」", "\"The live house. I wrote Yuki's name down.\""]],
+    [["ケンタ|「ソラ、今日、どこに行ったの？」", "\"Sora, where'd you go today?\""], ["ソラ|「ライブハウス。ユキさんの名前を書いた。」", "\"The live house. I wrote Yuki's name down.\""]],
     [["ケンタ|「…ユキが歌うって？」", "\"…You mean Yuki's singing?\""], ["ソラ|「うん。夏のオープンマイク。」", "\"Yeah. At the summer open mic.\""]],
     [["ケンタ|「ユキは、知ってるの？」", "\"Does Yuki know?\""], ["ソラ|「…知らない。」", "\"…No.\""]],
     [["ケンタ|「ユキに、言う？」", "\"Are you going to tell her?\""], ["ソラ|「…明日。」", "\"…Tomorrow.\""], ["ケンタ|「じゃあ、明日、一緒に言おう。」", "\"Then let's tell her together tomorrow.\""]],
