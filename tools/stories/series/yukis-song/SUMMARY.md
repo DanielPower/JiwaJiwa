@@ -132,7 +132,7 @@ The trains stop, Sora won't answer, the running order changes so Summer Snow goe
 
 Behind Sora is Alex, back from Canada with his bag still in his hand; Sora's secret is out, and Yuki sings 'Next Year' to the person it was written for.
 
-- 216 words; 4 new of 6 allowed.
+- 215 words; 4 new of 6 allowed.
 - New: 嘘 (うそ, N4), 驚く (おどろく, N4), どなた (N5), まあ (N3).
 
 ### 16. After the show (`yukis-song/after-the-show`)

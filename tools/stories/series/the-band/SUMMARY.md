@@ -93,7 +93,7 @@ Three days of waiting, then Daichi calls shouting that they're in; Rin calls too
 
 July heat: practice every day, Daichi gets quieter, Yuki's voice gets stronger, and the three of them start to sound like one band.
 
-- 99 words; 3 new of 3 allowed.
+- 100 words; 3 new of 3 allowed.
 - Teaches ～くなる / ～になる / ～く (`naru`).
 - New: なる (N5), 一つ (ひとつ, N5), それ (N5).
 
@@ -108,7 +108,7 @@ Alex calls from Canada and is thrilled about the band; afterwards Yuki looks at 
 
 Miho comes to watch practice, sketches the band as they play, and decides she wants to draw a manga about them.
 
-- 94 words; 3 new of 3 allowed.
+- 96 words; 3 new of 3 allowed.
 - New: 絵 (え, N5), 描く (えがく, N3), かっこいい (not JLPT).
 
 ### 13. Rin's song (`the-band/rins-song`)
