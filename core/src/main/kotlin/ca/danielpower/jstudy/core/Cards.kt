@@ -210,7 +210,7 @@ class Reviewer(
 
     companion object {
         /** Share of a Right answer's stability gain that reading a due word gives. */
-        const val READ_SHARE = 0.15
+        const val READ_SHARE = 0.03
     }
 
     /**
