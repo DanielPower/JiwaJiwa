@@ -181,8 +181,9 @@ Other features (all shipped):
   narrator's voice is the user's pick and reads everything else. Unnamed
   speakers are voiced by their label (`Voices.forLabel`). Speed and narrator
   open in the pane like the reader settings. Word cards and word pages have
-  a speaker button that says the word's reading. Daniel asked about
-  recording the stories with server-side AI voices instead; open question.
+  a speaker button that says the word's reading. Daniel weighed recorded
+  cloud voices and on-phone AI voices and chose the phone's own voices
+  (2026-10-18).
 - Claude-written stories, and the story server they went through, were
   removed (Daniel, 2026-10-15); they may be rebuilt later. Stories are the
   bundled ones only. Tapping a word
