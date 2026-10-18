@@ -189,7 +189,7 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
                 ReadKind.START -> NextContent("Start here", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
                 ReadKind.CONTINUE -> NextContent("Continue · page ${c.resumePage + 1}", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
                 ReadKind.LESSON -> NextContent(
-                    "Next · lesson first",
+                    "Next · grammar lesson",
                     colors.secondary,
                     "${e.newTopic?.title ?: ""}, then ${shortName(e)}",
                     seriesLine(e, c),
@@ -511,8 +511,10 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
+            // +N opens the row in place to show the rest of the week.
+            var expanded by rememberSaveable { mutableStateOf(false) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (item in d.recent) when (item) {
+                for (item in if (expanded) d.allRecent else d.recent) when (item) {
                     is RecentItem.NewWord -> Chip(item.word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
                     is RecentItem.NewGrammar -> Chip(
                         item.topic.title,
@@ -522,7 +524,12 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                     ) { vm.openGrammar(item.pageId) }
                 }
                 if (d.moreWords > 0) {
-                    Chip("+${d.moreWords}", gold, gold.copy(alpha = 0.4f)) { vm.openDictionary(StatusFilter.STUDYING) }
+                    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (expanded) {
+                        Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
+                    } else {
+                        Chip("+${d.moreWords}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
+                    }
                 }
             }
         }

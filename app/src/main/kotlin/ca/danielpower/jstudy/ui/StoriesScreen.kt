@@ -1331,7 +1331,7 @@ private fun GrammarNote(point: GrammarPoint, onLesson: (() -> Unit)?) {
     }
 }
 
-/** "Grammar · N5", filling the row, and the Lesson → link when there's a page for it. */
+/** "Grammar · N5", filling the row, and the Grammar lesson → link when there's a page for it. */
 @Composable
 private fun RowScope.GrammarLevel(point: GrammarPoint, onLesson: (() -> Unit)?) {
     Text(
@@ -1342,7 +1342,7 @@ private fun RowScope.GrammarLevel(point: GrammarPoint, onLesson: (() -> Unit)?) 
     )
     if (onLesson != null) {
         TextButton(onClick = onLesson) {
-            Text("Lesson →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+            Text("Grammar lesson →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
         }
     }
 }

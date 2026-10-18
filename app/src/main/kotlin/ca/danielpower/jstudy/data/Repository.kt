@@ -81,6 +81,8 @@ data class Dashboard(
     val recent: List<RecentItem>,
     /** Recent words left out of [recent]. */
     val moreWords: Int,
+    /** Every recent word and grammar topic, in the same order, for when the row is expanded. */
+    val allRecent: List<RecentItem>,
     val grammarMet: Int,
     val grammarTotal: Int,
 )
@@ -1025,6 +1027,7 @@ class Repository(context: Context) {
             learned[row.topic.id]?.takeIf { row.seen && it > since }?.let { RecentItem.NewGrammar(row.topic, row.pageId) to it }
         }
         val (recent, moreWords) = Recent.pick<RecentItem>(newWords, newGrammar, RECENT_SHOWN)
+        val allRecent = Recent.pick<RecentItem>(newWords, newGrammar, Int.MAX_VALUE).first
         return Dashboard(
             today = today,
             next = nextUp(now),
@@ -1034,6 +1037,7 @@ class Repository(context: Context) {
             words = words,
             recent = recent,
             moreWords = moreWords,
+            allRecent = allRecent,
             grammarMet = rows.count { it.seen },
             grammarTotal = rows.size,
         )
