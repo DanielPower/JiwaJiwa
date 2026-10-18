@@ -75,13 +75,13 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
 
     Column(Modifier.fillMaxSize()) {
         Text(
-            ui("Dictionary", "辞書"),
+            "Dictionary",
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 4.dp),
         )
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            WashiChip(selected = state.grammar == null, onClick = { vm.showGrammar(false) }, label = ui("Words", "言葉"))
-            WashiChip(selected = state.grammar != null, onClick = { vm.showGrammar(true) }, label = ui("Grammar", "文法"))
+            WashiChip(selected = state.grammar == null, onClick = { vm.showGrammar(false) }, label = "Words")
+            WashiChip(selected = state.grammar != null, onClick = { vm.showGrammar(true) }, label = "Grammar")
         }
         val grammar = state.grammar
         if (grammar != null) {
@@ -121,7 +121,7 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
                     WashiChip(
                         selected = state.status == filter,
                         onClick = { vm.setStatusFilter(filter) },
-                        label = ui(filter.label),
+                        label = filter.label,
                     )
                 }
             }
@@ -133,7 +133,7 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(ui("Kanji", "漢字"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Kanji", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     for (k in kanji) {
                         Box(
                             Modifier.size(40.dp).border(1.dp, MaterialTheme.colorScheme.outline, WashiShape).clickable {
@@ -240,7 +240,7 @@ private fun DictionaryRowItem(row: DictionaryRow, onClick: () -> Unit) {
             val status = row.status
             when {
                 status == null -> {}
-                status.suspended -> Text(ui("Suspended", "保留中"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                status.suspended -> Text("Suspended", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 status.state == CardState.NEW -> {}
                 else -> MasteryMeter(status.mastery, Modifier.padding(top = 4.dp))
             }
@@ -284,7 +284,7 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionLabel(ui("Meanings", "意味"))
+                SectionLabel("Meanings")
                 word.senses.forEachIndexed { i, sense ->
                     val pos = detail.partsOfSpeech.getOrNull(i).orEmpty()
                     // Repeat the part of speech only when it changes.
@@ -302,13 +302,13 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
 
             if (detail.kanji.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SectionLabel(ui("Kanji", "漢字"))
+                    SectionLabel("Kanji")
                     KanjiLinks(detail.kanji, vm::openKanji)
                 }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionLabel(ui("Progress", "学習状況"))
+                SectionLabel("Progress")
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     if (started && !detail.suspended) {
                         Box(
@@ -323,12 +323,12 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         when {
-                            detail.suspended -> Text(ui("Suspended", "保留中"), style = MaterialTheme.typography.bodyLarge)
+                            detail.suspended -> Text("Suspended", style = MaterialTheme.typography.bodyLarge)
                             recognition == null || recognition.state == CardState.NEW ->
-                                Text(ui("Not started", "未学習"), style = MaterialTheme.typography.bodyLarge)
+                                Text("Not started", style = MaterialTheme.typography.bodyLarge)
                             else -> {
-                                CardLine(ui("Japanese → English", "日本語から英語"), recognition, state.clock)
-                                production?.let { CardLine(ui("English → Japanese", "英語から日本語"), it, state.clock) }
+                                CardLine("Japanese → English", recognition, state.clock)
+                                production?.let { CardLine("English → Japanese", it, state.clock) }
                             }
                         }
                     }
@@ -341,22 +341,22 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionLabel(ui("Actions", "操作"))
+                SectionLabel("Actions")
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SecondaryButton(onClick = { vm.markKnown(MasteryRules.HIDE_AT) }, modifier = Modifier.weight(1f).height(48.dp)) {
-                        Text(if (started) ui("Set as known", "知っている") else ui("Mark known", "知っている"))
+                        Text(if (started) "Set as known" else "Mark known")
                     }
                     SecondaryButton(onClick = { vm.markKnown(MasteryRules.OFF_AT) }, modifier = Modifier.weight(1f).height(48.dp)) {
-                        Text(if (started) ui("Set as mastered", "覚えた") else ui("Mark mastered", "覚えた"))
+                        Text(if (started) "Set as mastered" else "Mark mastered")
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
                     TextButton(onClick = { vm.setSuspended(!detail.suspended) }) {
-                        Text(if (detail.suspended) ui("Unsuspend", "保留を解除する") else ui("Suspend", "保留する"), color = MaterialTheme.colorScheme.primary)
+                        Text(if (detail.suspended) "Unsuspend" else "Suspend", color = MaterialTheme.colorScheme.primary)
                     }
                     if (detail.cards.isNotEmpty() || detail.mastery > 0) {
                         TextButton(onClick = { confirmReset = true }) {
-                            Text(ui("Reset progress", "記録を消す"), color = MaterialTheme.colorScheme.primary)
+                            Text("Reset progress", color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -370,7 +370,7 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
 
             if (detail.history.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionLabel(ui("History", "履歴"))
+                    SectionLabel("History")
                     val format = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
                     for ((direction, entry) in detail.history.take(50)) {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -403,10 +403,10 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                 TextButton(onClick = {
                     confirmReset = false
                     vm.resetWord()
-                }) { Text(ui("Reset", "消す"), color = MaterialTheme.colorScheme.primary) }
+                }) { Text("Reset", color = MaterialTheme.colorScheme.primary) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmReset = false }) { Text(ui("Cancel", "やめる"), color = MaterialTheme.colorScheme.onSurface) }
+                TextButton(onClick = { confirmReset = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             },
         )
     }

@@ -46,8 +46,6 @@ import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.StepGap
 import ca.danielpower.jstudy.core.StepNeeds
 import ca.danielpower.jstudy.core.StoryPath
-import ca.danielpower.jstudy.core.UiLabel
-import ca.danielpower.jstudy.core.UiLabels
 import ca.danielpower.jstudy.core.coverage
 import ca.danielpower.jstudy.core.sentenceRanges
 import kotlin.random.Random
@@ -264,12 +262,6 @@ class Repository(context: Context) {
     private val store = ProgressStore(context)
 
     private val reader by lazy { Reader(dictionary) }
-
-    /**
-     * The words each UI label needs, kept between launches so labels are in
-     * the right language from the first frame. Derived, so not in a backup.
-     */
-    private val labels = context.getSharedPreferences("labels", Context.MODE_PRIVATE)
 
     // ------------------------------------------------------------ settings
 
@@ -563,29 +555,6 @@ class Repository(context: Context) {
             }
         }
     }
-
-    // ------------------------------------------------------------ app language
-
-    /** The label words looked up before, unless the dictionary has changed since. */
-    fun cachedLabelWords(): Map<String, List<Long>?> {
-        if (labels.getLong(LABELS_VERSION, -1) != dictionary.version) return emptyMap()
-        return labels.all.filterKeys { it != LABELS_VERSION }.mapValues { (_, v) ->
-            (v as? String)?.takeIf { it.isNotEmpty() }?.split(',')?.map { it.toLong() }
-        }
-    }
-
-    /** Look up the words in [found] labels, and remember them. */
-    fun labelWords(found: Collection<UiLabel>): Map<String, List<Long>?> {
-        val words = found.associate { it.key to UiLabels.words(it, reader, dictionary) }
-        val edit = labels.edit()
-        if (labels.getLong(LABELS_VERSION, -1) != dictionary.version) edit.clear().putLong(LABELS_VERSION, dictionary.version)
-        for ((key, ids) in words) edit.putString(key, ids?.joinToString(",").orEmpty())
-        edit.apply()
-        return words
-    }
-
-    /** Words mastered well enough for the app to use them: the mastery where furigana turns off. */
-    fun masteredWords(): Set<Long> = store.wordsAtMastery(MasteryRules.OFF_AT)
 
     // ------------------------------------------------------------ stories
 
@@ -1182,8 +1151,5 @@ class Repository(context: Context) {
 
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12
-
-        /** Never a label key, which is Japanese text. */
-        private const val LABELS_VERSION = "@dictionary"
     }
 }

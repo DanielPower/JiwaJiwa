@@ -199,12 +199,8 @@ Other features (all shipped):
   Settings, and fit the pane without scrolling.
   Both layouts follow Japanese line-break rules (`core/Kinsoku.kt`,
   `VerticalText.kt`, `HorizontalText.kt`).
-- The app's own text turns Japanese as you learn: each label shows in
-  English until every word in its Japanese is mastered (the furigana-off
-  mastery, 70), then in Japanese. Labels are written as
-  `ui("English", "日本語")`; the words are found by reading the Japanese with
-  the story reader, so there's no word list to maintain. Explanations and
-  text with numbers in it stay English for now.
+- The app's own text is English. (Labels that turned Japanese as you
+  mastered their words were removed on 2026-10-18.)
 - Visual design is "Washi" (paper, ink, vermilion seal) with light, dark and
   auto themes. See `app/AGENTS.md`.
 

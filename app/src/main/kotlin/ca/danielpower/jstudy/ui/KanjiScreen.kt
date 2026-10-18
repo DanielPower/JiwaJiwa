@@ -98,7 +98,7 @@ fun KanjiScreen(state: Screen.KanjiPage, vm: AppViewModel) {
 
             if (kanji.onyomi.isNotEmpty() || kanji.kunyomi.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SectionLabel(ui("Readings", "読み方"))
+                    SectionLabel("Readings")
                     if (kanji.onyomi.isNotEmpty()) ReadingLine("On", kanji.onyomi, detail.readingsMet)
                     if (kanji.kunyomi.isNotEmpty()) ReadingLine("Kun", kanji.kunyomi, detail.readingsMet)
                     if (detail.readingsMet.isNotEmpty()) {
@@ -113,7 +113,7 @@ fun KanjiScreen(state: Screen.KanjiPage, vm: AppViewModel) {
 
             if (kanji.strokes.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SectionLabel(ui("Stroke order", "書き順"))
+                    SectionLabel("Stroke order")
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         for (i in kanji.strokes.indices) StrokeStep(kanji.strokes, i, Modifier.size(52.dp))
                     }
@@ -122,7 +122,7 @@ fun KanjiScreen(state: Screen.KanjiPage, vm: AppViewModel) {
 
             if (detail.yourWords.isNotEmpty()) {
                 Column {
-                    SectionLabel(ui("Your words", "あなたの単語"), Modifier.padding(bottom = 4.dp))
+                    SectionLabel("Your words", Modifier.padding(bottom = 4.dp))
                     for (row in detail.yourWords) {
                         KanjiWordItem(row.entry, kanji.literal, row) { vm.openWord(row.entry.id) }
                     }
@@ -132,7 +132,7 @@ fun KanjiScreen(state: Screen.KanjiPage, vm: AppViewModel) {
             if (detail.moreWords.isNotEmpty()) {
                 Column {
                     SectionLabel(
-                        if (detail.yourWords.isEmpty()) ui("Words", "単語") else ui("More words", "他の単語"),
+                        if (detail.yourWords.isEmpty()) "Words" else "More words",
                         Modifier.padding(bottom = 4.dp),
                     )
                     for (entry in detail.moreWords) {

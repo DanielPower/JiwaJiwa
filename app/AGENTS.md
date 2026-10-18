@@ -57,17 +57,8 @@ labels or legend. The review page's mastery bar stays ink.
 
 ## UI text
 
-Write UI labels through `ui("English", "日本語")` (`ui/Labels.kt`), or a
-`UiLabel` for text kept outside a composable (enums, lists). A label shows in
-Japanese once you've mastered every word in it. Its words are found by
-reading the Japanese the first time it's shown, off the main thread, and
-kept in the `labels` SharedPreferences (cleared when the app updates) so
-later launches start in the right language. Pass the dictionary spellings
-after the Japanese (`ui("Vertical", "縦書き", "縦", "書く")`) only where the
-automatic split goes wrong or picks a word outside the JLPT lists; a label
-with a word or loanword the dictionary lacks stays English. Prefer Japanese
-built from JLPT words, which you'll actually study. Explanatory sentences
-and text with numbers stay plain English.
+UI text is plain English strings. Design marks such as the 新/習/復
+counters and the 済/読了 seals stay Japanese.
 
 ## Tests
 

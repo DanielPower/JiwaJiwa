@@ -36,8 +36,8 @@ fun RenshuuImportScreen(step: ImportStep, vm: AppViewModel) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(ui("Import from Renshuu", "Renshuuからインポート", "インポート"), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
-            if (step !is ImportStep.Applying) TextButton(onClick = vm::closeImport) { Text(ui("Close", "閉じる")) }
+            Text("Import from Renshuu", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+            if (step !is ImportStep.Applying) TextButton(onClick = vm::closeImport) { Text("Close") }
         }
         when (step) {
             is ImportStep.EnterKey -> EnterKey(step.error, vm::fetchRenshuu)
@@ -67,7 +67,7 @@ fun RenshuuImportScreen(step: ImportStep, vm: AppViewModel) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                PrimaryButton(onClick = vm::goHome) { Text(ui("Done", "完了")) }
+                PrimaryButton(onClick = vm::goHome) { Text("Done") }
             }
         }
     }
@@ -117,7 +117,7 @@ private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit
     }
     if (plan.updates.isEmpty()) {
         Text("There's nothing to import.", style = MaterialTheme.typography.bodyLarge)
-        PrimaryButton(onClick = onCancel) { Text(ui("Close", "閉じる")) }
+        PrimaryButton(onClick = onCancel) { Text("Close") }
     } else {
         Text(
             "Each word is marked known at its mastery, as \"Mark known\" on a word's page does, and gets reviews to match.",
@@ -126,7 +126,7 @@ private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PrimaryButton(onClick = onImport) { Text("Import ${plan.updates.size} words") }
-            TextButton(onClick = onCancel) { Text(ui("Cancel", "やめる")) }
+            TextButton(onClick = onCancel) { Text("Cancel") }
         }
     }
 }

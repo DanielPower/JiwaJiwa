@@ -45,19 +45,19 @@ fun StatsScreen(state: Screen.StatsPage, vm: AppViewModel) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::openReviewTab)
-            Text(ui("Stats", "統計"), style = MaterialTheme.typography.headlineMedium)
+            Text("Stats", style = MaterialTheme.typography.headlineMedium)
         }
         Column(
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                Tile(ui("Words started", "始めた単語"), "${s.wordsStarted}", Modifier.weight(1f))
+                Tile("Words started", "${s.wordsStarted}", Modifier.weight(1f))
                 Tile("Recall, 30 days", percent(s.recall30) ?: "–", Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth()) {
-                Tile(ui("Study days", "勉強した日"), "${s.studyDays}", Modifier.weight(1f))
-                Tile(ui("Answers", "回答"), "${s.totalAnswers}", Modifier.weight(1f))
+                Tile("Study days", "${s.studyDays}", Modifier.weight(1f))
+                Tile("Answers", "${s.totalAnswers}", Modifier.weight(1f))
             }
             Text(
                 "Recall is how often you got a card right when it came back for review, not counting words " +
@@ -79,7 +79,7 @@ fun StatsScreen(state: Screen.StatsPage, vm: AppViewModel) {
             Heading("Answers, last 30 days")
             var answerDay by remember { mutableStateOf<Int?>(null) }
             Bars(s.answers, answerDay) { answerDay = if (answerDay == it) null else it }
-            Legend(listOf(ui("Right", "正解") to 1f, ui("Wrong", "間違い") to WRONG_ALPHA))
+            Legend(listOf("Right" to 1f, "Wrong" to WRONG_ALPHA))
             val answerIndex = answerDay ?: s.answers.lastIndex
             val (total, right) = s.answers[answerIndex]
             Caption(
@@ -87,9 +87,9 @@ fun StatsScreen(state: Screen.StatsPage, vm: AppViewModel) {
                     if (total > 0) ", $right right" else "",
             )
 
-            Heading(ui("Words by level", "レベル別の単語"))
+            Heading("Words by level")
             for (level in s.levels) LevelRow(level)
-            Legend(listOf(ui("Mastered", "覚えた") to 1f, ui("Known", "知っている") to 0.6f, ui("Started", "始めた") to 0.3f))
+            Legend(listOf("Mastered" to 1f, "Known" to 0.6f, "Started" to 0.3f))
             Spacer(Modifier.height(24.dp))
         }
     }

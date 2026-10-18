@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.MasteryRules
-import ca.danielpower.jstudy.core.UiLabel
 
 // ------------------------------------------------------------------ buttons
 
@@ -223,11 +222,11 @@ fun MasteryMeter(mastery: Int, modifier: Modifier = Modifier) {
 
 // ------------------------------------------------------------------ navigation
 
-enum class Tab(val label: UiLabel, val icon: ImageVector) {
-    HOME(UiLabel("Home", "ホーム"), WashiIcons.Home),
-    STORIES(UiLabel("Read", "読む"), WashiIcons.Book),
-    REVIEW(UiLabel("Review", "復習"), WashiIcons.Cards),
-    DICTIONARY(UiLabel("Dictionary", "辞書"), WashiIcons.Search),
+enum class Tab(val label: String, val icon: ImageVector) {
+    HOME("Home", WashiIcons.Home),
+    STORIES("Read", WashiIcons.Book),
+    REVIEW("Review", WashiIcons.Cards),
+    DICTIONARY("Dictionary", WashiIcons.Search),
 }
 
 @Composable
@@ -270,7 +269,7 @@ fun WashiNavBar(current: Tab, badges: Map<Tab, Int> = emptyMap(), onSelect: (Tab
                         }
                     }
                     Text(
-                        ui(tab.label),
+                        tab.label,
                         fontSize = 12.sp,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                         color = color,

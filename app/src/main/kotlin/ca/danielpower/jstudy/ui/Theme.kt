@@ -15,7 +15,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ca.danielpower.jstudy.R
-import ca.danielpower.jstudy.core.UiLabel
 
 // "Washi": paper and sumi ink, with one vermilion seal colour. New, learning
 // and review counts use primary, tertiary and secondary.
@@ -157,10 +156,10 @@ private val WashiShapes = Shapes(
     extraLarge = RoundedCornerShape(8.dp),
 )
 
-enum class ThemeMode(val label: UiLabel) {
-    AUTO(UiLabel("Auto", "自動")),
-    LIGHT(UiLabel("Light", "明るい")),
-    DARK(UiLabel("Dark", "暗い")),
+enum class ThemeMode(val label: String) {
+    AUTO("Auto"),
+    LIGHT("Light"),
+    DARK("Dark"),
 }
 
 @Composable

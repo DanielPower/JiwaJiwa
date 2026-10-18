@@ -91,14 +91,14 @@ fun StudyHeatmap(answersPerDay: Map<Long, Int>, today: Long) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
             )
-            Text(ui("Less", "少ない"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Less", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(4.dp))
             for (level in 0..4) {
                 Cell(if (level == 0) empty else full.copy(alpha = level / 4f), outlined = false, size = 10.dp)
                 Spacer(Modifier.width(2.dp))
             }
             Spacer(Modifier.width(2.dp))
-            Text(ui("More", "多い"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("More", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
