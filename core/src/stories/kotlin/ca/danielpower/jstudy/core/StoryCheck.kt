@@ -111,7 +111,7 @@ class StoryCheck(private val tools: StoryTools) {
                 if (c.plot.isBlank()) problem(id, "no plot line")
                 // The topic's example, shown before reading, uses only words you have by then.
                 catalog.topic(c.topic)?.example?.let { (jp, _) ->
-                    val unknown = StoryPath.words(reader.read(jp)).filter { it.wordId !in step.words }
+                    val unknown = StoryPath.words(reader.read(jp, emptyMap(), c.story.names)).filter { it.wordId !in step.words }
                     if (unknown.isNotEmpty()) problem(id, "${c.topic} example has new words ${unknown.map { it.lemma }}")
                 }
             }

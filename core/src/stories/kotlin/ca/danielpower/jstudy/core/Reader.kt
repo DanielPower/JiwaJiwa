@@ -479,8 +479,11 @@ class Reader(private val lexicon: Lexicon) {
 
     private fun content(t: Morpheme): ReadingWord {
         // Numbers written in kanji (三, 百, 何) and counters (時, 円, 人) are words to learn; digits aren't.
-        val name = t.pos2 == "固有名詞" || (t.isNumber && t.surface.any(Char::isDigit)) ||
-            (t.pos2 == "接尾" && !t.isCounter) || (t.unknown && Kana.isKana(t.surface))
+        // Katakana the tokenizer doesn't know is a name, unless the dictionary has it: a loanword newer than
+        // the tokenizer (スマホ). Cast names are read as names before this.
+        val newWord = t.unknown && Kana.isKana(t.surface) && lexicon.find(t.surface, t.surface) != null
+        val name = t.pos2 == "固有名詞" && !newWord || (t.isNumber && t.surface.any(Char::isDigit)) ||
+            (t.pos2 == "接尾" && !t.isCounter) || (t.unknown && Kana.isKana(t.surface) && !newWord)
         val match = if (t.unknown && name) null else lexicon.find(t.base, t.readingOrSurface, WordClass.of(t))
         // The tokenizer files some everyday words as names (毎日 the newspaper, 日本 the country): a word on the JLPT lists is a word.
         val word = t.pos2 == "固有名詞" && t.surface.any(::isKanji) && (match?.jlpt ?: 0) > 0
