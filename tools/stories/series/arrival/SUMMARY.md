@@ -103,9 +103,9 @@ Both are starving; the konbini would do, but…
 
 Yuki suggests the big-bowl ramen shop past the station.
 
-- 11 words; 2 new of 3 allowed.
+- 11 words; 3 new of 3 allowed.
 - Teaches ～たい (`tai`).
-- New: ラーメン (not JLPT), 食べる (たべる, N5).
+- New: ラーメン (not JLPT), 食べる (たべる, N5), 向こう (むこう, N5).
 
 ## Known at the end
 
@@ -113,4 +113,4 @@ Read in order after the stories it follows, a reader knows these by the end of t
 
 Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`).
 
-29 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる
+30 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう

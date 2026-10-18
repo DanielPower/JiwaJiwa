@@ -20,7 +20,7 @@
     [["ケンタ|「田中さん、卵、食べませんか？」", "\"Tanaka-san, would you like an egg?\""], ["田中|「食べてもいいですか？」", "\"May I?\""], ["ケンタ|「はい！いいですよ！」", "\"Yes! Go ahead!\""]],
     [["田中|「じゃあ、ケンタさんも、私のお昼、食べませんか？」", "\"Then won't you have some of my lunch, Kenta-san?\""]],
     [["ケンタ|「…触ってもいいんですか？」", "\"…I'm allowed to touch it?\""], ["田中|「今日は、いいですよ。」", "\"Today, you are.\""]],
-    [["田中さんのお昼は、うまい。", "Tanaka-san's lunch is delicious."], ["ケンタ|「うまいです！」", "\"It's great!\""]],
+    [["田中さんのお昼は、うまい。", "Tanaka-san's lunch is delicious."], ["ケンタ|「おいしいです！」", "\"It's great!\""]],
     [["ケンタは、ちょっと眠い。", "Kenta is a little sleepy now."], ["田中|「ケンタさん、仕事ですよ。」", "\"Kenta-san, back to work.\""], ["ケンタ|「…はい。」", "\"…Yes.\""]]
   ]
 }

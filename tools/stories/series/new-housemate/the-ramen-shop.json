@@ -2,7 +2,7 @@
   "title": "The ramen shop",
   "plot": "Ramen night with Yuki and Kenta; the manager remembers Alex and welcomes Sora.",
   "paragraphs": [
-    [["夜。", "Night."], ["ユキさんとケンタさんと、ラーメンの店に来た。", "I came to the ramen shop with Yuki and Kenta."]],
+    [["夜。", "Night."], ["ユキさんとケンタさんと、ラーメン屋に来た。", "I came to the ramen shop with Yuki and Kenta."]],
     [["店長|「いらっしゃいませ！」", "\"Welcome!\""]],
     [["店長|「あ、ユキさん、ケンタさん！」", "\"Oh, Yuki, Kenta!\""], ["ユキ|「店長、こんばんは！」", "\"Evening, boss!\""]],
     [["店長|「この人は？」", "\"And who's this?\""], ["ユキ|「ソラ。アレックスの部屋の、新しい人。」", "\"Sora. He's the new guy in Alex's room.\""]],

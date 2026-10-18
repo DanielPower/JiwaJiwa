@@ -37,8 +37,8 @@ Alex and Yuki choose their ramen, with eggs and beer.
 
 The huge, hot ramen arrives and it's great.
 
-- 13 words; 2 new of 3 allowed.
-- New: 熱い (あつい, N5), ゆっくり (N5).
+- 14 words; 3 new of 3 allowed.
+- New: 熱い (あつい, N5), ゆっくり (N5), ラーメン屋 (ラーメンや, not JLPT).
 
 ### 4. The manager (`ramen-night/the-manager`)
 
@@ -54,4 +54,4 @@ Read in order after the stories it follows, a reader knows these by the end of t
 
 Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます / か (`masu`).
 
-40 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる うまい チケット 買う これ 卵 ビール 熱い ゆっくり 店長 バイト やる
+42 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう うまい チケット 買う これ 卵 ビール 熱い ゆっくり ラーメン屋 店長 バイト やる

@@ -3,9 +3,9 @@
   "plot": "Alex's new job is at a ramen shop in Canada; Yuki is at the manager's shop that night and shows him the photos, and the manager has questions about the eggs.",
   "paragraphs": [
     [["仕事が終わった。", "Work was over."], ["夜、みんなにメッセージを送った。", "That night, I messaged everyone."]],
-    [["アレックス|「新しい仕事は、ラーメンの店！」", "\"My new job's at a ramen shop!\""]],
+    [["アレックス|「新しい仕事は、ラーメン屋！」", "\"My new job's at a ramen shop!\""]],
     [["店の写真も、送った。", "I sent a photo of the shop, too."], ["店の前で、俺が笑っている。", "Me, smiling out front."]],
-    [["ソラ|「ラーメン！？カナダにも、ラーメンの店があるの？」", "\"Ramen?! They have ramen shops in Canada too?\""]],
+    [["ソラ|「ラーメン！？カナダにも、ラーメン屋があるの？」", "\"Ramen?! They have ramen shops in Canada too?\""]],
     [["アレックス|「あるよ！新しい店。」", "\"They do! It's a new place.\""], ["アレックス|「お客さんも、多い。」", "\"Lots of customers, too.\""]],
     [["ミホ|「アレックスさん、ラーメンを作れるの？」", "\"Alex, can you make ramen?\""]],
     [["アレックス|「作れる！東京で、店長の店で働いたから。」", "\"I can! I worked at the manager's shop in Tokyo.\""]],
@@ -34,6 +34,6 @@
     [["ユキ|「店長も、『いらっしゃいませ！』って。」", "\"The manager just went 'Irasshaimase!' too.\""]],
     [["仕事は、忙しい。", "Work is busy."], ["でも、楽しい。", "But it's fun."]],
     [["店の音も、熱いラーメンも、東京の店と同じだ。", "The noise of the shop, the hot ramen: it's just like the shop in Tokyo."]],
-    [["やっぱり、ラーメンの店が好きだ。", "I really do love working at a ramen shop."]]
+    [["やっぱり、ラーメン屋が好きだ。", "I really do love working at a ramen shop."]]
   ]
 }
