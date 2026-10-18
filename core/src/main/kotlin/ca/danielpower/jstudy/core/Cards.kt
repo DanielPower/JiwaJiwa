@@ -98,6 +98,8 @@ data class ReviewLog(
     val dueAt: Long,
     val masteryBefore: Int,
     val masteryAfter: Int,
+    /** A due word read in a story, not an answer: it moves mastery, but stays out of review stats and the review cap. */
+    val read: Boolean = false,
 )
 
 data class Answer(
@@ -122,7 +124,7 @@ class Reviewer(
      * moves mastery less than getting the card right in a review.
      */
     fun read(card: Card, progress: WordProgress, now: Long, fuzz: Random? = null): Answer =
-        grade(card, progress, Rating.HARD, now, fuzz)
+        grade(card, progress, Rating.HARD, now, fuzz).let { it.copy(log = it.log.copy(read = true)) }
 
     private fun grade(card: Card, progress: WordProgress, rating: Rating, now: Long, fuzz: Random?): Answer {
         require(card.wordId == progress.wordId)

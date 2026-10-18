@@ -327,7 +327,7 @@ class Repository(context: Context) {
             // Production cards fill what today's new words leave of the daily limit.
             newIntroducedToday = store.count("SELECT COUNT(*) FROM card WHERE introduced_day = ? AND start_source = 0", today),
             reviewsDoneToday = store.count(
-                "SELECT COUNT(*) FROM review_log WHERE day = ? AND state_before = ?",
+                "SELECT COUNT(*) FROM review_log WHERE day = ? AND state_before = ? AND read = 0",
                 today,
                 CardState.REVIEW.value,
             ),
@@ -1029,7 +1029,7 @@ class Repository(context: Context) {
             recallAll = store.reviewRecall(Long.MIN_VALUE),
             levels = levels,
             wordsStarted = statuses.values.count { it.state != CardState.NEW },
-            totalAnswers = store.count("SELECT COUNT(*) FROM review_log"),
+            totalAnswers = store.count("SELECT COUNT(*) FROM review_log WHERE read = 0"),
             studyDays = store.studyDays().size,
         )
     }
@@ -1143,8 +1143,8 @@ class Repository(context: Context) {
             reviews = minOf(limits.reviews, reviewsDue),
             streak = Streak.current(activeDays(clock), today),
             daysAhead = ahead().daysAhead,
-            reviewedToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ?", today),
-            correctToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND correct = 1", today),
+            reviewedToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND read = 0", today),
+            correctToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND correct = 1 AND read = 0", today),
             wordsStarted = store.count(
                 "SELECT COUNT(*) FROM card WHERE direction = ? AND state != ?",
                 Direction.RECOGNITION.value,

@@ -315,7 +315,9 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   in it you haven't started as a card (`Repository.startStoryWords`).
 - At the end of a chapter, each word due for review that you read without
   tapping counts as an FSRS Hard review (`Reviewer.read`): less than a
-  Right answer, since context helps. The end page shows how many words were
+  Right answer, since context helps. It's logged as a read (`review_log.read`),
+  so it moves mastery and the words graph but stays out of answer counts,
+  recall, the heatmap and the daily review cap. The end page shows how many words were
   seen, moved to known and moved to mastered, the grammar topic, anyone
   you met, and the next chapter.
 

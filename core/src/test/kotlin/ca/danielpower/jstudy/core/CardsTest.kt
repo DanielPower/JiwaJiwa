@@ -55,6 +55,8 @@ class CardsTest {
         val read = reviewer.read(card, progress, now)
         val right = reviewer.answer(card, progress, true, now)
         assertTrue(read.log.correct)
+        assertTrue(read.log.read, "logged as a read, not an answer")
+        assertFalse(right.log.read)
         assertTrue(read.progress.mastery > progress.mastery)
         assertTrue(read.progress.mastery < right.progress.mastery)
         assertTrue(read.card.dueAt < right.card.dueAt)

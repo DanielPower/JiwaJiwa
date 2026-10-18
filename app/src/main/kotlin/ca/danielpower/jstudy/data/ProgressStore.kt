@@ -87,7 +87,8 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 difficulty REAL NOT NULL,
                 due_at INTEGER NOT NULL,
                 mastery_before INTEGER NOT NULL,
-                mastery_after INTEGER NOT NULL
+                mastery_after INTEGER NOT NULL,
+                read INTEGER NOT NULL DEFAULT 0
             )
             """,
         )
@@ -104,6 +105,10 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         // Version 10: how each word was started, so only story words count against the daily limit.
         if (oldVersion < 10 && hasColumn(db, "card", "id") && !hasColumn(db, "card", "start_source")) {
             db.execSQL("ALTER TABLE card ADD COLUMN start_source INTEGER NOT NULL DEFAULT 0")
+        }
+        // Also version 10: reads in stories are logged apart from answers.
+        if (oldVersion < 10 && hasColumn(db, "review_log", "id") && !hasColumn(db, "review_log", "read")) {
+            db.execSQL("ALTER TABLE review_log ADD COLUMN read INTEGER NOT NULL DEFAULT 0")
         }
     }
 
@@ -389,6 +394,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             put("due_at", log.dueAt)
             put("mastery_before", log.masteryBefore)
             put("mastery_after", log.masteryAfter)
+            put("read", if (log.read) 1 else 0)
         }
         return db.insert("review_log", null, values)
     }
@@ -400,21 +406,21 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
     /** Answers per study day, from [fromDay] on. */
     fun answersPerDay(fromDay: Long): Map<Long, Int> =
         readableDatabase.rawQuery(
-            "SELECT day, COUNT(*) FROM review_log WHERE day >= ? GROUP BY day",
+            "SELECT day, COUNT(*) FROM review_log WHERE day >= ? AND read = 0 GROUP BY day",
             arrayOf(fromDay.toString()),
         ).use { c -> buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1)) } }
 
     /** Answers and right answers per study day, from [fromDay] on. */
     fun answersAndRightPerDay(fromDay: Long): Map<Long, Pair<Int, Int>> =
         readableDatabase.rawQuery(
-            "SELECT day, COUNT(*), SUM(correct) FROM review_log WHERE day >= ? GROUP BY day",
+            "SELECT day, COUNT(*), SUM(correct) FROM review_log WHERE day >= ? AND read = 0 GROUP BY day",
             arrayOf(fromDay.toString()),
         ).use { c -> buildMap { while (c.moveToNext()) put(c.getLong(0), c.getInt(1) to c.getInt(2)) } }
 
     /** Right answers and all answers on cards that were in review (not still learning), from [fromDay] on. */
     fun reviewRecall(fromDay: Long): Pair<Int, Int> =
         readableDatabase.rawQuery(
-            "SELECT COALESCE(SUM(correct), 0), COUNT(*) FROM review_log WHERE state_before = ? AND day >= ?",
+            "SELECT COALESCE(SUM(correct), 0), COUNT(*) FROM review_log WHERE state_before = ? AND day >= ? AND read = 0",
             arrayOf(CardState.REVIEW.value.toString(), fromDay.toString()),
         ).use { c ->
             c.moveToFirst()
@@ -474,9 +480,9 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             arrayOf(Direction.RECOGNITION.value.toString()),
         ).use { c -> buildList { while (c.moveToNext()) add(MasteryChange(c.getLong(0), c.getLong(1), c.getInt(2), c.getInt(3))) } }
 
-    /** Study days with at least one review, newest first. */
+    /** Study days with at least one answer, newest first. */
     fun studyDays(): List<Long> =
-        readableDatabase.rawQuery("SELECT DISTINCT day FROM review_log ORDER BY day DESC", null).use { c ->
+        readableDatabase.rawQuery("SELECT DISTINCT day FROM review_log WHERE read = 0 ORDER BY day DESC", null).use { c ->
             buildList { while (c.moveToNext()) add(c.getLong(0)) }
         }
 
