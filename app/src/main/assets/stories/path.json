@@ -71,7 +71,7 @@
      "id": "arrival/tokyo",
      "title": "Tokyo",
      "plot": "Tokyo: tall buildings, crowds, and the mountains far off.",
-     "body": "東京だ！\n\n人が多い。ビルが高い。ビル、ビル、ビル。\n\n山は？あ、山はあっちだ。\n\n東京は、ビルが高い。山は、外だ。\n\n高いビルが、きれいだ。",
+     "body": "東京だ！\n\n人が多い。ビルが高い。ビル、ビル、ビル。\n\n山は？あ、山はあっちだ。\n\n東京は、ビルが高い。\n\n高いビルが、きれいだ。",
      "translations": [
       "Tokyo!",
       "There are so many people.",
@@ -80,7 +80,6 @@
       "And the mountains?",
       "Oh, the mountains are that way.",
       "In Tokyo, the buildings are tall.",
-      "The mountains are out there.",
       "The tall buildings are beautiful."
      ],
      "topic": "wa"
@@ -281,7 +280,7 @@
      "id": "ramen-night/the-manager",
      "title": "The manager",
      "plot": "The manager offers Alex a part-time job, and he jumps at it.",
-     "body": "店長が来た。\n\n店長|「ラーメン、うまいです？」\n\nアレックス|「うまい！」\n\nアレックス|「人が多いね。」\n\n店長|「多いです。」\n\n店長|「バイト、やります？」\n\nアレックス|「…バイト？」\n\n店長|「ここのバイトです。」\n\nアレックス|「やりたい！やります！」",
+     "body": "店長が来た。\n\n店長|「ラーメン、うまいですか？」\n\nアレックス|「うまい！」\n\nアレックス|「人が多いね。」\n\n店長|「多いです。」\n\n店長|「バイト、やりますか？」\n\nアレックス|「…バイト？」\n\n店長|「ここのバイトです。」\n\nアレックス|「やりたい！やります！」",
      "translations": [
       "The manager came over.",
       "\"How's the ramen?\"",
@@ -375,7 +374,7 @@
      "id": "share-house/trash-day",
      "title": "Trash day",
      "plot": "Yuki teaches Alex trash day; Kenta's trash is all coffee.",
-     "body": "朝、ユキが来た。\n\nユキ|「アレックス、今日はゴミだよ。」\n\nアレックス|「ゴミ？」\n\nユキ|「うん。これは今日。」\n\nアレックス|「これも今日？」\n\nユキ|「うん、これも。」\n\nアレックス|「ケンタのゴミは？」\n\nユキ|「…あっち。」\n\nアレックス|「多い！」\n\nユキ|「コーヒーのゴミだよ。」",
+     "body": "朝、ユキが来た。\n\nユキ|「アレックス、今日はゴミの日だよ。」\n\nアレックス|「ゴミ？」\n\nユキ|「うん。これは今日。」\n\nアレックス|「これも今日？」\n\nユキ|「うん、これも。」\n\nアレックス|「ケンタのゴミは？」\n\nユキ|「…あっち。」\n\nアレックス|「多い！」\n\nユキ|「コーヒーのゴミだよ。」",
      "translations": [
       "In the morning, Yuki came by.",
       "\"Alex, it's trash day.\"",
@@ -399,7 +398,7 @@
      "id": "share-house/the-interview",
      "title": "The interview",
      "plot": "Alex's interview with the big manager: he starts today.",
-     "body": "ここだ。人が多い。\n\n店長が来た。大きい人だ。\n\n店長|「アレックスさん？」\n\nアレックス|「はい！」\n\n店長|「ラーメン、好きです？」\n\nアレックス|「はい、好きです！」\n\n店長|「今日から、お願いします。」\n\nアレックス|「…はい！」",
+     "body": "ここだ。人が多い。\n\n店長が来た。大きい人だ。\n\n店長|「アレックスさん？」\n\nアレックス|「はい！」\n\n店長|「ラーメン、好きですか？」\n\nアレックス|「はい、好きです！」\n\n店長|「今日から、お願いします。」\n\nアレックス|「…はい！」",
      "translations": [
       "Here it is.",
       "It's busy.",
@@ -462,10 +461,9 @@
      "id": "share-house/the-manga-shop",
      "title": "The manga shop",
      "plot": "On his day off, Alex finds a manga shop where Miho works.",
-     "body": "今日は休み。\n\n駅のあっちに来た。\n\nマンガの店に来た。\n\n「いらっしゃいませ！」\n\nマンガが多い！店は大きくない。でも、いい店だ。\n\n店の人はミホさん。",
+     "body": "今日は休み。\n\nマンガの店に来た。\n\n「いらっしゃいませ！」\n\nマンガが多い！店は大きくない。でも、いい店だ。\n\n店の人はミホさん。",
      "translations": [
       "It's my day off.",
-      "I went past the station.",
       "I came to the manga shop.",
       "\"Welcome!\"",
       "So much manga!",
@@ -485,7 +483,7 @@
      "id": "share-house/mihos-pick",
      "title": "Miho's pick",
      "plot": "Miho recommends manga, and Alex buys them all.",
-     "body": "アレックス|「すみません、ミホさん。」\n\nミホ|「はい？」\n\nミホ|「アレックスさん、マンガ好き？」\n\nアレックス|「好き！」\n\nミホ|「これ、好き？」\n\nアレックス|「好き！」\n\nミホ|「じゃあ、これも。おもしろいよ。」\n\nアレックス|「これもおもしろい？」\n\nミホ|「うん、おもしろいよ。」\n\nアレックス|「…買う！」\n\nアレックス|「これも買う！」",
+     "body": "アレックス|「すみません、ミホさん。」\n\nミホ|「はい？」\n\nミホ|「アレックスさん、マンガは好きですか？」\n\nアレックス|「好き！」\n\nミホ|「これは、好きですか？」\n\nアレックス|「好き！」\n\nミホ|「じゃあ、これも。おもしろいですよ。」\n\nアレックス|「これもおもしろい？」\n\nミホ|「はい、おもしろいです。」\n\nアレックス|「…買う！」\n\nアレックス|「これも買う！」",
      "translations": [
       "\"Excuse me, Miho.\"",
       "\"Yes?\"",
@@ -495,7 +493,7 @@
       "\"I love it!\"",
       "\"Then this one too. It's good.\"",
       "\"Is this one good too?\"",
-      "\"Yeah, it's good.\"",
+      "\"Yes, it's good.\"",
       "\"…I'll take it!\"",
       "\"This one too!\""
      ]
@@ -591,8 +589,8 @@
     {
      "id": "share-house/hanami",
      "title": "Hanami",
-     "plot": "Hanami with Miho; Alex and Yuki are friends, and they take photos.",
-     "body": "今日は休みだ。\n\n春の公園は、いい。桜は、今日もきれいだ。\n\nミホさんが来た。\n\nミホ|「アレックスさん、桜は好きですか？」\n\nアレックス|「好きです！」\n\nミホ|「ユキさんは、友達ですか？」\n\nユキ|「友達だよ！」\n\nアレックス|「写真、撮りたい！」\n\nユキ|「いいね！撮って！」\n\nミホ|「ケンタさんは、どこですか？」\n\nユキ|「…ケンタは、眠い。」\n\n写真の桜も、きれいだ。",
+     "plot": "Hanami with Miho under the cherry blossoms, and photos; Kenta stays in bed.",
+     "body": "今日は休みだ。\n\n春の公園は、いい。桜は、今日もきれいだ。\n\nミホさんが来た。\n\nミホ|「アレックスさん、桜は好きですか？」\n\nアレックス|「好きです！」\n\nミホ|「ユキさんも、桜は好きですか？」\n\nユキ|「好きだよ！」\n\nアレックス|「写真、撮りたい！」\n\nユキ|「いいね！撮って！」\n\nミホ|「ケンタさんは、どこですか？」\n\nユキ|「…部屋。今日も、眠い。」\n\n友達の写真も、撮った。",
      "translations": [
       "It's my day off.",
       "The park in spring is lovely.",
@@ -600,15 +598,14 @@
       "Miho came.",
       "\"Alex, do you like cherry blossoms?\"",
       "\"I do!\"",
-      "\"Is Yuki your friend?\"",
-      "\"We're friends!\"",
+      "\"Do you like them too, Yuki?\"",
+      "\"I love them!\"",
       "\"I want to take a picture!\"",
       "\"Sure! Take one!\"",
       "\"Where's Kenta?\"",
-      "\"…Kenta's sleepy.\"",
-      "The cherry blossoms in the photo are pretty too."
-     ],
-     "topic": "ka"
+      "\"…In his room. Sleepy again.\"",
+      "I took pictures of my friends, too."
+     ]
     },
     {
      "id": "share-house/a-call-from-home",
@@ -692,7 +689,7 @@
      "id": "share-house/fireworks",
      "title": "Fireworks",
      "plot": "Fireworks at night, and a photo of everyone together.",
-     "body": "夜の公園。祭りの人が多い。\n\n空に、花火だ！\n\nアレックス|「きれい！」\n\nユキ|「きれいだね。」\n\n大きい花火だ。空が、きれいだ。\n\nケンタ|「…写真、撮る？」\n\nアレックス|「撮る！一緒に！」\n\n一緒に写真を撮った。\n\nミホ|「いい写真ですね。」\n\nユキ|「いい夜だね。」\n\n夏の夜は、暑い。でも、いい夜だ。",
+     "body": "夜の公園。祭りの人が多い。\n\n空に、花火！\n\nアレックス|「きれい！」\n\nユキ|「きれいだね。」\n\n大きい花火だ。空が、きれいだ。\n\nケンタ|「…写真、撮る？」\n\nアレックス|「撮る！一緒に！」\n\n一緒に写真を撮った。\n\nミホ|「いい写真ですね。」\n\nユキ|「いい夜だね。」\n\n夏の夜は、暑い。でも、いい夜だ。",
      "translations": [
       "The park at night.",
       "The festival crowds are huge.",
@@ -714,7 +711,7 @@
      "id": "share-house/kentas-interview",
      "title": "Kenta's interview",
      "plot": "Kenta interviews at a game company and does his best.",
-     "body": "朝、ケンタが来た。\n\nケンタ|「今日、会社に行く。」\n\nアレックス|「会社？ケンタが？」\n\nケンタ|「うん。ゲームの会社。仕事だよ。」\n\nアレックス|「ゲームの会社！いいね！」\n\nケンタ|「でも、朝だ。眠い…」\n\nユキ|「ケンタ、元気？」\n\nケンタ|「…眠い。」\n\nユキ|「コーヒー、飲む？」\n\nケンタ|「…飲む。」\n\nアレックス|「ケンタ、頑張って！」\n\nユキ|「頑張ってね！」\n\n夜、ケンタが来た。\n\nアレックス|「仕事は？」\n\nケンタ|「…わからない。」\n\nケンタ|「でも、頑張った。」\n\nユキ|「今夜は、ラーメンだね！」",
+     "body": "朝、ケンタが来た。\n\nケンタ|「今日、会社に行く。」\n\nアレックス|「会社？ケンタが？」\n\nケンタ|「うん。ゲームの会社。仕事だよ。」\n\nアレックス|「ゲームの会社！いいね！」\n\nケンタ|「でも、朝だ。眠い…」\n\nユキ|「ケンタ、眠い？」\n\nケンタ|「…眠い。」\n\nユキ|「コーヒー、飲む？」\n\nケンタ|「…飲む。」\n\nアレックス|「ケンタ、頑張って！」\n\nユキ|「頑張ってね！」\n\n夜、ケンタが来た。\n\nアレックス|「仕事は？」\n\nケンタ|「…わからない。」\n\nケンタ|「でも、頑張った。」\n\nユキ|「今夜は、ラーメンだね！」",
      "translations": [
       "In the morning, Kenta came by.",
       "\"I'm going to a company today.\"",
@@ -722,7 +719,7 @@
       "\"Yeah. A game company. For a job.\"",
       "\"A game company! Nice!\"",
       "\"But it's morning. I'm sleepy…\"",
-      "\"Kenta, you okay?\"",
+      "\"Kenta, sleepy?\"",
       "\"…Sleepy.\"",
       "\"Coffee?\"",
       "\"…Yes.\"",
@@ -809,7 +806,7 @@
      "id": "share-house/the-last-shift",
      "title": "The last shift",
      "plot": "Alex's last shift and one last ramen with his friends.",
-     "body": "今日は、最後のバイトだ。\n\nアレックス|「いらっしゃいませ！」\n\nラーメン、ラーメン、ラーメン。\n\n店長|「アレックスさん、今日は最後ですね。」\n\nアレックス|「はい…」\n\n店長|「寂しいです。」\n\nアレックス|「店長とラーメン、本当に好きでした。」\n\n店長|「最後のラーメン、うまいですよ。」\n\n店長|「最後のラーメン、食べますか？」\n\nアレックス|「食べます！」\n\nユキとケンタが来た。ミホさんも来た。\n\nミホ|「アレックスさん、本当に帰りますか？」\n\nアレックス|「本当に、帰ります。」\n\nミホ|「寂しいですね。」\n\nユキとケンタと、最後のラーメンを食べた。",
+     "body": "今日は、最後のバイトだ。\n\nアレックス|「いらっしゃいませ！」\n\nラーメン、ラーメン、ラーメン。\n\n店長|「アレックスさん、今日は最後ですね。」\n\nアレックス|「はい…」\n\n店長|「寂しいです。」\n\nアレックス|「店長とラーメン、本当に好きでした。」\n\n店長|「最後のラーメン、うまいですよ。」\n\n店長|「最後のラーメン、食べますか？」\n\nアレックス|「食べます！」\n\nユキとケンタが来た。ミホさんも来た。\n\nミホ|「アレックスさん、本当に帰りますか？」\n\nアレックス|「本当に、帰ります。」\n\nミホ|「寂しいですね。」\n\nユキとケンタとミホさんと、ラーメンを食べた。",
      "translations": [
       "Today is my last shift.",
       "\"Welcome!\"",
@@ -826,7 +823,7 @@
       "\"Alex, are you really going home?\"",
       "\"I really am.\"",
       "\"We'll miss you.\"",
-      "With Yuki and Kenta, I ate one last ramen."
+      "I ate ramen with Yuki, Kenta and Miho."
      ],
      "notes": [
       {
@@ -9180,13 +9177,14 @@
   },
   {
    "id": "masu",
-   "title": "です / ます",
-   "title_en": "Polite speech",
+   "title": "です / ます / か",
+   "title_en": "Polite speech and questions",
    "points": [
-    "masu"
+    "masu",
+    "ka"
    ],
-   "summary": "Staff, strangers and bosses speak politely: verbs end in ます, and \"is\" is です. You'll hear it long before you need to say it.",
-   "body": "バイト、やります？\n今日から、お願いします。",
+   "summary": "Staff, strangers and bosses speak politely: verbs end in ます, and \"is\" is です. か on the end makes it a question: やります, I'll do it; やりますか, will you? You'll hear it long before you need to say it.",
+   "body": "バイト、やりますか？\n今日から、お願いします。",
    "translations": [
     "Would you like the job?",
     "Starting today, please."
@@ -9195,6 +9193,10 @@
     {
      "before": 1,
      "text": "ます goes on a verb's stem, the same stem as たい: 食べます, 飲みます. Its negative is ません, and its past is ました."
+    },
+    {
+     "before": 1,
+     "text": "か at the end of a polite sentence makes it a question. With friends, a rising voice is enough: やる？ か on a plain sentence can sound blunt, so it mostly goes with です and ます."
     },
     {
      "before": 1,
@@ -9262,25 +9264,6 @@
     {
      "before": 1,
      "text": "It can also mean a state that's ongoing: 知ってる, I know (I'm in the state of having learned it)."
-    }
-   ]
-  },
-  {
-   "id": "ka",
-   "title": "か",
-   "title_en": "Question",
-   "points": [
-    "ka"
-   ],
-   "summary": "か at the end of a polite sentence makes it a question: 好きです, I like it; 好きですか, do you like it?",
-   "body": "桜は好きですか？",
-   "translations": [
-    "Do you like cherry blossoms?"
-   ],
-   "notes": [
-    {
-     "before": 1,
-     "text": "With friends, a rising voice is enough: 好き？ か on a plain sentence can sound blunt, so it mostly goes with です and ます."
     }
    ]
   },

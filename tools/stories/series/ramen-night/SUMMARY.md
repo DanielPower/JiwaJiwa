@@ -45,13 +45,13 @@ The huge, hot ramen arrives and it's great.
 The manager offers Alex a part-time job, and he jumps at it.
 
 - 15 words; 3 new of 3 allowed.
-- Teaches です / ます (`masu`).
+- Teaches です / ます / か (`masu`).
 - New: 店長 (てんちょう, not JLPT), バイト (not JLPT), やる (N5).
 
 ## Known at the end
 
 Read in order after the stories it follows, a reader knows these by the end of the last chapter.
 
-Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます (`masu`).
+Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます / か (`masu`).
 
 40 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる うまい チケット 買う これ 卵 ビール 熱い ゆっくり 店長 バイト やる

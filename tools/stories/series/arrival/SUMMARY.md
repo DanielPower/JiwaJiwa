@@ -50,7 +50,7 @@ From the train window, Alex sees mountains and thinks Japan is beautiful.
 
 Tokyo: tall buildings, crowds, and the mountains far off.
 
-- 18 words; 3 new of 3 allowed.
+- 16 words; 3 new of 3 allowed.
 - Teaches は (`wa`).
 - New: ビル (N4), 高い (たかい, N5), あ (N4).
 

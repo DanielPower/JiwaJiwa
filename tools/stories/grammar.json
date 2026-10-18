@@ -97,11 +97,12 @@
     ]
   },
   {
-    "id": "masu", "title": "です / ます", "title_en": "Polite speech", "points": ["masu"],
-    "summary": "Staff, strangers and bosses speak politely: verbs end in ます, and \"is\" is です. You'll hear it long before you need to say it.",
+    "id": "masu", "title": "です / ます / か", "title_en": "Polite speech and questions", "points": ["masu", "ka"],
+    "summary": "Staff, strangers and bosses speak politely: verbs end in ます, and \"is\" is です. か on the end makes it a question: やります, I'll do it; やりますか, will you? You'll hear it long before you need to say it.",
     "parts": [
-      ["バイト、やります？", "Would you like the job?"],
+      ["バイト、やりますか？", "Would you like the job?"],
       "ます goes on a verb's stem, the same stem as たい: 食べます, 飲みます. Its negative is ません, and its past is ました.",
+      "か at the end of a polite sentence makes it a question. With friends, a rising voice is enough: やる？ か on a plain sentence can sound blunt, so it mostly goes with です and ます.",
       "Friends would say the plain form instead. Using ます with friends sounds distant; leaving it off with strangers sounds rude.",
       ["今日から、お願いします。", "Starting today, please."]
     ]
@@ -130,14 +131,6 @@
     "parts": [
       ["雨、降ってるよ！", "It's raining!"],
       "It can also mean a state that's ongoing: 知ってる, I know (I'm in the state of having learned it)."
-    ]
-  },
-  {
-    "id": "ka", "title": "か", "title_en": "Question", "points": ["ka"],
-    "summary": "か at the end of a polite sentence makes it a question: 好きです, I like it; 好きですか, do you like it?",
-    "parts": [
-      ["桜は好きですか？", "Do you like cherry blossoms?"],
-      "With friends, a rising voice is enough: 好き？ か on a plain sentence can sound blunt, so it mostly goes with です and ます."
     ]
   },
   {
