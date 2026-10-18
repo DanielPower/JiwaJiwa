@@ -4,6 +4,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
+import java.io.FileDescriptor
+import java.io.FileOutputStream
+import java.io.PrintStream
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
@@ -19,16 +22,31 @@ import java.sql.ResultSet
 // grammar (stories/needs.json, which the app reads in place of reading every
 // chapter), every chapter and grammar page split into words (stories/read,
 // which the app shows), each story's SUMMARY.md and what's left of the most common
-// words and grammar (tools/stories/COVERAGE.md). StoryPathTest checks they're up to date. Needs
-// the dictionary built first.
+// words and grammar (tools/stories/COVERAGE.md), and prints what's wrong with
+// the stories (StoryCheck). StoryPathTest checks they're up to date. Needs
+// the dictionary built first. To check the chapter you're writing:
+//
+//   ./gradlew -PcoreOnly=true :core:stories -Pchapter=new-housemate/through-the-wall
 
-/** Writes the stories, their index and summaries for the repository at the one argument. */
+/**
+ * Writes the stories, their index and summaries for the repository at the
+ * first argument, then says what's wrong with them: everything, or, given a
+ * chapter as the second argument, all about that one.
+ */
 fun main(args: Array<String>) {
-    StoryTools.open(File(args.single())).use { tools ->
+    System.setOut(PrintStream(FileOutputStream(FileDescriptor.out), true, "UTF-8"))
+    StoryTools.open(File(args[0])).use { tools ->
         tools.textDir.mkdirs()
         for ((file, text) in tools.outputs()) file.writeText(text)
         for (file in tools.staleText()) file.delete()
         println("Wrote ${tools.catalog.chapters.size} chapters, their index, ${tools.catalog.series.size} summaries and the coverage report")
+        val check = StoryCheck(tools)
+        val chapter = args.getOrNull(1)?.takeIf { it.isNotBlank() }
+        when {
+            chapter != null -> print(check.chapter(StoryCheck.pageId(chapter)))
+            check.problems.isEmpty() -> println("No problems.")
+            else -> println("Problems:\n" + check.problems.distinct().joinToString("\n"))
+        }
     }
 }
 
@@ -67,6 +85,17 @@ class JdbcLexicon(private val conn: Connection) : Lexicon {
             "${getString(1)}/${getString(2)} N${getInt(3)}${if (getInt(4) == 1) " kana" else ""}"
         }.firstOrNull()
     }.orEmpty()
+
+    /**
+     * Entries written [text] a learner more likely means than [id], when [id]
+     * isn't on the JLPT lists and they are, read differently: 弦 read つる, a
+     * bowstring, where げん, a guitar string, is the N1 word.
+     */
+    fun likelier(text: String, id: Long): List<Homograph> {
+        val all = homographs(text).distinctBy { it.id }
+        val chosen = all.firstOrNull { it.id == id }?.takeIf { it.jlpt == 0 } ?: return emptyList()
+        return all.filter { it.jlpt != 0 && Kana.toHiragana(it.kana) != Kana.toHiragana(chosen.kana) }
+    }
 
     /** A word as the coverage report shows it: 言う (いう), its first meaning, and its JLPT level (0 for none). */
     data class Listed(val id: Long, val label: String, val gloss: String, val jlpt: Int)

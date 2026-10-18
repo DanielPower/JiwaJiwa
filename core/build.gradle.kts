@@ -43,10 +43,11 @@ dependencies {
 
 tasks.register<JavaExec>("stories") {
     group = "stories"
-    description = "Writes the app's stories (path.json) from tools/stories, their index (needs.json) and each story's SUMMARY.md. Needs the dictionary built."
+    description = "Writes the app's stories (path.json) from tools/stories, their index (needs.json) and each story's SUMMARY.md, and says what's wrong with them (-Pchapter=story/slug for one chapter). Needs the dictionary built."
     classpath = stories.runtimeClasspath
     mainClass.set("ca.danielpower.jstudy.core.StoryToolsKt")
-    args(rootDir)
+    // -Pchapter=story/slug (or the chapter's file) says all about that chapter.
+    args(rootDir, findProperty("chapter")?.toString().orEmpty())
 }
 
 tasks.test {
