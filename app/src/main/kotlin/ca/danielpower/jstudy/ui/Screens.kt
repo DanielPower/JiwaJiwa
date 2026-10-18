@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -138,88 +139,95 @@ fun App(vm: AppViewModel, screen: Screen) {
 @Composable
 private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
     val due = summary.newCards + summary.learning + summary.reviews
+    val answered = summary.reviewedToday.takeIf { it > 0 }?.let { "$it answered so far, ${100 * summary.correctToday / it}% right" }
     Column(
         modifier = Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
         Text("Review", style = MaterialTheme.typography.headlineMedium)
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SectionLabel("Today")
-            Text(
-                when (due) {
-                    0 -> "All done"
-                    1 -> "1 card"
-                    else -> "$due cards"
-                },
-                fontFamily = Gothic,
-                fontWeight = FontWeight.Bold,
-                fontSize = 44.sp,
-                lineHeight = 48.sp,
-            )
-            if (summary.reviewedToday > 0) {
-                val accuracy = 100 * summary.correctToday / summary.reviewedToday
+        if (due == 0) {
+            // Nothing due: the same 済 as Home's Done card.
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                DoneSeal()
+                Text("Done for today", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                answered?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                SectionLabel("Today")
                 Text(
-                    "${summary.reviewedToday} answered so far, $accuracy% right",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    if (due == 1) "1 card" else "$due cards",
+                    fontFamily = Gothic,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 44.sp,
+                    lineHeight = 48.sp,
                 )
+                answered?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-        }
 
-        Column {
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface)
-            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                Count("新 New", summary.newCards, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Count("習 Learning", summary.learning, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f).padding(start = 16.dp))
-                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Count("復 Review", summary.reviews, MaterialTheme.colorScheme.secondary, Modifier.weight(1f).padding(start = 16.dp))
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface)
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                    Count("新 New", summary.newCards, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Count("習 Learning", summary.learning, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f).padding(start = 16.dp))
+                    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Count("復 Review", summary.reviews, MaterialTheme.colorScheme.secondary, Modifier.weight(1f).padding(start = 16.dp))
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SectionLabel("Study days", Modifier.weight(1f))
                 Text(
-                    "Stats",
+                    "Stats ›",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable(onClick = vm::openStats).padding(horizontal = 8.dp, vertical = 4.dp),
                 )
-                Text(
-                    if (summary.streak == 1) "1 day streak" else "${summary.streak} day streak",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                )
             }
-            StudyHeatmap(summary.answersPerDay, summary.today)
-            Text(
-                buildString {
-                    append("${summary.wordsStarted} of ${summary.wordsTotal} words started")
-                    if (summary.daysAhead > 0) {
-                        append(if (summary.daysAhead == 1) "  ·  1 day ahead" else "  ·  ${summary.daysAhead} days ahead")
-                    }
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            StudyHeatmap(summary.answersPerDay, summary.readDays, summary.today)
         }
 
         Spacer(Modifier.weight(1f))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (summary.anythingDue) {
-                PrimaryButton(onClick = vm::startReview, modifier = Modifier.fillMaxWidth().height(58.dp)) {
-                    Text("Start studying", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        if (due > 0) {
+            PrimaryButton(onClick = vm::startReview, modifier = Modifier.fillMaxWidth().height(58.dp)) {
+                Text("Start studying", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SecondaryButton(onClick = vm::studyMore, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Text("Study more", fontSize = 16.sp)
                 }
-            } else {
-                PrimaryButton(onClick = vm::studyMore, modifier = Modifier.fillMaxWidth().height(58.dp)) {
-                    Text("Study more", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
+                Text(
+                    buildString {
+                        append("Brings tomorrow's reviews forward.")
+                        if (summary.daysAhead == 1) append(" You're 1 day ahead.")
+                        if (summary.daysAhead > 1) append(" You're ${summary.daysAhead} days ahead.")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
+    }
+}
+
+/** A large 済 ("done") seal, grained like the reader's 読了. */
+@Composable
+private fun DoneSeal() {
+    val seal = MaterialTheme.colorScheme.primary
+    Box(
+        Modifier.size(88.dp).stampGrain().border(3.dp, seal, RoundedCornerShape(6.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text("済", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 52.sp, color = seal)
     }
 }
 

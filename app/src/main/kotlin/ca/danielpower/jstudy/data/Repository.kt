@@ -58,11 +58,11 @@ data class Summary(
     val daysAhead: Int,
     val reviewedToday: Int,
     val correctToday: Int,
-    val wordsStarted: Int,
-    val wordsTotal: Int,
     val today: Long,
     /** Cards answered per study day over the last year. */
     val answersPerDay: Map<Long, Int>,
+    /** Study days a chapter was finished on. */
+    val readDays: Set<Long>,
 ) {
     val anythingDue get() = newCards + learning + reviews > 0
 }
@@ -1118,7 +1118,6 @@ class Repository(context: Context) {
         val clock = clock(settings)
         val today = clock.dayOf(now)
         val queue = queue(settings, clock, now)
-        val total = dictionary.wordCount()
         return Summary(
             newCards = queue.newCards,
             learning = queue.learning,
@@ -1127,14 +1126,9 @@ class Repository(context: Context) {
             daysAhead = ahead().daysAhead,
             reviewedToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND kind = 0", today),
             correctToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND correct = 1 AND kind = 0", today),
-            wordsStarted = store.count(
-                "SELECT COUNT(*) FROM card WHERE direction = ? AND state != ?",
-                Direction.RECOGNITION.value,
-                CardState.NEW.value,
-            ),
-            wordsTotal = total,
             today = today,
             answersPerDay = store.answersPerDay(today - 370),
+            readDays = store.storyReadTimes().map(clock::dayOf).toSet(),
         )
     }
 

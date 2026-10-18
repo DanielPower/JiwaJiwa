@@ -35,17 +35,18 @@ private val SHAPE = RoundedCornerShape(2.dp)
 
 /**
  * Cards answered each study day, one column per week ending with this week,
- * Sunday at the top. Tap a day to see its count.
+ * Sunday at the top. A day you only read a chapter on shows lightest, so the
+ * map agrees with the streak. Tap a day to see its count.
  */
 @Composable
-fun StudyHeatmap(answersPerDay: Map<Long, Int>, today: Long) {
+fun StudyHeatmap(answersPerDay: Map<Long, Int>, readDays: Set<Long>, today: Long) {
     var selected by remember(today) { mutableStateOf<Long?>(null) }
     val max = answersPerDay.values.maxOrNull() ?: 0
     val empty = MaterialTheme.colorScheme.surfaceVariant
     val full = MaterialTheme.colorScheme.primary
 
-    fun color(count: Int): Color {
-        if (count <= 0 || max == 0) return empty
+    fun color(count: Int, read: Boolean): Color {
+        if (count <= 0 || max == 0) return if (read) full.copy(alpha = 1 / 4f) else empty
         // Four steps, relative to the busiest day shown.
         val level = ceil(4.0 * count / max).toInt().coerceIn(1, 4)
         return full.copy(alpha = level / 4f)
@@ -66,7 +67,7 @@ fun StudyHeatmap(answersPerDay: Map<Long, Int>, today: Long) {
                                 Spacer(Modifier.size(CELL))
                             } else {
                                 Cell(
-                                    color = color(answersPerDay[day] ?: 0),
+                                    color = color(answersPerDay[day] ?: 0, day in readDays),
                                     outlined = day == selected || (selected == null && day == today),
                                     size = CELL,
                                     onClick = { selected = if (selected == day) null else day },
@@ -85,8 +86,13 @@ fun StudyHeatmap(answersPerDay: Map<Long, Int>, today: Long) {
             } else {
                 "on " + LocalDate.ofEpochDay(day).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
             }
+            val cards = if (count == 1) "1 card" else "$count cards"
             Text(
-                (if (count == 1) "1 card" else "$count cards") + " $date",
+                when {
+                    day !in readDays -> "$cards $date"
+                    count == 0 -> "Read a chapter $date"
+                    else -> "$cards and a chapter $date"
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
