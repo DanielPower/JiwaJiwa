@@ -759,12 +759,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.StoryReader(reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage)
     }
 
-    /** After [chapter]: its story's next open, unread chapter, or else the next story on the path that has one. */
+    /**
+     * After [chapter]: the chapter that follows it, read or not, when it's open; else its story's next
+     * open, unread chapter, or else the next story on the path that has one.
+     */
     private fun nextStep(chapter: ChapterEntry): NextStep? {
         val path = repo.storyPath()
         val here = path.firstOrNull { it.series.id == chapter.series.id }
-        val sameStory = here?.chapters?.let { c -> c.drop(c.indexOfFirst { it.story.id == chapter.story.id } + 1) + c }
-            ?.firstOrNull { it.ready && !it.read && it.story.id != chapter.story.id }
+        val following = here?.chapters?.let { c -> c.getOrNull(c.indexOfFirst { it.story.id == chapter.story.id } + 1) }
+        val sameStory = following?.takeIf { it.ready || it.read }
+            ?: here?.chapters?.let { c -> c.drop(c.indexOfFirst { it.story.id == chapter.story.id } + 1) + c }
+                ?.firstOrNull { it.ready && !it.read && it.story.id != chapter.story.id }
         if (sameStory != null) return NextStep(sameStory.story.id, "Next: ${sameStory.chapter.number}. ${sameStory.chapter.story.title}")
         val other = path.firstOrNull { it.series.id != chapter.series.id && it.next != null } ?: return null
         val next = other.next!!
