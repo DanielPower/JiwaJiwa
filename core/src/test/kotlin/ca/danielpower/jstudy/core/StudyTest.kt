@@ -196,7 +196,7 @@ class StudyTest {
             assertEquals(CardState.REVIEW, known.card.state)
             assertEquals(70, known.progress.mastery)
             assertTrue(known.unlockedProduction)
-            assertTrue(known.card.startedKnown, "doesn't use up a new-card slot")
+            assertEquals(StartSource.KNOWN, known.card.startSource, "doesn't use up a new-card slot")
             val dueDay = clock.dayOf(known.card.dueAt)
             assertTrue(dueDay in (today + 1)..(today + 30), "due $dueDay")
         }
@@ -205,7 +205,7 @@ class StudyTest {
         val next = reviewer.answer(known.card, known.progress, true, known.card.dueAt + 3_600_000)
         assertEquals(CardState.REVIEW, next.card.state)
         assertTrue(next.progress.mastery > 70)
-        assertTrue(next.card.startedKnown, "still doesn't use up a new-card slot")
+        assertEquals(StartSource.KNOWN, next.card.startSource, "still doesn't use up a new-card slot")
     }
 
     @Test

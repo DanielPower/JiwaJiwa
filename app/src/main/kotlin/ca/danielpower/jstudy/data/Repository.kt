@@ -21,6 +21,7 @@ import ca.danielpower.jstudy.core.RenshuuImport
 import ca.danielpower.jstudy.core.Speech
 import ca.danielpower.jstudy.core.RenshuuTerm
 import ca.danielpower.jstudy.core.Reviewer
+import ca.danielpower.jstudy.core.StartSource
 import ca.danielpower.jstudy.core.StudyAhead
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
@@ -324,7 +325,7 @@ class Repository(context: Context) {
             clock = clock,
             now = now,
             // Production cards fill what today's new words leave of the daily limit.
-            newIntroducedToday = store.count("SELECT COUNT(*) FROM card WHERE introduced_day = ? AND started_known = 0", today),
+            newIntroducedToday = store.count("SELECT COUNT(*) FROM card WHERE introduced_day = ? AND start_source = 0", today),
             reviewsDoneToday = store.count(
                 "SELECT COUNT(*) FROM review_log WHERE day = ? AND state_before = ?",
                 today,
@@ -369,7 +370,7 @@ class Repository(context: Context) {
         val today = clock.dayOf(now)
         return Pace(
             newToday = store.count(
-                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND started_known = 0 AND direction != ?",
+                "SELECT COUNT(*) FROM card WHERE introduced_day = ? AND start_source = 0 AND direction != ?",
                 today,
                 Direction.PRODUCTION.value,
             ),
@@ -555,7 +556,7 @@ class Repository(context: Context) {
                     store.insertNewCard(db, wordId, Direction.RECOGNITION, 0)
                 }
                 val card = recognitionCard(wordId) ?: continue
-                val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default, dated = false)
+                val known = reviewer.markKnown(card, store.progress(wordId), mastery, now, Random.Default, StartSource.IMPORT)
                 store.updateCard(db, known.card)
                 store.saveProgress(db, known.progress)
                 if (known.unlockedProduction) {
@@ -1040,16 +1041,16 @@ class Repository(context: Context) {
         val today = clock.dayOf(now)
         val active = activeDays(clock)
         val started = store.startedWords()
-        // Words filled in by reading level or imported have no first day.
         val firstDays = started.associate { w -> w.wordId to w.introducedDay }
         val firsts = listOfNotNull(firstDays.values.filterNotNull().minOrNull(), active.minOrNull())
         val from = minOf(firsts.minOrNull() ?: today, today - MIN_GRAPH_DAYS + 1)
         val words = WordHistory.days(firstDays, started.associate { it.wordId to it.mastery }, store.masteryChanges(), from, today)
         val since = today - RECENT_DAYS
-        val newWords = firstDays.entries
-            .filter { (_, day) -> day != null && day > since }
-            .sortedByDescending { it.key }
-            .mapNotNull { (id, day) -> dictionary.word(id)?.let { RecentItem.NewWord(it) to day!! } }
+        // Imported and level-filled words count in the graph, but aren't the week's new words.
+        val newWords = started
+            .filter { it.source.recent && it.introducedDay != null && it.introducedDay > since }
+            .sortedByDescending { it.introducedDay }
+            .mapNotNull { w -> dictionary.word(w.wordId)?.let { RecentItem.NewWord(it) to w.introducedDay!! } }
         val rows = grammarRows()
         val learned = grammarDays()
         val newGrammar = rows.mapNotNull { row ->

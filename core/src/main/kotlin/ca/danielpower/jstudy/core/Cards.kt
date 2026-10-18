@@ -29,6 +29,33 @@ enum class CardState(val value: Int) {
     }
 }
 
+/**
+ * How a word was started. Only [STORY] words count against the daily limit,
+ * and imported or level-filled words stay out of Home's Recent row.
+ * Stored in the app's database: don't renumber.
+ */
+enum class StartSource(val value: Int) {
+    /** Introduced by finishing a story. */
+    STORY(0),
+
+    /** Marked known by hand. */
+    KNOWN(1),
+
+    /** Imported from Renshuu. */
+    IMPORT(2),
+
+    /** Filled in from the level you can already read. */
+    LEVEL(3),
+    ;
+
+    /** Shown among the week's new words on Home. */
+    val recent get() = this == STORY || this == KNOWN
+
+    companion object {
+        fun of(value: Int) = entries.first { it.value == value }
+    }
+}
+
 data class Card(
     val id: Long,
     val wordId: Long,
@@ -42,10 +69,9 @@ data class Card(
     val lastReviewAt: Long? = null,
     val reps: Int = 0,
     val lapses: Int = 0,
-    /** Study day the word was started: introduced by a story, or marked known. */
+    /** Study day the word was started, whichever way ([startSource]). */
     val introducedDay: Long? = null,
-    /** Started by saying you knew it: it counts as started that day, but not against the day's new words. */
-    val startedKnown: Boolean = false,
+    val startSource: StartSource = StartSource.STORY,
 )
 
 data class WordProgress(
@@ -202,13 +228,13 @@ class Reviewer(
      * that interval, so marking many words at once doesn't bunch them up.
      *
      * A word that wasn't started yet, or was started today, counts as started
-     * today when [dated] (so it shows among the day's new words on Home), but
-     * never against the daily limit. Imports aren't dated.
+     * today from [source], so it's in the words graph from today but never
+     * against the daily limit. One started on an earlier day keeps that day.
      */
-    fun markKnown(card: Card, progress: WordProgress, mastery: Int, now: Long, random: Random, dated: Boolean = true): Known {
+    fun markKnown(card: Card, progress: WordProgress, mastery: Int, now: Long, random: Random, source: StartSource = StartSource.KNOWN): Known {
         val newMastery = mastery.coerceIn(0, MasteryRules.MAX)
         val days = MasteryRules.stabilityDays(newMastery)
-        return known(card, progress, newMastery, days, days, now, random, dated)
+        return known(card, progress, newMastery, days, days, now, random, source)
     }
 
     /**
@@ -217,12 +243,12 @@ class Reviewer(
      * be longer than [days] to spread out a large batch.
      */
     fun markKnownFor(card: Card, progress: WordProgress, days: Int, firstDueWithin: Int, now: Long, random: Random): Known =
-        known(card, progress, MasteryRules.fromStability(days.toDouble()), days, maxOf(days, firstDueWithin), now, random, dated = false)
+        known(card, progress, MasteryRules.fromStability(days.toDouble()), days, maxOf(days, firstDueWithin), now, random, StartSource.LEVEL)
 
-    private fun known(card: Card, progress: WordProgress, newMastery: Int, days: Int, firstDueWithin: Int, now: Long, random: Random, dated: Boolean): Known {
+    private fun known(card: Card, progress: WordProgress, newMastery: Int, days: Int, firstDueWithin: Int, now: Long, random: Random, source: StartSource): Known {
         require(card.wordId == progress.wordId)
         val today = clock.dayOf(now)
-        val startsToday = dated && (card.state == CardState.NEW || card.introducedDay == today)
+        val startsToday = card.state == CardState.NEW || card.introducedDay == today
         val firstDue = 1 + random.nextInt(firstDueWithin)
         val unlock = card.direction == Direction.RECOGNITION &&
             !progress.productionUnlocked &&
@@ -237,7 +263,7 @@ class Reviewer(
                 dueAt = clock.startOf(today + firstDue),
                 lastReviewAt = now,
                 introducedDay = if (startsToday) today else card.introducedDay,
-                startedKnown = card.startedKnown || startsToday,
+                startSource = if (startsToday) source else card.startSource,
             ),
             progress = progress.copy(mastery = newMastery, productionUnlocked = progress.productionUnlocked || unlock),
             unlockedProduction = unlock,

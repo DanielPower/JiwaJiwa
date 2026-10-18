@@ -11,6 +11,7 @@ import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.MasteryChange
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.ReviewLog
+import ca.danielpower.jstudy.core.StartSource
 import ca.danielpower.jstudy.core.WordProgress
 
 data class WordStatus(val state: CardState, val suspended: Boolean, val mastery: Int)
@@ -18,7 +19,7 @@ data class WordStatus(val state: CardState, val suspended: Boolean, val mastery:
 data class ReviewEntry(val at: Long, val correct: Boolean, val masteryAfter: Int)
 
 /** A word with a started recognition card: its first day, mastery now, and mastery before its first review, if it's had one. */
-data class StartedWord(val wordId: Long, val introducedDay: Long?, val mastery: Int)
+data class StartedWord(val wordId: Long, val introducedDay: Long?, val mastery: Int, val source: StartSource)
 
 /** A story that comes with the app (a chapter or a grammar topic's page), as saved with whether you've read it. */
 data class SavedStory(
@@ -53,7 +54,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 reps INTEGER NOT NULL,
                 lapses INTEGER NOT NULL,
                 introduced_day INTEGER,
-                started_known INTEGER NOT NULL DEFAULT 0,
+                start_source INTEGER NOT NULL DEFAULT 0,
                 sort_key INTEGER NOT NULL,
                 suspended INTEGER NOT NULL DEFAULT 0,
                 UNIQUE (word_id, direction)
@@ -100,9 +101,9 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         if (oldVersion < 4) deriveMastery(db)
         if (oldVersion < 8) keepOnlyBundledStories(db)
         if (oldVersion < 9) dropRemovedCards(db)
-        // Version 10: words marked known count as started that day, but not against the limit.
-        if (oldVersion < 10 && hasColumn(db, "card", "id") && !hasColumn(db, "card", "started_known")) {
-            db.execSQL("ALTER TABLE card ADD COLUMN started_known INTEGER NOT NULL DEFAULT 0")
+        // Version 10: how each word was started, so only story words count against the daily limit.
+        if (oldVersion < 10 && hasColumn(db, "card", "id") && !hasColumn(db, "card", "start_source")) {
+            db.execSQL("ALTER TABLE card ADD COLUMN start_source INTEGER NOT NULL DEFAULT 0")
         }
     }
 
@@ -282,7 +283,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             put("reps", card.reps)
             put("lapses", card.lapses)
             putNullable("introduced_day", card.introducedDay)
-            put("started_known", if (card.startedKnown) 1 else 0)
+            put("start_source", card.startSource.value)
         }
         db.update("card", values, "id = ?", arrayOf(card.id.toString()))
     }
@@ -441,13 +442,14 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         }
 
     /**
-     * Each started word's first day and its mastery now, from the recognition
-     * card. Words filled in by reading level or imported have no first day.
+     * Each started word's first day, its mastery now and how it was started,
+     * from the recognition card. Words filled in or imported before version 10
+     * have no first day.
      */
     fun startedWords(): List<StartedWord> =
         readableDatabase.rawQuery(
             """
-            SELECT c.word_id, c.introduced_day, COALESCE(p.mastery, 0)
+            SELECT c.word_id, c.introduced_day, COALESCE(p.mastery, 0), c.start_source
             FROM card c LEFT JOIN word_progress p ON p.word_id = c.word_id
             WHERE c.direction = ? AND c.state != ?
             """,
@@ -455,7 +457,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         ).use { c ->
             buildList {
                 while (c.moveToNext()) {
-                    add(StartedWord(c.getLong(0), if (c.isNull(1)) null else c.getLong(1), c.getInt(2)))
+                    add(StartedWord(c.getLong(0), if (c.isNull(1)) null else c.getLong(1), c.getInt(2), StartSource.of(c.getInt(3))))
                 }
             }
         }
@@ -535,7 +537,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         reps = c.getInt(9),
         lapses = c.getInt(10),
         introducedDay = if (c.isNull(11)) null else c.getLong(11),
-        startedKnown = c.getInt(12) != 0,
+        startSource = StartSource.of(c.getInt(12)),
     )
 
     private fun ContentValues.putNullable(key: String, value: Any?) {
@@ -552,6 +554,6 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         const val NAME = "progress.db"
         const val VERSION = 10
         private const val CARD_COLUMNS =
-            "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, started_known"
+            "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, start_source"
     }
 }

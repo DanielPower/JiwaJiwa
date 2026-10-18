@@ -8,6 +8,7 @@ import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.ReviewLog
+import ca.danielpower.jstudy.core.StartSource
 import ca.danielpower.jstudy.core.WordProgress
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -52,13 +53,13 @@ class ProgressStoreTest {
 
         val reviewed = fresh.copy(
             state = CardState.RELEARNING, step = 0, stability = 2.5, difficulty = 6.25,
-            dueAt = 123_456, lastReviewAt = 100_000, reps = 4, lapses = 1, introducedDay = 20_000, startedKnown = true,
+            dueAt = 123_456, lastReviewAt = 100_000, reps = 4, lapses = 1, introducedDay = 20_000, startSource = StartSource.IMPORT,
         )
         store.transaction { store.updateCard(it, reviewed) }
         assertEquals(reviewed, store.card(id))
 
         // Nulls go back as nulls.
-        val cleared = reviewed.copy(step = null, stability = null, difficulty = null, lastReviewAt = null, introducedDay = null, startedKnown = false)
+        val cleared = reviewed.copy(step = null, stability = null, difficulty = null, lastReviewAt = null, introducedDay = null, startSource = StartSource.STORY)
         store.transaction { store.updateCard(it, cleared) }
         assertEquals(cleared, store.card(id))
     }
@@ -302,13 +303,13 @@ class ProgressStoreTest {
         assertNull(store.getValue("kana_known"))
     }
     @Test
-    fun upgradingToVersion10AddsStartedKnown() {
+    fun upgradingToVersion10AddsStartSource() {
         store.close()
         context.deleteDatabase(ProgressStore.NAME)
         val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
         SQLiteDatabase.openOrCreateDatabase(path, null).use { db ->
             ProgressStore(context).onCreate(db)
-            // A version 9 card table, without started_known.
+            // A version 9 card table, without start_source.
             db.execSQL("DROP TABLE card")
             db.execSQL(
                 "CREATE TABLE card (id INTEGER PRIMARY KEY AUTOINCREMENT, word_id INTEGER NOT NULL, direction INTEGER NOT NULL, " +
@@ -325,6 +326,6 @@ class ProgressStoreTest {
         store = ProgressStore(context)
         val card = store.cards("word_id = ?", arrayOf("7"), "id").single()
         assertEquals(20_000L, card.introducedDay)
-        assertFalse(card.startedKnown)
+        assertEquals(StartSource.STORY, card.startSource)
     }
 }
