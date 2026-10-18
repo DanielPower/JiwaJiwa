@@ -1,4 +1,5 @@
 import java.util.Base64
+import javax.inject.Inject
 
 plugins {
     id("com.android.application")
@@ -73,6 +74,39 @@ android {
         }
     }
 
+}
+
+// The stories as the app shows them, each chapter split into words
+// (stories/read), are written from tools/stories by :core:storyText on each
+// build, not committed. Like the app itself, that needs the dictionary built.
+abstract class StoryText : DefaultTask() {
+    @get:InputFiles
+    abstract val text: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val assets: DirectoryProperty
+
+    @get:Inject
+    abstract val files: FileSystemOperations
+
+    @TaskAction
+    fun copy() {
+        files.sync {
+            from(text)
+            into(assets.dir("stories/read"))
+        }
+    }
+}
+
+val storyText = tasks.register<StoryText>("storyText") {
+    text.from(project(":core").layout.buildDirectory.dir("generated/storyText"))
+    dependsOn(":core:storyText")
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(storyText, StoryText::assets)
+    }
 }
 
 dependencies {

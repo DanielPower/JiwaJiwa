@@ -43,11 +43,26 @@ dependencies {
 
 tasks.register<JavaExec>("stories") {
     group = "stories"
-    description = "Writes the app's stories (path.json) from tools/stories, their index (needs.json) and each story's SUMMARY.md, and says what's wrong with them (-Pchapter=story/slug for one chapter). Needs the dictionary built."
+    description = "Writes the app's stories (path.json) from tools/stories, their index (needs.json), each story's SUMMARY.md and COVERAGE.md, and says what's wrong with them (-Pchapter=story/slug for one chapter). Needs the dictionary built."
     classpath = stories.runtimeClasspath
     mainClass.set("ca.danielpower.jstudy.core.StoryToolsKt")
     // -Pchapter=story/slug (or the chapter's file) says all about that chapter.
     args(rootDir, findProperty("chapter")?.toString().orEmpty())
+}
+
+// Every chapter and grammar page split into words, which the app bundles as
+// stories/read (app/build.gradle.kts). Written for each build rather than
+// committed. Needs the dictionary built.
+tasks.register<JavaExec>("storyText") {
+    group = "stories"
+    description = "Writes the stories as the app shows them (stories/read). Needs the dictionary built."
+    classpath = stories.runtimeClasspath
+    mainClass.set("ca.danielpower.jstudy.core.StoryTextToolKt")
+    val out = layout.buildDirectory.dir("generated/storyText")
+    inputs.files(fileTree("../tools/stories") { exclude("**/*.md") }).withPropertyName("storySources")
+    inputs.file("../app/src/main/assets/databases/dictionary.db").withPropertyName("dictionary")
+    outputs.dir(out).withPropertyName("text")
+    args(rootDir, out.get().asFile)
 }
 
 tasks.test {

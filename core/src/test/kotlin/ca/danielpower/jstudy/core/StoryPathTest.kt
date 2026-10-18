@@ -99,7 +99,6 @@ class StoryPathTest {
             for ((file, text) in tools.outputs()) {
                 if (!file.exists() || file.readText() != text) problems += "${file.relativeTo(root)} is out of date: run ./gradlew -PcoreOnly=true :core:stories"
             }
-            for (file in tools.staleText()) problems += "${file.relativeTo(root)} is from a story that's gone: run ./gradlew -PcoreOnly=true :core:stories"
             // The app shows the stories as the tools read them.
             for ((file, text) in StoryText.write(tools.text)) assertEquals(tools.text.filterKeys { StoryText.file(it) == file }, StoryText.parse(text), "$file reads back as written")
             assertEquals(tools.needs, StoryPath.parseNeeds(StoryPath.writeNeeds(tools.needs), tools.catalog), "the index reads back as written")

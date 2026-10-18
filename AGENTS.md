@@ -229,7 +229,8 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   `stories/needs.json` (Daniel, 2026-10-17), so the app never reads every
   chapter: at a few hundred chapters that would take seconds on a phone.
   The text is split into words at build time too (`stories/read/`, 2026-10-18),
-  so the app has no tokenizer and shows exactly what the checks passed.
+  so the app has no tokenizer and shows exactly what the checks passed. The
+  app build writes it (`:core:storyText`); it isn't committed.
   All of it is our own writing for adults, casual speech first: Alex, on a
   one-year working holiday in Tokyo, a share house, a ramen shop job, a
   cast met a few at a time. **Arrival** is the prologue, then **Ramen
