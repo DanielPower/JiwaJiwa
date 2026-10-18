@@ -69,7 +69,7 @@ Sora finds the manga shop, meets Miho, and his bag ends up huge again.
 
 Late at night, Sora hears someone singing in Yuki's room.
 
-- 36 words; 3 new of 3 allowed.
+- 37 words; 3 new of 3 allowed.
 - Teaches ～じゃない / じゃん (`janai`).
 - New: 歌 (うた, N5), 声 (こえ, N5), 知る (しる, N5).
 

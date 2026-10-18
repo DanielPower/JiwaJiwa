@@ -1074,7 +1074,7 @@
      "id": "new-housemate/through-the-wall",
      "title": "Through the wall",
      "plot": "Late at night, Sora hears someone singing in Yuki's room.",
-     "body": "夜だ。僕は、部屋でマンガを読んでいる。\n\nボン、ボン。ユキさんのベースだ。\n\nソラ|「また、ベース…」\n\n…ベースじゃない。\n\n歌だ。ユキさんの部屋から、歌の声。\n\nソラ|「…ユキさんの声じゃない？」\n\nケンタさんじゃない。ケンタさんは、今夜は会社だ。\n\n知らない曲だ。新しい曲？\n\n声が、きれいだ。\n\n歌に、『雪』がある。冬の歌だ。\n\n僕は、マンガを読まない。\n\nソラ|「ユキさん、歌、うまいじゃん…」\n\n…もう、歌はない。\n\nソラ|「もう一回…」",
+     "body": "夜だ。僕は、部屋でマンガを読んでいる。\n\nボン、ボン。ユキさんのベースだ。\n\nソラ|「また、ベース…」\n\n…ベースじゃない。\n\n歌だ。ユキさんの部屋から、歌の声。\n\nソラ|「…ユキさんの声じゃない？」\n\nケンタさんじゃない。ケンタさんは、今夜は会社だ。\n\n知らない曲だ。新しい曲？\n\n声が、きれいだ。\n\n歌に、『雪』がある。冬の歌だ。\n\n僕は、もうマンガを読んでいない。\n\nソラ|「ユキさん、歌、うまいじゃん…」\n\n…もう、歌っていない。\n\nソラ|「もう一回…」",
      "translations": [
       "Night.",
       "I'm in my room, reading manga.",
@@ -1094,7 +1094,7 @@
       "A winter song.",
       "I've stopped reading.",
       "\"Yuki's a really good singer…\"",
-      "…The singing's stopped.",
+      "…She's stopped singing.",
       "\"One more time…\""
      ],
      "topic": "janai"
