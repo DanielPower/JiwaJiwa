@@ -13,7 +13,7 @@
     [["ダイチ|「もし勝ったら、どうする？」", "\"So what do we do if we win?\""]],
     [["ダイチ|「俺は、もし勝ったら、ビール！たくさん！」", "\"If we win, beer for me! Lots of it!\""]],
     [["リン|「…勝ったら、ラーメン。」", "\"…If we win, ramen.\""]],
-    [["店長|「みんなが勝ったら、ラーメンもビールも、俺から！」", "\"If you win, the ramen and beer are on me!\""], ["ダイチ|「やった！」", "\"Yes!\""]],
+    [["店長|「勝ったら、ラーメンもビールも、俺から！」", "\"If you win, the ramen and beer are on me!\""], ["ダイチ|「やった！」", "\"Yes!\""]],
     [["ユキ|「でも、もし負けたら？」", "\"But what if we lose?\""], ["ダイチ|「負けたら、また来年！」", "\"If we lose, there's next year!\""]],
     [["ユキ|「雨が降ったら？」", "\"What if it rains?\""], ["リン|「…降らない。」", "\"…It won't.\""]],
     [["ダイチ|「ユキは？もし勝ったら、何したい？」", "\"What about you, Yuki? What do you want to do if we win?\""]],
@@ -23,7 +23,7 @@
     [["リン|「…出られたら、ね。」", "\"…If we get in, that is.\""]],
     [["ダイチ|「出られるよ！このバンド、一番だから！」", "\"We'll get in! This band's the best!\""]],
     [["リンは何も言わない。", "Rin says nothing."], ["ラーメンを食べている。", "She's eating her ramen."]],
-    [["ユキ|「店長、ラーメン、うまい！」", "\"Manager, the ramen's great!\""], ["店長|「みんなが勝ったら、卵も！」", "\"Win, and you get eggs too!\""]],
+    [["ユキ|「店長、ラーメン、うまい！」", "\"Manager, the ramen's great!\""], ["店長|「勝ったら、卵も！」", "\"Win, and you get eggs too!\""]],
     [["ダイチ|「勝ったら、卵！勝ったら、ビール！」", "\"Win, and eggs! Win, and beer!\""], ["リン|「…うるさい。」", "\"…You're loud.\""]]
   ]
 }

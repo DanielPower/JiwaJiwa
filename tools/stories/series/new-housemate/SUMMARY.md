@@ -187,7 +187,7 @@ Summer, the day before the open mic: Yuki wonders if her voice will hold, and ev
 
 Open mic night: Yuki's voice won't come out, until her friends call her name from the crowd.
 
-- 77 words; 3 new of 3 allowed.
+- 76 words; 3 new of 3 allowed.
 - New: 手 (て, N5), ステージ (N2), 笑う (わらう, N4).
 
 ### 24. Snow in summer (`new-housemate/snow-in-summer`)

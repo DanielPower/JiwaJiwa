@@ -24,7 +24,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Alex's manga from Miho's shop goes missing; he finds it in Kenta's room, where Kenta read it all night.
 
-- 39 words; 0 new of 3 allowed.
+- 38 words; 0 new of 3 allowed.
 
 ## Known at the end
 

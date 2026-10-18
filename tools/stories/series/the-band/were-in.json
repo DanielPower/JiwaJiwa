@@ -28,6 +28,6 @@
     [["ダイチ|「店長！夏の雪、祭りに出られます！」", "\"Manager! Summer Snow got into the festival!\""]],
     [["店長|「出られるのか！最高じゃん！」", "\"You got in! That's awesome!\""]],
     [["店長|「じゃあ、もし勝ったら、ビールとラーメンだな！」", "\"So if you win, it's beer and ramen!\""], ["ダイチ|「はい！」", "\"Yes!\""], ["リン|「…卵も。」", "\"…And eggs.\""]],
-    [["店長が、笑った。", "The manager laughed."], ["店長|「みんなが勝ったら、卵もな！」", "\"If you win, eggs too!\""]]
+    [["店長が、笑った。", "The manager laughed."], ["店長|「勝ったら、卵もな！」", "\"If you win, eggs too!\""]]
   ]
 }

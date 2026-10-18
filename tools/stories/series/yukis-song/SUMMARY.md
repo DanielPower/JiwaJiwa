@@ -117,7 +117,7 @@ Back at the studio, Yuki sings the finished song softly for the band; Daichi cri
 
 The day of the show: Sora rushes off early, the band sound-checks at the little live house, Rin remembers seeing her favourite band there as a kid, and by evening Sora, Kenta and Tanaka-san still haven't come.
 
-- 196 words; 1 new of 5 allowed.
+- 195 words; 1 new of 5 allowed.
 - Teaches ～たことがある (`ta-koto`).
 - New: 後ろ (うしろ, N5).
 
@@ -139,7 +139,7 @@ Behind Sora is Alex, back from Canada with his bag still in his hand; Sora's sec
 
 Outside in the snow, Alex tells Yuki about the box marked 'ticket'; everyone meets everyone, they all go for the manager's ramen, and Yuki tells Alex she'll be waiting here next year.
 
-- 239 words; 1 new of 7 allowed.
+- 241 words; 1 new of 7 allowed.
 - New: 大変 (たいへん, N5).
 
 ## Known at the end

@@ -27,7 +27,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Early summer: after playing bass in a friend's band, Yuki meets Daichi, a loud drummer who saw her sing, and he wants to start a band with her.
 
-- 99 words; 3 new of 3 allowed.
+- 98 words; 3 new of 3 allowed.
 - Teaches ～える / ～られる (`potential`).
 - New: 弾く (ひく, N5), ドラム (not JLPT), 音 (おと, N4).
 
@@ -49,7 +49,7 @@ First practice in a rented studio: Daichi's drums drown out everything, and they
 
 Over ramen after practice, Daichi explains the festival picks a winning band, and everyone says what they'd do if they won.
 
-- 91 words; 3 new of 3 allowed.
+- 89 words; 3 new of 3 allowed.
 - Teaches ～たら (`tara`).
 - New: 一番 (いちばん, N5), 勝つ (かつ, N4), もし (N1).
 
@@ -86,14 +86,14 @@ All night in the hot studio, take after take, until a 'Snow' that's finally righ
 
 Three days of waiting, then Daichi calls shouting that they're in; Rin calls too, to say just one word.
 
-- 98 words; 3 new of 3 allowed.
+- 97 words; 3 new of 3 allowed.
 - New: 三日 (みっか, N5), あの (N5), うれしい (N4).
 
 ### 10. Getting better (`the-band/getting-better`)
 
 July heat: practice every day, Daichi gets quieter, Yuki's voice gets stronger, and the three of them start to sound like one band.
 
-- 98 words; 3 new of 3 allowed.
+- 99 words; 3 new of 3 allowed.
 - Teaches ～くなる / ～になる / ～く (`naru`).
 - New: なる (N5), 一つ (ひとつ, N5), それ (N5).
 
@@ -152,7 +152,7 @@ Yuki falls asleep over her notebook still missing the last words; Kenta, on his 
 
 Over late-night ramen, loud Daichi tells Yuki quietly about the band he lost last year, and why he asked her that night at the live house.
 
-- 115 words; 2 new of 3 allowed.
+- 113 words; 2 new of 3 allowed.
 - New: 前 (まえ, N5), ずっと (N3).
 
 ### 19. Try it (`the-band/try-it`)
@@ -181,7 +181,7 @@ The night before the festival, Yuki can't sleep: Sora brings ice cream, Kenta sw
 
 Festival day: the other bands have long set lists and Summer Snow has only three songs, but Rin says three is enough.
 
-- 132 words; 3 new of 3 allowed.
+- 130 words; 3 new of 3 allowed.
 - Teaches だけ / しか (`dake`).
 - New: 私たち (わたしたち, not JLPT), ほか (N5), 俺たち (おれたち, not JLPT).
 

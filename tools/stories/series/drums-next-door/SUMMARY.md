@@ -28,7 +28,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Sora hears drums from Kenta's room late at night and finds him playing a drum game, practising in case the band needs a drummer; Yuki comes home and beats them both.
 
-- 127 words; 0 new of 3 allowed.
+- 126 words; 0 new of 3 allowed.
 
 ## Known at the end
 

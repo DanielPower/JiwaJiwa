@@ -65,7 +65,7 @@ Between shifts at the shop Miho has only a few pages done; Kenta, who knows dead
 
 Miho goes to the studio to draw the band as they play; Rin says the heroine's face is wrong, because on stage Yuki always smiles, and Daichi wants to look cooler.
 
-- 117 words; 3 new of 3 allowed.
+- 118 words; 3 new of 3 allowed.
 - New: 前 (まえ, N5), 顔 (かお, not JLPT), もっと (N5).
 
 ### 7. When I was a kid (`mihos-manga/when-i-was-a-kid`)
