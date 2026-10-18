@@ -18,29 +18,29 @@ import java.sql.ResultSet
 //
 //   ./gradlew -PcoreOnly=true :core:stories
 //
-// writes path.json (StorySource), the index of each chapter's words and
-// grammar (stories/needs.json, which the app reads in place of reading every
-// chapter), each story's SUMMARY.md and what's left of the most common words
+// writes each story's SUMMARY.md and what's left of the most common words
 // and grammar (tools/stories/COVERAGE.md), and prints what's wrong with the
 // stories (StoryCheck). StoryPathTest checks they're up to date. Needs the
 // dictionary built first. To check the chapter you're writing:
 //
 //   ./gradlew -PcoreOnly=true :core:stories -Pchapter=new-housemate/through-the-wall
 //
-// Every chapter and grammar page split into words (stories/read, which the
-// app shows) isn't committed: the app build writes it (:core:storyText,
-// StoryTextTool.kt).
+// What the app bundles isn't committed: the app build writes it
+// (:core:storyAssets, StoryAssetsTool.kt). That's the path (path.json, put
+// together by StorySource), the index of each chapter's words and grammar
+// (needs.json, which the app reads in place of reading every chapter) and
+// every chapter and grammar page split into words (read/, which the app shows).
 
 /**
- * Writes the stories, their index and summaries for the repository at the
- * first argument, then says what's wrong with them: everything, or, given a
+ * Writes the stories' summaries and the coverage report for the repository
+ * at the first argument, then says what's wrong with them: everything, or, given a
  * chapter as the second argument, all about that one.
  */
 fun main(args: Array<String>) {
     System.setOut(PrintStream(FileOutputStream(FileDescriptor.out), true, "UTF-8"))
     StoryTools.open(File(args[0])).use { tools ->
         for ((file, text) in tools.outputs()) file.writeText(text)
-        println("Wrote ${tools.catalog.chapters.size} chapters, their index, ${tools.catalog.series.size} summaries and the coverage report")
+        println("Read ${tools.catalog.chapters.size} chapters; wrote ${tools.catalog.series.size} summaries and the coverage report")
         val check = StoryCheck(tools)
         val chapter = args.getOrNull(1)?.takeIf { it.isNotBlank() }
         when {
@@ -132,14 +132,12 @@ class JdbcLexicon(private val conn: Connection) : Lexicon {
 class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
     val lexicon = JdbcLexicon(conn)
     val reader = Reader(lexicon)
-    val pathFile = File(root, "app/src/main/assets/stories/path.json")
-    val needsFile = File(root, "app/src/main/assets/stories/needs.json")
 
     /** path.json as tools/stories says it should be. Everything here is worked out from this, not the file. */
     val pathJson = StorySource.pathJson(root)
     val catalog = StoryPath.parse(pathJson)
 
-    /** Every chapter and grammar page, read: what the app shows (stories/read, written by StoryTextTool.kt), by id. */
+    /** Every chapter and grammar page, read: what the app shows (stories/read), by id. */
     val text: Map<String, List<List<ReadingWord>>> by lazy {
         (catalog.chapters.map { it.second.story } + catalog.grammar.map { it.page }).associate { it.id to reader.read(it.body, it.readings, it.names) }
     }
@@ -290,7 +288,7 @@ class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
 
     /** Every file the tools write, with what goes in it. */
     fun outputs(): Map<File, String> =
-        mapOf(pathFile to pathJson, needsFile to StoryPath.writeNeeds(needs), File(root, "tools/stories/COVERAGE.md") to coverage()) +
+        mapOf(File(root, "tools/stories/COVERAGE.md") to coverage()) +
             catalog.series.associate { File(root, "tools/stories/series/${it.id}/SUMMARY.md") to summary(it) }
 
     override fun close() = conn.close()

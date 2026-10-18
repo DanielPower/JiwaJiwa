@@ -1,12 +1,11 @@
 # tools/stories/AGENTS.md
 
 The stories that come with the app, as they're written. The app reads
-`app/src/main/assets/stories/path.json` (the text), `needs.json` (each
-chapter's words and grammar) and `stories/read/` (every chapter split into
-words, which the reader shows), all put together from here by the story
-tools (core `src/stories`). The app has no tokenizer of its own: what the
-check passes is exactly what it shows. `stories/read/` isn't committed: the
-app build writes it.
+`stories/path.json` (the text), `needs.json` (each chapter's words and
+grammar) and `stories/read/` (every chapter split into words, which the
+reader shows), all put together from here by the story tools (core
+`src/stories`) when the app is built; none of them is committed. The app
+has no tokenizer of its own: what the check passes is exactly what it shows.
 
 ## Layout
 
@@ -108,8 +107,8 @@ Then check it, with the dictionary built (`python3 tools/dictionary/build_dictio
 
     ./gradlew -PcoreOnly=true :core:stories -Pchapter=new-housemate/through-the-wall
 
-That takes a few seconds: it puts path.json together, reads every chapter,
-writes `needs.json`, each `SUMMARY.md` and `COVERAGE.md`,
+That takes a few seconds: it reads every chapter, writes each `SUMMARY.md`
+and `COVERAGE.md`,
 and prints what you need for the chapter you name (by id or by its file):
 its new words with their readings against the allowance, grammar not
 taught yet, anything the checks below find, naming the sentence when a

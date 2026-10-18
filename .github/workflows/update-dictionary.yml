@@ -47,7 +47,7 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
         if: steps.pin.outputs.changed == 'true'
-      # A word can now match a different entry, so the stories' index and summaries are rewritten too.
+      # A word can now match a different entry, so the stories' summaries are rewritten too.
       - name: Rewrite the stories' index
         if: steps.pin.outputs.changed == 'true'
         run: ./gradlew -PcoreOnly=true :core:stories
@@ -61,7 +61,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
           git add tools/dictionary/sources.json tools/dictionary/build_report.md \
-            app/src/main/assets/stories/needs.json \
             tools/stories/COVERAGE.md tools/stories/series/*/SUMMARY.md
           git commit -m "Update JMdict, KANJIDIC2 and JmdictFurigana"
           git push --force origin "$branch"

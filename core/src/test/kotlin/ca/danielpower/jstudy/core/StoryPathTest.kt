@@ -64,7 +64,7 @@ class StoryPathTest {
 
     @Test
     fun `reads the bundled stories file`() {
-        val catalog = StoryPath.parse(bundled.readText())
+        val catalog = StoryPath.parse(bundled)
         assertTrue(catalog.series.isNotEmpty())
         val ids = catalog.chapters.map { it.second.story.id } + catalog.grammar.map { it.page.id }
         assertEquals(ids.size, ids.toSet().size, "ids are unique")
@@ -74,12 +74,6 @@ class StoryPathTest {
             assertTrue(note.before in 1..paragraphs(c.story.body).size, "${c.story.id}: note before paragraph ${note.before}")
         }
         assertTrue(catalog.chapters.any { it.second.story.notes.isNotEmpty() }, "chapter notes are read")
-    }
-
-    /** path.json is put together from tools/stories; this catches a chapter changed without rewriting it. */
-    @Test
-    fun `the bundled stories file is up to date with tools stories`() {
-        assertEquals(StorySource.pathJson(File("..")), bundled.readText(), "path.json is out of date: run ./gradlew -PcoreOnly=true :core:stories")
     }
 
     /**
@@ -95,7 +89,7 @@ class StoryPathTest {
         StoryTools.open(root).use { tools ->
             val check = StoryCheck(tools)
             val problems = check.problems.map { it.toString() }.toMutableList()
-            // The app reads the index in place of every chapter, so it must match the stories.
+            // Writers read the summaries in place of every chapter, so they must match the stories.
             for ((file, text) in tools.outputs()) {
                 if (!file.exists() || file.readText() != text) problems += "${file.relativeTo(root)} is out of date: run ./gradlew -PcoreOnly=true :core:stories"
             }
@@ -109,5 +103,5 @@ class StoryPathTest {
         }
     }
 
-    private val bundled = File("../app/src/main/assets/stories/path.json")
+    private val bundled = StorySource.pathJson(File(".."))
 }

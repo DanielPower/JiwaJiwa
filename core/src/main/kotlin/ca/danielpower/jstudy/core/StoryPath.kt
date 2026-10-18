@@ -242,7 +242,7 @@ object StoryPath {
     fun parseNeeds(json: String, catalog: StoryCatalog): Map<String, StepNeeds> {
         val root = Json.parseToJsonElement(json).jsonObject
         return catalog.chapters.associate { (_, c) ->
-            val o = root[c.story.id]?.jsonObject ?: error("stories/needs.json has no ${c.story.id}: run ./gradlew -PcoreOnly=true :core:stories")
+            val o = root[c.story.id]?.jsonObject ?: error("stories/needs.json has no ${c.story.id}")
             c.story.id to StepNeeds(
                 words = o.getValue("words").jsonArray.map { w ->
                     val parts = w.jsonArray.map { it.jsonPrimitive }

@@ -43,33 +43,31 @@ dependencies {
 
 tasks.register<JavaExec>("stories") {
     group = "stories"
-    description = "Writes the app's stories (path.json) from tools/stories, their index (needs.json), each story's SUMMARY.md and COVERAGE.md, and says what's wrong with them (-Pchapter=story/slug for one chapter). Needs the dictionary built."
+    description = "Writes each story's SUMMARY.md and tools/stories/COVERAGE.md, and says what's wrong with them (-Pchapter=story/slug for one chapter). Needs the dictionary built."
     classpath = stories.runtimeClasspath
     mainClass.set("ca.danielpower.jstudy.core.StoryToolsKt")
     // -Pchapter=story/slug (or the chapter's file) says all about that chapter.
     args(rootDir, findProperty("chapter")?.toString().orEmpty())
 }
 
-// Every chapter and grammar page split into words, which the app bundles as
-// stories/read (app/build.gradle.kts). Written for each build rather than
+// The stories the app bundles (its assets' stories/: path.json, needs.json
+// and read/), written for each app build (app/build.gradle.kts) rather than
 // committed. Needs the dictionary built.
-tasks.register<JavaExec>("storyText") {
+tasks.register<JavaExec>("storyAssets") {
     group = "stories"
-    description = "Writes the stories as the app shows them (stories/read). Needs the dictionary built."
+    description = "Writes the stories as the app bundles them (path.json, needs.json, read/). Needs the dictionary built."
     classpath = stories.runtimeClasspath
-    mainClass.set("ca.danielpower.jstudy.core.StoryTextToolKt")
-    val out = layout.buildDirectory.dir("generated/storyText")
+    mainClass.set("ca.danielpower.jstudy.core.StoryAssetsToolKt")
+    val out = layout.buildDirectory.dir("generated/storyAssets")
     inputs.files(fileTree("../tools/stories") { exclude("**/*.md") }).withPropertyName("storySources")
     inputs.file("../app/src/main/assets/databases/dictionary.db").withPropertyName("dictionary")
-    outputs.dir(out).withPropertyName("text")
+    outputs.dir(out).withPropertyName("stories")
     args(rootDir, out.get().asFile)
 }
 
 tasks.test {
     useJUnitPlatform()
-    // StoryPathTest reads the app's bundled stories, their index and summaries, and, when it's been built, the dictionary.
-    inputs.file("../app/src/main/assets/stories/path.json").withPropertyName("stories")
-    inputs.file("../app/src/main/assets/stories/needs.json").withPropertyName("storyNeeds")
+    // StoryPathTest reads the stories, their summaries and, when it's been built, the dictionary.
     inputs.files(fileTree("../tools/stories")).withPropertyName("storySources")
     inputs.files(fileTree("../app/src/main/assets/databases") { include("dictionary.db") }).withPropertyName("dictionary")
 }

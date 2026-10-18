@@ -76,12 +76,13 @@ android {
 
 }
 
-// The stories as the app shows them, each chapter split into words
-// (stories/read), are written from tools/stories by :core:storyText on each
-// build, not committed. Like the app itself, that needs the dictionary built.
-abstract class StoryText : DefaultTask() {
+// The stories (assets' stories/: path.json, needs.json and read/, each
+// chapter split into words) are written from tools/stories by
+// :core:storyAssets on each build, not committed. Like the app itself, that
+// needs the dictionary built.
+abstract class StoryAssets : DefaultTask() {
     @get:InputFiles
-    abstract val text: ConfigurableFileCollection
+    abstract val stories: ConfigurableFileCollection
 
     @get:OutputDirectory
     abstract val assets: DirectoryProperty
@@ -92,20 +93,20 @@ abstract class StoryText : DefaultTask() {
     @TaskAction
     fun copy() {
         files.sync {
-            from(text)
-            into(assets.dir("stories/read"))
+            from(stories)
+            into(assets.dir("stories"))
         }
     }
 }
 
-val storyText = tasks.register<StoryText>("storyText") {
-    text.from(project(":core").layout.buildDirectory.dir("generated/storyText"))
-    dependsOn(":core:storyText")
+val storyAssets = tasks.register<StoryAssets>("storyAssets") {
+    stories.from(project(":core").layout.buildDirectory.dir("generated/storyAssets"))
+    dependsOn(":core:storyAssets")
 }
 
 androidComponents {
     onVariants { variant ->
-        variant.sources.assets?.addGeneratedSourceDirectory(storyText, StoryText::assets)
+        variant.sources.assets?.addGeneratedSourceDirectory(storyAssets, StoryAssets::assets)
     }
 }
 

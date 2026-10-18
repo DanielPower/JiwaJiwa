@@ -221,7 +221,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - New words and grammar come from the path instead of reviews.
   Reviews and the home count no longer introduce words; only
   unlocked production cards are new there.
-- The path (`app/src/main/assets/stories/path.json`, written from
+- The path (`stories/path.json` in the app's assets, written from
   `tools/stories`, a file per chapter named by its slug, with each story's
   order in its `story.json`; see `tools/stories/AGENTS.md`) is
   stories made of chapters, plus grammar topics. Each chapter's words and
@@ -230,7 +230,9 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   chapter: at a few hundred chapters that would take seconds on a phone.
   The text is split into words at build time too (`stories/read/`, 2026-10-18),
   so the app has no tokenizer and shows exactly what the checks passed. The
-  app build writes it (`:core:storyText`); it isn't committed.
+  app build writes all three (`:core:storyAssets`); they aren't committed
+  (Daniel, 2026-10-18: agents can't always run the tools, and committed
+  output drifts).
   All of it is our own writing for adults, casual speech first: Alex, on a
   one-year working holiday in Tokyo, a share house, a ramen shop job, a
   cast met a few at a time. **Arrival** is the prologue, then **Ramen
@@ -301,7 +303,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   `side` story has nothing new at all; and
   `StoryPath.solve` reaches every chapter from knowing nothing.
   Readiness only grows as you learn, so no reading order can get
-  stuck. It also checks path.json, needs.json, the summaries and
+  stuck. It also checks the summaries and
   `tools/stories/COVERAGE.md` are up to date. After editing a story, run
   `./gradlew -PcoreOnly=true :core:stories :core:test`; when those files
   conflict in a merge or rebase, rerun `:core:stories` rather than resolving
