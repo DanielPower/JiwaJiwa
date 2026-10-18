@@ -1422,15 +1422,6 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
                 Text(nextStep.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        if (chapter != null && !chapter.series.single) {
-            SecondaryButton(onClick = { vm.openSeries(chapter.series.id) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Back to chapters")
-            }
-        } else {
-            SecondaryButton(onClick = vm::openStories, modifier = Modifier.fillMaxWidth()) {
-                Text("Back to stories")
-            }
-        }
     }
 }
 

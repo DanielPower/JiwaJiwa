@@ -253,7 +253,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            WashiIconButton(WashiIcons.Close, "Close", vm::goHome)
+            WashiIconButton(WashiIcons.Close, "Close", vm::closeReview)
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally)) {
                 QueueCount("新", state.counts.new, MaterialTheme.colorScheme.primary)
                 QueueCount("習", state.counts.learning, MaterialTheme.colorScheme.tertiary)

@@ -266,6 +266,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var masteryAtOpen: Map<Long, Int> = emptyMap()
     // Tapped on the main thread, read when the story ends.
     private val lookedUpWords: MutableSet<Long> = ConcurrentHashMap.newKeySet()
+    // The chapter end page a review was started from, for closing it.
+    private var reviewFrom: Screen.StoryReader? = null
 
     init {
         launchIo {
@@ -295,6 +297,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
 
     private fun showHome() {
+        reviewFrom = null
         refreshBadge()
         trail.clear()
         session = null
@@ -303,6 +306,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun goHome() = launchIo { showHome() }
+
+    /** Leave a review: back to the chapter end page it started from, else Home. */
+    fun closeReview() = launchIo {
+        val from = reviewFrom ?: return@launchIo showHome()
+        reviewFrom = null
+        session = null
+        undo = null
+        refreshBadge()
+        _screen.value = from.copy(pace = from.pace?.let { repo.pace(now()) })
+    }
 
     fun openReviewTab() = launchIo { showReviewTab() }
 
@@ -314,9 +327,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.ReviewTab(repo.summary(now()))
     }
 
-    /** The system back button: word page to where it was opened, import to settings, story to stories, stats to the Review tab, anything else home. */
+    /**
+     * The system back button: word page to where it was opened, import to
+     * settings, story to stories, stats to the Review tab, a review to the
+     * chapter end page it started from, anything else home.
+     */
     fun back() {
         when (_screen.value) {
+            is Screen.Review, is Screen.Waiting, is Screen.Done -> closeReview()
             is Screen.WordPage -> closeWord()
             is Screen.KanjiPage -> goBack()
             is Screen.RenshuuImport -> closeImport()
@@ -328,6 +346,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun startReview() = launchIo {
+        // From a chapter's end page, closing the review comes back to it.
+        reviewFrom = (_screen.value as? Screen.StoryReader)?.takeIf { it.impact != null }
         session = repo.session(now())
         undo = null
         advance()
