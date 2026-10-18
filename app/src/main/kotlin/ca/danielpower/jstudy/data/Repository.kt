@@ -30,6 +30,9 @@ import ca.danielpower.jstudy.core.WordProgress
 import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.CastMember
+import ca.danielpower.jstudy.core.CastVoice
+import ca.danielpower.jstudy.core.Narration
+import ca.danielpower.jstudy.core.NarrationLine
 import ca.danielpower.jstudy.core.Chapter
 import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.Candidate
@@ -148,6 +151,9 @@ data class StoryReading(
     /** The saved page of the grammar topic each grammar point belongs to, by point id. */
     val lessons: Map<String, Long> = emptyMap(),
 ) {
+    /** The text as sentences to read aloud. */
+    val narration: List<NarrationLine> by lazy { Narration.lines(paragraphs, speakers) }
+
     /** The word at [i] in paragraph [p]. */
     fun word(p: Int, i: Int): ReadingWord? = paragraphs.getOrNull(p)?.getOrNull(i)
 
@@ -226,6 +232,13 @@ data class ReaderStyle(
 ) {
     companion object {
         val SIZES = listOf(22, 26, 30, 34)
+    }
+}
+
+/** How stories are read aloud: the speed, and the narrator's voice by name (the phone's first when null). */
+data class SpeechSettings(val rate: Float = 1f, val narrator: String? = null) {
+    companion object {
+        val RATES = listOf(0.6f, 0.8f, 1f, 1.2f)
     }
 }
 
@@ -578,6 +591,21 @@ class Repository(context: Context) {
             ),
         )
     }
+
+    fun speechSettings(): SpeechSettings {
+        val default = SpeechSettings()
+        return SpeechSettings(
+            rate = store.getValue("speech_rate")?.toFloatOrNull()?.takeIf { it in SpeechSettings.RATES } ?: default.rate,
+            narrator = store.getValue("speech_narrator")?.takeIf { it.isNotEmpty() },
+        )
+    }
+
+    fun setSpeechSettings(settings: SpeechSettings) {
+        store.setValues(mapOf("speech_rate" to settings.rate.toString(), "speech_narrator" to settings.narrator.orEmpty()))
+    }
+
+    /** The stories' cast with their voices, in the order the stories meet them, so each keeps theirs as stories are added. */
+    fun castVoices(): List<Pair<String, CastVoice>> = catalog.cast.mapNotNull { m -> m.voice?.let { m.name to it } }
 
     fun story(id: Long): SavedStory? = store.story(id)
 

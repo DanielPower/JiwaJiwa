@@ -2,7 +2,7 @@
   "title": "The new guy",
   "plot": "Spring: Sora arrives from Hokkaido with a huge bag, and Yuki lets him in.",
   "topic": "n-desu",
-  "meets": [{"name": "ソラ", "about": "takes Alex's old room; 19, from Hokkaido, starting university"}],
+  "meets": [{"name": "ソラ", "about": "takes Alex's old room; 19, from Hokkaido, starting university", "voice": "man", "pitch": 1.12}],
   "paragraphs": [
     [["春の朝だ。", "A spring morning."]],
     [["外に、人がいる。", "There's someone outside."], ["大きい荷物だ。", "With a big bag."]],

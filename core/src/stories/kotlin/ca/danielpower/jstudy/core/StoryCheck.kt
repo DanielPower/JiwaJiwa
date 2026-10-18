@@ -86,6 +86,13 @@ class StoryCheck(private val tools: StoryTools) {
 
         // Anyone in a story's cast. Any other speaker is a description (店員, 男の人), fine anywhere.
         val cast = catalog.chapters.flatMap { it.second.meets.map { m -> m.name } }.toSet()
+        // Each of the cast has a voice to read their lines in, the same wherever they're met.
+        for ((_, c) in catalog.chapters) for (m in c.meets) {
+            if (m.voice == null) problem(c.story.id, "${m.name}: give them a \"voice\" (woman, man or child)")
+        }
+        for ((name, met) in catalog.chapters.flatMap { it.second.meets }.groupBy { it.name }) {
+            if (met.mapNotNull { it.voice }.distinct().size > 1) problem(null, "$name has a different voice where they're met again")
+        }
         // Each story read in order, after the ones it follows, opens one chapter at a time.
         // A side story opens with nothing new at all. The stories it follows are checked on their own turn.
         for (series in catalog.series) {

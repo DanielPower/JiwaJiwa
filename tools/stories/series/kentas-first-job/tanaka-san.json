@@ -2,7 +2,7 @@
   "title": "Tanaka-san",
   "plot": "Kenta's first day on the new game, with Tanaka-san, his strict and very polite senior.",
   "topic": "mashou",
-  "meets": [{"name": "田中", "about": "Kenta's senior at the game company; strict, fair, always polite"}],
+  "meets": [{"name": "田中", "about": "Kenta's senior at the game company; strict, fair, always polite", "voice": "woman", "pitch": 0.95}],
   "paragraphs": [
     [["朝だ。", "Morning."], ["ケンタは、会社に来た。", "Kenta got to the office."]],
     [["今日から、新しいゲームの仕事だ。", "Starting today, he's working on the new game."]],

@@ -2,7 +2,7 @@
   "title": "The drummer",
   "plot": "Early summer: after playing bass in a friend's band, Yuki meets Daichi, a loud drummer who saw her sing, and he wants to start a band with her.",
   "topic": "potential",
-  "meets": [{"name": "ダイチ", "about": "drummer Yuki meets at the live house; loud and cheerful"}],
+  "meets": [{"name": "ダイチ", "about": "drummer Yuki meets at the live house; loud and cheerful", "voice": "man", "pitch": 1.04}],
   "paragraphs": [
     [["夏の夜だ。", "A summer night."], ["今夜も、ライブハウスでベースを弾いた。", "I played bass at the live house again tonight."]],
     [["友達のバンドだ。", "A friend's band."], ["私のバンドじゃない。", "Not mine."]],

@@ -2,7 +2,7 @@
   "title": "The manga shop",
   "plot": "On his day off, Alex finds a manga shop where Miho works.",
   "topic": "ni",
-  "meets": [{"name": "ミホ", "about": "works at the manga shop, has recommendations"}],
+  "meets": [{"name": "ミホ", "about": "works at the manga shop, has recommendations", "voice": "woman", "pitch": 1.1}],
   "paragraphs": [
     [["今日は休み。", "It's my day off."]],
     [["マンガの店に来た。", "I came to the manga shop."]],
