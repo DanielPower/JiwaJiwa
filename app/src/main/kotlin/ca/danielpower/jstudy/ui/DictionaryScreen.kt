@@ -40,12 +40,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
@@ -54,6 +58,7 @@ import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.data.GrammarRow
+import ca.danielpower.jstudy.data.StoryUse
 import ca.danielpower.jstudy.data.levelLabel
 import java.time.Instant
 import java.time.LocalDate
@@ -342,6 +347,13 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                 }
             }
 
+            if (detail.stories.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    SectionLabel("In your stories")
+                    for (use in detail.stories) StoryUseRow(use, onOpen = { vm.openStoryAt(use) }, onPlay = { vm.playStoryUse(use) })
+                }
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel("Actions")
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -411,6 +423,47 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                 TextButton(onClick = { confirmReset = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             },
         )
+    }
+}
+
+/**
+ * A sentence with the word from a chapter you've read: the chapter, the
+ * sentence with the word marked, and its English. Tapping it opens the
+ * chapter there; the speaker plays it.
+ */
+@Composable
+private fun StoryUseRow(use: StoryUse, onOpen: () -> Unit, onPlay: () -> Unit) {
+    val seal = MaterialTheme.colorScheme.primary
+    val nameColor = speakerColor()
+    Row(Modifier.fillMaxWidth().clickable(onClick = onOpen), verticalAlignment = Alignment.Top) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                if (use.series.single) use.series.title else "${use.series.title}, ch. ${use.chapter.number}",
+                style = MaterialTheme.typography.labelMedium,
+                color = seal,
+            )
+            Text(
+                buildAnnotatedString {
+                    // Script style, as in the reader: the speaker's name, smaller, before their line.
+                    use.speaker?.let { name ->
+                        withStyle(SpanStyle(fontSize = NAME_RATIO.em, color = nameColor)) { append(name) }
+                        append(" ")
+                    }
+                    use.words.forEachIndexed { i, word ->
+                        if (i in use.marked) {
+                            withStyle(SpanStyle(color = seal, background = seal.copy(alpha = HIGHLIGHT))) { append(word.surface) }
+                        } else {
+                            append(word.surface)
+                        }
+                    }
+                },
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            use.translation?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (use.line != null) SayButton(Modifier.padding(start = 8.dp), onClick = onPlay)
     }
 }
 

@@ -12,8 +12,11 @@ import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.ImportPlan
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.MasteryRules
+import ca.danielpower.jstudy.core.NarrationLine
 import ca.danielpower.jstudy.core.Pace
+import ca.danielpower.jstudy.core.PhoneVoice
 import ca.danielpower.jstudy.core.ReadLevel
+import ca.danielpower.jstudy.core.Recording
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
@@ -40,6 +43,7 @@ import ca.danielpower.jstudy.data.SavedStory
 import ca.danielpower.jstudy.data.SeriesEntry
 import ca.danielpower.jstudy.data.StepToLearn
 import ca.danielpower.jstudy.data.StoryReading
+import ca.danielpower.jstudy.data.StoryUse
 import ca.danielpower.jstudy.data.Summary
 import ca.danielpower.jstudy.data.Undo
 import ca.danielpower.jstudy.data.Word
@@ -180,6 +184,8 @@ sealed interface Screen {
         val then: NextStep? = null,
         /** The page to open on, when coming back from a grammar page. */
         val startPage: Int = 0,
+        /** Or a word to open on the page of, with its sentence shown: from a word's page. */
+        val startAt: Pair<Int, Int>? = null,
         /** Words you said you forgot: each gets a Wrong review when you finish. */
         val forgotten: Set<Long> = emptySet(),
         /** Words the finished story started that you said you already know. */
@@ -660,6 +666,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 beforeGrammar = null
                 if (grammarFrom is Screen.Dictionary) _screen.value = grammarFrom.copy(grammar = repo.grammarRows()) else returnTo(grammarFrom)
             }
+            // A chapter opened from a word's page goes back to it.
+            screen is Screen.StoryReader && trail.lastOrNull() is Screen.WordPage -> returnTo(trail.removeLastOrNull())
             chapter != null && !chapter.series.single -> showSeries(chapter.series.id)
             else -> showStories()
         }
@@ -730,7 +738,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openGrammar(pageId: Long) = launchIo {
         val screen = _screen.value
         if (screen !is Screen.StoryReader || screen.reading.lesson == null) {
-            beforeGrammar = if (screen is Screen.StoryReader) screen.copy(startPage = readerPage) else screen
+            beforeGrammar = if (screen is Screen.StoryReader) screen.copy(startPage = readerPage, startAt = null) else screen
         }
         showStory(pageId)
     }
@@ -744,8 +752,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) { repo.saveReaderPlace(place) }
     }
 
+    /** A sentence on a word's page: its chapter opens on that page with the sentence shown, and Back comes back to the word. */
+    fun openStoryAt(use: StoryUse) = launchIo {
+        val page = _screen.value as? Screen.WordPage ?: return@launchIo
+        trail.addLast(page)
+        topicForStory = null
+        showStory(use.storyId, startAt = use.paragraph to use.index)
+    }
+
     /** Open a story, or a grammar page; a grammar page leaves the story it was opened from as it was. */
-    private fun showStory(id: Long, then: NextStep? = null) {
+    private fun showStory(id: Long, then: NextStep? = null, startAt: Pair<Int, Int>? = null) {
         val reading = repo.readStory(id) ?: return showStories()
         val style = repo.readerStyle()
         var startPage = 0
@@ -759,7 +775,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             readerPage = startPage
         }
         val chapter = repo.chapterEntry(reading.story)
-        _screen.value = Screen.StoryReader(reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage)
+        _screen.value = Screen.StoryReader(
+            reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage, startAt = startAt,
+        )
     }
 
     /**
@@ -836,24 +854,34 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------ reading aloud
 
-    /**
-     * The open story read aloud from line [from] of its narration: from its
-     * recordings, or where a line has none, the phone's voices, each of the
-     * cast in their own and the rest in the phone's first.
-     */
-    fun play(from: Int) {
+    /** The open story read aloud from line [from] of its narration, or only that line when [single]. */
+    fun play(from: Int, single: Boolean = false) {
         val state = _screen.value as? Screen.StoryReader ?: return
         val reading = state.reading
-        val settings = _speech.value
+        voice.play(reading.story.id, from, _speech.value.rate, single, spokenLines(reading.narration, reading.speakers, reading.clips))
+    }
+
+    /** Only the open story's sentence at line [line], as the sentence card's play button does. */
+    fun playLine(line: Int) = play(line, single = true)
+
+    /** A sentence on a word's page, from its recording, or the phone's voice for its speaker. */
+    fun playStoryUse(use: StoryUse) {
+        val line = use.line ?: return
+        voice.play(null, 0, _speech.value.rate, single = true, spokenLines(listOf(line), listOf(use.speaker), listOf(use.clip)))
+    }
+
+    /**
+     * [lines] to read aloud: from their recordings, or where a line has none,
+     * the phone's voices, each of the cast in their own and the rest in the phone's first.
+     */
+    private fun spokenLines(lines: List<NarrationLine>, speakers: List<String?>, clips: List<Recording?>): (List<PhoneVoice>) -> List<SpokenLine> {
         val cast = repo.castVoices()
-        voice.play(reading.story.id, from, settings.rate) { voices ->
+        return { voices ->
             val narrator = Voices.narrator(voices, null)
             val named = cast.map { it.first }.toSet()
-            val others = reading.speakers.filterNotNull().distinct().filter { it !in named }.map { it to Voices.forLabel(it) }
-            val speakers = Voices.assign(voices, narrator.name, cast + others)
-            reading.narration.mapIndexed { i, line ->
-                SpokenLine(line.text, line.speaker?.let(speakers::get) ?: narrator, reading.clips.getOrNull(i))
-            }
+            val others = speakers.filterNotNull().distinct().filter { it !in named }.map { it to Voices.forLabel(it) }
+            val voiceOf = Voices.assign(voices, narrator.name, cast + others)
+            lines.mapIndexed { i, line -> SpokenLine(line.text, line.speaker?.let(voiceOf::get) ?: narrator, clips.getOrNull(i)) }
         }
     }
 
@@ -965,7 +993,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         when (val current = _screen.value) {
             is Screen.Dictionary -> lastDictionary = current
             // A story comes back on the page you were reading.
-            is Screen.StoryReader -> trail.addLast(current.copy(startPage = readerPage))
+            is Screen.StoryReader -> trail.addLast(current.copy(startPage = readerPage, startAt = null))
             // Anywhere else (Home's Recent words, a kanji page) is where Back returns.
             else -> trail.addLast(current)
         }

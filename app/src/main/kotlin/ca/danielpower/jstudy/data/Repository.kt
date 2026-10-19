@@ -108,6 +108,26 @@ data class WordDetail(
     val history: List<Pair<Direction, ReviewEntry>>,
     /** The kanji in the word's spelling, in order. */
     val kanji: List<Kanji>,
+    /** Sentences with it from chapters you've read, the last read first. */
+    val stories: List<StoryUse> = emptyList(),
+)
+
+/** A sentence from a chapter you've read, for a word's page: where it is, its words, and how to hear it. */
+data class StoryUse(
+    val series: PathSeries,
+    val chapter: Chapter,
+    val storyId: Long,
+    /** The word's place in the chapter, for the reader to open at. */
+    val paragraph: Int,
+    val index: Int,
+    val words: List<ReadingWord>,
+    /** Which of [words] are the word. */
+    val marked: Set<Int>,
+    val speaker: String?,
+    val translation: String?,
+    /** The sentence as it's read aloud, and its recording if it has one. */
+    val line: NarrationLine?,
+    val clip: Recording?,
 )
 
 /** A kanji's page: its entry and the words written with it. */
@@ -472,6 +492,47 @@ class Repository private constructor(context: Context) {
             suspended = store.isSuspended(wordId),
             history = store.logs(wordId),
             kanji = kanjiIn(word),
+            stories = storyUses(wordId),
+        )
+    }
+
+    /** Up to [limit] sentences with [wordId], one from each chapter you've read that has it, the last read first. */
+    private fun storyUses(wordId: Long, limit: Int = 3): List<StoryUse> {
+        val saved = savedPath()
+        return catalog.chapters
+            .mapNotNull { (series, chapter) ->
+                val story = saved[chapter.story.id]?.takeIf { it.readAt != null } ?: return@mapNotNull null
+                val has = needs[chapter.story.id]?.words?.any { it.wordId == wordId } == true
+                if (has) Triple(series, chapter, story) else null
+            }
+            .sortedByDescending { it.third.readAt }
+            .asSequence()
+            .mapNotNull { (series, chapter, story) -> storyUse(series, chapter, story, wordId) }
+            .take(limit)
+            .toList()
+    }
+
+    /** The first sentence of [story] with [wordId]. */
+    private fun storyUse(series: PathSeries, chapter: Chapter, story: SavedStory, wordId: Long): StoryUse? {
+        val paragraphs = paragraphs(story)
+        val p = paragraphs.indexOfFirst { words -> words.any { it.wordId == wordId } }.takeIf { it >= 0 } ?: return null
+        val i = paragraphs[p].indexOfFirst { it.wordId == wordId }
+        // Only its text is needed, not its words' entries or progress.
+        val reading = StoryReading(story, paragraphs, Speech.speakers(story.body), emptyMap(), emptyMap(), coverage(paragraphs) { true })
+        val sentence = reading.sentence(p, i) ?: return null
+        val line = Narration.lineOf(reading.narration, p, i)
+        return StoryUse(
+            series = series,
+            chapter = chapter,
+            storyId = story.id,
+            paragraph = p,
+            index = i,
+            words = paragraphs[p].slice(sentence.words),
+            marked = sentence.words.filter { paragraphs[p][it].wordId == wordId }.map { it - sentence.words.first }.toSet(),
+            speaker = reading.speakers.getOrNull(p),
+            translation = sentence.translation,
+            line = line?.let(reading.narration::get),
+            clip = line?.let { clips(story, reading.narration).getOrNull(it) },
         )
     }
 

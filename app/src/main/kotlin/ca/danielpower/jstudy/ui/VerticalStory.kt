@@ -111,6 +111,7 @@ fun VerticalStory(
     startPage: Int,
     onPageShown: (page: Int, pages: Int, first: Pair<Int, Int>?) -> Unit,
     modifier: Modifier = Modifier,
+    startAt: Pair<Int, Int>? = null,
 ) {
     val pieces = remember(reading) { pieces(reading) }
     BoxWithConstraints(modifier) {
@@ -169,12 +170,13 @@ fun VerticalStory(
         val stampPage = stampX == null || stampX < 0f
         val count = pages.size + if (stampPage) 1 else 0
 
+        val pageOf = { (p, i): Pair<Int, Int> -> pages.indexOfFirst { page -> page.any { pieces[it].p == p && pieces[it].i == i } }.takeIf { it >= 0 } }
         // The page with the word being read aloud, to turn to.
-        val followPage = follow?.let { (p, i) -> pages.indexOfFirst { page -> page.any { pieces[it].p == p && pieces[it].i == i } } }?.takeIf { it >= 0 }
+        val followPage = follow?.let(pageOf)
         val shown = { page: Int ->
             onPageShown(page, count, pages.getOrNull(page)?.firstOrNull { !pieces[it].note }?.let { pieces[it].p to pieces[it].i })
         }
-        StoryPager(count, reverse = true, startPage, shown, followPage) { page ->
+        StoryPager(count, reverse = true, startAt?.let(pageOf) ?: startPage, shown, followPage) { page ->
             val onPage = pages.getOrNull(page).orEmpty()
             // Speakers whose lines start on this page, by the piece their line starts with.
             val names = onPage.filter { pieces[it].paragraphStart && reading.speakers.getOrNull(pieces[it].p) != null }

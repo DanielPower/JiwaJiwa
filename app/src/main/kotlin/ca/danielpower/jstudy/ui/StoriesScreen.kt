@@ -618,8 +618,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val style = state.style
     // The settings menu shares the pane with words and sentences; opening one closes the other.
     var menu by remember { mutableStateOf(false) }
-    // What the pane shows: a word, or the sentence around it.
-    var open by remember(reading.story.id) { mutableStateOf<Opened?>(null) }
+    // What the pane shows: a word, or the sentence around it. From a word's page, that word's sentence.
+    var open by remember(reading.story.id) { mutableStateOf(state.startAt?.let { Opened(it.first, it.second, sentence = true) }) }
     // Or a chapter's note, by the paragraph whose marker opened it.
     var note by remember(reading.story.id) { mutableStateOf<Int?>(null) }
     // Or the reading-aloud speed, from the playback bar.
@@ -798,6 +798,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     startPage = state.startPage,
                     onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
+                    startAt = state.startAt,
                 )
             } else {
                 HorizontalStory(
@@ -818,6 +819,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     startPage = state.startPage,
                     onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
+                    startAt = state.startAt,
                 )
             }
             if (state.impact == null) {
@@ -948,6 +950,7 @@ private fun HorizontalStory(
     startPage: Int,
     onPageShown: (page: Int, pages: Int, first: Pair<Int, Int>?) -> Unit,
     modifier: Modifier = Modifier,
+    startAt: Pair<Int, Int>? = null,
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -1005,12 +1008,13 @@ private fun HorizontalStory(
         } ?: 0.0
         val stampPage = pages.isEmpty() || used + with(density) { STAMP_ACROSS_HEIGHT.toPx() } > height
         val count = pages.size + if (stampPage) 1 else 0
+        val pageOf = { (p, i): Pair<Int, Int> -> pages.indexOfFirst { page -> page.any { it.paragraph == p && i in it.words } }.takeIf { it >= 0 } }
         // The page with the word being read aloud, to turn to.
-        val followPage = follow?.let { (p, i) -> pages.indexOfFirst { page -> page.any { it.paragraph == p && i in it.words } } }?.takeIf { it >= 0 }
+        val followPage = follow?.let(pageOf)
         val shown = { page: Int ->
             onPageShown(page, count, pages.getOrNull(page)?.firstOrNull()?.let { it.paragraph to it.words.first })
         }
-        StoryPager(count, reverse = false, startPage, shown, followPage) { page ->
+        StoryPager(count, reverse = false, startAt?.let(pageOf) ?: startPage, shown, followPage) { page ->
             Column(Modifier.fillMaxSize().padding(horizontal = PAGE_PADDING_H, vertical = PAGE_PADDING)) {
                 pages.getOrNull(page).orEmpty().forEachIndexed { n, line ->
                     if (n > 0 && line.words.first == 0) Spacer(Modifier.height(PARAGRAPH_GAP))
