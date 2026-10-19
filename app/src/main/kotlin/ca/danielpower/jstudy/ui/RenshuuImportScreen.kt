@@ -19,7 +19,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,7 +77,8 @@ fun RenshuuImportScreen(step: ImportStep, vm: AppViewModel) {
 
 @Composable
 private fun EnterKey(error: String?, onSubmit: (String) -> Unit) {
-    var key by rememberSaveable { mutableStateOf("") }
+    // Not saveable: the key would be kept in the saved state after the app is killed.
+    var key by remember { mutableStateOf("") }
     Text(
         "Paste your API key from Renshuu's settings. Jiwa Jiwa uses it once to read the words you've studied " +
             "and their mastery, and doesn't keep it.",
