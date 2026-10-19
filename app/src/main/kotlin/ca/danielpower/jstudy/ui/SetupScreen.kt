@@ -285,7 +285,7 @@ private fun BoxScope.HorizontalSample() {
     val em = with(LocalDensity.current) { SampleSize.toDp() }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(verticalArrangement = Arrangement.spacedBy(em * 0.3f)) {
-            for (line in sampleLines((maxWidth / em).toInt().coerceAtLeast(1))) {
+            for (line in sampleLines((this@BoxWithConstraints.maxWidth / em).toInt().coerceAtLeast(1))) {
                 Row {
                     for ((base, ruby) in line) {
                         Column(Modifier.width(em), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -306,7 +306,7 @@ private fun BoxScope.VerticalSample() {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Columns run right to left, so the first is drawn at the end of the row.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(em * 0.3f, Alignment.End)) {
-            for (column in sampleLines((maxHeight / em).toInt().coerceAtLeast(1)).asReversed()) {
+            for (column in sampleLines((this@BoxWithConstraints.maxHeight / em).toInt().coerceAtLeast(1)).asReversed()) {
                 Column {
                     for ((base, ruby) in column) {
                         Row {
