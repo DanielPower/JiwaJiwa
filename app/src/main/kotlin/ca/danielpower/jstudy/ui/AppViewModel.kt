@@ -968,7 +968,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openWord(wordId: Long) = launchIo {
         when (val current = _screen.value) {
             is Screen.Dictionary -> lastDictionary = current
-            // Anywhere else (Home's Recent words, a kanji page, a story) is where Back returns.
+            // A story comes back on the page you were reading.
+            is Screen.StoryReader -> trail.addLast(current.copy(startPage = readerPage))
+            // Anywhere else (Home's Recent words, a kanji page) is where Back returns.
             else -> trail.addLast(current)
         }
         showWord(wordId)
