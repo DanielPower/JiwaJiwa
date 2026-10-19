@@ -290,7 +290,8 @@ class Reviewer(
     fun markKnown(card: Card, progress: WordProgress, mastery: Int, now: Long, random: Random, source: StartSource = StartSource.KNOWN): Known {
         val newMastery = mastery.coerceIn(0, MasteryRules.MAX)
         val days = MasteryRules.stabilityDays(newMastery)
-        return known(card, progress, newMastery, days, days, now, random, source)
+        // The exact stability, so the next answer doesn't move mastery on its own.
+        return known(card, progress, newMastery, MasteryRules.stabilityFor(newMastery), days, now, random, source)
     }
 
     /**
@@ -299,9 +300,9 @@ class Reviewer(
      * be longer than [days] to spread out a large batch.
      */
     fun markKnownFor(card: Card, progress: WordProgress, days: Int, firstDueWithin: Int, now: Long, random: Random): Known =
-        known(card, progress, MasteryRules.fromStability(days.toDouble()), days, maxOf(days, firstDueWithin), now, random, StartSource.LEVEL)
+        known(card, progress, MasteryRules.fromStability(days.toDouble()), days.toDouble(), maxOf(days, firstDueWithin), now, random, StartSource.LEVEL)
 
-    private fun known(card: Card, progress: WordProgress, newMastery: Int, days: Int, firstDueWithin: Int, now: Long, random: Random, source: StartSource): Known {
+    private fun known(card: Card, progress: WordProgress, newMastery: Int, stability: Double, firstDueWithin: Int, now: Long, random: Random, source: StartSource): Known {
         require(card.wordId == progress.wordId)
         val today = clock.dayOf(now)
         val startsToday = card.state == CardState.NEW || card.introducedDay == today
@@ -313,7 +314,7 @@ class Reviewer(
             state = CardState.REVIEW,
             step = null,
             // At 90% target retention the FSRS interval equals the stability.
-            stability = days.toDouble(),
+            stability = stability,
             difficulty = fsrs.startingDifficulty(Rating.GOOD),
             dueAt = clock.startOf(today + firstDue),
             lastReviewAt = now,
