@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.FlowRowOverflow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,6 +48,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.Candidate
 import ca.danielpower.jstudy.core.NextUp
 import ca.danielpower.jstudy.core.ReadKind
+import ca.danielpower.jstudy.core.Recent
 import ca.danielpower.jstudy.core.Streak
 import ca.danielpower.jstudy.core.WordDay
 import ca.danielpower.jstudy.data.ChapterEntry
@@ -624,28 +625,49 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
             // Two lines at most, then +N, which opens the row in place to show the rest of the week.
             var expanded by rememberSaveable { mutableStateOf(false) }
             val muted = MaterialTheme.colorScheme.onSurfaceVariant
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                maxLines = if (expanded) Int.MAX_VALUE else RECENT_LINES,
-                overflow = FlowRowOverflow.expandIndicator {
-                    Chip("+${totalItemCount - shownItemCount}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
-                },
-            ) {
-                for (item in d.recent) when (item) {
-                    is RecentItem.NewWord -> Chip(item.word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
-                    is RecentItem.NewGrammar -> Chip(
-                        item.topic.title,
-                        indigo,
-                        indigo.copy(alpha = 0.45f),
-                        indigo.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow),
-                    ) { vm.openGrammar(item.pageId) }
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val measurer = rememberTextMeasurer()
+                val chipText = MaterialTheme.typography.bodyMedium.copy(fontFamily = Gothic)
+                val density = LocalDensity.current
+                val shown = if (expanded) {
+                    d.recent.size
+                } else {
+                    with(density) {
+                        // A chip is its text plus padding and border; a dp spare each so rounding never wraps a third line.
+                        val chrome = (2 * 8 + 2 + 1).dp.toPx()
+                        fun width(text: String) = measurer.measure(text, chipText).size.width + chrome
+                        Recent.fitting(
+                            d.recent.map { width(it.label) },
+                            maxWidth = constraints.maxWidth.toFloat(),
+                            gap = 6.dp.toPx(),
+                            lines = RECENT_LINES,
+                        ) { hidden -> width("+$hidden") }
+                    }
                 }
-                if (expanded) Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (item in d.recent.take(shown)) when (item) {
+                        is RecentItem.NewWord -> Chip(item.word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
+                        is RecentItem.NewGrammar -> Chip(
+                            item.topic.title,
+                            indigo,
+                            indigo.copy(alpha = 0.45f),
+                            indigo.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow),
+                        ) { vm.openGrammar(item.pageId) }
+                    }
+                    if (shown < d.recent.size) Chip("+${d.recent.size - shown}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
+                    if (expanded) Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
+                }
             }
         }
     }
 }
+
+/** What a recent item's chip says. */
+private val RecentItem.label
+    get() = when (this) {
+        is RecentItem.NewWord -> word.display
+        is RecentItem.NewGrammar -> topic.title
+    }
 
 private const val RECENT_LINES = 2
 

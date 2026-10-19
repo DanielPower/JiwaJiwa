@@ -136,4 +136,21 @@ class HomeTest {
         assertEquals(LocalDate.parse("2026-10-12").toEpochDay(), Streak.weekOf(saturday))
         assertEquals(LocalDate.parse("2026-10-12").toEpochDay(), Streak.weekOf(LocalDate.parse("2026-10-12").toEpochDay()))
     }
+
+    @Test
+    fun allChipsShowWhenTheyFit() {
+        assertEquals(3, Recent.fitting(listOf(30f, 30f, 30f), maxWidth = 100f, gap = 5f, lines = 2) { 20f })
+    }
+
+    @Test
+    fun chipsStopAtTwoLinesWithRoomForMore() {
+        // Two 45s fill a line of 100, so four fill two lines; the fifth needs a "+N", which takes the fourth's place.
+        val widths = List(6) { 45f }
+        assertEquals(3, Recent.fitting(widths, maxWidth = 100f, gap = 5f, lines = 2) { 20f })
+    }
+
+    @Test
+    fun aWideMoreChipCanPushOutSeveral() {
+        assertEquals(2, Recent.fitting(List(6) { 30f }, maxWidth = 100f, gap = 5f, lines = 1) { 30f })
+    }
 }
