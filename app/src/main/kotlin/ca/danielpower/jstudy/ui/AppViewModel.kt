@@ -391,7 +391,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val word = repo.dictionary.word(card.wordId)
         if (word == null) {
             // A word removed from the dictionary in an update; skip it.
-            s.answered(card.copy(state = CardState.REVIEW), 0)
+            s.drop(card.id)
             return advance()
         }
         val mastery = repo.progress(card.wordId).mastery
@@ -1015,8 +1015,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             is Screen.WordPage -> showWord(screen.detail.word.id)
             is Screen.KanjiPage -> repo.kanjiDetail(screen.detail.kanji.literal)?.let { _screen.value = Screen.KanjiPage(it) }
             is Screen.StatsPage -> _screen.value = Screen.StatsPage(repo.stats(now()))
+            is Screen.Review -> resumeReview(screen)
             else -> _screen.value = screen
         }
+    }
+
+    /** Back from a word's page to the card it was opened from, unless the word was reset or suspended there. */
+    private fun resumeReview(state: Screen.Review) {
+        val s = session ?: return showHome()
+        if (repo.unchanged(state.current.card)) {
+            _screen.value = state
+            return
+        }
+        s.drop(state.current.card.id)
+        undo = null
+        advance()
     }
 
     fun markKnown(mastery: Int) = wordAction { repo.markKnown(it, mastery, now()) }

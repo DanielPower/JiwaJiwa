@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -253,6 +254,9 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
     val production = state.current.card.direction == Direction.PRODUCTION
     val revealed = state.revealed
     val noRipple = remember { MutableInteractionSource() }
+    // The answer side says the word. A short one has room for the speaker beside it.
+    val speakerBeside = revealed && word.display.length <= 3
+    val say = { vm.sayWord(word.kana) }
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -291,6 +295,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             )
             Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (revealed && !speakerBeside) SayButton(onClick = say)
                     Spacer(Modifier.weight(1f))
                     LevelSeal(levelLabel(word.jlpt), tilted = true)
                 }
@@ -301,8 +306,9 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                     }
                     if (state.revealed) {
                         HorizontalDivider(Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurface)
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.Bottom) {
                             WordFace(word, showFurigana = true)
+                            if (speakerBeside) SayButton(Modifier.padding(start = 8.dp, bottom = 14.dp), onClick = say)
                         }
                     }
                 } else {
@@ -311,14 +317,17 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        Box(
-                            modifier = Modifier.clickable(
-                                interactionSource = noRipple,
-                                indication = null,
-                                enabled = word.showsKanji && state.current.furigana != FuriganaMode.OFF,
-                            ) { vm.toggleFurigana() },
-                        ) {
-                            WordFace(word, showFurigana = revealed || state.furiganaVisible)
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Box(
+                                modifier = Modifier.clickable(
+                                    interactionSource = noRipple,
+                                    indication = null,
+                                    enabled = word.showsKanji && state.current.furigana != FuriganaMode.OFF,
+                                ) { vm.toggleFurigana() },
+                            ) {
+                                WordFace(word, showFurigana = revealed || state.furiganaVisible)
+                            }
+                            if (speakerBeside) SayButton(Modifier.padding(start = 8.dp, bottom = 14.dp), onClick = say)
                         }
                         if (!revealed && word.showsKanji && state.current.furigana == FuriganaMode.HIDDEN) {
                             Text(
@@ -348,6 +357,10 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                         Text("Mastery", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         MasteryBar(state.current.mastery, Modifier.weight(1f))
                         Text("${state.current.mastery}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    }
+                    // The word's page; Back comes back to this card.
+                    TextButton(onClick = { vm.openWord(word.id) }, modifier = Modifier.align(Alignment.End)) {
+                        Text("Full entry →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
                     }
                 }
             }
