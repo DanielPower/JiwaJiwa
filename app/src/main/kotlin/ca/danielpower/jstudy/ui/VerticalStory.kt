@@ -137,9 +137,8 @@ fun VerticalStory(
         // Script style: a line of dialogue starts with its speaker's name at the
         // top of the column, and the quotes in a run of dialogue all start level,
         // below its longest name. A quote that runs on carries on a cell lower.
-        val nameRows = remember(reading) {
-            Speech.columns(reading.speakers) { it.characters().size * NAME_RATIO }.map { it?.let { r -> ceil(r + NAME_GAP).toInt() } }
-        }
+        val nameLengths = remember(reading) { Speech.columns(reading.speakers) { it.characters().size * NAME_RATIO } }
+        val nameRows = remember(nameLengths) { nameLengths.map { it?.let { r -> ceil(r + NAME_GAP).toInt() } } }
         val spots = remember(pieces, rows) {
             VerticalText.place(
                 pieces.map { piece ->
@@ -263,9 +262,13 @@ fun VerticalStory(
                         placeable.place(left(spot).roundToInt(), top(spot.row))
                     }
                     // Each name at the top of its line's first column, centred on the text's cells.
+                    // The quotes start on a whole cell, so the run's names drop by what's
+                    // left over, keeping the gap after the longest one at NAME_GAP.
                     nameables.forEachIndexed { n, placeable ->
+                        val line = pieces[names[n]].p
                         val x = left(spots[names[n]]) + (cell - nameCell) / 2
-                        placeable.place(x.roundToInt(), 0)
+                        val drop = (nameRows[line]!! - nameLengths[line]!! - NAME_GAP) * cell
+                        placeable.place(x.roundToInt(), drop.roundToInt())
                     }
                     if (stamp != null) {
                         // Centred in its room, a row down from the top, as a seal sits beside the text.

@@ -1265,7 +1265,7 @@ private fun LessonPage(
                             FlowRow {
                                 val lineSize = STORY_LINE_SIZE
                                 line.speaker?.let {
-                                    Text(it, fontFamily = family, fontSize = (lineSize * NAME_RATIO).sp, color = nameColor, modifier = Modifier.align(Alignment.Bottom).padding(end = 6.dp))
+                                    Text(it, fontFamily = family, fontSize = (lineSize * NAME_RATIO).sp, color = nameColor, modifier = Modifier.align(Alignment.Bottom).padding(end = (lineSize * NAME_GAP).dp))
                                 }
                                 Words(reading.storyLineAt(n), line.words, lineSize, Modifier.align(Alignment.Bottom))
                             }
@@ -1412,10 +1412,10 @@ private val MARKER_PADDING = 2.dp
 private val MARKER_BORDER = 1.5.dp
 
 /** A speaker's name against the text of their line: smaller, as a label. */
-internal const val NAME_RATIO = 0.8f
+internal const val NAME_RATIO = 0.7f
 
 /** The space after a run of dialogue's widest name, in characters of the text. */
-internal const val NAME_GAP = 0.5f
+internal const val NAME_GAP = 0.25f
 
 /** Speakers' names: quieter than the text, and in light theme a little more than onSurfaceVariant. */
 @Composable
