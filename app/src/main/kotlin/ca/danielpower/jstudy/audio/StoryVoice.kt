@@ -1,12 +1,21 @@
 package ca.danielpower.jstudy.audio
 
 import android.content.Context
+import android.media.AudioManager
+import android.media.audiofx.LoudnessEnhancer
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.annotation.OptIn
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
 import ca.danielpower.jstudy.core.PhoneVoice
+import ca.danielpower.jstudy.core.Recording
 import ca.danielpower.jstudy.core.SpokenVoice
 import ca.danielpower.jstudy.core.Voices
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,13 +23,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.Locale
+import kotlin.math.pow
 
-/** A line to say, in a voice. */
-data class SpokenLine(val text: String, val voice: SpokenVoice)
+/** A line to say, in a voice: its recording when it has one, else the phone's voice. */
+data class SpokenLine(val text: String, val voice: SpokenVoice, val clip: Recording? = null)
 
 /**
- * The phone's text-to-speech, reading a story a line at a time, so each line
- * can have its speaker's voice and playback can start at any of them.
+ * Reads a story aloud a line at a time, so each line can have its speaker's
+ * voice and playback can start at any of them: the line's recording when it
+ * has one, else the phone's text-to-speech.
  */
 class StoryVoice(context: Context) {
     data class State(
@@ -34,7 +45,7 @@ class StoryVoice(context: Context) {
         /** The line being read, or the one reading stopped at. */
         val line: Int? = null,
         val playing: Boolean = false,
-        /** Where the engine is in the line's text, when it says. */
+        /** Where the engine is in the line's text, when it says (worked out from the time for a recording). */
         val offset: Int? = null,
     )
 
@@ -51,6 +62,40 @@ class StoryVoice(context: Context) {
     private var pending: (() -> Unit)? = null
 
     private val tts: TextToSpeech = TextToSpeech(context.applicationContext) { status -> main.post { started(status) } }
+
+    // Plays the recordings; made the first time one plays.
+    private val appContext = context.applicationContext
+    private var player: ExoPlayer? = null
+    private var booster: LoudnessEnhancer? = null
+    // The line the player is on, and the run it belongs to.
+    private var playerLine: Pair<Int, Int>? = null
+
+    private val playerListener = object : Player.Listener {
+        override fun onPlaybackStateChanged(state: Int) {
+            if (state == Player.STATE_ENDED) playerLine?.let { (r, i) -> done(r, i) }
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            // A recording that won't play is read by the phone instead.
+            val (r, i) = playerLine ?: return
+            if (r == run) synthesize(i)
+        }
+    }
+
+    // While a recording plays, where it's got to in the line, so the word being said can be underlined.
+    private val tick = object : Runnable {
+        override fun run() {
+            val p = player ?: return
+            val (r, i) = playerLine ?: return
+            if (r != run || _state.value.line != i) return
+            if (p.duration > 0) {
+                val length = lines[i].text.length
+                val offset = (p.currentPosition * length / p.duration).toInt().coerceIn(0, length - 1)
+                if (_state.value.offset != offset) _state.update { it.copy(offset = offset) }
+            }
+            main.postDelayed(this, 100)
+        }
+    }
 
     private fun started(status: Int) {
         if (status != TextToSpeech.SUCCESS) {
@@ -78,9 +123,7 @@ class StoryVoice(context: Context) {
         override fun onDone(utteranceId: String) {
             main.post {
                 val (r, i) = parse(utteranceId) ?: return@post
-                if (r != run || !_state.value.playing) return@post
-                if (i + 1 < lines.size) speak(i + 1)
-                else _state.update { it.copy(playing = false, line = null, offset = null) }
+                done(r, i)
             }
         }
 
@@ -100,6 +143,13 @@ class StoryVoice(context: Context) {
         }
     }
 
+    /** Line [i] of run [r] has been said: on to the next, if it's still reading. */
+    private fun done(r: Int, i: Int) {
+        if (r != run || !_state.value.playing) return
+        if (i + 1 < lines.size) speak(i + 1)
+        else _state.update { it.copy(playing = false, line = null, offset = null) }
+    }
+
     private fun parse(id: String): Pair<Int, Int>? {
         val parts = id.split(':')
         if (parts.size != 3 || parts[0] != "line") return null
@@ -112,36 +162,88 @@ class StoryVoice(context: Context) {
 
     /** Read the [lines] made for the phone's voices, for [key], from line [from] on. */
     fun play(key: Long, from: Int, rate: Float, lines: (List<PhoneVoice>) -> List<SpokenLine>) = whenReady {
-        if (_state.value.missing) return@whenReady
         val made = lines(_state.value.voices)
+        // With no Japanese voice on the phone, only recordings can be read.
+        if (_state.value.missing && made.all { it.clip == null }) return@whenReady
         if (from !in made.indices) return@whenReady
         this.lines = made
         this.rate = rate
-        run++
+        quiet()
         _state.update { it.copy(key = key, playing = true) }
         speak(from)
     }
 
     private fun speak(i: Int) {
+        val clip = lines[i].clip
+        _state.update { it.copy(line = i, offset = null) }
+        if (clip != null) record(i, clip) else synthesize(i)
+    }
+
+    /** Line [i] from its recording, at its voice's gain. */
+    @OptIn(UnstableApi::class)
+    private fun record(i: Int, clip: Recording) {
+        val p = player ?: ExoPlayer.Builder(appContext).build().also {
+            it.addListener(playerListener)
+            // Its own audio session, for the booster to turn up quiet voices in.
+            val session = (appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager).generateAudioSessionId()
+            it.audioSessionId = session
+            booster = runCatching { LoudnessEnhancer(session) }.getOrNull()
+            player = it
+        }
+        tts.stop()
+        playerLine = run to i
+        // The player can only turn a clip down, so a quiet voice is turned up by the booster, which also stops it clipping.
+        val boost = booster
+        if (clip.gain > 0 && boost != null) {
+            p.volume = 1f
+            boost.setTargetGain((clip.gain * 100).toInt())
+            boost.enabled = true
+        } else {
+            boost?.enabled = false
+            p.volume = 10f.pow(clip.gain.coerceAtMost(0f) / 20)
+        }
+        p.setMediaItem(MediaItem.fromUri("asset:///${clip.file}"))
+        p.setPlaybackSpeed(rate)
+        p.prepare()
+        p.play()
+        main.removeCallbacks(tick)
+        main.post(tick)
+    }
+
+    /** Line [i] in the phone's voice; skipped when the phone has none. */
+    private fun synthesize(i: Int) {
         val line = lines[i]
+        playerLine = null
+        player?.stop()
+        if (_state.value.missing) {
+            val r = run
+            main.post { done(r, i) }
+            return
+        }
         line.voice.name?.let(byName::get)?.let { tts.voice = it }
         tts.setPitch(line.voice.pitch)
         tts.setSpeechRate(rate)
-        _state.update { it.copy(line = i, offset = null) }
         tts.speak(line.text, TextToSpeech.QUEUE_FLUSH, null, "line:$run:$i")
+    }
+
+    /** Stops whichever is speaking. */
+    private fun quiet() {
+        run++
+        playerLine = null
+        main.removeCallbacks(tick)
+        player?.stop()
+        tts.stop()
     }
 
     /** Stop reading, keeping the line it stopped at to carry on from. */
     fun pause() {
-        run++
-        tts.stop()
+        quiet()
         _state.update { it.copy(playing = false, offset = null) }
     }
 
     /** Stop reading and forget where it was. */
     fun stop() {
-        run++
-        tts.stop()
+        quiet()
         _state.update { it.copy(playing = false, key = null, line = null, offset = null) }
     }
 
@@ -153,8 +255,7 @@ class StoryVoice(context: Context) {
     /** Say [text] on its own, as a word card's speaker button does, stopping any reading. */
     fun say(text: String, rate: Float, voiceFor: (List<PhoneVoice>) -> SpokenVoice) = whenReady {
         if (_state.value.missing) return@whenReady
-        if (_state.value.playing) pause()
-        run++
+        if (_state.value.playing) pause() else quiet()
         val voice = voiceFor(_state.value.voices)
         voice.name?.let(byName::get)?.let { tts.voice = it }
         tts.setPitch(voice.pitch)
@@ -164,6 +265,10 @@ class StoryVoice(context: Context) {
 
     fun shutdown() {
         main.removeCallbacksAndMessages(null)
+        booster?.release()
+        booster = null
+        player?.release()
+        player = null
         tts.stop()
         tts.shutdown()
     }

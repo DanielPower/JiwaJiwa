@@ -1,0 +1,118 @@
+name: Record story audio
+
+# Records the stories' sentences with Fish Audio (tools/stories/voices.json,
+# and each of the cast's `fish` voice), only the ones without a clip yet, and
+# commits the clips to app/src/main/assets/audio on the pull request's branch.
+# Each new voice is measured once, and its gain (tools/stories/levels.json)
+# evens out how loud the voices play in the app.
+# Clips are named by a hash of the model, voice and sentence, so a sentence is
+# recorded again only when one of those changes, and clips no sentence uses
+# any more are deleted. Each recording costs money: a run stops before going
+# over $5, unless it's run by hand with a higher limit.
+
+on:
+  pull_request:
+    paths:
+      - tools/stories/**
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Most to spend, in dollars
+        default: "5"
+
+# One run a branch at a time, so two never record the same sentences.
+concurrency:
+  group: audio-${{ github.head_ref || github.ref_name }}
+
+permissions:
+  contents: write
+  # To start the checks again after committing the clips: a push made with
+  # this workflow's token doesn't start other workflows on its own.
+  actions: write
+
+jobs:
+  record:
+    # Pull requests from forks get no secrets and can't push here.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/cache@v4
+        with:
+          path: tools/dictionary/.cache
+          key: dictionary-sources-${{ hashFiles('tools/dictionary/sources.json') }}
+
+      - name: Build the dictionary
+        run: python3 tools/dictionary/build_dictionary.py
+
+      # To level each clip's loudness and compress it.
+      - name: Install ffmpeg
+        run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+
+      - name: Record
+        env:
+          FISH_API_KEY: ${{ secrets.FISH_API_KEY }}
+        run: ./gradlew -PcoreOnly=true :core:storyAudio -Precord -Plimit=${{ inputs.limit || '5' }}
+
+      # Even when recording failed or was stopped: what was recorded is paid for.
+      - name: Commit the clips
+        id: commit
+        if: always()
+        run: |
+          # The assets folder, as audio/ isn't there until something's recorded.
+          # The dictionary built into it is ignored. levels.json has each voice's gain.
+          git add -A app/src/main/assets tools/stories/levels.json
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Record story audio"
+          # Someone may have pushed while it recorded: the clips are new files, so they go on top.
+          pushed=false
+          for attempt in 1 2 3 4; do
+            if git pull --rebase --autostash origin "${{ github.head_ref || github.ref_name }}" && git push; then
+              pushed=true
+              break
+            fi
+            sleep $((attempt * 5))
+          done
+          if [ "$pushed" != true ]; then
+            # Kept for two weeks so paid-for clips can still be committed by hand.
+            echo "::error::Couldn't push the clips; they're attached to this run."
+            exit 1
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the clips if they couldn't be pushed
+        if: failure() && steps.commit.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-audio
+          path: |
+            app/src/main/assets/audio
+            tools/stories/levels.json
+          retention-days: 14
+
+      - name: Check again with the clips
+        if: always() && steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run check.yml --ref "${{ github.head_ref || github.ref_name }}"
+          gh workflow run test.yml --ref "${{ github.head_ref || github.ref_name }}"

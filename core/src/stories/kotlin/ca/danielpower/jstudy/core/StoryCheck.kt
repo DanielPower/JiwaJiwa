@@ -93,6 +93,7 @@ class StoryCheck(private val tools: StoryTools) {
         for ((name, met) in catalog.chapters.flatMap { it.second.meets }.groupBy { it.name }) {
             if (met.mapNotNull { it.voice }.distinct().size > 1) problem(null, "$name has a different voice where they're met again")
         }
+        for (name in catalog.voices.cast.keys - cast) problem(null, "voices.json: $name isn't in any story's cast")
         // Each story read in order, after the ones it follows, opens one chapter at a time.
         // A side story opens with nothing new at all. The stories it follows are checked on their own turn.
         for (series in catalog.series) {

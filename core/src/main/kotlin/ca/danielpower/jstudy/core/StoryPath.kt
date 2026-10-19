@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonArray
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.double
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
@@ -78,6 +79,8 @@ data class PathSeries(
     val chapters: List<Chapter>,
     /** Uses only what [after] teaches, so it's something new to read with nothing new to learn. */
     val side: Boolean = false,
+    /** The Fish Audio voice its narration is recorded in, when it isn't the stories' usual one. */
+    val narrator: String? = null,
 ) {
     /** A one-chapter story opens straight to its chapter, with no chapter list. */
     val single get() = chapters.size == 1
@@ -105,7 +108,12 @@ data class GrammarTopic(
 }
 
 /** Every story and grammar topic that comes with the app. */
-data class StoryCatalog(val series: List<PathSeries>, val grammar: List<GrammarTopic>) {
+data class StoryCatalog(
+    val series: List<PathSeries>,
+    val grammar: List<GrammarTopic>,
+    /** The voices the stories are recorded in. */
+    val voices: RecordedVoices = RecordedVoices(),
+) {
     val chapters: List<Pair<PathSeries, Chapter>> get() = series.flatMap { s -> s.chapters.map { s to it } }
 
     fun topic(id: String?): GrammarTopic? = grammar.firstOrNull { it.id == id }
@@ -196,6 +204,7 @@ object StoryPath {
                 blurb = o["blurb"]?.jsonPrimitive?.content.orEmpty(),
                 after = o.texts("after"),
                 side = o["side"]?.jsonPrimitive?.boolean ?: false,
+                narrator = o["narrator"]?.jsonPrimitive?.content?.ifBlank { null },
                 chapters = o.getValue("chapters").jsonArray.mapIndexed { i, c ->
                     val ch = c.jsonObject
                     val topic = ch["topic"]?.jsonPrimitive?.content
@@ -222,7 +231,21 @@ object StoryPath {
                 },
             )
         }
-        return StoryCatalog(series, grammar)
+        val voices = root["voices"]?.jsonObject?.let { v ->
+            RecordedVoices(
+                model = v["model"]?.jsonPrimitive?.content.orEmpty(),
+                narrator = v["narrator"]?.jsonPrimitive?.content.orEmpty(),
+                cast = v["cast"]?.jsonObject.orEmpty().mapValues { it.value.jsonPrimitive.content },
+                // Measured for one model; for another, they're measured again.
+                gains = root["levels"]?.jsonObject
+                    ?.takeIf { it["model"]?.jsonPrimitive?.content == v["model"]?.jsonPrimitive?.content }
+                    ?.get("gains")?.jsonObject.orEmpty().mapValues { it.value.jsonPrimitive.double },
+                labels = v["labels"]?.jsonObject.orEmpty().mapNotNull { (k, id) ->
+                    VoiceKind.entries.firstOrNull { it.name.equals(k, ignoreCase = true) }?.let { it to id.jsonPrimitive.content }
+                }.toMap(),
+            )
+        } ?: RecordedVoices()
+        return StoryCatalog(series, grammar, voices)
     }
 
     /**

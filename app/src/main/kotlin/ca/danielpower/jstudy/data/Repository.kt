@@ -33,6 +33,8 @@ import ca.danielpower.jstudy.core.CastMember
 import ca.danielpower.jstudy.core.CastVoice
 import ca.danielpower.jstudy.core.Narration
 import ca.danielpower.jstudy.core.NarrationLine
+import ca.danielpower.jstudy.core.Recording
+import ca.danielpower.jstudy.core.Recordings
 import ca.danielpower.jstudy.core.Chapter
 import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.Candidate
@@ -146,6 +148,8 @@ data class StoryReading(
     val notes: Map<Int, String> = emptyMap(),
     /** The saved page of the grammar topic each grammar point belongs to, by point id. */
     val lessons: Map<String, Long> = emptyMap(),
+    /** Each line of [narration]'s recording, or null for the phone to read it. */
+    val clips: List<Recording?> = emptyList(),
 ) {
     /** The text as sentences to read aloud. */
     val narration: List<NarrationLine> by lazy { Narration.lines(paragraphs, speakers) }
@@ -231,8 +235,8 @@ data class ReaderStyle(
     }
 }
 
-/** How stories are read aloud: the speed, and the narrator's voice by name (the phone's first when null). */
-data class SpeechSettings(val rate: Float = 1f, val narrator: String? = null) {
+/** How stories are read aloud: the speed. */
+data class SpeechSettings(val rate: Float = 1f) {
     companion object {
         val RATES = listOf(0.6f, 0.8f, 1f, 1.2f)
     }
@@ -592,12 +596,11 @@ class Repository(context: Context) {
         val default = SpeechSettings()
         return SpeechSettings(
             rate = store.getValue("speech_rate")?.toFloatOrNull()?.takeIf { it in SpeechSettings.RATES } ?: default.rate,
-            narrator = store.getValue("speech_narrator")?.takeIf { it.isNotEmpty() },
         )
     }
 
     fun setSpeechSettings(settings: SpeechSettings) {
-        store.setValues(mapOf("speech_rate" to settings.rate.toString(), "speech_narrator" to settings.narrator.orEmpty()))
+        store.setValues(mapOf("speech_rate" to settings.rate.toString()))
     }
 
     /** The stories' cast with their voices, in the order the stories meet them, so each keeps theirs as stories are added. */
@@ -628,7 +631,23 @@ class Repository(context: Context) {
             lesson = topicOfPage(story)?.page,
             notes = notes(story),
             lessons = lessons(),
-        )
+        ).let { it.copy(clips = clips(story, it.narration)) }
+    }
+
+    /** The recordings that come with the app, by file name. */
+    private val recorded: Set<String> by lazy { appContext.assets.list(Recordings.DIR).orEmpty().toSet() }
+
+    /**
+     * Each of [lines]' recording, when it's been recorded: in its story's
+     * narrator's voice, and each of the cast's own, played at its voice's gain.
+     */
+    private fun clips(story: SavedStory, lines: List<NarrationLine>): List<Recording?> {
+        val narrator = catalog.series.firstOrNull { s -> s.chapters.any { it.story.id == story.pathId } }?.narrator
+        val voices = catalog.voices
+        return Recordings.clips(lines, voices, catalog.cast.associateBy { it.name }, narrator).map { clip ->
+            clip?.takeIf { (key, _) -> "$key.${Recordings.EXTENSION}" in recorded }
+                ?.let { (key, voice) -> Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f) }
+        }
     }
 
     /** The bundled chapter [story] was saved from, if it's one. */

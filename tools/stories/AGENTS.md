@@ -13,7 +13,9 @@ has no tokenizer of its own: what the check passes is exactly what it shows.
 | --- | --- |
 | `stories.json` | Every story's id, in the order the Stories tab lists them: the main stories, each following the one before, then side stories and one-shots. Add a new story here. |
 | `grammar.json` | The grammar topics, in Grammar-list order. Each has `parts`: Japanese lines with their English (`["来た。", "I'm here."]`), and notes in English (plain strings) between them. The first line is the example shown before the chapter that teaches it. Chapters name topics by `id`. |
-| `series/<id>/story.json` | A story's `title`, `blurb`, the stories it follows (`after`: story ids, or a chapter id such as `share-house/yukis-gig` to mean the story up to that chapter), `side` for a side story, and `chapters`: its chapters' slugs in reading order. |
+| `series/<id>/story.json` | A story's `title`, `blurb`, the stories it follows (`after`: story ids, or a chapter id such as `share-house/yukis-gig` to mean the story up to that chapter), `side` for a side story, an optional `narrator` (a Fish Audio voice id, when its narration shouldn't be in the usual narrator's voice), and `chapters`: its chapters' slugs in reading order. |
+| `levels.json` | Written by the recorder: each Fish voice's gain in dB, so they all play as loud. |
+| `voices.json` | The Fish Audio voices the stories are recorded in: `model`, the usual `narrator`, each of the `cast` by name, and `labels`, a voice for each kind (`woman`, `man`, `child`) for unnamed speakers. A blank id isn't recorded; the phone reads those lines. Someone new to the cast gets an entry here. Changing a voice records all of its lines again, which costs money. |
 | `series/<id>/<slug>.json` | One chapter each, named by its slug (lowercase words joined by hyphens, usually from its title: `trash-day.json`): `title`, a one-line `plot`, optional `topic` (one grammar topic it teaches), `meets` (people it introduces, `{"name", "about", "voice", "pitch"}`: `voice` is `woman`, `man` or `child`, and the optional `pitch` (about 0.85 to 1.15) sets them apart from others of their kind, since phones have only a few Japanese voices; the same person keeps the same voice wherever they're met) and `readings` (see below), and `paragraphs`, each a list of `[Japanese sentence, English]`, or a note (`{"note": "English…"}`) between two of them. Its id is the story's id and its slug (`share-house/trash-day`), which saved progress uses. To add or move a chapter, add its file and put its slug where it goes in `chapters`; never rename a slug or delete a chapter people may have read. |
 | `series/<id>/SUMMARY.md` | Written by the tools, never by hand: the cast so far, each chapter's plot, words and new words, and every word and grammar topic known by the end. |
 | `PLAN.md` | The approved plan for the stories being written next: grammar topics in order, and each story's cast and outline. |
@@ -130,3 +132,24 @@ Those files are worked out from every story, so two branches that each
 change a story both change them, and conflict when the second is merged or
 rebased. Never resolve them by hand: take either side, rerun
 `:core:stories`, and commit what it writes.
+
+## Recorded audio
+
+Each sentence is recorded with Fish Audio into `app/src/main/assets/audio`,
+one clip a sentence, named by a hash of the model, voice and text. The
+"Record story audio" workflow records what's missing on each pull request
+that changes the stories and commits the clips to its branch, so a changed
+sentence is recorded again and its old clip deleted. Never edit or rename
+clips by hand. To see what a change would record and cost, without
+spending anything:
+
+    ./gradlew -PcoreOnly=true :core:storyAudio
+
+With `-Precord` and `FISH_API_KEY` set it records too (it needs ffmpeg).
+Fish's voices differ a lot in loudness, so each new voice first says the
+same short passage, and the gain that brings it to the others' loudness goes
+in `levels.json`, one per voice; the app plays all of that voice's clips at
+it, so a shout stays louder than a whisper. Clips are kept as Fish made them,
+so a gain can be changed by hand without recording again. It stops before
+spending more than `-Plimit` dollars (5 unless given). Clips conflict like
+the written files above: take either side and let the workflow run again.

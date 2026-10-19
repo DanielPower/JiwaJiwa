@@ -173,19 +173,30 @@ Other features (all shipped):
   the JMdict id, which is jstudy's word id. Entries without one (kana,
   する verbs, phrases, names) are skipped on purpose.
 - Reading aloud (Daniel, 2026-10-18): a slim bar under the reader (speed
-  on the left, play in the middle, voice on the right) reads the story with
-  the phone's text-to-speech, a sentence at a time, each sentence playing on
-  into the next. No skip buttons: tapping a word while it plays moves there.
+  on the left, play in the middle) reads the story a sentence at a time,
+  each sentence playing on into the next. No skip buttons: tapping a word while it plays moves there.
   Play starts at the tapped word's sentence (washed lightly behind the
   vermilion word), else where it paused, else the page showing. A line
   follows the word being said, and the page turns itself. Each of the cast
-  has their own voice (`voice` and `pitch` in a chapter's `meets`); the
-  narrator's voice is the user's pick and reads everything else. Unnamed
-  speakers are voiced by their label (`Voices.forLabel`). Speed and narrator
-  open in the pane like the reader settings. Word cards and word pages have
-  a speaker button that says the word's reading. Daniel weighed recorded
-  cloud voices and on-phone AI voices and chose the phone's own voices
-  (2026-10-18).
+  has their own voice. Speed opens in the pane like the reader settings.
+  Word cards and word pages have a speaker button that says the word's
+  reading with the phone's text-to-speech.
+- Recorded story audio (Daniel, 2026-10-19): sentences are recorded with
+  Fish Audio and the clips are committed in `app/src/main/assets/audio`
+  and bundled with the app, an exception to "no committed generated files"
+  because each recording costs money (hosting them may come later, as the
+  app grows). Each clip is named by a hash of the model, voice and sentence
+  (core `Recordings`), so only new or changed sentences are recorded and
+  unused clips are deleted. The voices are in `tools/stories/voices.json`:
+  the model, the narrator, each of the cast by name and one for each kind
+  of voice for unnamed speakers; a story's `story.json` may set its own
+  `narrator`. The "Record story audio" workflow records on pull requests
+  that change the stories (`FISH_API_KEY` secret, stopping over $5 unless
+  run by hand with a higher limit) and commits the clips to the branch.
+  Each voice is measured once and played at a gain from `tools/stories/levels.json`
+  (Daniel, 2026-10-19: per voice, not per clip, so shouts stay loud).
+  A line with no clip is read by the phone's voice (`voice` and `pitch` in
+  `meets`, unnamed speakers by `Voices.forLabel`); there's no voice picker.
 - Claude-written stories, and the story server they went through, were
   removed (Daniel, 2026-10-15); they may be rebuilt later. Stories are the
   bundled ones only. Tapping a word
