@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -306,33 +307,40 @@ private fun StreakWeek(days: Set<Long>, streak: Int, today: Long) {
     val firstWeek = days.minOrNull()?.let(Streak::weekOf) ?: thisWeek
     var week by rememberSaveable(today) { mutableLongStateOf(thisWeek) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel("Streak", Modifier.weight(1f))
+        // The week and its arrows sit centred in the label row, so the week needs no line of its own.
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            SectionLabel("Streak", Modifier.align(Alignment.CenterStart))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                WeekArrow(WashiIcons.Back, "Previous week", enabled = week > firstWeek) { week -= 7 }
+                Text(weekRange(week), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                WeekArrow(WashiIcons.Next, "Next week", enabled = week < thisWeek) { week += 7 }
+            }
             Text(
                 buildAnnotatedString {
                     withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("$streak") }
-                    append(" day streak")
+                    append(if (streak == 1) " day" else " days")
                 },
                 style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.align(Alignment.CenterEnd),
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            WashiIconButton(WashiIcons.Back, "Previous week", { week -= 7 }, enabled = week > firstWeek)
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly) {
-                for (i in 0..6) {
-                    val day = week + i
-                    DayDot(DAY_LETTERS[i], done = day in days, isToday = day == today, future = day > today)
-                }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            for (i in 0..6) {
+                val day = week + i
+                DayDot(DAY_LETTERS[i], done = day in days, isToday = day == today, future = day > today)
             }
-            WashiIconButton(WashiIcons.Next, "Next week", { week += 7 }, enabled = week < thisWeek)
         }
-        Text(
-            weekRange(week),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
+    }
+}
+
+/** A small arrow for stepping between weeks, dimmed when there's no week to step to. */
+@Composable
+private fun WeekArrow(icon: ImageVector, description: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.size(32.dp).clickable(enabled = enabled, onClick = onClick).alpha(if (enabled) 1f else 0.3f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = description, modifier = Modifier.size(18.dp))
     }
 }
 
