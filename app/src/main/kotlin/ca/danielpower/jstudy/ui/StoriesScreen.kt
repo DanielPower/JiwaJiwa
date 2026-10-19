@@ -1490,10 +1490,10 @@ private fun WordCard(
         GrammarCard(point, back = title, onBack = { followed = null }, onLesson = lessonFor(point))
         return
     }
-    // Centred when it all fits. When the meanings scroll they take the spare room, so the card fills the pane from the top.
+    // Always from the top, so the title line and its buttons sit in the same place for every word.
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1614,7 +1614,7 @@ private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarP
 private fun GrammarCard(point: GrammarPoint, back: String, onBack: () -> Unit, onLesson: (() -> Unit)?) {
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
