@@ -65,7 +65,9 @@ jobs:
       - name: Commit the clips
         id: commit
         run: |
-          git add -A app/src/main/assets/audio
+          # The assets folder, as audio/ isn't there until something's recorded.
+          # The dictionary built into it is ignored.
+          git add -A app/src/main/assets
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
