@@ -1719,7 +1719,6 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
         val chapter = state.chapter
         if (chapter != null && !chapter.series.single) SectionLabel("Chapter ${chapter.chapter.number} done")
         Text(if (chapter != null && !chapter.series.single) chapter.chapter.story.title else "The end", style = MaterialTheme.typography.headlineSmall)
-        state.impact?.let { WordImpact(it, state.knewNew, state.pace, vm::openWord, vm::toggleKnewNew) }
         state.impact?.topic?.let { topic ->
             SectionLabel("Grammar", Modifier.padding(top = 8.dp))
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1727,6 +1726,7 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
                 Text(topic.titleEn, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        state.impact?.let { WordImpact(it, state.knewNew, state.pace, vm::openWord, vm::toggleKnewNew) }
         val meets = chapter?.chapter?.meets.orEmpty()
         if (meets.isNotEmpty()) {
             SectionLabel(if (meets.size == 1) "New face" else "New faces", Modifier.padding(top = 8.dp))
@@ -1775,6 +1775,9 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
                 Text(nextStep.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+        TextButton(onClick = vm::readAgain, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text("Read it again", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+        }
     }
 }
 
@@ -1782,6 +1785,7 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
  * What reading a path story did for your words: each word newly seen, or
  * moved up to known or mastered. A new word you say you already know is
  * listed as known too, and stops counting against today's new words.
+ * Last, quieter, the words you looked up, which reading didn't count.
  */
 @Composable
 private fun WordImpact(impact: ReadImpact, knewNew: Set<Long>, pace: Pace?, onWord: (Long) -> Unit, onKnewNew: (Long) -> Unit) {
@@ -1795,7 +1799,8 @@ private fun WordImpact(impact: ReadImpact, knewNew: Set<Long>, pace: Pace?, onWo
     if (groups.isEmpty()) {
         Text("No changes to your words this time.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-    for ((label, words, color) in groups) {
+    val lookedUp = listOf(Triple("Looked up", impact.lookedUp, MaterialTheme.colorScheme.onSurfaceVariant)).filter { it.second.isNotEmpty() }
+    for ((label, words, color) in groups + lookedUp) {
         val isNew = words === impact.seen
         Column {
             Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -216,6 +216,8 @@ data class ReadImpact(
     val mastered: List<Word>,
     /** The grammar topic learned before reading it. */
     val topic: GrammarTopic? = null,
+    /** The words you tapped while reading it, the new ones aside, in story order. */
+    val lookedUp: List<Word> = emptyList(),
 )
 
 /** The next chapter to read, and how to name it on the button. */
@@ -804,7 +806,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         readingFinished = true
         val at = now()
         val story = state.reading.story
-        val started = repo.finishChapter(story, at, at - readingSince, lookedUpWords.toSet(), state.forgotten)
+        val lookedUp = lookedUpWords.toSet()
+        val started = repo.finishChapter(story, at, at - readingSince, lookedUp, state.forgotten)
         // The words read and started change what's due.
         refreshBadge()
         val after = repo.masteries(state.reading.words.keys)
@@ -815,6 +818,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             known = crossed(MasteryRules.HIDE_AT).mapNotNull { words[it] },
             mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
             topic = topicForStory,
+            lookedUp = state.reading.paragraphs.asSequence().flatten().mapNotNull { it.wordId }.distinct()
+                .filter { it in lookedUp && it !in started }.mapNotNull { words[it] }.toList(),
         )
         val rest = nothingNew(repo.storyPath()).firstOrNull { it.story.id != story.id }?.let {
             val name = if (it.series.single) it.series.title else "${it.series.title} ${it.chapter.number}"
@@ -823,6 +828,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val pace = repo.pace(at)
         _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
         refreshStory()
+    }
+
+    /** "Read it again" on a story's end page: it opens again on its first page. */
+    fun readAgain() = launchIo {
+        val state = _screen.value as? Screen.StoryReader ?: return@launchIo
+        topicForStory = null
+        showStory(state.reading.story.id)
     }
 
     /** "I know this" on a word the finished story started, or its Undo: it stops counting against today's new words. */
