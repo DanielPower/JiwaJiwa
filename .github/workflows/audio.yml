@@ -2,8 +2,9 @@ name: Record story audio
 
 # Records the stories' sentences with Fish Audio (tools/stories/voices.json,
 # and each of the cast's `fish` voice), only the ones without a clip yet, and
-# commits the clips to app/src/main/assets/audio on the pull request's branch,
-# each leveled to the same loudness.
+# commits the clips to app/src/main/assets/audio on the pull request's branch.
+# Each new voice is measured once, and its gain (tools/stories/levels.json)
+# evens out how loud the voices play in the app.
 # Clips are named by a hash of the model, voice and sentence, so a sentence is
 # recorded again only when one of those changes, and clips no sentence uses
 # any more are deleted. Each recording costs money: a run stops before going
@@ -73,8 +74,8 @@ jobs:
         if: always()
         run: |
           # The assets folder, as audio/ isn't there until something's recorded.
-          # The dictionary built into it is ignored.
-          git add -A app/src/main/assets
+          # The dictionary built into it is ignored. levels.json has each voice's gain.
+          git add -A app/src/main/assets tools/stories/levels.json
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0

@@ -33,6 +33,7 @@ import ca.danielpower.jstudy.core.CastMember
 import ca.danielpower.jstudy.core.CastVoice
 import ca.danielpower.jstudy.core.Narration
 import ca.danielpower.jstudy.core.NarrationLine
+import ca.danielpower.jstudy.core.Recording
 import ca.danielpower.jstudy.core.Recordings
 import ca.danielpower.jstudy.core.Chapter
 import ca.danielpower.jstudy.core.GrammarTopic
@@ -147,8 +148,8 @@ data class StoryReading(
     val notes: Map<Int, String> = emptyMap(),
     /** The saved page of the grammar topic each grammar point belongs to, by point id. */
     val lessons: Map<String, Long> = emptyMap(),
-    /** Each line of [narration]'s recording, an asset's path, or null for the phone to read it. */
-    val clips: List<String?> = emptyList(),
+    /** Each line of [narration]'s recording, or null for the phone to read it. */
+    val clips: List<Recording?> = emptyList(),
 ) {
     /** The text as sentences to read aloud. */
     val narration: List<NarrationLine> by lazy { Narration.lines(paragraphs, speakers) }
@@ -636,11 +637,17 @@ class Repository(context: Context) {
     /** The recordings that come with the app, by file name. */
     private val recorded: Set<String> by lazy { appContext.assets.list(Recordings.DIR).orEmpty().toSet() }
 
-    /** Each of [lines]' recording, when it's been recorded: in its story's narrator's voice, and each of the cast's own. */
-    private fun clips(story: SavedStory, lines: List<NarrationLine>): List<String?> {
+    /**
+     * Each of [lines]' recording, when it's been recorded: in its story's
+     * narrator's voice, and each of the cast's own, played at its voice's gain.
+     */
+    private fun clips(story: SavedStory, lines: List<NarrationLine>): List<Recording?> {
         val narrator = catalog.series.firstOrNull { s -> s.chapters.any { it.story.id == story.pathId } }?.narrator
-        val keys = Recordings.keys(lines, catalog.voices, catalog.cast.associateBy { it.name }, narrator)
-        return keys.map { key -> key?.takeIf { "$it.${Recordings.EXTENSION}" in recorded }?.let(Recordings::file) }
+        val voices = catalog.voices
+        return Recordings.clips(lines, voices, catalog.cast.associateBy { it.name }, narrator).map { clip ->
+            clip?.takeIf { (key, _) -> "$key.${Recordings.EXTENSION}" in recorded }
+                ?.let { (key, voice) -> Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f) }
+        }
     }
 
     /** The bundled chapter [story] was saved from, if it's one. */

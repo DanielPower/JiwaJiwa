@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonArray
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.double
 import kotlinx.serialization.json.floatOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
@@ -235,6 +236,10 @@ object StoryPath {
                 model = v["model"]?.jsonPrimitive?.content.orEmpty(),
                 narrator = v["narrator"]?.jsonPrimitive?.content.orEmpty(),
                 cast = v["cast"]?.jsonObject.orEmpty().mapValues { it.value.jsonPrimitive.content },
+                // Measured for one model; for another, they're measured again.
+                gains = root["levels"]?.jsonObject
+                    ?.takeIf { it["model"]?.jsonPrimitive?.content == v["model"]?.jsonPrimitive?.content }
+                    ?.get("gains")?.jsonObject.orEmpty().mapValues { it.value.jsonPrimitive.double },
                 labels = v["labels"]?.jsonObject.orEmpty().mapNotNull { (k, id) ->
                     VoiceKind.entries.firstOrNull { it.name.equals(k, ignoreCase = true) }?.let { it to id.jsonPrimitive.content }
                 }.toMap(),

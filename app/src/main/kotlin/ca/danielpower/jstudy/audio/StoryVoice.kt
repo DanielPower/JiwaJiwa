@@ -1,6 +1,8 @@
 package ca.danielpower.jstudy.audio
 
 import android.content.Context
+import android.media.AudioManager
+import android.media.audiofx.LoudnessEnhancer
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
@@ -8,9 +10,12 @@ import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
+import androidx.annotation.OptIn
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import ca.danielpower.jstudy.core.PhoneVoice
+import ca.danielpower.jstudy.core.Recording
 import ca.danielpower.jstudy.core.SpokenVoice
 import ca.danielpower.jstudy.core.Voices
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,9 +23,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.Locale
+import kotlin.math.pow
 
-/** A line to say, in a voice: its recording (an asset's path) when it has one, else the phone's voice. */
-data class SpokenLine(val text: String, val voice: SpokenVoice, val clip: String? = null)
+/** A line to say, in a voice: its recording when it has one, else the phone's voice. */
+data class SpokenLine(val text: String, val voice: SpokenVoice, val clip: Recording? = null)
 
 /**
  * Reads a story aloud a line at a time, so each line can have its speaker's
@@ -60,6 +66,7 @@ class StoryVoice(context: Context) {
     // Plays the recordings; made the first time one plays.
     private val appContext = context.applicationContext
     private var player: ExoPlayer? = null
+    private var booster: LoudnessEnhancer? = null
     // The line the player is on, and the run it belongs to.
     private var playerLine: Pair<Int, Int>? = null
 
@@ -172,15 +179,30 @@ class StoryVoice(context: Context) {
         if (clip != null) record(i, clip) else synthesize(i)
     }
 
-    /** Line [i] from its recording. */
-    private fun record(i: Int, clip: String) {
+    /** Line [i] from its recording, at its voice's gain. */
+    @OptIn(UnstableApi::class)
+    private fun record(i: Int, clip: Recording) {
         val p = player ?: ExoPlayer.Builder(appContext).build().also {
             it.addListener(playerListener)
+            // Its own audio session, for the booster to turn up quiet voices in.
+            val session = (appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager).generateAudioSessionId()
+            it.audioSessionId = session
+            booster = runCatching { LoudnessEnhancer(session) }.getOrNull()
             player = it
         }
         tts.stop()
         playerLine = run to i
-        p.setMediaItem(MediaItem.fromUri("asset:///$clip"))
+        // The player can only turn a clip down, so a quiet voice is turned up by the booster, which also stops it clipping.
+        val boost = booster
+        if (clip.gain > 0 && boost != null) {
+            p.volume = 1f
+            boost.setTargetGain((clip.gain * 100).toInt())
+            boost.enabled = true
+        } else {
+            boost?.enabled = false
+            p.volume = 10f.pow(clip.gain.coerceAtMost(0f) / 20)
+        }
+        p.setMediaItem(MediaItem.fromUri("asset:///${clip.file}"))
         p.setPlaybackSpeed(rate)
         p.prepare()
         p.play()
@@ -243,6 +265,8 @@ class StoryVoice(context: Context) {
 
     fun shutdown() {
         main.removeCallbacksAndMessages(null)
+        booster?.release()
+        booster = null
         player?.release()
         player = null
         tts.stop()

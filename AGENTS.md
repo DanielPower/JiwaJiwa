@@ -191,6 +191,8 @@ Other features (all shipped):
   `narrator`. The "Record story audio" workflow records on pull requests
   that change the stories (`FISH_API_KEY` secret, stopping over $5 unless
   run by hand with a higher limit) and commits the clips to the branch.
+  Each voice is measured once and played at a gain from `tools/stories/levels.json`
+  (Daniel, 2026-10-19: per voice, not per clip, so shouts stay loud).
   A line with no clip is read by the phone's voice (`voice` and `pitch` in
   `meets`, unnamed speakers by `Voices.forLabel`); there's no voice picker.
 - Claude-written stories, and the story server they went through, were

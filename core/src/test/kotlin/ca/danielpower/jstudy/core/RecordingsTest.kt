@@ -42,3 +42,16 @@ class RecordingsTest {
         assertEquals(listOf(Recordings.key("猫だ。", "narrator", "s2.1-pro")), Recordings.keys(listOf(line), voices, cast))
     }
 }
+
+class RecordedVoicesTest {
+    private fun catalog(levelsModel: String) = StoryPath.parse(
+        """{"series": [], "voices": {"model": "s2.1-pro", "narrator": "n"},
+        "levels": {"model": "$levelsModel", "gains": {"n": 10.5}}}""",
+    )
+
+    @Test
+    fun `reads each voice's gain, when measured for the model`() {
+        assertEquals(mapOf("n" to 10.5), catalog("s2.1-pro").voices.gains)
+        assertEquals(emptyMap(), catalog("s1").voices.gains)
+    }
+}

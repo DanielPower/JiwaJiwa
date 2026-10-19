@@ -13,7 +13,12 @@ data class RecordedVoices(
     val narrator: String = "",
     val cast: Map<String, String> = emptyMap(),
     val labels: Map<VoiceKind, String> = emptyMap(),
+    /** How much to turn each voice up or down, in dB, so they're all as loud (tools/stories/levels.json). */
+    val gains: Map<String, Double> = emptyMap(),
 )
+
+/** A line's recording: its asset's path, and the gain to play it at, in dB. */
+data class Recording(val file: String, val gain: Float)
 
 /**
  * Recorded sentences: each is a clip in the app's assets (audio/), named by a
@@ -49,6 +54,10 @@ object Recordings {
 
     /** Each line's clip, or null where it isn't recorded. */
     fun keys(lines: List<NarrationLine>, voices: RecordedVoices, cast: Map<String, CastMember>, narrator: String? = null): List<String?> =
+        clips(lines, voices, cast, narrator).map { it?.first }
+
+    /** Each line's clip and the voice it's in, or null where it isn't recorded. */
+    fun clips(lines: List<NarrationLine>, voices: RecordedVoices, cast: Map<String, CastMember>, narrator: String? = null): List<Pair<String, String>?> =
         if (voices.model.isBlank()) lines.map { null }
-        else lines.map { line -> voice(line.speaker, voices, cast, narrator)?.let { key(line.text, it, voices.model) } }
+        else lines.map { line -> voice(line.speaker, voices, cast, narrator)?.let { key(line.text, it, voices.model) to it } }
 }

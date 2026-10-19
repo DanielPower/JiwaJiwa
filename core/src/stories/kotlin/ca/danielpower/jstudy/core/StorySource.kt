@@ -40,6 +40,8 @@ object StorySource {
             putJsonArray("grammar") { for (t in read(File(dir, "grammar.json")).jsonArray) add(topic(t.jsonObject)) }
             // The Fish Audio voices the stories are recorded in, so the app finds each sentence's clip.
             File(dir, "voices.json").takeIf { it.exists() }?.let { put("voices", read(it)) }
+            // How much to turn each voice up or down, measured when it was first recorded.
+            File(dir, "levels.json").takeIf { it.exists() }?.let { put("levels", read(it)) }
         }
         return pretty.encodeToString(JsonElement.serializer(), path) + "\n"
     }
