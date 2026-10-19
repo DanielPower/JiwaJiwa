@@ -127,8 +127,10 @@ Other features (all shipped):
   learn. Linked from the word page, the card's answer side and dictionary
   search. Kanji have no mastery or stats of their own; Daniel saw no use
   for them without kanji cards.
-- First-run setup: "Which level can you already read?" (None, N5..N1) and
-  an optional reminder time; both can change later in Settings. A level
+- First-run setup: "Which level can you already read?" (None, N5..N1), the
+  reading direction (horizontal or vertical, with furigana samples and a note
+  on 縦書き; sets the reader menu's Direction, Daniel 2026-10-19) and an
+  optional reminder time; all can change later. A level
   pre-fills mastery (`ReadLevel`, Daniel 2026-10-17): the chosen level's
   words at mastery 50 (15-day stability), one level easier 70 (30 days),
   two easier 90 days, three or more 365 days. First reviews are spread so

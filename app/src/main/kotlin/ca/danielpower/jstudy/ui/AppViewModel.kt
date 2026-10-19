@@ -122,10 +122,12 @@ sealed interface Screen {
         val backupMessage: String? = null,
     ) : Screen
 
-    /** First run, a page at a time: the level you can already read, and the reminder. */
+    /** First run, a page at a time: the level you can already read, reading direction, and the reminder. */
     data class Setup(
         val levelCounts: Map<Int, Int>,
         val readLevel: Int = ReadLevel.NONE,
+        /** Whether stories are set vertically, as in the reader's settings menu. */
+        val vertical: Boolean = false,
         /** The daily reminder's time, if you chose one. */
         val reminderMinute: Int?,
         val page: SetupPage = SetupPage.WELCOME,
@@ -214,7 +216,7 @@ data class ReadImpact(
 /** The next chapter to read, and how to name it on the button. */
 data class NextStep(val storyId: Long, val label: String)
 
-enum class SetupPage { WELCOME, LEVEL, REMINDER }
+enum class SetupPage { WELCOME, LEVEL, DIRECTION, REMINDER }
 
 sealed interface ImportStep {
     data class EnterKey(val error: String? = null) : ImportStep
@@ -534,7 +536,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun finishSetup() = launchIo {
         val setup = _screen.value as? Screen.Setup ?: return@launchIo
         _screen.value = Screen.Loading
-        repo.finishSetup(setup.readLevel, setup.reminderMinute, now())
+        repo.finishSetup(setup.readLevel, setup.vertical, setup.reminderMinute, now())
         DailyReminder.schedule(getApplication(), repo.reminder())
         showHome()
     }

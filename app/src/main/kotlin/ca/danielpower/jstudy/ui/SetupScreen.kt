@@ -1,6 +1,11 @@
 package ca.danielpower.jstudy.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
@@ -10,8 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -19,13 +27,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.ReadLevel
 
-/** First run, a page at a time: welcome, your level, reminder. */
+/** First run, a page at a time: welcome, your level, reading direction, reminder. */
 @Composable
 fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
     val pages = SetupPage.entries
@@ -45,6 +61,7 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
             when (state.page) {
                 SetupPage.WELCOME -> WelcomePage()
                 SetupPage.LEVEL -> LevelPage(state, vm)
+                SetupPage.DIRECTION -> DirectionPage(state, vm)
                 SetupPage.REMINDER -> ReminderPage(state, vm)
             }
         }
@@ -156,6 +173,175 @@ private fun ReadLevelSummary(readLevel: Int, levelCounts: Map<Int, Int>) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
+}
+
+@Composable
+private fun ColumnScope.DirectionPage(state: Screen.Setup, vm: AppViewModel) {
+    Title("Reading direction")
+    Text(
+        buildAnnotatedString {
+            append("Japanese can be written two ways. ")
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Vertical") }
+            append(
+                " writing, 縦書き (tategaki), runs top to bottom, with columns from right to left. Novels, manga " +
+                    "and newspapers are set this way, and books open from what feels like the back.",
+            )
+        },
+        style = MaterialTheme.typography.bodyLarge,
+    )
+    Text(
+        buildAnnotatedString {
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Horizontal") }
+            append(" writing, 横書き (yokogaki), runs left to right like English. It's common on phones, websites and in textbooks.")
+        },
+        style = MaterialTheme.typography.bodyLarge,
+    )
+    Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        DirectionOption(
+            selected = !state.vertical,
+            onClick = { vm.editSetup { it.copy(vertical = false) } },
+            label = "Horizontal",
+            description = "Left to right",
+            modifier = Modifier.weight(1f),
+        ) { HorizontalSample() }
+        DirectionOption(
+            selected = state.vertical,
+            onClick = { vm.editSetup { it.copy(vertical = true) } },
+            label = "Vertical",
+            description = "Columns right to left",
+            modifier = Modifier.weight(1f),
+        ) { VerticalSample() }
+    }
+    Help(
+        "Both are ordinary Japanese, so pick whichever is easier to start with. Vertical is good practice " +
+            "for real books. You can switch any time from the reader's settings.",
+    )
+}
+
+/** A tappable card holding a small page set one way, with its name under it. */
+@Composable
+private fun DirectionOption(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+    description: String,
+    modifier: Modifier = Modifier,
+    sample: @Composable BoxScope.() -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val card = RoundedCornerShape(14.dp)
+    val page = RoundedCornerShape(6.dp)
+    Column(
+        modifier = modifier
+            .clip(card)
+            .background(if (selected) colors.primaryContainer else colors.surfaceContainerLow)
+            .border(if (selected) 2.5.dp else 1.5.dp, if (selected) colors.primary else colors.outlineVariant, card)
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+            .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(190.dp)
+                .clip(page)
+                .background(colors.surfaceContainerLowest)
+                .border(1.dp, colors.outlineVariant, page)
+                .padding(10.dp),
+            content = sample,
+        )
+        Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+        Text(
+            description,
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** The sample sentence, a character (or a kanji with its reading) at a time. */
+private val Sample = listOf(
+    "ユ" to null, "キ" to null, "は" to null, "駅" to "えき", "で" to null, "電" to "でん", "車" to "しゃ",
+    "を" to null, "待" to "ま", "っ" to null, "て" to null, "い" to null, "た" to null, "。" to null,
+    "雨" to "あめ", "が" to null, "少" to "すこ", "し" to null, "降" to "ふ", "っ" to null, "て" to null,
+    "い" to null, "る" to null, "。" to null,
+)
+
+private val SampleSize = 15.sp
+
+/** Fills lines of [perLine] characters; a full stop may hang past the end rather than start a line. */
+private fun sampleLines(perLine: Int): List<List<Pair<String, String?>>> {
+    val lines = mutableListOf<MutableList<Pair<String, String?>>>()
+    for (cell in Sample) {
+        val line = lines.lastOrNull()
+        if (line == null || (line.size >= perLine && cell.first != "。")) lines += mutableListOf(cell) else line += cell
+    }
+    return lines
+}
+
+@Composable
+private fun BoxScope.HorizontalSample() {
+    val em = with(LocalDensity.current) { SampleSize.toDp() }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        Column(verticalArrangement = Arrangement.spacedBy(em * 0.3f)) {
+            for (line in sampleLines((this@BoxWithConstraints.maxWidth / em).toInt().coerceAtLeast(1))) {
+                Row {
+                    for ((base, ruby) in line) {
+                        Column(Modifier.width(em), horizontalAlignment = Alignment.CenterHorizontally) {
+                            SampleGlyph(ruby ?: "", SampleSize * 0.5f, Modifier.size(em, em * 0.5f), ruby = true)
+                            SampleGlyph(base, SampleSize, Modifier.size(em))
+                        }
+                    }
+                }
+            }
+        }
+    }
+    DirectionArrows("→ ↓", Modifier.align(Alignment.BottomEnd))
+}
+
+@Composable
+private fun BoxScope.VerticalSample() {
+    val em = with(LocalDensity.current) { SampleSize.toDp() }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Columns run right to left, so the first is drawn at the end of the row.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(em * 0.3f, Alignment.End)) {
+            for (column in sampleLines((this@BoxWithConstraints.maxHeight / em).toInt().coerceAtLeast(1)).asReversed()) {
+                Column {
+                    for ((base, ruby) in column) {
+                        Row {
+                            SampleGlyph(base, SampleSize, Modifier.size(em))
+                            Column(Modifier.width(em * 0.5f)) {
+                                for (kana in ruby.orEmpty()) SampleGlyph(kana.toString(), SampleSize * 0.5f, Modifier.size(em * 0.5f), ruby = true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    DirectionArrows("↓ ←", Modifier.align(Alignment.BottomStart))
+}
+
+/** One character centred in its square, in the reader's serif; readings in the gothic, as in the reader. */
+@Composable
+private fun SampleGlyph(text: String, size: TextUnit, modifier: Modifier, ruby: Boolean = false) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Text(
+            text,
+            fontSize = size,
+            lineHeight = size,
+            fontFamily = if (ruby) Gothic else Mincho,
+            color = if (ruby) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            softWrap = false,
+        )
+    }
+}
+
+@Composable
+private fun DirectionArrows(text: String, modifier: Modifier) {
+    Text(text, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f), modifier = modifier)
 }
 
 @Composable
