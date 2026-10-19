@@ -841,6 +841,20 @@ class Repository private constructor(context: Context) {
      * Finishing a story: its words you haven't started, or said you know,
      * start as cards, as though just shown. Returns their ids.
      */
+    /**
+     * Finish a chapter in one transaction: mark it read, credit the words read
+     * and forgotten, and start its new words. Returns the words started. Done
+     * apart, a failure part way left a chapter read whose words never started.
+     */
+    fun finishChapter(story: SavedStory, now: Long, millis: Long, lookedUp: Set<Long>, forgotten: Set<Long>): List<Long> =
+        store.transaction {
+            markStoryRead(story.id, now, millis)
+            if (readerPlace()?.storyId == story.id) clearReaderPlace()
+            readWords(story, lookedUp, now)
+            forgetWords(forgotten, now)
+            startStoryWords(story, now)
+        }
+
     fun startStoryWords(story: SavedStory, now: Long): List<Long> {
         val isKnown = known(store.wordStatuses())
         val ids = StoryPath.words(paragraphs(story)).mapNotNull { it.wordId }.distinct()

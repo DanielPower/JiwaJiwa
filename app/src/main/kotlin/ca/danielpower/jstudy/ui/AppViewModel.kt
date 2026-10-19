@@ -786,11 +786,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         readingFinished = true
         val at = now()
         val story = state.reading.story
-        repo.markStoryRead(story.id, at, at - readingSince)
-        if (repo.readerPlace()?.storyId == story.id) repo.clearReaderPlace()
-        repo.readWords(story, lookedUpWords.toSet(), at)
-        repo.forgetWords(state.forgotten, at)
-        val started = repo.startStoryWords(story, at)
+        val started = repo.finishChapter(story, at, at - readingSince, lookedUpWords.toSet(), state.forgotten)
         // The words read and started change what's due.
         refreshBadge()
         val after = repo.masteries(state.reading.words.keys)
