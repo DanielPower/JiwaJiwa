@@ -564,10 +564,10 @@ class Repository private constructor(context: Context) {
         markKnown(recognitionCard(wordId) ?: return, mastery, now)
     }
 
-    /** Forget a word: its cards, mastery and history. */
     /** Whether [card] is still as stored and its word isn't suspended, e.g. after a look at the word's page mid-review. */
     fun unchanged(card: Card): Boolean = !store.isSuspended(card.wordId) && store.card(card.id) == card
 
+    /** Forget a word: its cards, mastery and history. */
     fun reset(wordId: Long) {
         store.transaction { db -> store.deleteWord(db, wordId) }
     }

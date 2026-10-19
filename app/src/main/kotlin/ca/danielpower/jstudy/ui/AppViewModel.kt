@@ -835,8 +835,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             known = crossed(MasteryRules.HIDE_AT).mapNotNull { words[it] },
             mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
             topic = topicForStory,
-            lookedUp = state.reading.paragraphs.asSequence().flatten().mapNotNull { it.wordId }.distinct()
-                .filter { it in lookedUp && it !in started }.mapNotNull { words[it] }.toList(),
+            lookedUp = state.reading.paragraphs.flatten().mapNotNull { it.wordId }.distinct()
+                .filter { it in lookedUp && it !in started }.mapNotNull { words[it] },
         )
         val rest = nothingNew(repo.storyPath()).firstOrNull { it.story.id != story.id }?.let {
             val name = if (it.series.single) it.series.title else "${it.series.title} ${it.chapter.number}"
