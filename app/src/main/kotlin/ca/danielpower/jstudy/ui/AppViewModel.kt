@@ -288,7 +288,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         launchIo {
-            repo = Repository(getApplication())
+            repo = Repository.get(getApplication())
             _speech.value = repo.speechSettings()
             DailyReminder.schedule(getApplication(), repo.reminder())
             if (repo.needsSetup()) {
@@ -309,8 +309,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Recount the Review tab's badge. Most screens do this on the way in. */
     private fun refreshBadge() {
-        val summary = repo.summary(now())
-        _due.value = summary.newCards + summary.learning + summary.reviews
+        _due.value = repo.dueCount(now())
     }
 
 

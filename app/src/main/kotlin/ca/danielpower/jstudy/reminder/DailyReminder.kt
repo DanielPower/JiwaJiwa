@@ -61,7 +61,7 @@ object DailyReminder {
 
     /** Check the queue and post the reminder if anything is due, then set tomorrow's alarm. */
     internal fun fire(context: Context) {
-        val repo = Repository(context)
+        val repo = Repository.get(context)
         val reminder = repo.reminder()
         schedule(context, reminder)
         if (reminder.time == null || !canNotify(context)) return
@@ -120,7 +120,7 @@ class ReminderRescheduler : BroadcastReceiver() {
         val result = goAsync()
         thread {
             try {
-                DailyReminder.schedule(context.applicationContext, Repository(context.applicationContext).reminder())
+                DailyReminder.schedule(context.applicationContext, Repository.get(context).reminder())
             } finally {
                 result.finish()
             }
