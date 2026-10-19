@@ -105,6 +105,7 @@ import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderFont
 import ca.danielpower.jstudy.data.ReaderStyle
+import ca.danielpower.jstudy.data.ReaderPlace
 import ca.danielpower.jstudy.data.SeriesEntry
 import ca.danielpower.jstudy.data.SpeechSettings
 import ca.danielpower.jstudy.data.StoryReading
@@ -142,11 +143,11 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
             SectionLabel("Your path", Modifier.padding(top = 8.dp))
             val listed = state.nothingNew.filter { it.series.single }.map { it.series.id }.toSet()
             for (entry in shown.filter { it.series.id !in listed }) {
-                Box(Modifier.alpha(0.65f)) { PathRow(entry) { vm.openPathStory(entry) } }
+                Box(Modifier.alpha(0.65f)) { PathRow(entry, state.place) { vm.openPathStory(entry) } }
             }
         } else {
             SectionLabel("Ready to read")
-            for (entry in shown) PathRow(entry) { vm.openPathStory(entry) }
+            for (entry in shown) PathRow(entry, state.place) { vm.openPathStory(entry) }
         }
         val waiting = state.path.size - shown.size
         if (waiting > 0) {
@@ -161,11 +162,12 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
 
 /**
  * A story on the path, by its English title. One chapter shows its first
- * line and what's new in it; more show a chapter count, how far you've read
- * and what's open next, with a seal-red bar down the side.
+ * line and what's new in it; more show a bar with a segment per chapter,
+ * how far you've read and what's open next, with a seal-red bar down the
+ * side. A chapter left part way at [place] fills gold as far as its page.
  */
 @Composable
-private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
+private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit) {
     val seal = MaterialTheme.colorScheme.primary
     val single = entry.series.single
     val done = entry.readCount == entry.chapters.size
@@ -181,7 +183,6 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
     ) {
         if (!single) Box(Modifier.width(3.dp).fillMaxHeight().background(seal))
         Column(Modifier.padding(16.dp).alpha(if (done) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (!single) Tag("${entry.chapters.size} chapters", seal)
             Text(entry.series.title, style = MaterialTheme.typography.titleLarge)
             val shownChapter = entry.next ?: entry.chapters.first()
             Text(
@@ -192,8 +193,20 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             if (!single) {
-                Box(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(4.dp).clip(WashiShape).background(MaterialTheme.colorScheme.outlineVariant)) {
-                    Box(Modifier.fillMaxWidth(entry.readCount / entry.chapters.size.toFloat()).fillMaxHeight().background(seal))
+                val gold = MaterialTheme.colorScheme.tertiary
+                val line = MaterialTheme.colorScheme.outlineVariant
+                Row(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    for (chapter in entry.chapters) {
+                        val partWay = place?.takeIf { !chapter.read && it.storyId == chapter.story.id && it.pages > 0 }
+                        Box(Modifier.weight(1f).fillMaxHeight().clip(WashiShape).background(line)) {
+                            when {
+                                chapter.read -> Box(Modifier.fillMaxSize().background(seal))
+                                partWay != null -> Box(
+                                    Modifier.fillMaxWidth(((partWay.page + 1f) / partWay.pages).coerceIn(0f, 1f)).fillMaxHeight().background(gold),
+                                )
+                            }
+                        }
+                    }
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

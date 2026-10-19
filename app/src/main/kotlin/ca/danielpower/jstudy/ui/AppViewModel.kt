@@ -156,6 +156,8 @@ sealed interface Screen {
         val pace: Pace? = null,
         /** Open chapters you haven't read that have nothing new to learn. */
         val nothingNew: List<ChapterEntry> = emptyList(),
+        /** Where you left a chapter part way, for its story's bar. */
+        val place: ReaderPlace? = null,
     ) : Screen
 
     /** A story with more than one chapter: its chapters, and why one is locked once you tap it. */
@@ -616,6 +618,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             path = path,
             pace = repo.pace(now()),
             nothingNew = nothingNew(path),
+            place = repo.readerPlace(),
         )
     }
 
