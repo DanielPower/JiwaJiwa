@@ -23,7 +23,7 @@
   },
   "jlpt": {
     "description": "Jonathan Waller's JLPT vocabulary lists, linked to JMdict entries and with spellings curated by Stephen Kraus",
-    "license": "CC BY (Jonathan Waller); CC BY-SA 4.0 (Stephen Kraus)",
+    "license": "CC BY (Jonathan Waller) and CC BY-SA 4.0 (Stephen Kraus)",
     "homepage": "https://github.com/stephenmk/yomitan-jlpt-vocab",
     "levels": {
       "5": {
@@ -80,7 +80,7 @@
   },
   "kanji_jlpt": {
     "description": "JLPT kanji levels (N5 to N1, from Jonathan Waller's lists), via kanji-data",
-    "license": "MIT, David Gouveia; levels CC BY, Jonathan Waller",
+    "license": "MIT, David Gouveia, with levels under CC BY, Jonathan Waller",
     "homepage": "https://github.com/davidluzgouveia/kanji-data",
     "url": "https://raw.githubusercontent.com/davidluzgouveia/kanji-data/00fd7079c3890f430759536f91aa5e854ec0ca4f/kanji.json",
     "sha256": "561b72ea9df703c58fae0c68585812e172aaa7611d2fcee6719d55fd2dfd4fa4"
