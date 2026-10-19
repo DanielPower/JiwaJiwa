@@ -1,0 +1,20 @@
+{
+    "model": "s2.1-pro",
+    "gains": {
+        "0089dce5fefb4c6ba9b9f2f0debe1ddc": -0.6,
+        "297a6fd278df47c3b9da9bfdf55ac89a": -2.6,
+        "35c8e5ae5239435f8d9c26c86802b86d": -0.8,
+        "4da3f8598f874e47a55eb887783575f7": 1.2,
+        "5da7f24e9e274f91b2b677669c818ce9": -5.0,
+        "63819275ce38440ea245ca988abf976e": 0.5,
+        "63bc41e652214372b15d9416a30a60b4": 3.5,
+        "8f99ad75c8184f1db0c21d3a906445a4": 7.8,
+        "92c556e1a13e4ac7add3d1a8665c3cb8": 5.2,
+        "97eda32449cf443bbc4b8782853ca554": -1.2,
+        "b2d9d8db057042688a5e318b8f405bc2": -2.0,
+        "d738c70d206149e69f8e3b6fc8af9d96": 2.3,
+        "e9d4ad05ac7a4baf8f979e4c389bf11d": 4.7,
+        "ed3a1c523b524870a85a5a76cb1e0c3d": 0.0,
+        "f92df673645b4436ac0a8c3a0caff8db": 10.7
+    }
+}
