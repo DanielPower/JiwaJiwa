@@ -151,7 +151,24 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
     ) {
         Text("Review", style = MaterialTheme.typography.headlineMedium)
 
-        if (due == 0) {
+        // Before any word's been started there's nothing to review yet, rather than nothing left.
+        val beforeFirst = due == 0 && !summary.started
+        if (beforeFirst) {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Reviews start after your first story",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    "The words you meet in it come back here, just before you'd forget them.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        } else if (due == 0) {
             // Nothing due: the same 済 as Home's Done card.
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 DoneSeal()
@@ -201,7 +218,11 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
         ComingUp(summary.comingUp, summary.today)
 
         Spacer(Modifier.weight(1f))
-        if (due > 0) {
+        if (beforeFirst) {
+            PrimaryButton(onClick = vm::openStories, modifier = Modifier.fillMaxWidth().height(58.dp)) {
+                Text("Read your first story", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+        } else if (due > 0) {
             PrimaryButton(onClick = vm::startReview, modifier = Modifier.fillMaxWidth().height(58.dp)) {
                 Text("Start studying", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }

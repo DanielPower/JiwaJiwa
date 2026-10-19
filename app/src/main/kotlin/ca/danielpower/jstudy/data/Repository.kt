@@ -70,6 +70,8 @@ data class Summary(
     val readDays: Set<Long>,
     /** Reviews due on each of the next week's days, tomorrow first. */
     val comingUp: List<Int>,
+    /** Whether any word has been started, so there's ever been anything to review. */
+    val started: Boolean = true,
 ) {
     val anythingDue get() = newCards + learning + reviews > 0
 }
@@ -1310,6 +1312,7 @@ class Repository private constructor(context: Context) {
             answersPerDay = store.answersPerDay(today - 370),
             readDays = store.storyReadTimes().map(clock::dayOf).toSet(),
             comingUp = forecast(clock, today, 8).drop(1),
+            started = store.count("SELECT COUNT(*) FROM card WHERE state != ?", CardState.NEW.value) > 0,
         )
     }
 

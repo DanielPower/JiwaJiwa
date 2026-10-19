@@ -155,7 +155,9 @@ Other features (all shipped):
   Settings opens from a gear on Home; it's rarely needed. The Review tab
   has today's counts, the review heatmap, a link to the Stats page
   (recall, forecast, per-level progress) and Start studying, with the due
-  count as a badge on the tab.
+  count as a badge on the tab. Before any word is started it says reviews
+  start after your first story, with "Read your first story" in place of
+  Study more (2026-10-19).
 - Home (Daniel, 2026-10-17, layout "Journal"): one next-step card with a
   quiet blue "or ..." line under it (`core/Home.kt` `Suggest`): reviews
   first once due reviews reach the review nudge; else the chapter you left
