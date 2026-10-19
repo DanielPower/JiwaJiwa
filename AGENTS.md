@@ -321,7 +321,9 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - A chapter opens on its own once it's within reach (`StoryPath.gap`): new
   words at most 3% of its running words, and at least 3; and no grammar
   point you haven't seen, other than its own topic. Tapping a locked chapter shows what it's missing and
-  the open chapters with the most of it.
+  the open chapters with the most of it. The Read tab ends with a folded
+  "Coming up · N" list of the stories not open yet, each with why its first
+  chapter is locked; tapping one shows the same sheet (2026-10-19).
 - Grammar comes in as topics (one or more related points, like から/まで),
   at most one per chapter; the same topic can be listed on several
   chapters, and whichever you reach first teaches it. Each topic has a full

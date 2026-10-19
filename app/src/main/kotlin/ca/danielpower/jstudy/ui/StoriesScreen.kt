@@ -52,6 +52,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -112,6 +113,7 @@ import ca.danielpower.jstudy.data.levelLabel
 
 // ------------------------------------------------------------------ list
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
     Column(
@@ -147,14 +149,58 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
             SectionLabel("Ready to read")
             for (entry in shown) PathRow(entry, state.place) { vm.openPathStory(entry) }
         }
-        val waiting = state.path.size - shown.size
-        if (waiting > 0) {
-            Text(
-                (if (waiting == 1) "1 more story opens" else "$waiting more stories open") + " up as you learn.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        // The stories not open yet, folded away, each with why it's locked.
+        val waiting = state.path.filter { !it.shown && it.chapters.isNotEmpty() }
+        if (waiting.isNotEmpty()) {
+            var comingUp by rememberSaveable { mutableStateOf(false) }
+            Row(
+                Modifier.padding(top = 8.dp).clip(WashiShape).clickable { comingUp = !comingUp }.padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                SectionLabel("Coming up · ${waiting.size}")
+                Icon(
+                    if (comingUp) WashiIcons.Up else WashiIcons.Down,
+                    contentDescription = if (comingUp) "Hide" else "Show",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            if (comingUp) {
+                for (entry in waiting) {
+                    val first = entry.chapters.first()
+                    LockedRow(entry, first) { vm.showLock(first.chapter.story.id) }
+                }
+            }
         }
+    }
+    state.lock?.let { lock ->
+        ModalBottomSheet(onDismissRequest = vm::closeLock, containerColor = MaterialTheme.colorScheme.surface) {
+            LockSheet(lock, vm)
+        }
+    }
+}
+
+/** A story under Coming up: its title, why its first chapter is locked, and a lock. Tap for what would open it. */
+@Composable
+private fun LockedRow(entry: SeriesEntry, first: ChapterEntry, onClick: () -> Unit) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(WashiShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(entry.series.title, style = MaterialTheme.typography.titleLarge, color = muted)
+            Text(lockReason(first), style = MaterialTheme.typography.labelMedium, color = muted)
+        }
+        Icon(WashiIcons.Lock, contentDescription = "Locked", modifier = Modifier.size(18.dp), tint = muted)
     }
 }
 
@@ -528,7 +574,7 @@ private fun LockSheet(lock: LockInfo, vm: AppViewModel) {
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        SectionLabel("Chapter ${entry.chapter.number} · locked")
+        SectionLabel(if (entry.series.single) "Locked" else "Chapter ${entry.chapter.number} · locked")
         Text(entry.chapter.story.title, style = MaterialTheme.typography.titleLarge)
         for ((topic, teaching) in lock.grammar) {
             val where = teaching.firstOrNull()?.let { " It's taught before ${chapterName(it)}." }.orEmpty()

@@ -163,6 +163,8 @@ sealed interface Screen {
         val nothingNew: List<ChapterEntry> = emptyList(),
         /** Where you left a chapter part way, for its story's bar. */
         val place: ReaderPlace? = null,
+        /** Why a story under Coming up is locked, once you tap it. */
+        val lock: LockInfo? = null,
     ) : Screen
 
     /** A story with more than one chapter: its chapters, and why one is locked once you tap it. */
@@ -645,13 +647,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _screen.value = Screen.Series(entry)
     }
 
-    /** Tapping a locked chapter: what it's missing, and where to find it. */
+    /** Tapping a locked chapter, or a story under Coming up: what it's missing, and where to find it. */
     fun showLock(chapterId: String) = launchIo {
         val lock = repo.lockInfo(chapterId) ?: return@launchIo
-        _screen.update { if (it is Screen.Series) it.copy(lock = lock) else it }
+        _screen.update {
+            when (it) {
+                is Screen.Series -> it.copy(lock = lock)
+                is Screen.Stories -> it.copy(lock = lock)
+                else -> it
+            }
+        }
     }
 
-    fun closeLock() = _screen.update { if (it is Screen.Series) it.copy(lock = null) else it }
+    fun closeLock() = _screen.update {
+        when (it) {
+            is Screen.Series -> it.copy(lock = null)
+            is Screen.Stories -> it.copy(lock = null)
+            else -> it
+        }
+    }
 
     /** Back from a story screen: a grammar page to where it was opened, a chapter to its story's list, the rest to the stories. */
     private fun storyBack() = launchIo {
