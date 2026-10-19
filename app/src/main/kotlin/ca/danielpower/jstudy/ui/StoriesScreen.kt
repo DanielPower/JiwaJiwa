@@ -70,6 +70,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -739,7 +740,14 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 audio -> AudioMenu(speech, voice.missing && reading.clips.all { it == null }, vm::setSpeechRate)
                 n != null -> NoteCard(n)
                 o == null -> Text(
-                    "Tap a word to see what it means. Hold one to read its sentence in English.",
+                    // A chapter that teaches a topic says what's in indigo; the rest say how the pane works.
+                    reading.teaches?.let { topic ->
+                        buildAnnotatedString {
+                            append("New in this chapter: ")
+                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) { append(topic.page.title) }
+                            append(", shown in blue.")
+                        }
+                    } ?: AnnotatedString("Tap a word to see what it means. Hold one to read its sentence in English."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -1061,6 +1069,7 @@ private fun HorizontalStory(
                                 size = size.sp,
                                 rubySize = rubySize.sp,
                                 family = family,
+                                newGrammar = reading.newGrammar(p, i),
                             )
                         }
                     }
@@ -1397,8 +1406,11 @@ private fun StoryWord(
     rubySize: TextUnit,
     family: FontFamily,
     weight: FontWeight? = null,
+    /** Its characters that are the grammar the chapter teaches, drawn and underlined in indigo. */
+    newGrammar: IntRange? = null,
 ) {
     val unknown = reading.isUnknown(word)
+    val indigo = MaterialTheme.colorScheme.secondary
     val showRuby = reading.showsRuby(word)
     val color = if (unknown || selected) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
@@ -1414,7 +1426,17 @@ private fun StoryWord(
     modifier = modifier.storyWordGestures(onTap, onHold)
     Box(modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
+            var at = 0
             for (piece in word.ruby) {
+                val start = at
+                at += piece.base.length
+                // The new grammar is the word's ending, never inside a kanji, so a piece's furigana follows where it starts.
+                val rubyColor = if (newGrammar != null && start in newGrammar) indigo else color
+                val base = if (newGrammar == null) AnnotatedString(piece.base) else buildAnnotatedString {
+                    piece.base.forEachIndexed { k, c ->
+                        if (start + k in newGrammar) withStyle(SpanStyle(color = indigo, textDecoration = TextDecoration.Underline)) { append(c) } else append(c)
+                    }
+                }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = piece.ruby ?: " ",
@@ -1423,11 +1445,11 @@ private fun StoryWord(
                         fontFamily = family,
                         maxLines = 1,
                         softWrap = false,
-                        color = color.copy(alpha = 0.75f),
+                        color = rubyColor.copy(alpha = 0.75f),
                         modifier = if (showRuby && piece.ruby != null) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
                     )
                     Text(
-                        text = piece.base,
+                        text = base,
                         fontSize = size,
                         lineHeight = size * 1.5f,
                         fontFamily = family,

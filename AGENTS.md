@@ -300,6 +300,12 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   play (`stories/lines.json`, built like the rest). How to write one, and
   the limits the check enforces: "Writing a grammar lesson" in
   `tools/stories/AGENTS.md`.
+- New grammar in its chapter (Daniel, 2026-10-19): in the chapter that
+  teaches a topic, the topic's part of each word is indigo with an indigo
+  underline, the rest keeps its own colour (a new verb stays vermilion and
+  underlined: 勝っ|たら). The split comes from the tokenizer: core
+  `GrammarUse.from`/`to`, written by the story tools. The empty pane says
+  "New in this chapter: ～たら, shown in blue."
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.

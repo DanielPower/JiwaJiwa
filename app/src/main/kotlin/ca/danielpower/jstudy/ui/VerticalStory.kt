@@ -46,10 +46,11 @@ import kotlin.math.roundToInt
 
 /**
  * A run of characters set together: a kanji run with its furigana, which
- * shouldn't break across columns, or a single character. A [note] piece is
- * the marker for paragraph [p]'s note, after its words.
+ * shouldn't break across columns, or a single character. [at] is where it
+ * starts in its word, in characters. A [note] piece is the marker for
+ * paragraph [p]'s note, after its words.
  */
-private class Piece(val chars: List<String>, val ruby: List<String>?, val p: Int, val i: Int, val paragraphStart: Boolean, val note: Boolean = false)
+private class Piece(val chars: List<String>, val ruby: List<String>?, val p: Int, val i: Int, val paragraphStart: Boolean, val note: Boolean = false, val at: Int = 0)
 
 /** Vertical forms of punctuation, brackets and the long vowel mark. */
 private val Vertical = TextStyle(fontFeatureSettings = "vert")
@@ -68,16 +69,21 @@ private fun pieces(reading: StoryReading): List<Piece> = buildList {
         var start = true
         words.forEachIndexed { i, word ->
             val showRuby = reading.showsRuby(word)
+            var at = 0
             for (part in word.ruby) {
+                val partStart = at
+                at += part.base.length
                 val chars = part.base.characters().filter { it.isNotBlank() }
                 if (chars.isEmpty()) continue
                 val furigana = part.ruby
                 if (showRuby && furigana != null) {
-                    add(Piece(chars, furigana.characters(), p, i, start))
+                    add(Piece(chars, furigana.characters(), p, i, start, at = partStart))
                     start = false
                 } else {
+                    var k = partStart
                     for (c in chars) {
-                        add(Piece(listOf(c), null, p, i, start))
+                        add(Piece(listOf(c), null, p, i, start, at = k))
+                        k += c.length
                         start = false
                     }
                 }
@@ -156,6 +162,7 @@ fun VerticalStory(
         val rubyDp = with(density) { rubyCell.toDp() }
         val ink = LocalContentColor.current
         val seal = MaterialTheme.colorScheme.primary
+        val indigo = MaterialTheme.colorScheme.secondary
         val highlight = seal.copy(alpha = HIGHLIGHT)
         val wash = seal.copy(alpha = WASH)
         val nameColor = speakerColor()
@@ -200,6 +207,8 @@ fun VerticalStory(
                         val word = reading.paragraphs[piece.p][piece.i]
                         val isSelected = selected == (piece.p to piece.i)
                         val unknown = reading.isUnknown(word)
+                        // The grammar the chapter teaches, in indigo with an indigo line beside it.
+                        val newGrammar = reading.newGrammar(piece.p, piece.i)?.let { piece.at in it } == true
                         PieceView(
                             piece = piece,
                             textSize = size.sp,
@@ -207,8 +216,8 @@ fun VerticalStory(
                             family = family,
                             cell = cellDp,
                             rubyCell = rubyDp,
-                            color = if (unknown || isSelected) seal else ink,
-                            sideline = unknown,
+                            color = if (newGrammar) indigo else if (unknown || isSelected) seal else ink,
+                            sideline = unknown || newGrammar,
                             spoken = spoken == (piece.p to piece.i),
                             background = when {
                                 isSelected || (piece.p to piece.i) in lit -> highlight

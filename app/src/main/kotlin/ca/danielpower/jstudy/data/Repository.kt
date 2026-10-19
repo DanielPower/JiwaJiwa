@@ -160,7 +160,15 @@ data class StoryReading(
     val extra: List<List<ReadingWord>> = emptyList(),
     /** For a grammar page: lines using its topic from the chapters you've read, the latest read first. */
     val fromStories: List<StoryLine> = emptyList(),
+    /** For a chapter that teaches a grammar topic: the topic, drawn in indigo wherever it's used. */
+    val teaches: GrammarTopic? = null,
 ) {
+    private val newPoints = teaches?.points.orEmpty().toSet()
+
+    /** The characters of word [i] in paragraph [p] that are the grammar this chapter teaches, if any. */
+    fun newGrammar(p: Int, i: Int): IntRange? =
+        if (newPoints.isEmpty() || p >= paragraphs.size) null else word(p, i)?.grammarChars(i, newPoints)
+
     /** The text as sentences to read aloud. */
     val narration: List<NarrationLine> by lazy { Narration.lines(paragraphs, speakers) }
 
@@ -670,6 +678,8 @@ class Repository private constructor(context: Context) {
             lessons = lessons(),
             extra = extra,
             fromStories = fromStories,
+            teaches = catalog.chapters.firstOrNull { it.second.story.id == story.pathId }?.second?.topic
+                ?.let { id -> catalog.grammar.firstOrNull { it.id == id } },
         ).let { it.copy(clips = clips(story, it.narration)) }
     }
 

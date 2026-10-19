@@ -106,6 +106,8 @@ class ReadingTest {
             assertEquals("potential", w.conjugation.first(), text)
             assertEquals(listOf("potential"), w.grammar.map { it.point.id }.filter { it == "potential" }, text)
         }
+        // A う verb's potential is one token: what it shares with 話す is the word, the rest the point.
+        assertEquals(1..2, read("話せる").grammarChars(0, setOf("potential")))
         // 売れる sells well: a verb of its own, not "can sell".
         assertEquals(62L, read("売れる").wordId)
         assertTrue(read("売れる").grammar.isEmpty())
@@ -276,5 +278,19 @@ class ReadingTest {
     @Test
     fun paragraphs() {
         assertEquals(2, reader.read("猫が好きです。\n\n本を読む。").size)
+    }
+
+    @Test
+    fun aPointKnowsWhereItStartsInsideItsWord() {
+        val words = reader.words("雨が降ったら。")
+        val i = words.indexOfFirst { it.surface == "降ったら" }
+        // The verb is the word; only たら is ～たら.
+        assertEquals(2..3, words[i].grammarChars(i, setOf("tara")))
+        assertNull(words[i].grammarChars(i, setOf("te-iru")))
+        // A particle on its own is all grammar.
+        val k = words.indexOfFirst { it.surface == "が" }
+        assertEquals(0..0, words[k].grammarChars(k, setOf("ga")))
+        // And the app reads back what the tools wrote.
+        assertEquals(listOf(words), StoryText.parse(StoryText.write(mapOf("a/b" to listOf(words))).values.single()).getValue("a/b"))
     }
 }
