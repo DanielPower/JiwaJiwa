@@ -290,6 +290,16 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   chapters with no new grammar, using what came before, between the ones
   that teach a topic, and reuse each topic in the chapters after it.
   Stories no longer follow a kana order (kana aren't taught).
+- Grammar lessons (Daniel, 2026-10-19): every topic's page has one shape:
+  summary, the teaching chapter's line with its English, a forms table for
+  patterns that change a word, at most two notes and three lines, and the
+  rest folded under "More on …". The notes grow with the reader. Japanese
+  in the English is tappable (read at build time as the topic's "runs").
+  Opened any other time than just before its chapter, a lesson ends with "From your
+  stories": lines using it from chapters you've read, latest first, with
+  play (`stories/lines.json`, built like the rest). How to write one, and
+  the limits the check enforces: "Writing a grammar lesson" in
+  `tools/stories/AGENTS.md`.
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.

@@ -37,6 +37,8 @@ import ca.danielpower.jstudy.core.Recording
 import ca.danielpower.jstudy.core.Recordings
 import ca.danielpower.jstudy.core.Chapter
 import ca.danielpower.jstudy.core.GrammarTopic
+import ca.danielpower.jstudy.core.Lessons
+import ca.danielpower.jstudy.core.TopicLines
 import ca.danielpower.jstudy.core.Candidate
 import ca.danielpower.jstudy.core.NextUp
 import ca.danielpower.jstudy.core.Pace
@@ -142,31 +144,58 @@ data class StoryReading(
     val words: Map<Long, Word>,
     val statuses: Map<Long, WordStatus>,
     val coverage: Coverage,
-    /** For a grammar topic's page: its English notes between the examples. */
-    val lesson: PathStory? = null,
+    /** For a grammar topic's page: the topic, with its notes, forms and what's folded under More. */
+    val lesson: GrammarTopic? = null,
     /** A chapter's English notes, by the paragraph whose end has their marker. */
     val notes: Map<Int, String> = emptyMap(),
     /** The saved page of the grammar topic each grammar point belongs to, by point id. */
     val lessons: Map<String, Long> = emptyMap(),
     /** Each line of [narration]'s recording, or null for the phone to read it. */
     val clips: List<Recording?> = emptyList(),
+    /**
+     * Words shown outside the text, numbered on from [paragraphs]: a grammar
+     * page's runs of Japanese in its English ([Lessons.runs]), then the
+     * words of each of [fromStories].
+     */
+    val extra: List<List<ReadingWord>> = emptyList(),
+    /** For a grammar page: lines using its topic from the chapters you've read, the latest read first. */
+    val fromStories: List<StoryLine> = emptyList(),
 ) {
     /** The text as sentences to read aloud. */
     val narration: List<NarrationLine> by lazy { Narration.lines(paragraphs, speakers) }
 
-    /** The word at [i] in paragraph [p]. */
-    fun word(p: Int, i: Int): ReadingWord? = paragraphs.getOrNull(p)?.getOrNull(i)
+    /** The word at [i] in paragraph [p], or in [extra] past the paragraphs. */
+    fun word(p: Int, i: Int): ReadingWord? = (paragraphs.getOrNull(p) ?: extra.getOrNull(p - paragraphs.size))?.getOrNull(i)
+
+    /** Where [fromStories]' line [n] is in [extra]. */
+    fun storyLineAt(n: Int) = paragraphs.size + extra.size - fromStories.size + n
 
     /** Each paragraph's sentences; the translations follow this order. */
     private val sentences = paragraphs.map(::sentenceRanges)
 
-    /** The sentence holding word [i] of paragraph [p]. */
+    /** The sentence holding word [i] of paragraph [p]; a line of [fromStories] is one sentence. */
     fun sentence(p: Int, i: Int): StorySentence? {
+        val n = p - storyLineAt(0)
+        if (n >= 0) return fromStories.getOrNull(n)?.let { StorySentence(it.words.indices, it.english) }
         val j = sentences.getOrNull(p)?.indexOfFirst { i in it }?.takeIf { it >= 0 } ?: return null
         val translations = story.translations.takeIf { it.size == sentences.sumOf { s -> s.size } }
         return StorySentence(sentences[p][j], translations?.get(sentences.take(p).sumOf { it.size } + j))
     }
 }
+
+/**
+ * A sentence of a chapter you've read: where it's from (The Band 4 · If we win), who says it, its
+ * words (their grammar spans counted from its first), its English, and its
+ * text and recording to play.
+ */
+data class StoryLine(
+    val chapter: String,
+    val speaker: String?,
+    val words: List<ReadingWord>,
+    val english: String?,
+    val text: String,
+    val clip: Recording?,
+)
 
 /** What a chapter brings that you haven't learned: how many new words, and the grammar topic it brings in. */
 data class StepToLearn(val newWords: Int, val topic: GrammarTopic?)
@@ -623,7 +652,11 @@ class Repository private constructor(context: Context) {
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
         val paragraphs = paragraphs(story)
-        val ids = paragraphs.flatten().mapNotNull { it.wordId }.toSet()
+        val topic = topicOfPage(story)
+        val runs = topic?.let { text(Lessons.runsId(it)) }.orEmpty()
+        val fromStories = topic?.let(::storyLines).orEmpty()
+        val extra = runs + fromStories.map { it.words }
+        val ids = (paragraphs + extra).flatten().mapNotNull { it.wordId }.toSet()
         val statuses = store.wordStatuses()
         return StoryReading(
             story = story,
@@ -632,9 +665,11 @@ class Repository private constructor(context: Context) {
             words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
             statuses = statuses,
             coverage = coverage(paragraphs, known(statuses)),
-            lesson = topicOfPage(story)?.page,
+            lesson = topic,
             notes = notes(story),
             lessons = lessons(),
+            extra = extra,
+            fromStories = fromStories,
         ).let { it.copy(clips = clips(story, it.narration)) }
     }
 
@@ -668,12 +703,51 @@ class Repository private constructor(context: Context) {
     private val texts = HashMap<String, Map<String, List<List<ReadingWord>>>>()
 
     /** [story]'s paragraphs of words. */
-    private fun paragraphs(story: SavedStory): List<List<ReadingWord>> {
-        val file = StoryText.file(story.pathId)
+    private fun paragraphs(story: SavedStory): List<List<ReadingWord>> = text(story.pathId)
+
+    /** The paragraphs of words the story tools read for [id]: a page, or a grammar page's runs. */
+    private fun text(id: String): List<List<ReadingWord>> {
+        val file = StoryText.file(id)
         val pages = synchronized(texts) {
             texts.getOrPut(file) { StoryText.parse(appContext.assets.open("stories/read/$file").bufferedReader().use { it.readText() }) }
         }
-        return pages[story.pathId].orEmpty()
+        return pages[id].orEmpty()
+    }
+
+    /** Where each grammar topic is used in the chapters, worked out by the story tools (core [TopicLines]). */
+    private val topicLines by lazy {
+        TopicLines.parse(appContext.assets.open("stories/lines.json").bufferedReader().use { it.readText() })
+    }
+
+    /** The lines using [topic] in the chapters you've read, the chapter read last first, up to [STORY_LINES]. */
+    private fun storyLines(topic: GrammarTopic): List<StoryLine> {
+        val saved = store.pathStories()
+        return topicLines[topic.id].orEmpty()
+            .filter { saved[it.chapter]?.readAt != null }
+            .sortedByDescending { saved.getValue(it.chapter).readAt }
+            .take(STORY_LINES)
+            .mapNotNull { line ->
+                val story = saved.getValue(line.chapter)
+                val paragraphs = paragraphs(story)
+                val words = paragraphs.getOrNull(line.p) ?: return@mapNotNull null
+                val narration = Narration.lines(paragraphs, Speech.speakers(story.body))
+                    .firstOrNull { it.p == line.p && it.words == line.words } ?: return@mapNotNull null
+                val sentence = paragraphs.take(line.p).sumOf { sentenceRanges(it).size } + sentenceRanges(words).indexOf(line.words)
+                val start = line.words.first
+                val end = line.words.last - start
+                val chapter = catalog.chapters.firstOrNull { it.second.story.id == story.pathId }
+                StoryLine(
+                    chapter = chapter?.let { (series, c) -> "${series.title} ${c.number} · ${c.story.title}" } ?: story.title,
+                    speaker = narration.speaker,
+                    words = line.words.map { i ->
+                        val w = words[i]
+                        w.copy(grammar = w.grammar.map { it.copy(first = (it.first - start).coerceIn(0, end), last = (it.last - start).coerceIn(0, end)) })
+                    },
+                    english = story.translations.getOrNull(sentence),
+                    text = narration.text,
+                    clip = clips(story, listOf(narration)).single(),
+                )
+            }
     }
 
     /** Each grammar point's topic page, saved when the path was. */
@@ -1240,6 +1314,9 @@ class Repository private constructor(context: Context) {
 
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12
+
+        /** Lines from your stories to show on a grammar page. */
+        private const val STORY_LINES = 20
 
         @Volatile private var instance: Repository? = null
 

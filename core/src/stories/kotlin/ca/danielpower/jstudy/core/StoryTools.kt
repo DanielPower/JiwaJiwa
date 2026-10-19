@@ -29,7 +29,9 @@ import java.sql.ResultSet
 // (:core:storyAssets, StoryAssetsTool.kt). That's the path (path.json, put
 // together by StorySource), the index of each chapter's words and grammar
 // (needs.json, which the app reads in place of reading every chapter) and
-// every chapter and grammar page split into words (read/, which the app shows).
+// every chapter and grammar page split into words (read/, which the app shows),
+// with each grammar page's Japanese outside its examples, and where each
+// grammar topic is used in the chapters (lines.json).
 
 /**
  * Writes the stories' summaries and the coverage report for the repository
@@ -141,6 +143,17 @@ class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
     val text: Map<String, List<List<ReadingWord>>> by lazy {
         (catalog.chapters.map { it.second.story } + catalog.grammar.map { it.page }).associate { it.id to reader.read(it.body, it.readings, it.names) }
     }
+
+    /**
+     * The Japanese in each grammar page's summary, notes and forms table, read
+     * a run at a time ([Lessons.runs]) so it can be tapped, by the page's runs id.
+     */
+    val runs: Map<String, List<List<ReadingWord>>> by lazy {
+        catalog.grammar.associate { t -> Lessons.runsId(t) to Lessons.runs(t).map { reader.read(it, emptyMap(), t.page.names).flatten() } }
+    }
+
+    /** Each grammar topic's lines in the chapters (stories/lines.json). */
+    val lines: Map<String, List<TopicLine>> by lazy { TopicLines.of(catalog) { text.getValue(it) } }
 
     /** Each chapter's needs, from how it reads. */
     val needs: Map<String, StepNeeds> by lazy {

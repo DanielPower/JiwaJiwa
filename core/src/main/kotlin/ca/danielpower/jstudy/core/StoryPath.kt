@@ -21,9 +21,10 @@ import kotlinx.serialization.json.putJsonArray
  * English beside the Japanese, shown before paragraph [before] (after the
  * last one when it's the paragraph count). In a grammar topic's page, a
  * paragraph is a line, and the note sits between them; in a chapter, it
- * opens from a marker at the end of the paragraph before.
+ * opens from a marker at the end of the paragraph before. On a grammar page,
+ * [more] puts it under "More on …", folded.
  */
-data class LessonNote(val before: Int, val text: String)
+data class LessonNote(val before: Int, val text: String, val more: Boolean = false)
 
 /**
  * Japanese that comes with the app: a chapter of a story, or a grammar
@@ -102,6 +103,10 @@ data class GrammarTopic(
     val summary: String,
     /** Its full page: the examples, with notes between them. */
     val page: PathStory,
+    /** The table of forms shown after the first example, for a topic that changes a word's form. */
+    val forms: LessonForms? = null,
+    /** The first of the page's examples folded under "More on …"; all of them are shown when it's their count. */
+    val moreAt: Int = paragraphs(page.body).size,
 ) {
     /** The first example and its English, shown with the summary. */
     val example: Pair<String, String>? get() = page.body.lineSequence().firstOrNull()?.let { it to page.translations.first() }
@@ -170,7 +175,7 @@ object StoryPath {
         fun JsonObject.texts(key: String) = this[key]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
         fun JsonObject.notes() = this["notes"]?.jsonArray.orEmpty().map { n ->
             val note = n.jsonObject
-            LessonNote(note.getValue("before").jsonPrimitive.int, note.text("text"))
+            LessonNote(note.getValue("before").jsonPrimitive.int, note.text("text"), note["more"]?.jsonPrimitive?.boolean ?: false)
         }
         val names = root.getValue("series").jsonArray.flatMap { e ->
             e.jsonObject.getValue("chapters").jsonArray.flatMap { c -> c.jsonObject["meets"]?.jsonArray.orEmpty() }
@@ -178,21 +183,32 @@ object StoryPath {
         val grammar = root["grammar"]?.jsonArray.orEmpty().map { e ->
             val o = e.jsonObject
             val id = o.text("id")
+            val page = PathStory(
+                id = "grammar/$id",
+                title = o.text("title"),
+                body = o.text("body"),
+                translations = o.texts("translations"),
+                notes = o.notes(),
+                lesson = true,
+                names = names,
+            )
             GrammarTopic(
                 id = id,
                 title = o.text("title"),
                 titleEn = o.text("title_en"),
                 points = o.texts("points"),
                 summary = o.text("summary"),
-                page = PathStory(
-                    id = "grammar/$id",
-                    title = o.text("title"),
-                    body = o.text("body"),
-                    translations = o.texts("translations"),
-                    notes = o.notes(),
-                    lesson = true,
-                    names = names,
-                ),
+                page = page,
+                forms = o["forms"]?.jsonObject?.let { f ->
+                    LessonForms(
+                        head = f.texts("head"),
+                        rows = f.getValue("rows").jsonArray.map { r ->
+                            val (from, to, english) = r.jsonArray.map { it.jsonPrimitive.content }
+                            FormRow(from, to, english)
+                        },
+                    )
+                },
+                moreAt = o["more_at"]?.jsonPrimitive?.int ?: paragraphs(page.body).size,
             )
         }
         val topics = grammar.associateBy { it.id }

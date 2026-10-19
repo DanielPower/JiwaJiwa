@@ -2,8 +2,9 @@
 
 The stories that come with the app, as they're written. The app reads
 `stories/path.json` (the text), `needs.json` (each chapter's words and
-grammar) and `stories/read/` (every chapter split into words, which the
-reader shows), all put together from here by the story tools (core
+grammar), `stories/read/` (every chapter split into words, which the
+reader shows) and `lines.json` (where each grammar topic is used, for the
+lessons' "From your stories"), all put together from here by the story tools (core
 `src/stories`) when the app is built; none of them is committed. The app
 has no tokenizer of its own: what the check passes is exactly what it shows.
 
@@ -12,7 +13,7 @@ has no tokenizer of its own: what the check passes is exactly what it shows.
 | Path | What's in it |
 | --- | --- |
 | `stories.json` | Every story's id, in the order the Stories tab lists them: the main stories, each following the one before, then side stories and one-shots. Add a new story here. |
-| `grammar.json` | The grammar topics, in Grammar-list order. Each has `parts`: Japanese lines with their English (`["来た。", "I'm here."]`), and notes in English (plain strings) between them. The first line is the example shown before the chapter that teaches it. Chapters name topics by `id`. |
+| `grammar.json` | The grammar topics (lessons), in Grammar-list order: `id`, `title` (the pattern), `title_en`, `points` (from core `Grammar.kt`), a `summary`, `parts` (Japanese lines with their English, `["来た。", "I'm here."]`, and notes in English, plain strings, between them), and optionally `forms` and `more`. See "Writing a grammar lesson". Chapters name topics by `id`. |
 | `series/<id>/story.json` | A story's `title`, `blurb`, the stories it follows (`after`: story ids, or a chapter id such as `share-house/yukis-gig` to mean the story up to that chapter), `side` for a side story, an optional `narrator` (a Fish Audio voice id, when its narration shouldn't be in the usual narrator's voice), and `chapters`: its chapters' slugs in reading order. |
 | `levels.json` | Written by the recorder: each Fish voice's gain in dB, so they all play as loud. |
 | `voices.json` | The Fish Audio voices the stories are recorded in: `model`, the usual `narrator`, each of the `cast` by name, and `labels`, a voice for each kind (`woman`, `man`, `child`) for unnamed speakers. A blank id isn't recorded; the phone reads those lines. Someone new to the cast gets an entry here. Changing a voice records all of its lines again, which costs money. |
@@ -132,6 +133,46 @@ Those files are worked out from every story, so two branches that each
 change a story both change them, and conflict when the second is merged or
 rebased. Never resolve them by hand: take either side, rerun
 `:core:stories`, and commit what it writes.
+
+## Writing a grammar lesson
+
+Each topic in `grammar.json` is a lesson page, read just before the chapter
+that teaches it, and again whenever it's looked up. Every lesson has the
+same shape, so a reader always knows where to look:
+
+1. **`summary`**: what the pattern does, in one or two sentences with a
+   short example (`勝ったら, if we win`). At most 35 words.
+2. **The chapter's line**: the first of `parts` is a line from the chapter
+   that teaches it, with its English. Its words should be ones the reader
+   has by then.
+3. **`forms`**, for a pattern that changes a word: a small table of the
+   form the reader knows and the new form, with a few words of English.
+   `{"head": ["Verb", "Past"], "rows": [["来る", "来た", "come, came"]]}`,
+   at most six rows, using words from the stories. It shows after the first
+   line, so the notes don't need to spell the forms out again.
+4. **At most two notes**, each a few sentences, and at most three lines in
+   all. A note says what the reader needs to read the next chapters: how
+   the form is made, and the one distinction that matters most. The notes'
+   length grows with the reader: about 30 words in all for the first
+   chapters, up to 90 once chapters run past 120 words (`lessonBudget` in
+   `StoryCheck`: 30 plus half the teaching chapter's length).
+5. **`more`**: everything else, folded under "More on …": the polite or
+   formal version, rarer uses, comparisons with patterns they know, slang.
+   It's `parts` again (lines and notes), shown after the rest when opened.
+
+The app adds the rest itself: each line's English under it, and, once the
+lesson has been read, lines from the reader's own chapters that use it.
+
+Japanese written in notes, the summary and forms is read like the
+examples, so it can be tapped: keep it to words a reader can look up, and
+put a run of Japanese next to its English (`待って, wait`) rather than
+inside a sentence of romaji. Write for a reader of the stories, not a
+textbook: no grammar terms a reader hasn't met, and nothing promised for
+"later". When in doubt, fold it under `more`.
+
+Changing a line records it again, which costs money; moving a line between
+`parts` and `more` doesn't. The check fails a lesson over any of the limits
+above, and names the limit.
 
 ## Recorded audio
 
