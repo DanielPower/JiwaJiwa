@@ -30,7 +30,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 The weekend after the show, Rin buys strings at the Shimokitazawa guitar shop where she bought her first as a kid, meets a man from Kenta's office who only made the last song, eats ramen alone at the manager's shop and shows him the video, then plays a new tune at home.
 
-- 353 words; 0 new of 10 allowed.
+- 350 words; 0 new of 10 allowed.
 
 ## Known at the end
 

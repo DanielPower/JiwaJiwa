@@ -42,7 +42,7 @@ Daichi takes Yuki to the park at night to meet Rin, a guitarist who says almost 
 
 First practice in a rented studio: Daichi's drums drown out everything, and they play 'Snow' again and again until morning.
 
-- 101 words; 3 new of 3 allowed.
+- 98 words; 3 new of 3 allowed.
 - New: スタジオ (N1), 借りる (かりる, N5), 聞こえる (きこえる, N4).
 
 ### 4. If we win (`the-band/if-we-win`)
@@ -57,7 +57,7 @@ Over ramen after practice, Daichi explains the festival picks a winning band, an
 
 The festival wants a band name: Daichi's ideas are all wrong, and quiet Rin comes up with 'Summer Snow'.
 
-- 101 words; 3 new of 3 allowed.
+- 100 words; 3 new of 3 allowed.
 - New: 違う (ちがう, N5), 決める (きめる, N4), 有名 (ゆうめい, N5).
 
 ### 6. If I can go (`the-band/if-i-can-go`)
@@ -71,7 +71,7 @@ At the share house, Sora is thrilled about the band, and Kenta promises to come 
 
 To enter the festival they have to send a video by tomorrow, so Sora comes to the studio to film 'Snow'.
 
-- 91 words; 3 new of 3 allowed.
+- 88 words; 3 new of 3 allowed.
 - Teaches ～なきゃ / ～なくてもいい (`nakereba`).
 - New: いつ (N5), ちゃんと (N3), 自分 (じぶん, N5).
 
@@ -115,7 +115,7 @@ Miho comes to watch practice, sketches the band as they play, and decides she wa
 
 On a rainy day Rin looks angry and won't talk, until she plays the band a new song she's written; it has no words yet, and she wants Yuki's.
 
-- 111 words; 3 new of 3 allowed.
+- 113 words; 3 new of 3 allowed.
 - Teaches ～みたい / ～そう (`mitai`).
 - New: 顔 (かお, not JLPT), 怖い (こわい, N4), 言葉 (ことば, N5).
 
@@ -174,7 +174,7 @@ Three days before the festival, the band tries playing in the park at night for 
 
 The night before the festival, Yuki can't sleep: Sora brings ice cream, Kenta swears he's coming, Alex calls about the park video, and Rin can't sleep either.
 
-- 117 words; 1 new of 3 allowed.
+- 116 words; 1 new of 3 allowed.
 - New: おやすみ (N2).
 
 ### 22. Only three songs (`the-band/only-three-songs`)

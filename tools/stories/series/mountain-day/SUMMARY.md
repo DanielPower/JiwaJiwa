@@ -28,7 +28,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 The studio is too hot to practise in, so Daichi says they should take a day off and go to the mountains; Rin agrees at once, Sora invites himself, and they meet at the station in the morning.
 
-- 99 words; 0 new of 3 allowed.
+- 97 words; 0 new of 3 allowed.
 
 ### 2. Up the mountain (`mountain-day/up-the-mountain`)
 
