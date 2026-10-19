@@ -83,8 +83,31 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Record story audio"
-          git push
+          # Someone may have pushed while it recorded: the clips are new files, so they go on top.
+          pushed=false
+          for attempt in 1 2 3 4; do
+            if git pull --rebase --autostash origin "${{ github.head_ref || github.ref_name }}" && git push; then
+              pushed=true
+              break
+            fi
+            sleep $((attempt * 5))
+          done
+          if [ "$pushed" != true ]; then
+            # Kept for two weeks so paid-for clips can still be committed by hand.
+            echo "::error::Couldn't push the clips; they're attached to this run."
+            exit 1
+          fi
           echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the clips if they couldn't be pushed
+        if: failure() && steps.commit.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-audio
+          path: |
+            app/src/main/assets/audio
+            tools/stories/levels.json
+          retention-days: 14
 
       - name: Check again with the clips
         if: always() && steps.commit.outputs.changed == 'true'
