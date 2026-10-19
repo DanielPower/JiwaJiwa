@@ -126,7 +126,7 @@ private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit
         PrimaryButton(onClick = onCancel) { Text("Close") }
     } else {
         Text(
-            "Each word is marked known at its mastery, as \"I know this\" on a word's page does, and gets reviews to match.",
+            "Each word is marked known at its mastery, and gets reviews to match.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

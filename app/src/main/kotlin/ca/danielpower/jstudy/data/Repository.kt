@@ -544,8 +544,8 @@ class Repository private constructor(context: Context) {
             "id",
         ).firstOrNull()
 
-    /** Mark a word from the dictionary as known at [mastery], starting it if needed. */
-    fun markKnown(wordId: Long, mastery: Int, now: Long) {
+    /** Mark a word as known at [mastery], starting it if needed. */
+    private fun markKnown(wordId: Long, mastery: Int, now: Long) {
         store.transaction { db ->
             store.setSuspended(db, wordId, false)
             if (recognitionCard(wordId) == null) {
@@ -617,7 +617,7 @@ class Repository private constructor(context: Context) {
         return RenshuuImport.plan(terms, { it in ids }, local)
     }
 
-    /** Mark each word known at its mastery, as "I know this" does, in one transaction. */
+    /** Mark each word known at its mastery, in one transaction. */
     fun importMastery(updates: Map<Long, Int>, now: Long) {
         val settings = settings()
         val reviewer = Reviewer(Fsrs(), clock(settings))

@@ -1060,8 +1060,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         advance()
     }
 
-    fun markKnown(mastery: Int) = wordAction { repo.markKnown(it, mastery, now()) }
-
     fun resetWord() = wordAction { repo.reset(it) }
 
     fun setSuspended(suspended: Boolean) = wordAction { repo.setSuspended(it, suspended) }

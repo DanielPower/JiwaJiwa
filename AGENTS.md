@@ -103,12 +103,16 @@ Study and scheduling:
   "Learn next" (removed 2026-10-17). The only new cards in reviews are
   unlocked production cards. Within a sitting, reviews and new cards are
   shuffled.
-- "Mark known" lets you set the word's mastery; it gets a review schedule to
-  match, first due on a random day in that interval.
+- A word's page has no "Mark known" or "I know this" (removed 2026-10-19,
+  Daniel); words become known by reading and reviews, a Renshuu import, the
+  reading-level pre-fill, or "I know this" on a story's end page. Each gets
+  a review schedule to match, first due on a random day in that interval.
+  The page keeps Suspend and Reset progress.
 - "Study more" pulls every schedule one day earlier (a `daysAhead` counter)
   and adds another day's worth of production cards for today.
-- v1 card back is minimal: word, reading, English meanings. No example
-  sentences, TTS or pitch accent yet.
+- The card back is minimal: word, reading, English meanings, a speaker and
+  "Full entry →" to the word's page (2026-10-19). No example sentences or
+  pitch accent yet.
 
 Kana:
 
@@ -296,7 +300,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - Pace (`Pace` in `core/Session.kt`, `Repository.pace`): a soft daily limit on new words
   started (`newPerDay`, default 20, from the rollover hour), and a
   review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this",
-  "Mark known", Renshuu imports and reading-level pre-fill (Daniel,
+  Renshuu imports and reading-level pre-fill (Daniel,
   2026-10-18) date a word started that day but don't count against the
   limit: the card's `start_source` (`StartSource`) says how it began, and
   only story words count. Past either, the Read
