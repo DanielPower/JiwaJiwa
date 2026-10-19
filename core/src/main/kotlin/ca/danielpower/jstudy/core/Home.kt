@@ -154,6 +154,32 @@ object Recent {
             .map { it.first }
         return items to words.size - kept.size
     }
+
+    /**
+     * How many of the chips, [widths] wide in order, fit in [lines] rows of
+     * [maxWidth] with [gap] between them, leaving room at the end for a "+N"
+     * chip [more] wide when some are left out ([more] gets how many).
+     */
+    fun fitting(widths: List<Float>, maxWidth: Float, gap: Float, lines: Int, more: (Int) -> Float): Int {
+        fun fits(chips: List<Float>): Boolean {
+            var rows = 1
+            var x = 0f
+            for (w in chips) {
+                if (x > 0f && x + gap + w > maxWidth) {
+                    rows++
+                    x = w
+                } else {
+                    x += if (x > 0f) gap + w else w
+                }
+            }
+            return rows <= lines
+        }
+        if (fits(widths)) return widths.size
+        for (shown in widths.size - 1 downTo 0) {
+            if (fits(widths.take(shown) + more(widths.size - shown))) return shown
+        }
+        return 0
+    }
 }
 
 // ------------------------------------------------------------ streak
