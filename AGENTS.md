@@ -161,7 +161,11 @@ Other features (all shipped):
   first once due reviews reach the review nudge; else the chapter you left
   part way, or the next one in the story you read last; past today's
   new-word limit, an open chapter with nothing new; then reviews alone;
-  then "Done for today" with a grained 済 stamp and no button. Under it: a
+  then "Done for today" with a grained 済 stamp and no button. With every
+  chapter read and nothing due, "Read again" suggests the read chapter
+  with the most words reading would review, else the one read longest ago
+  (2026-10-19). The reviews card's line says today's reviews and how many
+  wait past the review limit ("200 today · 512 more after that"). Under it: a
   Mon–Sun streak (a day counts with a review answered or a chapter
   finished; arrows go back a week at a time), the words graph (seen, known
   and mastered as nested bands, 30 days or all, replayed from the review

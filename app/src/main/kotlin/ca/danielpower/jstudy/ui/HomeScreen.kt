@@ -266,10 +266,10 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
         }
         is NextUp.Review -> if (next.backlog) {
             NextContent(
-                if (next.due == 1) "1 review waiting" else "${next.due} reviews waiting",
+                "Reviews waiting",
                 colors.tertiary,
                 "Catch up on reviews",
-                "The words you've started are slipping",
+                if (d.reviewsLater > 0) "${next.due} today · ${d.reviewsLater} more after that" else "${next.due} due today",
                 vm::startReview,
                 next.orRead?.let { "keep reading ${shortName(it.item)}" },
                 { next.orRead?.let { vm.openStory(it.item.story.id) } },
@@ -284,7 +284,23 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
             "${newWords(newToday)}, every review done",
             null,
         )
-        NextUp.AllRead -> NextContent("All read", green, "You've read every story", "More stories are on the way", null)
+        NextUp.AllRead -> d.readAgain?.let { again ->
+            val e = again.entry
+            NextContent(
+                "Read again",
+                colors.primary,
+                chapterName(e),
+                listOfNotNull(
+                    e.series.title.takeIf { !e.series.single },
+                    when (again.due) {
+                        0 -> null
+                        1 -> "1 word to review"
+                        else -> "${again.due} words to review"
+                    },
+                ).joinToString(" · "),
+                { vm.openStory(e.story.id) },
+            )
+        } ?: NextContent("All read", green, "You've read every story", "More stories are on the way", null)
     }
 }
 

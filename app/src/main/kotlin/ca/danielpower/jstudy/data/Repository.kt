@@ -86,7 +86,14 @@ data class Dashboard(
     val words: List<WordDay>,
     /** Words started and grammar learned in the last week, newest first ([Recent.pick]). */
     val recent: List<RecentItem>,
+    /** Reviews due past today's review limit, which wait for the days after. */
+    val reviewsLater: Int = 0,
+    /** Once every chapter's read and nothing is due, one to read again. */
+    val readAgain: ReadAgain? = null,
 )
+
+/** A chapter you've read to read again, and how many of its words reading it would review. */
+data class ReadAgain(val entry: ChapterEntry, val due: Int)
 
 /** A word or grammar topic on Home's Recent row. */
 sealed interface RecentItem {
@@ -1153,15 +1160,33 @@ class Repository private constructor(context: Context) {
             learned[row.topic.id]?.takeIf { row.seen && it > since }?.let { RecentItem.NewGrammar(row.topic, row.pageId) to it }
         }
         val recent = Recent.pick<RecentItem>(newWords, newGrammar, Int.MAX_VALUE).first
+        val next = nextUp(now)
+        val settings = settings()
         return Dashboard(
             today = today,
-            next = nextUp(now),
+            next = next,
             pace = pace(now),
             activeDays = active,
             streak = Streak.current(active, today),
             words = words,
             recent = recent,
+            reviewsLater = queue(settings, clock(settings), now).later,
+            readAgain = if (next is NextUp.AllRead) readAgain(now) else null,
         )
+    }
+
+    /** The chapter you've read with the most words reading it would review, else the one read longest ago. */
+    private fun readAgain(now: Long): ReadAgain? {
+        val read = storyPath().flatMap { it.chapters }.filter { it.read }
+        if (read.isEmpty()) return null
+        val reviewer = Reviewer(Fsrs(), clock())
+        val due = store.cards("direction = ? AND suspended = 0", arrayOf(Direction.RECOGNITION.value.toString()), "id")
+            .filter { reviewer.readCounts(it, now) }
+            .map { it.wordId }
+            .toSet()
+        return read
+            .map { e -> ReadAgain(e, needs.getValue(e.chapter.story.id).words.count { it.wordId in due }) }
+            .maxWith(compareBy<ReadAgain> { it.due }.thenByDescending { it.entry.story.readAt ?: 0 })
     }
 
     /** Study days with a review answered or a chapter finished. */
@@ -1216,8 +1241,11 @@ class Repository private constructor(context: Context) {
     // ------------------------------------------------------------ summary
 
     /** What a review session would show now: the one count behind the Review badge, the Read tab and Home. */
-    private data class Queue(val newCards: Int, val learning: Int, val reviews: Int) {
+    private data class Queue(val newCards: Int, val learning: Int, val reviews: Int, val reviewsDue: Int) {
         val total get() = newCards + learning + reviews
+
+        /** Reviews due past today's limit. */
+        val later get() = reviewsDue - reviews
     }
 
     private fun queue(settings: StudySettings, clock: StudyClock, now: Long): Queue {
@@ -1241,6 +1269,7 @@ class Repository private constructor(context: Context) {
                 CardState.RELEARNING.value,
             ),
             reviews = minOf(limits.reviews, reviewsDue),
+            reviewsDue = reviewsDue,
         )
     }
 
