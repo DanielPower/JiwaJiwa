@@ -29,7 +29,6 @@ import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.SpeechSettings
 import ca.danielpower.jstudy.audio.SpokenLine
 import ca.danielpower.jstudy.audio.StoryVoice
-import ca.danielpower.jstudy.core.SpokenVoice
 import ca.danielpower.jstudy.core.Voices
 import ca.danielpower.jstudy.data.Reminder
 import ca.danielpower.jstudy.data.Stats
@@ -840,18 +839,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------ reading aloud
 
-    /** The open story read aloud from line [from] of its narration: each of the cast in their own voice, the rest in the narrator's. */
+    /**
+     * The open story read aloud from line [from] of its narration: from its
+     * recordings, or where a line has none, the phone's voices, each of the
+     * cast in their own and the rest in the phone's first.
+     */
     fun play(from: Int) {
         val state = _screen.value as? Screen.StoryReader ?: return
         val reading = state.reading
         val settings = _speech.value
         val cast = repo.castVoices()
         voice.play(reading.story.id, from, settings.rate) { voices ->
-            val narrator = Voices.narrator(voices, settings.narrator)
+            val narrator = Voices.narrator(voices, null)
             val named = cast.map { it.first }.toSet()
             val others = reading.speakers.filterNotNull().distinct().filter { it !in named }.map { it to Voices.forLabel(it) }
             val speakers = Voices.assign(voices, narrator.name, cast + others)
-            reading.narration.map { SpokenLine(it.text, it.speaker?.let(speakers::get) ?: narrator) }
+            reading.narration.mapIndexed { i, line ->
+                SpokenLine(line.text, line.speaker?.let(speakers::get) ?: narrator, reading.clips.getOrNull(i))
+            }
         }
     }
 
@@ -874,20 +879,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (state.playing) state.line?.let(::play)
     }
 
-    /** A narrator's voice chosen in the reader: it says something, so you can hear it. */
-    fun setNarrator(name: String) {
-        setSpeech(_speech.value.copy(narrator = name))
-        voice.say("おはようございます。", _speech.value.rate) { SpokenVoice(name, 1f) }
-    }
-
     private fun setSpeech(settings: SpeechSettings) {
         _speech.value = settings
         launchIo { repo.setSpeechSettings(settings) }
     }
 
-    /** A word's speaker button: its reading, in the narrator's voice. */
+    /** A word's speaker button: its reading, in the phone's voice. */
     fun sayWord(kana: String) {
-        voice.say(kana, _speech.value.rate) { voices -> Voices.narrator(voices, _speech.value.narrator) }
+        voice.say(kana, _speech.value.rate) { voices -> Voices.narrator(voices, null) }
     }
 
     override fun onCleared() {

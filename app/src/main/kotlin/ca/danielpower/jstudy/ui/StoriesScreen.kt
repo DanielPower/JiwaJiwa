@@ -8,7 +8,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -93,8 +92,6 @@ import ca.danielpower.jstudy.core.GrammarPoint
 import ca.danielpower.jstudy.core.HorizontalText
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.Narration
-import ca.danielpower.jstudy.core.PhoneVoice
-import ca.danielpower.jstudy.core.Voices
 import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.PathStory
 import ca.danielpower.jstudy.core.ReadingWord
@@ -620,7 +617,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     var open by remember(reading.story.id) { mutableStateOf<Opened?>(null) }
     // Or a chapter's note, by the paragraph whose marker opened it.
     var note by remember(reading.story.id) { mutableStateOf<Int?>(null) }
-    // Or the reading-aloud speed and voice, from the playback bar.
+    // Or the reading-aloud speed, from the playback bar.
     var audio by remember { mutableStateOf(false) }
     val voice by vm.voiceState.collectAsState()
     val speech by vm.speech.collectAsState()
@@ -682,7 +679,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val togglePlay = {
         if (playing) {
             vm.pausePlayback()
-        } else if (voice.missing) {
+        } else if (voice.missing && reading.clips.all { it == null }) {
             open = null
             note = null
             menu = false
@@ -730,7 +727,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             val n = note?.let { reading.notes[it] }
             when {
                 menu -> ReaderMenu(style, vm::setReaderStyle)
-                audio -> AudioMenu(speech, voice.voices, voice.missing, vm::setSpeechRate, vm::setNarrator)
+                audio -> AudioMenu(speech, voice.missing && reading.clips.all { it == null }, vm::setSpeechRate)
                 n != null -> NoteCard(n)
                 o == null -> Text(
                     "Tap a word to see what it means. Hold one to read its sentence in English.",
@@ -837,9 +834,9 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
 }
 
 /**
- * The bar under the story for reading it aloud: the speed on the left and
- * the voices on the right, which open their menu in the pane, and play in
- * the middle. Sentences play on by themselves; tapping one moves there.
+ * The bar under the story for reading it aloud: the speed on the left, which
+ * opens its menu in the pane, and play in the middle. Sentences play on by
+ * themselves; tapping one moves there.
  */
 @Composable
 private fun PlaybackBar(playing: Boolean, rate: Float, open: Boolean, onPlay: () -> Unit, onMenu: () -> Unit) {
@@ -876,29 +873,18 @@ private fun PlaybackBar(playing: Boolean, rate: Float, open: Boolean, onPlay: ()
                 modifier = Modifier.size(16.dp),
             )
         }
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            CompositionLocalProvider(LocalContentColor provides tint) {
-                WashiIconButton(WashiIcons.Voice, "Voice and speed", onMenu)
-            }
-        }
+        Spacer(Modifier.weight(1f))
     }
 }
 
 private fun rateLabel(rate: Float) = String.format(java.util.Locale.ROOT, "%.1f×", rate)
 
 /**
- * Reading aloud's settings, in the pane like the reader's: the speed, and the
- * narrator's voice, which says something when chosen. The cast speak in
- * their own voices. With no Japanese voice on the phone, how to get one.
+ * Reading aloud's settings, in the pane like the reader's: the speed. With
+ * nothing recorded and no Japanese voice on the phone, how to get one.
  */
 @Composable
-private fun AudioMenu(
-    speech: SpeechSettings,
-    voices: List<PhoneVoice>,
-    missing: Boolean,
-    onRate: (Float) -> Unit,
-    onNarrator: (String) -> Unit,
-) {
+private fun AudioMenu(speech: SpeechSettings, missing: Boolean, onRate: (Float) -> Unit) {
     if (missing) {
         val context = LocalContext.current
         Column(
@@ -931,28 +917,6 @@ private fun AudioMenu(
                 }
             }
         }
-        val labels = Voices.labels(voices)
-        val chosen = Voices.narrator(voices, speech.narrator).name
-        MenuRow("Narrator") {
-            // Phones have a few voices; a row of more than four scrolls.
-            val scroll = voices.size > 4
-            Row(
-                Modifier.weight(1f).then(if (scroll) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                voices.forEachIndexed { i, v ->
-                    MenuOption(v.name == chosen, { onNarrator(v.name) }, fixed = scroll) {
-                        Text(labels[i], style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                    }
-                }
-            }
-        }
-        Text(
-            "Tap a voice to hear it. Everyone in the stories has a voice of their own.",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 78.dp),
-        )
     }
 }
 
@@ -1386,11 +1350,11 @@ private fun MenuRow(label: String, options: @Composable RowScope.() -> Unit) {
 
 /** One choice in a menu row: ink when chosen, an ink outline when not, like a chip. */
 @Composable
-private fun RowScope.MenuOption(selected: Boolean, onClick: () -> Unit, fixed: Boolean = false, content: @Composable () -> Unit) {
+private fun RowScope.MenuOption(selected: Boolean, onClick: () -> Unit, content: @Composable () -> Unit) {
     val ink = MaterialTheme.colorScheme.onSurface
     Box(
         Modifier
-            .then(if (fixed) Modifier.width(76.dp) else Modifier.weight(1f))
+            .weight(1f)
             .height(38.dp)
             .clip(WashiShape)
             .background(if (selected) ink else Color.Transparent)

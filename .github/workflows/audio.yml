@@ -1,0 +1,85 @@
+name: Record story audio
+
+# Records the stories' sentences with Fish Audio (tools/stories/voices.json,
+# and each of the cast's `fish` voice), only the ones without a clip yet, and
+# commits the clips to app/src/main/assets/audio on the pull request's branch.
+# Clips are named by a hash of the model, voice and sentence, so a sentence is
+# recorded again only when one of those changes, and clips no sentence uses
+# any more are deleted. Each recording costs money: a run stops before going
+# over $5, unless it's run by hand with a higher limit.
+
+on:
+  pull_request:
+    paths:
+      - tools/stories/**
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Most to spend, in dollars
+        default: "5"
+
+# One run a branch at a time, so two never record the same sentences.
+concurrency:
+  group: audio-${{ github.head_ref || github.ref_name }}
+
+permissions:
+  contents: write
+  # To start the checks again after committing the clips: a push made with
+  # this workflow's token doesn't start other workflows on its own.
+  actions: write
+
+jobs:
+  record:
+    # Pull requests from forks get no secrets and can't push here.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/cache@v4
+        with:
+          path: tools/dictionary/.cache
+          key: dictionary-sources-${{ hashFiles('tools/dictionary/sources.json') }}
+
+      - name: Build the dictionary
+        run: python3 tools/dictionary/build_dictionary.py
+
+      - name: Record
+        env:
+          FISH_API_KEY: ${{ secrets.FISH_API_KEY }}
+        run: ./gradlew -PcoreOnly=true :core:storyAudio -Precord -Plimit=${{ inputs.limit || '5' }}
+
+      - name: Commit the clips
+        id: commit
+        run: |
+          git add -A app/src/main/assets/audio
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Record story audio"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Check again with the clips
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run check.yml --ref "${{ github.head_ref || github.ref_name }}"
+          gh workflow run test.yml --ref "${{ github.head_ref || github.ref_name }}"

@@ -123,6 +123,8 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    // Plays the stories' recordings (Ogg Opus, which MediaPlayer can't before Android 10).
+    implementation("androidx.media3:media3-exoplayer:1.6.1")
 
     // Unit tests run on the JVM; Robolectric stands in for Android (SQLite, Context).
     testImplementation("junit:junit:4.13.2")
