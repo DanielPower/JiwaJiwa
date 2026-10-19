@@ -914,6 +914,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** A grammar page's line [n] from your stories, on its own: its recording, or its speaker's phone voice. */
+    fun playStoryLine(n: Int) {
+        val state = _screen.value as? Screen.StoryReader ?: return
+        val line = state.reading.fromStories.getOrNull(n) ?: return
+        val cast = repo.castVoices()
+        // Not the page's own narration, so the reader marks no line of it as playing.
+        voice.play(STORY_LINE_KEY, 0, _speech.value.rate) { voices ->
+            val narrator = Voices.narrator(voices, null)
+            val spoken = line.speaker?.let { speaker ->
+                val others = if (cast.any { it.first == speaker }) emptyList() else listOf(speaker to Voices.forLabel(speaker))
+                Voices.assign(voices, narrator.name, cast + others)[speaker]
+            }
+            listOf(SpokenLine(line.text, spoken ?: narrator, line.clip))
+        }
+    }
+
     fun pausePlayback() = voice.pause()
 
     /** Leaving the reader stops it reading. */
@@ -1096,5 +1112,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         /** Search hits beyond the JLPT words to list, best first. */
         private const val MAX_OTHER_HITS = 200
+
+        /** What's read when a grammar page plays a line from your stories: no story's id. */
+        private const val STORY_LINE_KEY = -1L
     }
 }

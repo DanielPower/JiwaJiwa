@@ -76,8 +76,9 @@ android {
 
 }
 
-// The stories (assets' stories/: path.json, needs.json and read/, each
-// chapter split into words) are written from tools/stories by
+// The stories (assets' stories/: path.json, needs.json, read/, each
+// chapter split into words, and lines.json, where each grammar topic is
+// used) are written from tools/stories by
 // :core:storyAssets on each build, not committed. Like the app itself, that
 // needs the dictionary built.
 abstract class StoryAssets : DefaultTask() {

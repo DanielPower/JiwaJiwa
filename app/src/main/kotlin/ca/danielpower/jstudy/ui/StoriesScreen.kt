@@ -71,6 +71,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -91,6 +92,10 @@ import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FlowWord
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.GrammarPoint
+import ca.danielpower.jstudy.core.GrammarTopic
+import ca.danielpower.jstudy.core.LessonBlock
+import ca.danielpower.jstudy.core.LessonPiece
+import ca.danielpower.jstudy.core.Lessons
 import ca.danielpower.jstudy.core.HorizontalText
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.Narration
@@ -781,7 +786,14 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 audio -> AudioMenu(speech, voice.missing && reading.clips.all { it == null }, vm::setSpeechRate)
                 n != null -> NoteCard(n)
                 o == null -> Text(
-                    "Tap a word to see what it means. Hold one to read its sentence in English.",
+                    // A chapter that teaches a topic says what's in indigo; the rest say how the pane works.
+                    reading.teaches?.let { topic ->
+                        buildAnnotatedString {
+                            append("New in this chapter: ")
+                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) { append(topic.page.title) }
+                            append(", shown in blue.")
+                        }
+                    } ?: AnnotatedString("Tap a word to see what it means. Hold one to read its sentence in English."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -817,7 +829,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             } else if (lesson != null) {
                 LessonPage(
                     state = state,
-                    lesson = lesson,
+                    topic = lesson,
                     size = style.size.toFloat(),
                     family = style.font.family,
                     selected = selected,
@@ -828,6 +840,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     onHold = hold,
                     onBlank = close,
                     onRead = vm::readAfterLesson,
+                    onPlayLine = vm::playStoryLine,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
                 )
             } else if (style.vertical) {
@@ -1111,6 +1124,7 @@ private fun HorizontalStory(
                                 size = size.sp,
                                 rubySize = rubySize.sp,
                                 family = family,
+                                newGrammar = reading.newGrammar(p, i),
                             )
                         }
                     }
@@ -1124,16 +1138,19 @@ private fun HorizontalStory(
 }
 
 /**
- * A grammar topic's page: its English with the Japanese examples between,
- * tapping words and holding for a sentence's English as in a story. It's
- * one page that scrolls, always across, to look back at whenever. Before
- * a chapter, it ends with a button into the chapter.
+ * A grammar topic's page, laid out by core [Lessons]: its summary, the
+ * examples with their English, the forms table after the first, a note or
+ * two, and the rest folded under "More on …". Japanese anywhere on it is
+ * read like a story's, so any word can be tapped, and words held for their
+ * sentence's English. Opened before a chapter, it ends with a button into
+ * the chapter; opened any other time, with lines from the chapters you've
+ * read that use it.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LessonPage(
     state: Screen.StoryReader,
-    lesson: PathStory,
+    topic: GrammarTopic,
     size: Float,
     family: FontFamily,
     selected: Pair<Int, Int>?,
@@ -1144,49 +1161,191 @@ private fun LessonPage(
     onHold: (Pair<Int, Int>) -> Unit,
     onBlank: () -> Unit,
     onRead: () -> Unit,
+    onPlayLine: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val reading = state.reading
-    val notes = lesson.notes.groupBy { it.before }
+    val blocks = remember(topic) { Lessons.blocks(topic) }
+    var more by remember(topic.id) { mutableStateOf(false) }
+
+    // The words at place [p] (a paragraph, or one of the reading's extras), as they'd show in a story.
+    @Composable
+    fun Words(p: Int, words: List<ReadingWord>, textSize: Float, modifier: Modifier = Modifier) {
+        words.forEachIndexed { i, word ->
+            Box(modifier) {
+                StoryWord(
+                    word = word,
+                    reading = reading,
+                    selected = selected == (p to i),
+                    lit = (p to i) in lit,
+                    washed = (p to i) in washed,
+                    spoken = spoken == (p to i),
+                    onTap = { if (word.tappable()) onTap(p to i) else onBlank() },
+                    onHold = { onHold(p to i) },
+                    size = textSize.sp,
+                    rubySize = (textSize * RUBY_RATIO).sp,
+                    family = family,
+                )
+            }
+        }
+    }
+
+    // English with its Japanese read as words: run n is extra n.
+    @Composable
+    fun Rich(pieces: List<LessonPiece>, style: TextStyle, color: Color = Color.Unspecified) {
+        FlowRow(Modifier.fillMaxWidth()) {
+            for (piece in pieces) {
+                val run = (piece as? LessonPiece.Japanese)?.let { reading.extra.getOrNull(it.run) }
+                if (run != null && run.isNotEmpty()) {
+                    Words(reading.paragraphs.size + (piece as LessonPiece.Japanese).run, run, style.fontSize.value + 2, Modifier.align(Alignment.Bottom))
+                } else {
+                    val text = (piece as? LessonPiece.English)?.text ?: (piece as LessonPiece.Japanese).text
+                    // A word at a time, so the line breaks between words as text would.
+                    for (w in Regex("\\S+\\s*|\\s+").findAll(text)) {
+                        Text(w.value, style = style, color = color, modifier = Modifier.align(Alignment.Bottom))
+                    }
+                }
+            }
+        }
+    }
+
     Column(
         modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Tag("Grammar", MaterialTheme.colorScheme.secondary)
-        for (p in 0..reading.paragraphs.size) {
-            for (note in notes[p].orEmpty()) Text(note.text, style = MaterialTheme.typography.bodyLarge)
-            val words = reading.paragraphs.getOrNull(p) ?: continue
-            FlowRow(
-                Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-            ) {
-                words.forEachIndexed { i, word ->
-                    StoryWord(
-                        word = word,
-                        reading = reading,
-                        selected = selected == (p to i),
-                        lit = (p to i) in lit,
-                        washed = (p to i) in washed,
-                        spoken = spoken == (p to i),
-                        onTap = { if (word.tappable()) onTap(p to i) else onBlank() },
-                        onHold = { onHold(p to i) },
-                        size = size.sp,
-                        rubySize = (size * RUBY_RATIO).sp,
-                        family = family,
-                    )
+        val body = MaterialTheme.typography.bodyLarge
+        for ((n, block) in blocks.withIndex()) {
+            // The first block folded under More: the row that opens it, then the rest only once it's open.
+            if (block.more && !blocks[n - 1].more) {
+                MoreRow(topic.page.title, more) { more = !more }
+            }
+            if (block.more && !more) continue
+            when (block) {
+                is LessonBlock.Summary -> Rich(block.pieces, body)
+                is LessonBlock.Note -> Rich(block.pieces, body)
+                is LessonBlock.Line -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                    ) {
+                        Words(block.p, reading.paragraphs.getOrNull(block.p).orEmpty(), size)
+                    }
+                    // A lesson's lines are a sentence each, in the order of their English.
+                    reading.story.translations.getOrNull(block.p)?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                is LessonBlock.Forms -> FormsTable(block) { cell, textSize ->
+                    val run = reading.extra.getOrNull(cell.run)
+                    FlowRow {
+                        if (run.isNullOrEmpty()) Text(cell.text, fontFamily = family, fontSize = textSize.sp)
+                        else Words(reading.paragraphs.size + cell.run, run, textSize)
+                    }
+                }
+            }
+        }
+        val then = state.then
+        if (then == null && reading.fromStories.isNotEmpty()) {
+            Column(Modifier.padding(top = 8.dp)) {
+                Text(
+                    "FROM YOUR STORIES",
+                    style = MaterialTheme.typography.labelMedium,
+                    letterSpacing = 1.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 6.dp),
+                )
+                val nameColor = speakerColor()
+                reading.fromStories.forEachIndexed { n, line ->
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
+                        Column(Modifier.weight(1f)) {
+                            FlowRow {
+                                val lineSize = STORY_LINE_SIZE
+                                line.speaker?.let {
+                                    Text(it, fontFamily = family, fontSize = (lineSize * NAME_RATIO).sp, color = nameColor, modifier = Modifier.align(Alignment.Bottom).padding(end = 6.dp))
+                                }
+                                Words(reading.storyLineAt(n), line.words, lineSize, Modifier.align(Alignment.Bottom))
+                            }
+                            Text(line.chapter, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        SayButton { onPlayLine(n) }
+                    }
                 }
             }
         }
         // Opened before a chapter: on into it.
-        state.then?.let { then ->
+        then?.let {
             PrimaryButton(onClick = onRead, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(52.dp)) {
-                Text(then.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(it.label, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
 }
+
+/** The row that opens and closes what a grammar page folds under "More on [pattern]". */
+@Composable
+private fun MoreRow(pattern: String, open: Boolean, onClick: () -> Unit) {
+    Column {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClickLabel = if (open) "Fold" else "Open", role = Role.Button, onClick = onClick)
+                .padding(vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "More on $pattern",
+                fontFamily = Gothic,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.weight(1f),
+            )
+            Text(if (open) "▴" else "▾", fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+/** A grammar page's forms: headings, then a row each of the form you know, the new form, and its English. */
+@Composable
+private fun FormsTable(forms: LessonBlock.Forms, cell: @Composable (LessonPiece.Japanese, Float) -> Unit) {
+    val heading = MaterialTheme.typography.labelSmall
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row {
+            for (h in forms.head) {
+                Text(h.uppercase(), style = heading, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            }
+            Spacer(Modifier.weight(0.8f))
+        }
+        for ((from, to, english) in forms.rows) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Box(Modifier.weight(1f)) { cell(from, FORMS_SIZE) }
+                Box(Modifier.weight(1f)) { cell(to, FORMS_SIZE) }
+                Text(
+                    english,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(0.8f).padding(bottom = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Japanese in a grammar page's forms table, and in its lines from your stories, in sp. */
+private const val FORMS_SIZE = 20f
+private const val STORY_LINE_SIZE = 20f
 
 /**
  * [count] pages to swipe between, with the page number under them. [reverse]
@@ -1302,8 +1461,11 @@ private fun StoryWord(
     rubySize: TextUnit,
     family: FontFamily,
     weight: FontWeight? = null,
+    /** Its characters that are the grammar the chapter teaches, drawn and underlined in indigo. */
+    newGrammar: IntRange? = null,
 ) {
     val unknown = reading.isUnknown(word)
+    val indigo = MaterialTheme.colorScheme.secondary
     val showRuby = reading.showsRuby(word)
     val color = if (unknown || selected) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
@@ -1319,7 +1481,17 @@ private fun StoryWord(
     modifier = modifier.storyWordGestures(onTap, onHold)
     Box(modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
+            var at = 0
             for (piece in word.ruby) {
+                val start = at
+                at += piece.base.length
+                // The new grammar is the word's ending, never inside a kanji, so a piece's furigana follows where it starts.
+                val rubyColor = if (newGrammar != null && start in newGrammar) indigo else color
+                val base = if (newGrammar == null) AnnotatedString(piece.base) else buildAnnotatedString {
+                    piece.base.forEachIndexed { k, c ->
+                        if (start + k in newGrammar) withStyle(SpanStyle(color = indigo, textDecoration = TextDecoration.Underline)) { append(c) } else append(c)
+                    }
+                }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = piece.ruby ?: " ",
@@ -1328,11 +1500,11 @@ private fun StoryWord(
                         fontFamily = family,
                         maxLines = 1,
                         softWrap = false,
-                        color = color.copy(alpha = 0.75f),
+                        color = rubyColor.copy(alpha = 0.75f),
                         modifier = if (showRuby && piece.ruby != null) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
                     )
                     Text(
-                        text = piece.base,
+                        text = base,
                         fontSize = size,
                         lineHeight = size * 1.5f,
                         fontFamily = family,

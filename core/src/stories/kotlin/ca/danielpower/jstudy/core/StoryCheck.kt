@@ -82,6 +82,10 @@ class StoryCheck(private val tools: StoryTools) {
             page(t.page)
             for (id in t.points.filter { grammarPoint(it) == null }) problem(t.page.id, "no grammar point $id")
             if (catalog.teaching(t.id).isEmpty()) problem(t.page.id, "no chapter teaches it")
+            lesson(t)?.let { problem(t.page.id, it) }
+            for (run in tools.runs.getValue(Lessons.runsId(t))) {
+                for (w in run.filter { it.kind == WordKind.WORD && it.wordId == null }) problem(t.page.id, "${w.lemma} in its notes isn't in the dictionary")
+            }
         }
 
         // Anyone in a story's cast. Any other speaker is a description (店員, 男の人), fine anywhere.
@@ -129,6 +133,27 @@ class StoryCheck(private val tools: StoryTools) {
         val order = StoryPath.solve(all).toSet()
         stuck = all.indices.filter { it !in order }.map { catalog.chapters[it].second.story.id }
         if (stuck.isNotEmpty()) problem(null, "the solver can't reach ${stuck.joinToString()}")
+    }
+
+    /**
+     * What's wrong with [topic]'s page as a lesson (the lesson guide in
+     * tools/stories/AGENTS.md), or null: a short summary, at most three
+     * examples and two notes before "More", English before "More" in
+     * proportion to the chapter that teaches it, and a short forms table.
+     */
+    private fun lesson(topic: GrammarTopic): String? {
+        val chapter = catalog.teaching(topic.id).firstOrNull() ?: return null
+        val budget = lessonBudget(tools.needs.getValue(chapter.second.story.id).running)
+        val shown = topic.page.notes.filter { !it.more }
+        val words = shown.sumOf { countWords(it.text) }
+        return when {
+            countWords(topic.summary) > SUMMARY_WORDS -> "its summary is ${countWords(topic.summary)} words; keep it to $SUMMARY_WORDS"
+            topic.moreAt > 3 -> "${topic.moreAt} examples before More; keep three at most and fold the rest"
+            shown.size > 2 -> "${shown.size} notes before More; keep two at most and fold the rest"
+            words > budget -> "$words words of notes before More, $budget for a chapter of its length; fold the rest"
+            (topic.forms?.rows?.size ?: 0) > 6 -> "${topic.forms!!.rows.size} rows of forms; keep six at most"
+            else -> null
+        }
     }
 
     /** A new word as a writer wants it: 歌 (うた, N5). */
@@ -193,6 +218,19 @@ class StoryCheck(private val tools: StoryTools) {
 
     companion object {
         private const val NUMERALS = "0123456789０１２３４５６７８９一二三四五六七八九十百千万何"
+
+        /** The most a topic's summary may be, in words. */
+        const val SUMMARY_WORDS = 35
+
+        /**
+         * The most words of notes a lesson shows before "More": short for the
+         * first chapters, which are a dozen words long, and up to 90 once
+         * chapters run past a hundred.
+         */
+        fun lessonBudget(chapterWords: Int) = minOf(90, 30 + chapterWords / 2)
+
+        /** Words of English, counting a run of Japanese as one. */
+        fun countWords(text: String) = text.split(' ').count { it.any(Char::isLetterOrDigit) }
 
         /** Reads a chapter named by id or by its file (tools/stories/series/new-housemate/through-the-wall.json). */
         fun pageId(arg: String): String = File(arg).path.replace('\\', '/').substringAfter("tools/stories/series/").removeSuffix(".json")

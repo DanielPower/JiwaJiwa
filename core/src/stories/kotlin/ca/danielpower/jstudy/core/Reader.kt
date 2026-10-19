@@ -229,7 +229,8 @@ class Reader(private val lexicon: Lexicon) {
                 surface = run.joinToString("") { it.surface },
                 reading = run.joinToString("") { it.reading },
                 ruby = run.flatMap { it.ruby },
-                grammar = first.grammar.map { it.copy(first = newIndex[it.first], last = newIndex[it.last]) },
+                // Joined, the last word's end is no longer where a point ends inside it.
+                grammar = first.grammar.map { it.copy(first = newIndex[it.first], last = newIndex[it.last], to = it.to.takeIf { _ -> runs[newIndex[it.last]].size == 1 }) },
             )
         }
     }
@@ -296,24 +297,40 @@ class Reader(private val lexicon: Lexicon) {
         return word.copy(wordId = match.wordId, reading = surfaceReading, ruby = ruby(word.surface, surfaceReading))
     }
 
+    /**
+     * Where a point starts in [word], [at] characters in by its tokens: where
+     * one token is both the word and its form (話せる, 行け), after what it
+     * shares with its dictionary form (話す, 行く), so the word itself isn't
+     * counted as the grammar.
+     */
+    private fun from(word: ReadingWord, at: Int): Int =
+        if (at == 0 && word.kind == WordKind.WORD && word.conjugated) word.surface.commonPrefixWith(word.lemma).length else at
+
     private fun withGrammar(words: List<ReadingWord>, spans: List<IntRange>, tokens: List<Morpheme>): List<ReadingWord> {
         val wordOf = IntArray(tokens.size)
         spans.forEachIndexed { w, span -> for (k in span) wordOf[k] = w }
         // A set phrase or compound read whole (いってきます) has no grammar inside it.
         val whole = words.indices.filter { words[it].kind == WordKind.WORD && words[it].lemma == words[it].surface && spans[it].count() > 1 }.toSet()
-        val found = Grammar.find(tokens).map { GrammarUse(it.point, wordOf[it.start], wordOf[it.end - 1]) }
+        // How far into word [w] its tokens before [until] reach, in characters.
+        fun reach(w: Int, until: Int) = (spans[w].first until until).sumOf { tokens[it].surface.length }.coerceAtMost(words[w].surface.length)
+        val found = Grammar.find(tokens).map { m ->
+            val first = wordOf[m.start]
+            val last = wordOf[m.end - 1]
+            GrammarUse(m.point, first, last, from = from(words[first], reach(first, m.start)), to = reach(last, m.end).takeIf { it < words[last].surface.length })
+        }
             .filterNot { it.first == it.last && it.first in whole }
         // A bare stem is there for what follows it, so it joins that point: 見 in 見に行く, 暑く in 暑くなる.
         val stems = words.indices.filter { words[it].stem }.toSet()
         val joined = found.map { u ->
-            if (u.first - 1 in stems && found.none { o -> u.first - 1 in o.first..o.last }) u.copy(first = u.first - 1) else u
+            // The stem is the word it belongs to, so the point still starts after it.
+            if (u.first - 1 in stems && found.none { o -> u.first - 1 in o.first..o.last }) u.copy(first = u.first - 1, from = words[u.first - 1].surface.length) else u
         }
         // The tokenizer takes a う verb's potential for a verb of its own (話せる), so no pattern finds it.
         val potential = grammarPoint("potential")!!
         val uses = (
             joined + words.indices.filter { w ->
                 "potential" in words[w].conjugation && joined.none { it.point == potential && w in it.first..it.last }
-            }.map { GrammarUse(potential, it, it) }
+            }.map { GrammarUse(potential, it, it, from = from(words[it], 0)) }
             ).sortedBy { it.first }
         return words.mapIndexed { w, word ->
             val mine = uses.filter { w in it.first..it.last }
