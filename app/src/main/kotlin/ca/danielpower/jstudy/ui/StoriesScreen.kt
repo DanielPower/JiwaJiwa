@@ -212,7 +212,7 @@ private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (!single && !done) {
                     Text(
-                        "${entry.readCount} of ${entry.chapters.size} read",
+                        "${entry.readCount} of ${entry.chapters.size} chapters read",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
