@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -92,16 +93,34 @@ fun HomeScreen(d: Dashboard, vm: AppViewModel) {
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .heightIn(min = maxHeight)
-                .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
             verticalArrangement = FillSpacing(min = 18.dp, max = 36.dp),
         ) {
             HomeHeader(d.today, vm::openSettings)
             NextCard(d, vm)
             StreakWeek(d.activeDays, d.streak, d.today)
             WordsSection(d.words)
-            RecentSection(d, vm)
+            // The version keeps close to Recent rather than taking a gap of its own.
+            Column {
+                RecentSection(d, vm)
+                VersionLine()
+            }
         }
     }
+}
+
+/** The installed build's version, small at the foot of Home. */
+@Composable
+private fun VersionLine() {
+    val context = LocalContext.current
+    val version = remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName } ?: return
+    Text(
+        "v$version",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+    )
 }
 
 /**
