@@ -156,6 +156,8 @@ sealed interface Screen {
         val pace: Pace? = null,
         /** Open chapters you haven't read that have nothing new to learn. */
         val nothingNew: List<ChapterEntry> = emptyList(),
+        /** Where you left a chapter part way, for its story's bar. */
+        val place: ReaderPlace? = null,
     ) : Screen
 
     /** A story with more than one chapter: its chapters, and why one is locked once you tap it. */
@@ -616,6 +618,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             path = path,
             pace = repo.pace(now()),
             nothingNew = nothingNew(path),
+            place = repo.readerPlace(),
         )
     }
 
@@ -733,11 +736,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** The page the open story has settled on; for an unfinished chapter, kept so Home can come back to it. */
-    fun readerAt(page: Int) {
+    fun readerAt(page: Int, pages: Int) {
         readerPage = page
         val state = _screen.value as? Screen.StoryReader ?: return
         if (state.reading.lesson != null || state.impact != null || state.reading.story.readAt != null) return
-        val place = ReaderPlace(state.reading.story.id, page, state.style.toString())
+        val place = ReaderPlace(state.reading.story.id, page, pages, state.style.toString())
         viewModelScope.launch(Dispatchers.IO) { repo.saveReaderPlace(place) }
     }
 

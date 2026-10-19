@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,8 +45,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -192,6 +196,8 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
             }
             StudyHeatmap(summary.answersPerDay, summary.readDays, summary.today)
         }
+
+        ComingUp(summary.comingUp, summary.today)
 
         Spacer(Modifier.weight(1f))
         if (due > 0) {
@@ -541,5 +547,46 @@ private fun DoneScreen(summary: Summary, onStudyMore: () -> Unit, onHome: () -> 
         Spacer(Modifier.height(8.dp))
         PrimaryButton(onClick = onStudyMore, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Study more", fontSize = 18.sp) }
         SecondaryButton(onClick = onHome, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Home", fontSize = 18.sp) }
+    }
+}
+
+/** Reviews due on each of the next seven days, as bars under their weekdays. */
+@Composable
+private fun ComingUp(days: List<Int>, today: Long) {
+    val indigo = MaterialTheme.colorScheme.secondary
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val max = days.maxOrNull()?.coerceAtLeast(1) ?: 1
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("Coming up", Modifier.weight(1f))
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = indigo, fontWeight = FontWeight.Bold)) { append("${days.firstOrNull() ?: 0}") }
+                    append(" tomorrow · ${days.sum()} in 7 days")
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = muted,
+            )
+        }
+        Row(Modifier.fillMaxWidth().height(36.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (n in days) {
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
+                    // A hairline for an empty day, so it still shows where it is.
+                    val bar = if (n == 0) Modifier.height(2.dp) else Modifier.fillMaxHeight(n / max.toFloat())
+                    Box(bar.fillMaxWidth().background(if (n == 0) MaterialTheme.colorScheme.outlineVariant else indigo, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)))
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            days.indices.forEach { i ->
+                Text(
+                    LocalDate.ofEpochDay(today + 1 + i).dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale.ENGLISH),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = muted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
     }
 }

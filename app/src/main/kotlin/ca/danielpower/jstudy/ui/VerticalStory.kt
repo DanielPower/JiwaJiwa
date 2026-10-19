@@ -109,7 +109,7 @@ fun VerticalStory(
     onBlank: () -> Unit,
     onFinish: () -> Unit,
     startPage: Int,
-    onPageShown: (page: Int, first: Pair<Int, Int>?) -> Unit,
+    onPageShown: (page: Int, pages: Int, first: Pair<Int, Int>?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pieces = remember(reading) { pieces(reading) }
@@ -172,7 +172,7 @@ fun VerticalStory(
         // The page with the word being read aloud, to turn to.
         val followPage = follow?.let { (p, i) -> pages.indexOfFirst { page -> page.any { pieces[it].p == p && pieces[it].i == i } } }?.takeIf { it >= 0 }
         val shown = { page: Int ->
-            onPageShown(page, pages.getOrNull(page)?.firstOrNull { !pieces[it].note }?.let { pieces[it].p to pieces[it].i })
+            onPageShown(page, count, pages.getOrNull(page)?.firstOrNull { !pieces[it].note }?.let { pieces[it].p to pieces[it].i })
         }
         StoryPager(count, reverse = true, startPage, shown, followPage) { page ->
             val onPage = pages.getOrNull(page).orEmpty()

@@ -105,6 +105,7 @@ import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderFont
 import ca.danielpower.jstudy.data.ReaderStyle
+import ca.danielpower.jstudy.data.ReaderPlace
 import ca.danielpower.jstudy.data.SeriesEntry
 import ca.danielpower.jstudy.data.SpeechSettings
 import ca.danielpower.jstudy.data.StoryReading
@@ -124,6 +125,7 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         // The stories that come with the app, shown once a chapter is within reach.
         val shown = state.path.filter { it.shown }
         val pace = state.pace
+        PathProgress(state.path)
         if (pace != null) PaceMeter(pace)
         if (pace?.nudge == true) {
             // Past today's limit, or behind on reviews: what you can read with nothing new comes first.
@@ -141,11 +143,11 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
             SectionLabel("Your path", Modifier.padding(top = 8.dp))
             val listed = state.nothingNew.filter { it.series.single }.map { it.series.id }.toSet()
             for (entry in shown.filter { it.series.id !in listed }) {
-                Box(Modifier.alpha(0.65f)) { PathRow(entry) { vm.openPathStory(entry) } }
+                Box(Modifier.alpha(0.65f)) { PathRow(entry, state.place) { vm.openPathStory(entry) } }
             }
         } else {
             SectionLabel("Ready to read")
-            for (entry in shown) PathRow(entry) { vm.openPathStory(entry) }
+            for (entry in shown) PathRow(entry, state.place) { vm.openPathStory(entry) }
         }
         val waiting = state.path.size - shown.size
         if (waiting > 0) {
@@ -160,11 +162,12 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
 
 /**
  * A story on the path, by its English title. One chapter shows its first
- * line and what's new in it; more show a chapter count, how far you've read
- * and what's open next, with a seal-red bar down the side.
+ * line and what's new in it; more show a bar with a segment per chapter,
+ * how far you've read and what's open next, with a seal-red bar down the
+ * side. A chapter left part way at [place] fills gold as far as its page.
  */
 @Composable
-private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
+private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit) {
     val seal = MaterialTheme.colorScheme.primary
     val single = entry.series.single
     val done = entry.readCount == entry.chapters.size
@@ -180,7 +183,6 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
     ) {
         if (!single) Box(Modifier.width(3.dp).fillMaxHeight().background(seal))
         Column(Modifier.padding(16.dp).alpha(if (done) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (!single) Tag("${entry.chapters.size} chapters", seal)
             Text(entry.series.title, style = MaterialTheme.typography.titleLarge)
             val shownChapter = entry.next ?: entry.chapters.first()
             Text(
@@ -191,14 +193,26 @@ private fun PathRow(entry: SeriesEntry, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             if (!single) {
-                Box(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(4.dp).clip(WashiShape).background(MaterialTheme.colorScheme.outlineVariant)) {
-                    Box(Modifier.fillMaxWidth(entry.readCount / entry.chapters.size.toFloat()).fillMaxHeight().background(seal))
+                val gold = MaterialTheme.colorScheme.tertiary
+                val line = MaterialTheme.colorScheme.outlineVariant
+                Row(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    for (chapter in entry.chapters) {
+                        val partWay = place?.takeIf { !chapter.read && it.storyId == chapter.story.id && it.pages > 0 }
+                        Box(Modifier.weight(1f).fillMaxHeight().clip(WashiShape).background(line)) {
+                            when {
+                                chapter.read -> Box(Modifier.fillMaxSize().background(seal))
+                                partWay != null -> Box(
+                                    Modifier.fillMaxWidth(((partWay.page + 1f) / partWay.pages).coerceIn(0f, 1f)).fillMaxHeight().background(gold),
+                                )
+                            }
+                        }
+                    }
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (!single && !done) {
                     Text(
-                        "${entry.readCount} of ${entry.chapters.size} read",
+                        "${entry.readCount} of ${entry.chapters.size} chapters read",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -235,15 +249,59 @@ private fun newLabel(entry: ChapterEntry): String {
     ).joinToString(" · ")
 }
 
+/**
+ * How far along the main path you are: one segment per story, sized by its
+ * chapters and filled as far as you've read it. Side stories aren't counted.
+ */
+@Composable
+private fun PathProgress(path: List<SeriesEntry>) {
+    val main = path.filter { !it.series.side }
+    if (main.isEmpty()) return
+    val seal = MaterialTheme.colorScheme.primary
+    val line = MaterialTheme.colorScheme.outlineVariant
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("Your path", Modifier.weight(1f))
+            Text(
+                "${main.sumOf { it.readCount }} of ${main.sumOf { it.chapters.size }} chapters",
+                style = MaterialTheme.typography.labelMedium,
+                color = muted,
+            )
+        }
+        Row(Modifier.fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            for (entry in main) {
+                Box(Modifier.weight(entry.chapters.size.toFloat()).fillMaxHeight().clip(WashiShape).background(line)) {
+                    Box(Modifier.fillMaxWidth(entry.readCount / entry.chapters.size.toFloat()).fillMaxHeight().background(seal))
+                }
+            }
+        }
+        val current = main.indexOfFirst { it.readCount < it.chapters.size }
+        Text(
+            if (current < 0) {
+                buildAnnotatedString { append("Every story on the path read") }
+            } else {
+                buildAnnotatedString {
+                    append("Now in ")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)) { append(main[current].series.title) }
+                    append(" · story ${current + 1} of ${main.size}")
+                }
+            },
+            style = MaterialTheme.typography.labelMedium,
+            color = muted,
+        )
+    }
+}
+
 /** Today's new words against the daily limit, gold once it's reached. */
 @Composable
 private fun PaceMeter(pace: Pace) {
     val color = if (pace.atLimit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth()) {
-            Text("Today", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("New vocabulary", Modifier.weight(1f))
             Text(
-                "${pace.newToday} of ${pace.limit} new",
+                "${pace.newToday} of ${pace.limit} words today",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -639,8 +697,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         }
         Unit
     }
-    val pageShown = { page: Int, first: Pair<Int, Int>? ->
-        vm.readerAt(page)
+    val pageShown = { page: Int, pages: Int, first: Pair<Int, Int>? ->
+        vm.readerAt(page, pages)
         pageFirst = first
         // Turned by hand while stopped: play starts from the new page.
         if (!voice.playing) vm.forgetPlaybackPlace()
@@ -918,7 +976,7 @@ private fun HorizontalStory(
     onBlank: () -> Unit,
     onFinish: () -> Unit,
     startPage: Int,
-    onPageShown: (page: Int, first: Pair<Int, Int>?) -> Unit,
+    onPageShown: (page: Int, pages: Int, first: Pair<Int, Int>?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -980,7 +1038,7 @@ private fun HorizontalStory(
         // The page with the word being read aloud, to turn to.
         val followPage = follow?.let { (p, i) -> pages.indexOfFirst { page -> page.any { it.paragraph == p && i in it.words } } }?.takeIf { it >= 0 }
         val shown = { page: Int ->
-            onPageShown(page, pages.getOrNull(page)?.firstOrNull()?.let { it.paragraph to it.words.first })
+            onPageShown(page, count, pages.getOrNull(page)?.firstOrNull()?.let { it.paragraph to it.words.first })
         }
         StoryPager(count, reverse = false, startPage, shown, followPage) { page ->
             Column(Modifier.fillMaxSize().padding(horizontal = PAGE_PADDING_H, vertical = PAGE_PADDING)) {

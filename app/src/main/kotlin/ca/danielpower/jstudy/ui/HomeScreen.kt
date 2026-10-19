@@ -4,16 +4,20 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowOverflow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,11 +41,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -49,6 +57,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,23 +75,50 @@ import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.log10
 import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /**
  * Home: what to do next, then how far you've come. The next step is one
  * card with a quieter second option under it; below it the week's streak,
- * the words graph, and the words and grammar met this week.
+ * the words graph, and the words and grammar met this week. The sections
+ * spread out to fill the screen, within limits, before it has to scroll.
  */
 @Composable
 fun HomeScreen(d: Dashboard, vm: AppViewModel) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
-    ) {
-        HomeHeader(d.today, vm::openSettings)
-        NextCard(d, vm)
-        StreakWeek(d.activeDays, d.streak, d.today)
-        WordsSection(d.words)
-        RecentSection(d, vm)
+    // At least a screen tall, so the sections can spread out to fill it; past that it scrolls.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
+            verticalArrangement = FillSpacing(min = 18.dp, max = 36.dp),
+        ) {
+            HomeHeader(d.today, vm::openSettings)
+            NextCard(d, vm)
+            StreakWeek(d.activeDays, d.streak, d.today)
+            WordsSection(d.words)
+            RecentSection(d, vm)
+        }
+    }
+}
+
+/**
+ * Even gaps between items that grow to fill the column, from [min] up to
+ * [max]. The column asks for [min] gaps, so when that doesn't fit the screen
+ * it scrolls; past [max] the leftover space goes to the bottom.
+ */
+private class FillSpacing(private val min: Dp, private val max: Dp) : Arrangement.Vertical {
+    override val spacing = min
+
+    override fun Density.arrange(totalSize: Int, sizes: IntArray, outPositions: IntArray) {
+        val free = totalSize - sizes.sum()
+        val gap = if (sizes.size < 2) 0 else (free / (sizes.size - 1)).coerceIn(min.roundToPx(), max.roundToPx())
+        var y = 0
+        sizes.forEachIndexed { i, size ->
+            outPositions[i] = y
+            y += size + gap
+        }
     }
 }
 
@@ -98,8 +134,7 @@ private fun HomeHeader(today: Long, onSettings: () -> Unit) {
         Text("Jiwa Jiwa", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
         val day = LocalDate.ofEpochDay(today)
         Text(
-            day.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale.JAPANESE) + " · " +
-                day.format(DateTimeFormatter.ofPattern("MMM d")),
+            day.format(DateTimeFormatter.ofPattern("M月d日（E）", Locale.JAPANESE)),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -120,18 +155,28 @@ private class NextContent(
     val onClick: (() -> Unit)?,
     val alt: String? = null,
     val onAlt: () -> Unit = {},
+    /** How far through a chapter you left part way, from 0 to 1, shown as a bar along the card's foot. */
+    val progress: Float? = null,
 )
 
 @Composable
 private fun NextCard(d: Dashboard, vm: AppViewModel) {
     val c = nextContent(d.next, d, vm)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        val seal = MaterialTheme.colorScheme.primary
         Row(
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
                 .let { if (c.onClick != null) it.clickable(onClick = c.onClick) else it }
+                .drawBehind {
+                    c.progress?.let { done ->
+                        val bar = 3.dp.toPx()
+                        val inset = 1.dp.toPx()
+                        drawRect(seal, Offset(inset, size.height - inset - bar), Size((size.width - 2 * inset) * done, bar))
+                    }
+                }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -187,7 +232,16 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
             val open: () -> Unit = { vm.openStory(e.story.id) }
             when (next.kind) {
                 ReadKind.START -> NextContent("Start here", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
-                ReadKind.CONTINUE -> NextContent("Continue · page ${c.resumePage + 1}", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
+                ReadKind.CONTINUE -> NextContent(
+                    "Continue · page ${c.resumePage + 1}" + if (c.pages > 0) " of ${c.pages}" else "",
+                    colors.primary,
+                    chapterName(e),
+                    seriesLine(e, c),
+                    open,
+                    reviewAlt(next.orReview),
+                    vm::startReview,
+                    progress = if (c.pages > 0) (c.resumePage + 1f) / c.pages else null,
+                )
                 ReadKind.LESSON -> NextContent(
                     "Next · grammar lesson",
                     colors.secondary,
@@ -277,33 +331,40 @@ private fun StreakWeek(days: Set<Long>, streak: Int, today: Long) {
     val firstWeek = days.minOrNull()?.let(Streak::weekOf) ?: thisWeek
     var week by rememberSaveable(today) { mutableLongStateOf(thisWeek) }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel("Streak", Modifier.weight(1f))
+        // The week and its arrows sit centred in the label row, so the week needs no line of its own.
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            SectionLabel("Streak", Modifier.align(Alignment.CenterStart))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                WeekArrow(WashiIcons.Back, "Previous week", enabled = week > firstWeek) { week -= 7 }
+                Text(weekRange(week), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                WeekArrow(WashiIcons.Next, "Next week", enabled = week < thisWeek) { week += 7 }
+            }
             Text(
                 buildAnnotatedString {
                     withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("$streak") }
-                    append(" day streak")
+                    append(if (streak == 1) " day" else " days")
                 },
                 style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.align(Alignment.CenterEnd),
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            WashiIconButton(WashiIcons.Back, "Previous week", { week -= 7 }, enabled = week > firstWeek)
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly) {
-                for (i in 0..6) {
-                    val day = week + i
-                    DayDot(DAY_LETTERS[i], done = day in days, isToday = day == today, future = day > today)
-                }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            for (i in 0..6) {
+                val day = week + i
+                DayDot(DAY_LETTERS[i], done = day in days, isToday = day == today, future = day > today)
             }
-            WashiIconButton(WashiIcons.Next, "Next week", { week += 7 }, enabled = week < thisWeek)
         }
-        Text(
-            weekRange(week),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
+    }
+}
+
+/** A small arrow for stepping between weeks, dimmed when there's no week to step to. */
+@Composable
+private fun WeekArrow(icon: ImageVector, description: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.size(32.dp).clickable(enabled = enabled, onClick = onClick).alpha(if (enabled) 1f else 0.3f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = description, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -383,9 +444,9 @@ private fun WordsSection(words: List<WordDay>) {
         // This week's gains, against the end of the day a week ago.
         val weekAgo = words.getOrNull(words.size - 8) ?: WordDay(0, 0, 0, 0)
         Row(Modifier.fillMaxWidth()) {
-            Total(last.seen, "seen", last.seen - weekAgo.seen, " this week", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
-            Total(last.known, "known", last.known - weekAgo.known, "", MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
-            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, "", rightGreen(), Modifier.weight(1f))
+            Total(last.seen, "seen", last.seen - weekAgo.seen, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
+            Total(last.known, "known", last.known - weekAgo.known, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
+            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, rightGreen(), Modifier.weight(1f))
         }
     }
 }
@@ -412,13 +473,18 @@ private fun RangeToggle(all: Boolean, onChange: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun Total(value: Int, label: String, gain: Int, gainSuffix: String, color: Color, modifier: Modifier) {
-    Column(modifier) {
-        Text("$value", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = color)
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun Total(value: Int, label: String, gain: Int, color: Color, modifier: Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("$value", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = color, modifier = Modifier.alignByBaseline())
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.alignByBaseline())
+        }
         if (gain != 0) {
             Text(
-                (if (gain > 0) "+$gain" else "$gain") + gainSuffix,
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = color, fontWeight = FontWeight.Bold)) { append(if (gain > 0) "+$gain" else "$gain") }
+                    append(" this week")
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -430,6 +496,7 @@ private fun Total(value: Int, label: String, gain: Int, gainSuffix: String, colo
  * Words seen, known and mastered over time as nested bands: every mastered
  * word is known, and every known word seen, so each band sits inside the
  * one before. Colours follow the furigana stages, as mastery does elsewhere.
+ * Dragging across it shows the day under your finger and its three counts.
  */
 @Composable
 private fun WordsChart(days: List<WordDay>) {
@@ -442,8 +509,23 @@ private fun WordsChart(days: List<WordDay>) {
         rightGreen() to { d: WordDay -> d.mastered },
     )
     val top = niceCeiling(days.maxOf { it.seen })
+    val ink = MaterialTheme.colorScheme.onSurface
+    val tipBackground = MaterialTheme.colorScheme.surfaceContainerLow
+    val tipStyle = TextStyle(fontSize = 11.sp, color = ink)
+    // Where a finger is on the graph, while it's dragging across.
+    var touch by remember(days) { mutableStateOf<Float?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Canvas(Modifier.fillMaxWidth().height(140.dp)) {
+        val drag = Modifier.pointerInput(days) {
+            detectHorizontalDragGestures(
+                onDragStart = { touch = it.x },
+                onDragEnd = { touch = null },
+                onDragCancel = { touch = null },
+            ) { change, _ ->
+                change.consume()
+                touch = change.position.x
+            }
+        }
+        Canvas(Modifier.fillMaxWidth().height(140.dp).then(drag)) {
             val labelWidth = measurer.measure("$top", axis).size.width + 6.dp.toPx()
             val left = labelWidth
             val width = size.width - left
@@ -469,7 +551,35 @@ private fun WordsChart(days: List<WordDay>) {
                 drawPath(area, color.copy(alpha = 0.3f))
                 drawPath(line, color, style = Stroke(1.5.dp.toPx()))
             }
-            drawCircle(bands[0].first, 3.dp.toPx(), Offset(x(days.size - 1), y(days.last().seen)))
+            val at = touch?.let { tx ->
+                if (days.size == 1) 0 else ((tx - left) / width * (days.size - 1)).roundToInt().coerceIn(0, days.size - 1)
+            }
+            if (at == null) {
+                drawCircle(bands[0].first, 3.dp.toPx(), Offset(x(days.size - 1), y(days.last().seen)))
+            } else {
+                val day = days[at]
+                val dash = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx()))
+                drawLine(ink, Offset(x(at), y0), Offset(x(at), y(0)), 1.dp.toPx(), pathEffect = dash)
+                for ((color, value) in bands) drawCircle(color, 3.dp.toPx(), Offset(x(at), y(value(day))))
+                // The day and its counts in a box beside the line, on whichever side has room.
+                val lines = listOf(
+                    measurer.measure(LocalDate.ofEpochDay(day.day).format(DateTimeFormatter.ofPattern("MMM d")), tipStyle.copy(fontWeight = FontWeight.Bold)),
+                ) + bands.zip(listOf("seen", "known", "mastered")).map { (band, label) ->
+                    measurer.measure("${band.second(day)} $label", tipStyle.copy(color = band.first))
+                }
+                val pad = 6.dp.toPx()
+                val boxWidth = lines.maxOf { it.size.width } + 2 * pad
+                val boxHeight = lines.sumOf { it.size.height } + 2 * pad
+                val gapX = 8.dp.toPx()
+                val boxLeft = if (x(at) + gapX + boxWidth <= size.width) x(at) + gapX else x(at) - gapX - boxWidth
+                drawRoundRect(tipBackground, Offset(boxLeft, y0), Size(boxWidth, boxHeight), CornerRadius(3.dp.toPx()))
+                drawRoundRect(grid, Offset(boxLeft, y0), Size(boxWidth, boxHeight), CornerRadius(3.dp.toPx()), style = Stroke(1.dp.toPx()))
+                var lineTop = y0 + pad
+                for (text in lines) {
+                    drawText(text, topLeft = Offset(boxLeft + pad, lineTop))
+                    lineTop += text.size.height
+                }
+            }
         }
         Row(Modifier.fillMaxWidth()) {
             val format = DateTimeFormatter.ofPattern("MMM d")
@@ -489,7 +599,7 @@ private fun niceCeiling(n: Int): Int {
 
 // ------------------------------------------------------------------ recent
 
-/** The week's new words (gold) and grammar (indigo) together, then the count of grammar met, which opens the Grammar list. */
+/** The week's new words (gold) and grammar (indigo) together. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RecentSection(d: Dashboard, vm: AppViewModel) {
@@ -511,10 +621,18 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            // +N opens the row in place to show the rest of the week.
+            // Two lines at most, then +N, which opens the row in place to show the rest of the week.
             var expanded by rememberSaveable { mutableStateOf(false) }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (item in if (expanded) d.allRecent else d.recent) when (item) {
+            val muted = MaterialTheme.colorScheme.onSurfaceVariant
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                maxLines = if (expanded) Int.MAX_VALUE else RECENT_LINES,
+                overflow = FlowRowOverflow.expandIndicator {
+                    Chip("+${totalItemCount - shownItemCount}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
+                },
+            ) {
+                for (item in d.recent) when (item) {
                     is RecentItem.NewWord -> Chip(item.word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
                     is RecentItem.NewGrammar -> Chip(
                         item.topic.title,
@@ -523,35 +641,13 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                         indigo.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow),
                     ) { vm.openGrammar(item.pageId) }
                 }
-                if (d.moreWords > 0) {
-                    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-                    if (expanded) {
-                        Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
-                    } else {
-                        Chip("+${d.moreWords}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
-                    }
-                }
-            }
-        }
-        if (d.grammarTotal > 0) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Grammar met",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    "${d.grammarMet} of ${d.grammarTotal} grammar ›",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = indigo,
-                    modifier = Modifier.clickable { vm.openDictionary(grammar = true) }.padding(vertical = 4.dp),
-                )
+                if (expanded) Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
             }
         }
     }
 }
+
+private const val RECENT_LINES = 2
 
 @Composable
 private fun KeySwatch(color: Color, label: String) {
