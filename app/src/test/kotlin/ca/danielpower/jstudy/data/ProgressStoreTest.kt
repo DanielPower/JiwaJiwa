@@ -334,6 +334,26 @@ class ProgressStoreTest {
     }
 
     @Test
+    fun upgradingToVersion11IndexesTheLogByCardAndClearsRemovedSettings() {
+        store.close()
+        context.deleteDatabase(ProgressStore.NAME)
+        val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(path, null).use { db ->
+            ProgressStore(context).onCreate(db)
+            // A version 10 database: no card index on the log, and settings the app no longer has.
+            db.execSQL("DROP INDEX review_log_card")
+            db.execSQL("INSERT INTO kv (key, value) VALUES ('retention', '0.9'), ('mastery_known', '40'), ('reminder_minute', '480')")
+            db.version = 10
+        }
+
+        store = ProgressStore(context)
+        assertEquals(1, store.count("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'review_log_card'"))
+        assertNull(store.getValue("retention"))
+        assertNull(store.getValue("mastery_known"))
+        assertEquals("480", store.getValue("reminder_minute"))
+    }
+
+    @Test
     fun readsInStoriesStayOutOfAnswerStats() {
         val id = store.transaction { store.insertNewCard(it, wordId = 7, direction = Direction.RECOGNITION, sortKey = 1) }
         store.transaction {
