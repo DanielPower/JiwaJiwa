@@ -910,8 +910,9 @@ class Repository(context: Context) {
     fun levelCounts(): Map<Int, Int> = dictionary.levelCounts()
 
     /** Finish the first run: the level you read at, filled in, and the reminder. */
-    fun finishSetup(readLevel: Int, reminderMinute: Int?, now: Long) {
+    fun finishSetup(readLevel: Int, vertical: Boolean, reminderMinute: Int?, now: Long) {
         if (reminderMinute != null) saveReminder(Reminder(enabled = true, minuteOfDay = reminderMinute))
+        setReaderStyle(readerStyle().copy(vertical = vertical))
         setReadLevel(readLevel, now)
         store.setValues(mapOf("setup_done" to "1"))
     }
