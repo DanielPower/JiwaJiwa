@@ -86,8 +86,6 @@ data class Dashboard(
     val moreWords: Int,
     /** Every recent word and grammar topic, in the same order, for when the row is expanded. */
     val allRecent: List<RecentItem>,
-    val grammarMet: Int,
-    val grammarTotal: Int,
 )
 
 /** A word or grammar topic on Home's Recent row. */
@@ -1071,8 +1069,6 @@ class Repository(context: Context) {
             recent = recent,
             moreWords = moreWords,
             allRecent = allRecent,
-            grammarMet = rows.count { it.seen },
-            grammarTotal = rows.size,
         )
     }
 

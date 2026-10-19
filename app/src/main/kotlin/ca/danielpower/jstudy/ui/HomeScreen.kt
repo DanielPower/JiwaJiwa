@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -70,19 +73,45 @@ import kotlin.math.pow
 /**
  * Home: what to do next, then how far you've come. The next step is one
  * card with a quieter second option under it; below it the week's streak,
- * the words graph, and the words and grammar met this week.
+ * the words graph, and the words and grammar met this week. The sections
+ * spread out to fill the screen, within limits, before it has to scroll.
  */
 @Composable
 fun HomeScreen(d: Dashboard, vm: AppViewModel) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
-    ) {
-        HomeHeader(d.today, vm::openSettings)
-        NextCard(d, vm)
-        StreakWeek(d.activeDays, d.streak, d.today)
-        WordsSection(d.words)
-        RecentSection(d, vm)
+    // At least a screen tall, so the sections can spread out to fill it; past that it scrolls.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
+            verticalArrangement = FillSpacing(min = 18.dp, max = 36.dp),
+        ) {
+            HomeHeader(d.today, vm::openSettings)
+            NextCard(d, vm)
+            StreakWeek(d.activeDays, d.streak, d.today)
+            WordsSection(d.words)
+            RecentSection(d, vm)
+        }
+    }
+}
+
+/**
+ * Even gaps between items that grow to fill the column, from [min] up to
+ * [max]. The column asks for [min] gaps, so when that doesn't fit the screen
+ * it scrolls; past [max] the leftover space goes to the bottom.
+ */
+private class FillSpacing(private val min: Dp, private val max: Dp) : Arrangement.Vertical {
+    override val spacing = min
+
+    override fun Density.arrange(totalSize: Int, sizes: IntArray, outPositions: IntArray) {
+        val free = totalSize - sizes.sum()
+        val gap = if (sizes.size < 2) 0 else (free / (sizes.size - 1)).coerceIn(min.roundToPx(), max.roundToPx())
+        var y = 0
+        sizes.forEachIndexed { i, size ->
+            outPositions[i] = y
+            y += size + gap
+        }
     }
 }
 
@@ -413,7 +442,7 @@ private fun RangeToggle(all: Boolean, onChange: (Boolean) -> Unit) {
 
 @Composable
 private fun Total(value: Int, label: String, gain: Int, gainSuffix: String, color: Color, modifier: Modifier) {
-    Column(modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text("$value", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = color)
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (gain != 0) {
@@ -489,7 +518,7 @@ private fun niceCeiling(n: Int): Int {
 
 // ------------------------------------------------------------------ recent
 
-/** The week's new words (gold) and grammar (indigo) together, then the count of grammar met, which opens the Grammar list. */
+/** The week's new words (gold) and grammar (indigo) together. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RecentSection(d: Dashboard, vm: AppViewModel) {
@@ -531,23 +560,6 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                         Chip("+${d.moreWords}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
                     }
                 }
-            }
-        }
-        if (d.grammarTotal > 0) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Grammar met",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    "${d.grammarMet} of ${d.grammarTotal} grammar ›",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = indigo,
-                    modifier = Modifier.clickable { vm.openDictionary(grammar = true) }.padding(vertical = 4.dp),
-                )
             }
         }
     }
