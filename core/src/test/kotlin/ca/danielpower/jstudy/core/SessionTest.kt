@@ -179,6 +179,18 @@ class SessionTest {
     }
 
     @Test
+    fun `a dropped card leaves the sitting`() {
+        val now = at("2026-10-10T20:00")
+        val step = Card(id = 9, wordId = 9, direction = Direction.RECOGNITION, state = CardState.LEARNING, step = 0, dueAt = now)
+        val session = StudySession(listOf(review(1), review(2)), emptyList(), listOf(step))
+        session.drop(9)
+        session.drop(1)
+        assertEquals(0, session.learningRemaining)
+        assertEquals(1, session.reviewRemaining)
+        assertEquals(2, session.next(now)!!.id)
+    }
+
+    @Test
     fun `undo puts a learning card back with the learning cards`() {
         val now = at("2026-10-10T20:00")
         val step = Card(id = 9, wordId = 9, direction = Direction.RECOGNITION, state = CardState.LEARNING, step = 0, dueAt = now)

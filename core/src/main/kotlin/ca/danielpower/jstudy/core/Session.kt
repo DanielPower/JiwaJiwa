@@ -158,6 +158,9 @@ class StudySession(
         lastShownId = null
     }
 
+    /** Take a card out of this sitting, as when its word is reset or suspended mid-review. */
+    fun drop(id: Long) = remove(id)
+
     private fun remove(id: Long) {
         main.removeAll { it.id == id }
         learning.removeAll { it.id == id }

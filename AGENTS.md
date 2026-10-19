@@ -103,12 +103,16 @@ Study and scheduling:
   "Learn next" (removed 2026-10-17). The only new cards in reviews are
   unlocked production cards. Within a sitting, reviews and new cards are
   shuffled.
-- "Mark known" lets you set the word's mastery; it gets a review schedule to
-  match, first due on a random day in that interval.
+- A word's page has no "Mark known" or "I know this" (removed 2026-10-19,
+  Daniel); words become known by reading and reviews, a Renshuu import, the
+  reading-level pre-fill, or "I know this" on a story's end page. Each gets
+  a review schedule to match, first due on a random day in that interval.
+  The page keeps Suspend and Reset progress.
 - "Study more" pulls every schedule one day earlier (a `daysAhead` counter)
   and adds another day's worth of production cards for today.
-- v1 card back is minimal: word, reading, English meanings. No example
-  sentences, TTS or pitch accent yet.
+- The card back is minimal: word, reading, English meanings, a speaker and
+  "Full entry →" to the word's page (2026-10-19). No example sentences or
+  pitch accent yet.
 
 Kana:
 
@@ -143,21 +147,30 @@ Other features (all shipped):
   wrong (Daniel: checking conjugations and accidental taps shouldn't
   punish). No burning of words; FSRS long intervals handle mature words.
 - Daily reminder has **no default time**; the user picks one. Don't request
-  notification permission until they turn it on.
+  notification permission until they turn it on. With the reminder on and
+  notifications off, Settings says so and links to the app's notification
+  settings (2026-10-19).
 - Manual backup/restore only (`jiwajiwa-<date>.jstudy`, a copy of the progress
-  DB). No automatic backups.
+  DB). No automatic backups. Settings shows the last save's date, kept in
+  the `backup` shared preferences so a restore doesn't turn it back.
 - Settings has a reset button that erases all user data.
 - Tabs (Daniel, 2026-10-17): Home, Read (the stories), Review, Dictionary.
   Settings opens from a gear on Home; it's rarely needed. The Review tab
   has today's counts, the review heatmap, a link to the Stats page
   (recall, forecast, per-level progress) and Start studying, with the due
-  count as a badge on the tab.
+  count as a badge on the tab. Before any word is started it says reviews
+  start after your first story, with "Read your first story" in place of
+  Study more (2026-10-19).
 - Home (Daniel, 2026-10-17, layout "Journal"): one next-step card with a
   quiet blue "or ..." line under it (`core/Home.kt` `Suggest`): reviews
   first once due reviews reach the review nudge; else the chapter you left
   part way, or the next one in the story you read last; past today's
   new-word limit, an open chapter with nothing new; then reviews alone;
-  then "Done for today" with a grained 済 stamp and no button. Under it: a
+  then "Done for today" with a grained 済 stamp and no button. With every
+  chapter read and nothing due, "Read again" suggests the read chapter
+  with the most words reading would review, else the one read longest ago
+  (2026-10-19). The reviews card's line says today's reviews and how many
+  wait past the review limit ("200 today · 512 more after that"). Under it: a
   Mon–Sun streak (a day counts with a review answered or a chapter
   finished; arrows go back a week at a time), the words graph (seen, known
   and mastered as nested bands, 30 days or all, replayed from the review
@@ -296,7 +309,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - Pace (`Pace` in `core/Session.kt`, `Repository.pace`): a soft daily limit on new words
   started (`newPerDay`, default 20, from the rollover hour), and a
   review nudge (`reviewNudge`, default 50 due, 0 for off). "I know this",
-  "Mark known", Renshuu imports and reading-level pre-fill (Daniel,
+  Renshuu imports and reading-level pre-fill (Daniel,
   2026-10-18) date a word started that day but don't count against the
   limit: the card's `start_source` (`StartSource`) says how it began, and
   only story words count. Past either, the Read
@@ -313,7 +326,9 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - A chapter opens on its own once it's within reach (`StoryPath.gap`): new
   words at most 3% of its running words, and at least 3; and no grammar
   point you haven't seen, other than its own topic. Tapping a locked chapter shows what it's missing and
-  the open chapters with the most of it.
+  the open chapters with the most of it. The Read tab ends with a folded
+  "Coming up · N" list of the stories not open yet, each with why its first
+  chapter is locked; tapping one shows the same sheet (2026-10-19).
 - Grammar comes in as topics (one or more related points, like から/まで),
   at most one per chapter; the same topic can be listed on several
   chapters, and whichever you reach first teaches it. Each topic has a full

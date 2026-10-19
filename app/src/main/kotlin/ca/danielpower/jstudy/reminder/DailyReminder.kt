@@ -59,6 +59,10 @@ object DailyReminder {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
+    /** Whether a reminder would show: allowed, and the app's notifications not turned off in the phone's settings. */
+    fun notificationsOn(context: Context): Boolean =
+        canNotify(context) && context.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
+
     /** Check the queue and post the reminder if anything is due, then set tomorrow's alarm. */
     internal fun fire(context: Context) {
         val repo = Repository.get(context)

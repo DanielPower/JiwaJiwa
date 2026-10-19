@@ -1,7 +1,9 @@
 package ca.danielpower.jstudy.ui
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,14 +28,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import ca.danielpower.jstudy.core.ReadLevel
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.data.Reminder
+import ca.danielpower.jstudy.reminder.DailyReminder
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 @Composable
@@ -110,23 +120,32 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Stepper("Remind me to review at", if (s.reviewNudge == 0) "Off" else "${s.reviewNudge}") { d ->
+            Stepper("Suggest catching up at", if (s.reviewNudge == 0) "Off" else "${s.reviewNudge} due") { d ->
                 update { s.copy(reviewNudge = (s.reviewNudge + d * 10).coerceIn(0, 500)) }
             }
             Text(
-                "Reviews due before the app suggests catching up.",
+                "Past this many due reviews, Home and Read put reviews first.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Stepper("Review limit per day", "${s.reviewCap}") { d ->
                 update { s.copy(reviewCap = (s.reviewCap + d * 50).coerceIn(50, 2000)) }
             }
+            Text(
+                "Reviews past this wait for the next day, oldest first.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Stepper("New day starts at", String.format(Locale.ROOT, "%02d:00", s.rolloverHour)) { d ->
                 update { s.copy(rolloverHour = (s.rolloverHour + d + 24) % 24) }
             }
 
             Section("Reminder")
             val r = state.reminder
+            // Checked again on coming back, as from the phone's notification settings.
+            val context = LocalContext.current
+            var notificationsOn by remember { mutableStateOf(DailyReminder.notificationsOn(context)) }
+            LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { notificationsOn = DailyReminder.notificationsOn(context) }
             val pickReminder = rememberReminderPicker { vm.setReminder(Reminder(enabled = true, minuteOfDay = it)) }
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -147,6 +166,27 @@ fun SettingsScreen(
                     Text("Remind me at", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
                     SecondaryButton(onClick = { pickReminder(r.minuteOfDay) }) { Text(reminderTime(r.minuteOfDay)) }
                 }
+            }
+            if (r.enabled && !notificationsOn) {
+                Text(
+                    "Notifications are off for Jiwa Jiwa, so the reminder can't show.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    "Open notification settings ›",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier
+                        .clickable {
+                            context.startActivity(
+                                Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName),
+                            )
+                        }
+                        .padding(vertical = 4.dp),
+                )
             }
 
             Section("Import")
@@ -175,6 +215,13 @@ fun SettingsScreen(
                     Text("Save backup")
                 }
                 SecondaryButton(onClick = { restoring = true }, modifier = Modifier.weight(1f)) { Text("Restore") }
+            }
+            state.lastBackup?.let {
+                Text(
+                    "Last backup: ${backupDate(it)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             state.backupMessage?.let {
                 Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -246,6 +293,20 @@ fun SettingsScreen(
             )
         }
     }
+}
+
+/** "Oct 3 (16 days ago)", with the year when it isn't this one. */
+private fun backupDate(at: Long): String {
+    val zone = ZoneId.systemDefault()
+    val date = Instant.ofEpochMilli(at).atZone(zone).toLocalDate()
+    val today = LocalDate.now(zone)
+    val pattern = if (date.year == today.year) "MMM d" else "MMM d, yyyy"
+    val ago = when (val days = ChronoUnit.DAYS.between(date, today)) {
+        0L -> "today"
+        1L -> "yesterday"
+        else -> "$days days ago"
+    }
+    return "${date.format(DateTimeFormatter.ofPattern(pattern))} ($ago)"
 }
 
 @Composable

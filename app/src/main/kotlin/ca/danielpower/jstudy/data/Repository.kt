@@ -70,6 +70,8 @@ data class Summary(
     val readDays: Set<Long>,
     /** Reviews due on each of the next week's days, tomorrow first. */
     val comingUp: List<Int>,
+    /** Whether any word has been started, so there's ever been anything to review. */
+    val started: Boolean = true,
 ) {
     val anythingDue get() = newCards + learning + reviews > 0
 }
@@ -86,7 +88,14 @@ data class Dashboard(
     val words: List<WordDay>,
     /** Words started and grammar learned in the last week, newest first ([Recent.pick]). */
     val recent: List<RecentItem>,
+    /** Reviews due past today's review limit, which wait for the days after. */
+    val reviewsLater: Int = 0,
+    /** Once every chapter's read and nothing is due, one to read again. */
+    val readAgain: ReadAgain? = null,
 )
+
+/** A chapter you've read to read again, and how many of its words reading it would review. */
+data class ReadAgain(val entry: ChapterEntry, val due: Int)
 
 /** A word or grammar topic on Home's Recent row. */
 sealed interface RecentItem {
@@ -108,6 +117,26 @@ data class WordDetail(
     val history: List<Pair<Direction, ReviewEntry>>,
     /** The kanji in the word's spelling, in order. */
     val kanji: List<Kanji>,
+    /** Sentences with it from chapters you've read, the last read first. */
+    val stories: List<StoryUse> = emptyList(),
+)
+
+/** A sentence from a chapter you've read, for a word's page: where it is, its words, and how to hear it. */
+data class StoryUse(
+    val series: PathSeries,
+    val chapter: Chapter,
+    val storyId: Long,
+    /** The word's place in the chapter, for the reader to open at. */
+    val paragraph: Int,
+    val index: Int,
+    val words: List<ReadingWord>,
+    /** Which of [words] are the word. */
+    val marked: Set<Int>,
+    val speaker: String?,
+    val translation: String?,
+    /** The sentence as it's read aloud, and its recording if it has one. */
+    val line: NarrationLine?,
+    val clip: Recording?,
 )
 
 /** A kanji's page: its entry and the words written with it. */
@@ -472,6 +501,47 @@ class Repository private constructor(context: Context) {
             suspended = store.isSuspended(wordId),
             history = store.logs(wordId),
             kanji = kanjiIn(word),
+            stories = storyUses(wordId),
+        )
+    }
+
+    /** Up to [limit] sentences with [wordId], one from each chapter you've read that has it, the last read first. */
+    private fun storyUses(wordId: Long, limit: Int = 3): List<StoryUse> {
+        val saved = savedPath()
+        return catalog.chapters
+            .mapNotNull { (series, chapter) ->
+                val story = saved[chapter.story.id]?.takeIf { it.readAt != null } ?: return@mapNotNull null
+                val has = needs[chapter.story.id]?.words?.any { it.wordId == wordId } == true
+                if (has) Triple(series, chapter, story) else null
+            }
+            .sortedByDescending { it.third.readAt }
+            .asSequence()
+            .mapNotNull { (series, chapter, story) -> storyUse(series, chapter, story, wordId) }
+            .take(limit)
+            .toList()
+    }
+
+    /** The first sentence of [story] with [wordId]. */
+    private fun storyUse(series: PathSeries, chapter: Chapter, story: SavedStory, wordId: Long): StoryUse? {
+        val paragraphs = paragraphs(story)
+        val p = paragraphs.indexOfFirst { words -> words.any { it.wordId == wordId } }.takeIf { it >= 0 } ?: return null
+        val i = paragraphs[p].indexOfFirst { it.wordId == wordId }
+        // Only its text is needed, not its words' entries or progress.
+        val reading = StoryReading(story, paragraphs, Speech.speakers(story.body), emptyMap(), emptyMap(), coverage(paragraphs) { true })
+        val sentence = reading.sentence(p, i) ?: return null
+        val line = Narration.lineOf(reading.narration, p, i)
+        return StoryUse(
+            series = series,
+            chapter = chapter,
+            storyId = story.id,
+            paragraph = p,
+            index = i,
+            words = paragraphs[p].slice(sentence.words),
+            marked = sentence.words.filter { paragraphs[p][it].wordId == wordId }.map { it - sentence.words.first }.toSet(),
+            speaker = reading.speakers.getOrNull(p),
+            translation = sentence.translation,
+            line = line?.let(reading.narration::get),
+            clip = line?.let { clips(story, reading.narration).getOrNull(it) },
         )
     }
 
@@ -483,8 +553,8 @@ class Repository private constructor(context: Context) {
             "id",
         ).firstOrNull()
 
-    /** Mark a word from the dictionary as known at [mastery], starting it if needed. */
-    fun markKnown(wordId: Long, mastery: Int, now: Long) {
+    /** Mark a word as known at [mastery], starting it if needed. */
+    private fun markKnown(wordId: Long, mastery: Int, now: Long) {
         store.transaction { db ->
             store.setSuspended(db, wordId, false)
             if (recognitionCard(wordId) == null) {
@@ -493,6 +563,9 @@ class Repository private constructor(context: Context) {
         }
         markKnown(recognitionCard(wordId) ?: return, mastery, now)
     }
+
+    /** Whether [card] is still as stored and its word isn't suspended, e.g. after a look at the word's page mid-review. */
+    fun unchanged(card: Card): Boolean = !store.isSuspended(card.wordId) && store.card(card.id) == card
 
     /** Forget a word: its cards, mastery and history. */
     fun reset(wordId: Long) {
@@ -553,7 +626,7 @@ class Repository private constructor(context: Context) {
         return RenshuuImport.plan(terms, { it in ids }, local)
     }
 
-    /** Mark each word known at its mastery, as "I know this" does, in one transaction. */
+    /** Mark each word known at its mastery, in one transaction. */
     fun importMastery(updates: Map<Long, Int>, now: Long) {
         val settings = settings()
         val reviewer = Reviewer(Fsrs(), clock(settings))
@@ -957,10 +1030,17 @@ class Repository private constructor(context: Context) {
     // ------------------------------------------------------------ backup
 
     /** Write a copy of all your progress, settings and stories. */
-    fun exportBackup(out: OutputStream) {
+    fun exportBackup(out: OutputStream, now: Long) {
         store.checkpoint()
         appContext.getDatabasePath(ProgressStore.NAME).inputStream().use { it.copyTo(out) }
+        backups.edit().putLong("last_saved", now).apply()
     }
+
+    // Outside the progress database, so restoring an older backup doesn't turn the date back.
+    private val backups = appContext.getSharedPreferences("backup", Context.MODE_PRIVATE)
+
+    /** When a backup was last saved, if ever. */
+    fun lastBackup(): Long? = backups.getLong("last_saved", 0).takeIf { it > 0 }
 
     /** Replace all progress with a backup. The file is checked before anything is replaced. */
     fun importBackup(input: InputStream) {
@@ -1089,15 +1169,33 @@ class Repository private constructor(context: Context) {
             learned[row.topic.id]?.takeIf { row.seen && it > since }?.let { RecentItem.NewGrammar(row.topic, row.pageId) to it }
         }
         val recent = Recent.pick<RecentItem>(newWords, newGrammar, Int.MAX_VALUE).first
+        val next = nextUp(now)
+        val settings = settings()
         return Dashboard(
             today = today,
-            next = nextUp(now),
+            next = next,
             pace = pace(now),
             activeDays = active,
             streak = Streak.current(active, today),
             words = words,
             recent = recent,
+            reviewsLater = queue(settings, clock(settings), now).later,
+            readAgain = if (next is NextUp.AllRead) readAgain(now) else null,
         )
+    }
+
+    /** The chapter you've read with the most words reading it would review, else the one read longest ago. */
+    private fun readAgain(now: Long): ReadAgain? {
+        val read = storyPath().flatMap { it.chapters }.filter { it.read }
+        if (read.isEmpty()) return null
+        val reviewer = Reviewer(Fsrs(), clock())
+        val due = store.cards("direction = ? AND suspended = 0", arrayOf(Direction.RECOGNITION.value.toString()), "id")
+            .filter { reviewer.readCounts(it, now) }
+            .map { it.wordId }
+            .toSet()
+        return read
+            .map { e -> ReadAgain(e, needs.getValue(e.chapter.story.id).words.count { it.wordId in due }) }
+            .maxWith(compareBy<ReadAgain> { it.due }.thenByDescending { it.entry.story.readAt ?: 0 })
     }
 
     /** Study days with a review answered or a chapter finished. */
@@ -1152,8 +1250,11 @@ class Repository private constructor(context: Context) {
     // ------------------------------------------------------------ summary
 
     /** What a review session would show now: the one count behind the Review badge, the Read tab and Home. */
-    private data class Queue(val newCards: Int, val learning: Int, val reviews: Int) {
+    private data class Queue(val newCards: Int, val learning: Int, val reviews: Int, val reviewsDue: Int) {
         val total get() = newCards + learning + reviews
+
+        /** Reviews due past today's limit. */
+        val later get() = reviewsDue - reviews
     }
 
     private fun queue(settings: StudySettings, clock: StudyClock, now: Long): Queue {
@@ -1177,6 +1278,7 @@ class Repository private constructor(context: Context) {
                 CardState.RELEARNING.value,
             ),
             reviews = minOf(limits.reviews, reviewsDue),
+            reviewsDue = reviewsDue,
         )
     }
 
@@ -1217,6 +1319,7 @@ class Repository private constructor(context: Context) {
             answersPerDay = store.answersPerDay(today - 370),
             readDays = store.storyReadTimes().map(clock::dayOf).toSet(),
             comingUp = forecast(clock, today, 8).drop(1),
+            started = store.count("SELECT COUNT(*) FROM card WHERE state != ?", CardState.NEW.value) > 0,
         )
     }
 
