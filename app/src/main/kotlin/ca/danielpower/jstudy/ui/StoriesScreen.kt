@@ -124,6 +124,7 @@ fun StoriesScreen(state: Screen.Stories, vm: AppViewModel) {
         // The stories that come with the app, shown once a chapter is within reach.
         val shown = state.path.filter { it.shown }
         val pace = state.pace
+        PathProgress(state.path)
         if (pace != null) PaceMeter(pace)
         if (pace?.nudge == true) {
             // Past today's limit, or behind on reviews: what you can read with nothing new comes first.
@@ -235,15 +236,59 @@ private fun newLabel(entry: ChapterEntry): String {
     ).joinToString(" · ")
 }
 
+/**
+ * How far along the main path you are: one segment per story, sized by its
+ * chapters and filled as far as you've read it. Side stories aren't counted.
+ */
+@Composable
+private fun PathProgress(path: List<SeriesEntry>) {
+    val main = path.filter { !it.series.side }
+    if (main.isEmpty()) return
+    val seal = MaterialTheme.colorScheme.primary
+    val line = MaterialTheme.colorScheme.outlineVariant
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("Your path", Modifier.weight(1f))
+            Text(
+                "${main.sumOf { it.readCount }} of ${main.sumOf { it.chapters.size }} chapters",
+                style = MaterialTheme.typography.labelMedium,
+                color = muted,
+            )
+        }
+        Row(Modifier.fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            for (entry in main) {
+                Box(Modifier.weight(entry.chapters.size.toFloat()).fillMaxHeight().clip(WashiShape).background(line)) {
+                    Box(Modifier.fillMaxWidth(entry.readCount / entry.chapters.size.toFloat()).fillMaxHeight().background(seal))
+                }
+            }
+        }
+        val current = main.indexOfFirst { it.readCount < it.chapters.size }
+        Text(
+            if (current < 0) {
+                buildAnnotatedString { append("Every story on the path read") }
+            } else {
+                buildAnnotatedString {
+                    append("Now in ")
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)) { append(main[current].series.title) }
+                    append(" · story ${current + 1} of ${main.size}")
+                }
+            },
+            style = MaterialTheme.typography.labelMedium,
+            color = muted,
+        )
+    }
+}
+
 /** Today's new words against the daily limit, gold once it's reached. */
 @Composable
 private fun PaceMeter(pace: Pace) {
     val color = if (pace.atLimit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth()) {
-            Text("Today", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("New vocabulary", Modifier.weight(1f))
             Text(
-                "${pace.newToday} of ${pace.limit} new",
+                "${pace.newToday} of ${pace.limit} words today",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
