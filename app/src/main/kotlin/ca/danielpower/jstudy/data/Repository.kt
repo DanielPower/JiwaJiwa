@@ -271,11 +271,15 @@ data class Reminder(val enabled: Boolean, val minuteOfDay: Int?) {
 
 class BackupException(message: String) : Exception(message)
 
-class Repository(context: Context) {
+/**
+ * Your progress and the dictionary. There's one per process ([get]), so the
+ * app and the reminder receivers never copy the dictionary at the same time
+ * or open the progress database twice.
+ */
+class Repository private constructor(context: Context) {
     private val appContext = context.applicationContext
     val dictionary = Dictionary(context)
     private val store = ProgressStore(context)
-
 
     // ------------------------------------------------------------ settings
 
@@ -350,8 +354,8 @@ class Repository(context: Context) {
             "due_at",
         )
         val reviews = store.cards(
-            "state = ? AND due_at < ? AND suspended = 0",
-            arrayOf(CardState.REVIEW.value.toString(), limits.reviewDueBefore.toString()),
+            "state = ? AND $REVIEW_DUE AND suspended = 0",
+            arrayOf(CardState.REVIEW.value.toString(), *reviewDueArgs(limits).map(Long::toString).toTypedArray()),
             "due_at, id",
             limits.reviews,
         )
@@ -837,6 +841,20 @@ class Repository(context: Context) {
      * Finishing a story: its words you haven't started, or said you know,
      * start as cards, as though just shown. Returns their ids.
      */
+    /**
+     * Finish a chapter in one transaction: mark it read, credit the words read
+     * and forgotten, and start its new words. Returns the words started. Done
+     * apart, a failure part way left a chapter read whose words never started.
+     */
+    fun finishChapter(story: SavedStory, now: Long, millis: Long, lookedUp: Set<Long>, forgotten: Set<Long>): List<Long> =
+        store.transaction {
+            markStoryRead(story.id, now, millis)
+            if (readerPlace()?.storyId == story.id) clearReaderPlace()
+            readWords(story, lookedUp, now)
+            forgetWords(forgotten, now)
+            startStoryWords(story, now)
+        }
+
     fun startStoryWords(story: SavedStory, now: Long): List<Long> {
         val isKnown = known(store.wordStatuses())
         val ids = StoryPath.words(paragraphs(story)).mapNotNull { it.wordId }.distinct()
@@ -957,6 +975,8 @@ class Repository(context: Context) {
         } finally {
             incoming.delete()
         }
+        // The backup's chapters may be older than the app's.
+        pathSynced = false
         // The next query reopens the database, upgrading an older backup's schema.
         store.count("SELECT COUNT(*) FROM card")
     }
@@ -991,6 +1011,7 @@ class Repository(context: Context) {
         store.close()
         val target = appContext.getDatabasePath(ProgressStore.NAME)
         SQLiteDatabase.deleteDatabase(target)
+        pathSynced = false
         store.count("SELECT COUNT(*) FROM card")
     }
 
@@ -1138,9 +1159,9 @@ class Repository(context: Context) {
     private fun queue(settings: StudySettings, clock: StudyClock, now: Long): Queue {
         val limits = limits(settings, clock, now)
         val reviewsDue = store.count(
-            "SELECT COUNT(*) FROM card WHERE state = ? AND due_at < ? AND suspended = 0",
+            "SELECT COUNT(*) FROM card WHERE state = ? AND $REVIEW_DUE AND suspended = 0",
             CardState.REVIEW.value,
-            limits.reviewDueBefore,
+            *reviewDueArgs(limits).toTypedArray(),
         )
         // New words come from the story path, so only unlocked production cards wait here.
         val newWaiting = store.count(
@@ -1173,6 +1194,12 @@ class Repository(context: Context) {
         return forecast.toList()
     }
 
+    /** Cards waiting now, as the Review tab's badge shows them. */
+    fun dueCount(now: Long): Int {
+        val settings = settings()
+        return queue(settings, clock(settings), now).total
+    }
+
     fun summary(now: Long): Summary {
         val settings = settings()
         val clock = clock(settings)
@@ -1193,7 +1220,15 @@ class Repository(context: Context) {
         )
     }
 
+    /** The arguments for [REVIEW_DUE], in order. */
+    private fun reviewDueArgs(limits: DailyLimits) =
+        listOf(limits.endOfToday, limits.reviewDueBefore, limits.answeredSince)
+
     companion object {
+        /** DailyLimits.isDue in SQL. */
+        private const val REVIEW_DUE =
+            "(due_at < ? OR (due_at < ? AND (last_review_at IS NULL OR last_review_at < ?)))"
+
         private const val FORECAST_DAYS = 30
         private const val HISTORY_DAYS = 30
 
@@ -1205,5 +1240,12 @@ class Repository(context: Context) {
 
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12
+
+        @Volatile private var instance: Repository? = null
+
+        fun get(context: Context): Repository =
+            instance ?: synchronized(this) {
+                instance ?: Repository(context.applicationContext).also { instance = it }
+            }
     }
 }

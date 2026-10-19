@@ -221,9 +221,6 @@ class Dictionary(context: Context) {
             buildSet { while (c.moveToNext()) add(c.getLong(0)) }
         }
 
-    /** Words on the JLPT lists. */
-    fun wordCount(): Int = db.rawQuery("SELECT COUNT(*) FROM word WHERE jlpt > 0", null).use { it.moveToFirst(); it.getInt(0) }
-
     /** A kanji's entry, or null for a character KANJIDIC2 doesn't have. */
     fun kanji(literal: String): Kanji? = kanjiRows("literal = ?", arrayOf(literal)).firstOrNull()
 

@@ -69,6 +69,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -323,7 +324,7 @@ private fun NudgeCard(pace: Pace, onReview: () -> Unit) {
         Box(Modifier.width(3.dp).fillMaxHeight().background(MaterialTheme.colorScheme.tertiary))
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (pace.backlog) {
-                Text("${pace.reviewsDue} reviews waiting", style = MaterialTheme.typography.titleMedium)
+                Text(if (pace.reviewsDue == 1) "1 review waiting" else "${pace.reviewsDue} reviews waiting", style = MaterialTheme.typography.titleMedium)
                 Text(
                     "Catch up before adding more, so the words you've started don't slip. Stories with nothing new help too.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -531,7 +532,7 @@ private fun LockSheet(lock: LockInfo, vm: AppViewModel) {
         Text(entry.chapter.story.title, style = MaterialTheme.typography.titleLarge)
         for ((topic, teaching) in lock.grammar) {
             val where = teaching.firstOrNull()?.let { " It's taught before ${chapterName(it)}." }.orEmpty()
-            Text("It uses ${topic.title} (${topic.titleEn.lowercase()}), which you haven't met yet.$where", style = MaterialTheme.typography.bodyMedium)
+            Text("It uses ${topic.title} (${inSentence(topic.titleEn)}), which you haven't met yet.$where", style = MaterialTheme.typography.bodyMedium)
         }
         if (gap.words.size > gap.allowance) {
             Text(
@@ -575,6 +576,10 @@ private fun LockSheet(lock: LockInfo, vm: AppViewModel) {
         }
     }
 }
+
+/** A grammar topic's English title inside a sentence: "past", but "I think, said" keeps its I. */
+internal fun inSentence(title: String) =
+    if (title.startsWith("I ") || title.startsWith("I,")) title else title.replaceFirstChar { it.lowercase() }
 
 /** A chapter as the lock sheet names it: "Ramen night 3", or a one-chapter story's title. */
 private fun chapterName(entry: ChapterEntry) =
@@ -1269,7 +1274,7 @@ private fun StoryWord(
                         maxLines = 1,
                         softWrap = false,
                         color = color.copy(alpha = 0.75f),
-                        modifier = Modifier.alpha(if (showRuby && piece.ruby != null) 1f else 0f),
+                        modifier = if (showRuby && piece.ruby != null) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
                     )
                     Text(
                         text = piece.base,
@@ -1725,7 +1730,8 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
             if (nextStep != null && nextStep.storyId != rest?.storyId) {
                 TextButton(onClick = { vm.openStory(nextStep.storyId, anyway = true) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Text(
-                        nextStep.label.replaceFirst("Next", "Next anyway"),
+                        // "Next: 5. Title" or "Next story: Title".
+                        nextStep.label.replaceFirst(Regex("^Next( story)?:"), "Next$1 anyway:"),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

@@ -237,8 +237,10 @@ fun SettingsScreen(
                     "filtered and ranked) and is licensed under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)." +
                     "\n\nIcons: the settings cog is from Lucide, under the ISC License." +
                     "\n\nFonts: Zen Kaku Gothic New, Zen Old Mincho and Zen Maru Gothic, under the SIL Open Font License." +
-                    "\n\nSoftware: AndroidX, Jetpack Compose, Kotlin and kotlinx.serialization, under the Apache License 2.0. " +
-                    "The stories were split into words with Kuromoji (Atilika) and the IPADIC dictionary (NAIST).",
+                    "\n\nSoftware: AndroidX, Jetpack Compose, Media3 ExoPlayer, Kotlin and kotlinx.serialization, under the " +
+                    "Apache License 2.0. Scheduling is a port of py-fsrs (Open Spaced Repetition), under the MIT License. " +
+                    "The stories were split into words with Kuromoji (Atilika) and the IPADIC dictionary (NAIST)." +
+                    "\n\nStory audio: AI voices, recorded with Fish Audio (https://fish.audio).",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

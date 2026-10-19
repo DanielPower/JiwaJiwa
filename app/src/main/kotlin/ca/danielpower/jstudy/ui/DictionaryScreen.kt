@@ -200,7 +200,7 @@ private fun ColumnScope.GrammarList(rows: List<GrammarRow>, vm: AppViewModel) {
                 )
                 val where = row.taughtIn?.let { c -> if (c.series.single) c.series.title else "${c.series.title} ${c.chapter.number}" }
                 Text(
-                    listOfNotNull(where.takeIf { row.seen }, row.topic.titleEn.lowercase()).joinToString(" · "),
+                    listOfNotNull(where.takeIf { row.seen }, inSentence(row.topic.titleEn)).joinToString(" · "),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End,

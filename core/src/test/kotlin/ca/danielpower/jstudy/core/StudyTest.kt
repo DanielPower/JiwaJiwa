@@ -131,6 +131,20 @@ class StudyTest {
     }
 
     @Test
+    fun `study more doesn't bring back a card answered today`() {
+        val now = at("2026-10-10T20:00")
+        val today = clock.dayOf(now)
+        val ahead = StudyAhead().studyMore(today).studyMore(today)
+        val limits = DailyLimits.of(StudySettings(), ahead, clock, now, newIntroducedToday = 0, reviewsDoneToday = 0)
+        val inTwoDays = clock.startOf(today + 2) + 60_000
+        assertTrue(limits.isDue(inTwoDays, lastReviewAt = at("2026-10-09T20:00")), "answered yesterday: pulled ahead")
+        assertTrue(limits.isDue(inTwoDays, lastReviewAt = null))
+        assertFalse(limits.isDue(inTwoDays, lastReviewAt = at("2026-10-10T19:00")), "answered today: waits until it's due")
+        assertTrue(limits.isDue(clock.startOf(today) + 60_000, lastReviewAt = at("2026-10-10T19:00")), "due today anyway")
+        assertFalse(limits.isDue(clock.startOf(today + 3) + 60_000, lastReviewAt = null), "past the pulled-ahead days")
+    }
+
+    @Test
     fun `interleave spreads new cards evenly`() {
         val out = StudySession.interleave(listOf("r1", "r2", "r3", "r4"), listOf("n1", "n2"))
         assertEquals(listOf("r1", "n1", "r2", "r3", "n2", "r4"), out)

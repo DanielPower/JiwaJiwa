@@ -48,11 +48,14 @@ object MasteryRules {
         return kotlin.math.round(lo.first + t * (hi.first - lo.first)).toInt()
     }
 
-    /** Stability in whole days that gives about this [mastery]; the inverse of [fromStability]. */
-    fun stabilityDays(mastery: Int): Int {
+    /** The stability in days that gives exactly this [mastery]: the inverse of [fromStability]. */
+    fun stabilityFor(mastery: Int): Double {
         val m = mastery.coerceIn(0, MAX)
         val (lo, hi) = POINTS.zipWithNext().first { (_, b) -> m <= b.first }
         val t = (m - lo.first).toDouble() / (hi.first - lo.first)
-        return kotlin.math.round(lo.second + t * (hi.second - lo.second)).toInt().coerceAtLeast(1)
+        return lo.second + t * (hi.second - lo.second)
     }
+
+    /** Stability in whole days that gives about this [mastery]. */
+    fun stabilityDays(mastery: Int): Int = kotlin.math.round(stabilityFor(mastery)).toInt().coerceAtLeast(1)
 }

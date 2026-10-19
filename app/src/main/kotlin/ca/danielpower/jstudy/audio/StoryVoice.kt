@@ -8,6 +8,8 @@ import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.annotation.OptIn
@@ -73,6 +75,13 @@ class StoryVoice(context: Context) {
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_ENDED) playerLine?.let { (r, i) -> done(r, i) }
+        }
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            // Another app took the sound (a call, music), or the headphones came out.
+            val lost = reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS ||
+                reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY
+            if (!playWhenReady && lost && playerLine != null) pause()
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -182,7 +191,11 @@ class StoryVoice(context: Context) {
     /** Line [i] from its recording, at its voice's gain. */
     @OptIn(UnstableApi::class)
     private fun record(i: Int, clip: Recording) {
-        val p = player ?: ExoPlayer.Builder(appContext).build().also {
+        val p = player ?: ExoPlayer.Builder(appContext)
+            // Takes the sound from other apps while it reads, and stops when the headphones come out.
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).build(), true)
+            .setHandleAudioBecomingNoisy(true)
+            .build().also {
             it.addListener(playerListener)
             // Its own audio session, for the booster to turn up quiet voices in.
             val session = (appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager).generateAudioSessionId()

@@ -1,5 +1,6 @@
 package ca.danielpower.jstudy.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,7 +20,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +32,8 @@ import ca.danielpower.jstudy.core.ImportPlan
 
 @Composable
 fun RenshuuImportScreen(step: ImportStep, vm: AppViewModel) {
+    // Back would leave before the import finishes, and its result would never show.
+    BackHandler(enabled = step is ImportStep.Applying) {}
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::closeImport, enabled = step !is ImportStep.Applying)
@@ -77,7 +80,8 @@ fun RenshuuImportScreen(step: ImportStep, vm: AppViewModel) {
 
 @Composable
 private fun EnterKey(error: String?, onSubmit: (String) -> Unit) {
-    var key by rememberSaveable { mutableStateOf("") }
+    // Not saveable: the key would be kept in the saved state after the app is killed.
+    var key by remember { mutableStateOf("") }
     Text(
         "Paste your API key from Renshuu's settings. Jiwa Jiwa uses it once to read the words you've studied " +
             "and their mastery, and doesn't keep it.",
@@ -127,7 +131,7 @@ private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PrimaryButton(onClick = onImport) { Text("Import ${plan.updates.size} words") }
+            PrimaryButton(onClick = onImport) { Text(if (plan.updates.size == 1) "Import 1 word" else "Import ${plan.updates.size} words") }
             TextButton(onClick = onCancel) { Text("Cancel") }
         }
     }

@@ -61,7 +61,7 @@ object DailyReminder {
 
     /** Check the queue and post the reminder if anything is due, then set tomorrow's alarm. */
     internal fun fire(context: Context) {
-        val repo = Repository(context)
+        val repo = Repository.get(context)
         val reminder = repo.reminder()
         schedule(context, reminder)
         if (reminder.time == null || !canNotify(context)) return
@@ -71,7 +71,7 @@ object DailyReminder {
         val text = buildString {
             append(if (due == 1) "1 card is waiting" else "$due cards are waiting")
             if (summary.streak > 0 && summary.reviewedToday == 0) {
-                append(if (summary.streak == 1) " · keep your 1 day streak" else " · keep your ${summary.streak} day streak")
+                append(if (summary.streak == 1) " · keep your 1-day streak" else " · keep your ${summary.streak}-day streak")
             }
         }
         post(context, text)
@@ -120,7 +120,7 @@ class ReminderRescheduler : BroadcastReceiver() {
         val result = goAsync()
         thread {
             try {
-                DailyReminder.schedule(context.applicationContext, Repository(context.applicationContext).reminder())
+                DailyReminder.schedule(context.applicationContext, Repository.get(context).reminder())
             } finally {
                 result.finish()
             }

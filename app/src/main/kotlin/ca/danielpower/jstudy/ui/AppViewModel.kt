@@ -288,7 +288,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         launchIo {
-            repo = Repository(getApplication())
+            repo = Repository.get(getApplication())
             _speech.value = repo.speechSettings()
             DailyReminder.schedule(getApplication(), repo.reminder())
             if (repo.needsSetup()) {
@@ -309,8 +309,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Recount the Review tab's badge. Most screens do this on the way in. */
     private fun refreshBadge() {
-        val summary = repo.summary(now())
-        _due.value = summary.newCards + summary.learning + summary.reviews
+        _due.value = repo.dueCount(now())
     }
 
 
@@ -787,11 +786,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         readingFinished = true
         val at = now()
         val story = state.reading.story
-        repo.markStoryRead(story.id, at, at - readingSince)
-        if (repo.readerPlace()?.storyId == story.id) repo.clearReaderPlace()
-        repo.readWords(story, lookedUpWords.toSet(), at)
-        repo.forgetWords(state.forgotten, at)
-        val started = repo.startStoryWords(story, at)
+        val started = repo.finishChapter(story, at, at - readingSince, lookedUpWords.toSet(), state.forgotten)
         // The words read and started change what's due.
         refreshBadge()
         val after = repo.masteries(state.reading.words.keys)
