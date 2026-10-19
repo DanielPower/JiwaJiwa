@@ -55,7 +55,19 @@ data class DailyLimits(
     val reviewDueBefore: Long,
     val newCards: Int,
     val reviews: Int,
+    /**
+     * A card answered since this instant (the start of today) isn't pulled
+     * ahead by Study more: it's due only if it's due before [endOfToday].
+     * Otherwise a card with a short interval would come back as soon as it
+     * was answered, all day.
+     */
+    val answeredSince: Long = 0,
+    val endOfToday: Long = reviewDueBefore,
 ) {
+    /** Whether a review card due at [dueAt], last answered at [lastReviewAt], is in today's queue. */
+    fun isDue(dueAt: Long, lastReviewAt: Long?): Boolean =
+        dueAt < endOfToday || (dueAt < reviewDueBefore && (lastReviewAt == null || lastReviewAt < answeredSince))
+
     companion object {
         fun of(
             settings: StudySettings,
@@ -71,6 +83,8 @@ data class DailyLimits(
                 reviewDueBefore = clock.startOf(today + 1 + ahead.daysAhead),
                 newCards = (settings.newPerDay * days - newIntroducedToday).coerceAtLeast(0),
                 reviews = (settings.reviewCap * days - reviewsDoneToday).coerceAtLeast(0),
+                answeredSince = clock.startOf(today),
+                endOfToday = clock.startOf(today + 1),
             )
         }
     }

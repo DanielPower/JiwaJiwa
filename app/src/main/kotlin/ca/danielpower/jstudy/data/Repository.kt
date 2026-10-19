@@ -350,8 +350,8 @@ class Repository(context: Context) {
             "due_at",
         )
         val reviews = store.cards(
-            "state = ? AND due_at < ? AND suspended = 0",
-            arrayOf(CardState.REVIEW.value.toString(), limits.reviewDueBefore.toString()),
+            "state = ? AND $REVIEW_DUE AND suspended = 0",
+            arrayOf(CardState.REVIEW.value.toString(), *reviewDueArgs(limits).map(Long::toString).toTypedArray()),
             "due_at, id",
             limits.reviews,
         )
@@ -1138,9 +1138,9 @@ class Repository(context: Context) {
     private fun queue(settings: StudySettings, clock: StudyClock, now: Long): Queue {
         val limits = limits(settings, clock, now)
         val reviewsDue = store.count(
-            "SELECT COUNT(*) FROM card WHERE state = ? AND due_at < ? AND suspended = 0",
+            "SELECT COUNT(*) FROM card WHERE state = ? AND $REVIEW_DUE AND suspended = 0",
             CardState.REVIEW.value,
-            limits.reviewDueBefore,
+            *reviewDueArgs(limits).toTypedArray(),
         )
         // New words come from the story path, so only unlocked production cards wait here.
         val newWaiting = store.count(
@@ -1193,7 +1193,15 @@ class Repository(context: Context) {
         )
     }
 
+    /** The arguments for [REVIEW_DUE], in order. */
+    private fun reviewDueArgs(limits: DailyLimits) =
+        listOf(limits.endOfToday, limits.reviewDueBefore, limits.answeredSince)
+
     companion object {
+        /** DailyLimits.isDue in SQL. */
+        private const val REVIEW_DUE =
+            "(due_at < ? OR (due_at < ? AND (last_review_at IS NULL OR last_review_at < ?)))"
+
         private const val FORECAST_DAYS = 30
         private const val HISTORY_DAYS = 30
 
