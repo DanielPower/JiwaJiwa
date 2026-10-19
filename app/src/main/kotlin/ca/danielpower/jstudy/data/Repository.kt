@@ -82,10 +82,6 @@ data class Dashboard(
     val words: List<WordDay>,
     /** Words started and grammar learned in the last week, newest first ([Recent.pick]). */
     val recent: List<RecentItem>,
-    /** Recent words left out of [recent]. */
-    val moreWords: Int,
-    /** Every recent word and grammar topic, in the same order, for when the row is expanded. */
-    val allRecent: List<RecentItem>,
 )
 
 /** A word or grammar topic on Home's Recent row. */
@@ -94,8 +90,8 @@ sealed interface RecentItem {
     data class NewGrammar(val topic: GrammarTopic, val pageId: Long) : RecentItem
 }
 
-/** Where you left a chapter: its page, in the reader style the pages were laid out with. */
-data class ReaderPlace(val storyId: Long, val page: Int, val style: String)
+/** Where you left a chapter: its page and how many it has, in the reader style the pages were laid out with. */
+data class ReaderPlace(val storyId: Long, val page: Int, val pages: Int, val style: String)
 
 data class WordDetail(
     val word: Word,
@@ -1057,8 +1053,7 @@ class Repository(context: Context) {
         val newGrammar = rows.mapNotNull { row ->
             learned[row.topic.id]?.takeIf { row.seen && it > since }?.let { RecentItem.NewGrammar(row.topic, row.pageId) to it }
         }
-        val (recent, moreWords) = Recent.pick<RecentItem>(newWords, newGrammar, RECENT_SHOWN)
-        val allRecent = Recent.pick<RecentItem>(newWords, newGrammar, Int.MAX_VALUE).first
+        val recent = Recent.pick<RecentItem>(newWords, newGrammar, Int.MAX_VALUE).first
         return Dashboard(
             today = today,
             next = nextUp(now),
@@ -1067,8 +1062,6 @@ class Repository(context: Context) {
             streak = Streak.current(active, today),
             words = words,
             recent = recent,
-            moreWords = moreWords,
-            allRecent = allRecent,
         )
     }
 
@@ -1094,6 +1087,7 @@ class Repository(context: Context) {
             newWords = entry.gap.words.size,
             teachesGrammar = entry.newTopic != null,
             resumePage = place?.takeIf { it.storyId == entry.story.id }?.page ?: 0,
+            pages = place?.takeIf { it.storyId == entry.story.id }?.pages ?: 0,
         )
         val pace = pace(now)
         return Suggest.next(
@@ -1106,12 +1100,17 @@ class Repository(context: Context) {
     }
 
     fun readerPlace(): ReaderPlace? {
-        val parts = store.getValue("reader_place")?.split(':', limit = 3) ?: return null
-        if (parts.size < 3) return null
-        return ReaderPlace(parts[0].toLongOrNull() ?: return null, parts[1].toIntOrNull() ?: return null, parts[2])
+        val parts = store.getValue("reader_place")?.split(':', limit = 4) ?: return null
+        if (parts.size < 4) return null
+        return ReaderPlace(
+            parts[0].toLongOrNull() ?: return null,
+            parts[1].toIntOrNull() ?: return null,
+            parts[2].toIntOrNull() ?: return null,
+            parts[3],
+        )
     }
 
-    fun saveReaderPlace(place: ReaderPlace) = store.setValues(mapOf("reader_place" to "${place.storyId}:${place.page}:${place.style}"))
+    fun saveReaderPlace(place: ReaderPlace) = store.setValues(mapOf("reader_place" to "${place.storyId}:${place.page}:${place.pages}:${place.style}"))
 
     fun clearReaderPlace() = store.deleteValue("reader_place")
 
@@ -1174,7 +1173,6 @@ class Repository(context: Context) {
 
         /** Words started within this many days are new on Home. */
         private const val RECENT_DAYS = 7
-        private const val RECENT_SHOWN = 8
 
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12

@@ -4,12 +4,14 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowOverflow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,12 +41,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -70,6 +75,7 @@ import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.log10
 import kotlin.math.pow
+import kotlin.math.roundToInt
 
 /**
  * Home: what to do next, then how far you've come. The next step is one
@@ -128,8 +134,7 @@ private fun HomeHeader(today: Long, onSettings: () -> Unit) {
         Text("Jiwa Jiwa", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
         val day = LocalDate.ofEpochDay(today)
         Text(
-            day.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, Locale.JAPANESE) + " · " +
-                day.format(DateTimeFormatter.ofPattern("MMM d")),
+            day.format(DateTimeFormatter.ofPattern("M月d日（E）", Locale.JAPANESE)),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -150,18 +155,28 @@ private class NextContent(
     val onClick: (() -> Unit)?,
     val alt: String? = null,
     val onAlt: () -> Unit = {},
+    /** How far through a chapter you left part way, from 0 to 1, shown as a bar along the card's foot. */
+    val progress: Float? = null,
 )
 
 @Composable
 private fun NextCard(d: Dashboard, vm: AppViewModel) {
     val c = nextContent(d.next, d, vm)
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        val seal = MaterialTheme.colorScheme.primary
         Row(
             Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
                 .let { if (c.onClick != null) it.clickable(onClick = c.onClick) else it }
+                .drawBehind {
+                    c.progress?.let { done ->
+                        val bar = 3.dp.toPx()
+                        val inset = 1.dp.toPx()
+                        drawRect(seal, Offset(inset, size.height - inset - bar), Size((size.width - 2 * inset) * done, bar))
+                    }
+                }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -217,7 +232,16 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
             val open: () -> Unit = { vm.openStory(e.story.id) }
             when (next.kind) {
                 ReadKind.START -> NextContent("Start here", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
-                ReadKind.CONTINUE -> NextContent("Continue · page ${c.resumePage + 1}", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
+                ReadKind.CONTINUE -> NextContent(
+                    "Continue · page ${c.resumePage + 1}" + if (c.pages > 0) " of ${c.pages}" else "",
+                    colors.primary,
+                    chapterName(e),
+                    seriesLine(e, c),
+                    open,
+                    reviewAlt(next.orReview),
+                    vm::startReview,
+                    progress = if (c.pages > 0) (c.resumePage + 1f) / c.pages else null,
+                )
                 ReadKind.LESSON -> NextContent(
                     "Next · grammar lesson",
                     colors.secondary,
@@ -472,6 +496,7 @@ private fun Total(value: Int, label: String, gain: Int, color: Color, modifier: 
  * Words seen, known and mastered over time as nested bands: every mastered
  * word is known, and every known word seen, so each band sits inside the
  * one before. Colours follow the furigana stages, as mastery does elsewhere.
+ * Dragging across it shows the day under your finger and its three counts.
  */
 @Composable
 private fun WordsChart(days: List<WordDay>) {
@@ -484,8 +509,23 @@ private fun WordsChart(days: List<WordDay>) {
         rightGreen() to { d: WordDay -> d.mastered },
     )
     val top = niceCeiling(days.maxOf { it.seen })
+    val ink = MaterialTheme.colorScheme.onSurface
+    val tipBackground = MaterialTheme.colorScheme.surfaceContainerLow
+    val tipStyle = TextStyle(fontSize = 11.sp, color = ink)
+    // Where a finger is on the graph, while it's dragging across.
+    var touch by remember(days) { mutableStateOf<Float?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Canvas(Modifier.fillMaxWidth().height(140.dp)) {
+        val drag = Modifier.pointerInput(days) {
+            detectHorizontalDragGestures(
+                onDragStart = { touch = it.x },
+                onDragEnd = { touch = null },
+                onDragCancel = { touch = null },
+            ) { change, _ ->
+                change.consume()
+                touch = change.position.x
+            }
+        }
+        Canvas(Modifier.fillMaxWidth().height(140.dp).then(drag)) {
             val labelWidth = measurer.measure("$top", axis).size.width + 6.dp.toPx()
             val left = labelWidth
             val width = size.width - left
@@ -511,7 +551,35 @@ private fun WordsChart(days: List<WordDay>) {
                 drawPath(area, color.copy(alpha = 0.3f))
                 drawPath(line, color, style = Stroke(1.5.dp.toPx()))
             }
-            drawCircle(bands[0].first, 3.dp.toPx(), Offset(x(days.size - 1), y(days.last().seen)))
+            val at = touch?.let { tx ->
+                if (days.size == 1) 0 else ((tx - left) / width * (days.size - 1)).roundToInt().coerceIn(0, days.size - 1)
+            }
+            if (at == null) {
+                drawCircle(bands[0].first, 3.dp.toPx(), Offset(x(days.size - 1), y(days.last().seen)))
+            } else {
+                val day = days[at]
+                val dash = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx()))
+                drawLine(ink, Offset(x(at), y0), Offset(x(at), y(0)), 1.dp.toPx(), pathEffect = dash)
+                for ((color, value) in bands) drawCircle(color, 3.dp.toPx(), Offset(x(at), y(value(day))))
+                // The day and its counts in a box beside the line, on whichever side has room.
+                val lines = listOf(
+                    measurer.measure(LocalDate.ofEpochDay(day.day).format(DateTimeFormatter.ofPattern("MMM d")), tipStyle.copy(fontWeight = FontWeight.Bold)),
+                ) + bands.zip(listOf("seen", "known", "mastered")).map { (band, label) ->
+                    measurer.measure("${band.second(day)} $label", tipStyle.copy(color = band.first))
+                }
+                val pad = 6.dp.toPx()
+                val boxWidth = lines.maxOf { it.size.width } + 2 * pad
+                val boxHeight = lines.sumOf { it.size.height } + 2 * pad
+                val gapX = 8.dp.toPx()
+                val boxLeft = if (x(at) + gapX + boxWidth <= size.width) x(at) + gapX else x(at) - gapX - boxWidth
+                drawRoundRect(tipBackground, Offset(boxLeft, y0), Size(boxWidth, boxHeight), CornerRadius(3.dp.toPx()))
+                drawRoundRect(grid, Offset(boxLeft, y0), Size(boxWidth, boxHeight), CornerRadius(3.dp.toPx()), style = Stroke(1.dp.toPx()))
+                var lineTop = y0 + pad
+                for (text in lines) {
+                    drawText(text, topLeft = Offset(boxLeft + pad, lineTop))
+                    lineTop += text.size.height
+                }
+            }
         }
         Row(Modifier.fillMaxWidth()) {
             val format = DateTimeFormatter.ofPattern("MMM d")
@@ -553,10 +621,18 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            // +N opens the row in place to show the rest of the week.
+            // Two lines at most, then +N, which opens the row in place to show the rest of the week.
             var expanded by rememberSaveable { mutableStateOf(false) }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                for (item in if (expanded) d.allRecent else d.recent) when (item) {
+            val muted = MaterialTheme.colorScheme.onSurfaceVariant
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                maxLines = if (expanded) Int.MAX_VALUE else RECENT_LINES,
+                overflow = FlowRowOverflow.expandIndicator {
+                    Chip("+${totalItemCount - shownItemCount}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
+                },
+            ) {
+                for (item in d.recent) when (item) {
                     is RecentItem.NewWord -> Chip(item.word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
                     is RecentItem.NewGrammar -> Chip(
                         item.topic.title,
@@ -565,18 +641,13 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                         indigo.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow),
                     ) { vm.openGrammar(item.pageId) }
                 }
-                if (d.moreWords > 0) {
-                    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-                    if (expanded) {
-                        Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
-                    } else {
-                        Chip("+${d.moreWords}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
-                    }
-                }
+                if (expanded) Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
             }
         }
     }
 }
+
+private const val RECENT_LINES = 2
 
 @Composable
 private fun KeySwatch(color: Color, label: String) {

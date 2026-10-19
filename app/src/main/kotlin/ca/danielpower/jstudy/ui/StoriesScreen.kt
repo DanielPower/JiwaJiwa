@@ -639,8 +639,8 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         }
         Unit
     }
-    val pageShown = { page: Int, first: Pair<Int, Int>? ->
-        vm.readerAt(page)
+    val pageShown = { page: Int, pages: Int, first: Pair<Int, Int>? ->
+        vm.readerAt(page, pages)
         pageFirst = first
         // Turned by hand while stopped: play starts from the new page.
         if (!voice.playing) vm.forgetPlaybackPlace()
@@ -918,7 +918,7 @@ private fun HorizontalStory(
     onBlank: () -> Unit,
     onFinish: () -> Unit,
     startPage: Int,
-    onPageShown: (page: Int, first: Pair<Int, Int>?) -> Unit,
+    onPageShown: (page: Int, pages: Int, first: Pair<Int, Int>?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val measurer = rememberTextMeasurer()
@@ -980,7 +980,7 @@ private fun HorizontalStory(
         // The page with the word being read aloud, to turn to.
         val followPage = follow?.let { (p, i) -> pages.indexOfFirst { page -> page.any { it.paragraph == p && i in it.words } } }?.takeIf { it >= 0 }
         val shown = { page: Int ->
-            onPageShown(page, pages.getOrNull(page)?.firstOrNull()?.let { it.paragraph to it.words.first })
+            onPageShown(page, count, pages.getOrNull(page)?.firstOrNull()?.let { it.paragraph to it.words.first })
         }
         StoryPager(count, reverse = false, startPage, shown, followPage) { page ->
             Column(Modifier.fillMaxSize().padding(horizontal = PAGE_PADDING_H, vertical = PAGE_PADDING)) {

@@ -13,6 +13,8 @@ data class Candidate<out T>(
     val teachesGrammar: Boolean,
     /** The page you stopped on last time, or 0. */
     val resumePage: Int = 0,
+    /** How many pages the chapter had then, or 0 when unknown. */
+    val pages: Int = 0,
 )
 
 enum class ReadKind {

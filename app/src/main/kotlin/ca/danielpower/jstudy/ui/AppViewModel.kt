@@ -733,11 +733,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** The page the open story has settled on; for an unfinished chapter, kept so Home can come back to it. */
-    fun readerAt(page: Int) {
+    fun readerAt(page: Int, pages: Int) {
         readerPage = page
         val state = _screen.value as? Screen.StoryReader ?: return
         if (state.reading.lesson != null || state.impact != null || state.reading.story.readAt != null) return
-        val place = ReaderPlace(state.reading.story.id, page, state.style.toString())
+        val place = ReaderPlace(state.reading.story.id, page, pages, state.style.toString())
         viewModelScope.launch(Dispatchers.IO) { repo.saveReaderPlace(place) }
     }
 
