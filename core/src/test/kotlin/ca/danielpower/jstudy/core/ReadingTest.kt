@@ -259,6 +259,21 @@ class ReadingTest {
     }
 
     @Test
+    fun grammarPiecesOfOnePointAreOneTap() {
+        val words = reader.words("雨でした。").filter { it.kind != WordKind.PUNCTUATION }
+        assertEquals(listOf("雨", "でした"), words.map { it.surface })
+        assertEquals(listOf(GrammarUse(grammarPoint("desu")!!, 1, 1)), words[1].grammar)
+        // Different points stay apart, and the points after a joined piece still find their words.
+        val apart = reader.words("学生だったんです。").filter { it.kind != WordKind.PUNCTUATION }
+        assertEquals(listOf("学生", "だった", "んです"), apart.map { it.surface })
+        assertEquals(listOf(2 to 2), apart[2].grammar.map { it.first to it.last })
+        assertEquals(listOf("だっ", "たら"), reader.words("雨だったら").drop(1).map { it.surface })
+        // A pattern spread over a word and a particle still spans both.
+        val go = reader.words("食べに行く")
+        assertEquals(listOf(0 to 2), go[1].grammar.map { it.first to it.last })
+    }
+
+    @Test
     fun paragraphs() {
         assertEquals(2, reader.read("猫が好きです。\n\n本を読む。").size)
     }

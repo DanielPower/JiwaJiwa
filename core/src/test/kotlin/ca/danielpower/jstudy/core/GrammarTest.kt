@@ -129,7 +129,8 @@ class GrammarTest {
     fun `after a noun, 後で is ato-de and だって is tte`() {
         assertEquals(listOf("no", "ato-de", "wo", "ta"), points("仕事の後で、ラーメンを食べた。"))
         assertEquals(listOf("ga", "tte"), points("ユキが好きだって。"))
-        assertEquals(listOf("あと"), reader.words("仕事の後で").filter { it.surface == "後" }.map { it.reading })
+        // 後で is one tap, read あとで.
+        assertEquals(listOf("あとで"), reader.words("仕事の後で").filter { it.surface == "後で" }.map { it.reading })
     }
 
     @Test

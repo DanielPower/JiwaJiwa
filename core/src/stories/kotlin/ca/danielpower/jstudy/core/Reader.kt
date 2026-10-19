@@ -197,13 +197,43 @@ class Reader(private val lexicon: Lexicon) {
         }
         val pins = DEFAULT_READINGS + readings
         val read = out.map { w -> if (w.surface in names) w.copy(kind = WordKind.NAME, wordId = null) else pinned(w, pins) }
-        return stutters(withGrammar(read, spans, tokens))
+        return stutters(joinGrammar(withGrammar(read, spans, tokens)))
     }
 
     /**
      * A stuttered start (ご、ごめん) is the word to come, not a word of its
      * own: it's left as plain text, neither counted nor explained.
      */
+    /**
+     * Grammar pieces side by side in the same grammar points are one tap:
+     * でした, not でし and た, both explaining です / だ. Pieces of different
+     * points stay apart (だっ and たら). The word keeps its first piece's
+     * dictionary form (です for でした).
+     */
+    private fun joinGrammar(words: List<ReadingWord>): List<ReadingWord> {
+        val runs = ArrayList<MutableList<ReadingWord>>()
+        val newIndex = IntArray(words.size)
+        words.forEachIndexed { w, word ->
+            val last = runs.lastOrNull()?.last()
+            if (last != null && word.kind == WordKind.GRAMMAR && last.kind == WordKind.GRAMMAR && word.grammar.isNotEmpty() && word.grammar == last.grammar) {
+                runs.last() += word
+            } else {
+                runs += mutableListOf(word)
+            }
+            newIndex[w] = runs.size - 1
+        }
+        if (runs.size == words.size) return words
+        return runs.map { run ->
+            val first = run.first()
+            first.copy(
+                surface = run.joinToString("") { it.surface },
+                reading = run.joinToString("") { it.reading },
+                ruby = run.flatMap { it.ruby },
+                grammar = first.grammar.map { it.copy(first = newIndex[it.first], last = newIndex[it.last]) },
+            )
+        }
+    }
+
     private fun stutters(words: List<ReadingWord>): List<ReadingWord> = words.mapIndexed { k, w ->
         val next = words.getOrNull(k + 2)
         if (w.kind != WordKind.PUNCTUATION && w.surface.length <= 2 && Kana.isKana(w.surface) && words.getOrNull(k + 1)?.surface == "、" &&

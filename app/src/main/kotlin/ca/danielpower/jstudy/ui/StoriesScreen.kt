@@ -1490,6 +1490,10 @@ private fun WordCard(
         GrammarCard(point, back = title, onBack = { followed = null }, onLesson = lessonFor(point))
         return
     }
+    if (grammarOnly && points.isNotEmpty()) {
+        ParticleCard(points, ::lessonFor)
+        return
+    }
     // Always from the top, so the title line and its buttons sit in the same place for every word.
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
@@ -1566,10 +1570,40 @@ private fun WordCard(
                     }
                 }
             }
-            // A word's grammar is behind its conjugation line; a particle's is all there is to show.
-            if (grammarOnly) {
-                for (point in points) GrammarNote(point, lessonFor(point))
+        }
+    }
+}
+
+/**
+ * A particle or ending's card: its grammar points, the first in the title's
+ * place. What you tapped is already marked in the text, so it isn't repeated.
+ */
+@Composable
+private fun ParticleCard(points: List<GrammarPoint>, lessonFor: (GrammarPoint) -> (() -> Unit)?) {
+    val first = points.first()
+    Column(
+        Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(first.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
+            lessonFor(first)?.let { onLesson ->
+                TextButton(onClick = onLesson) {
+                    Text("Grammar lesson →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                }
             }
+        }
+        Text(
+            "Grammar" + "  ·  " + levelLabel(first.level),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Column(
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            GrammarBody(first)
+            for (point in points.drop(1)) GrammarNote(point, lessonFor(point))
         }
     }
 }
@@ -1636,7 +1670,7 @@ private fun GrammarCard(point: GrammarPoint, back: String, onBack: () -> Unit, o
     }
 }
 
-/** One grammar point in a particle's card: the pattern, what it means, an example, and [onLesson] for its topic's page. */
+/** A particle card's second or later grammar point: the pattern, what it means, an example, and [onLesson] for its topic's page. */
 @Composable
 private fun GrammarNote(point: GrammarPoint, onLesson: (() -> Unit)?) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 2.dp)) {
