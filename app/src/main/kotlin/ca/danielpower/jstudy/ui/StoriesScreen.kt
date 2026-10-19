@@ -741,7 +741,12 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     textAlign = TextAlign.Center,
                     modifier = Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
                 )
-                o.sentence -> SentenceCard(openSentence?.translation)
+                o.sentence -> {
+                    // Its own line of the narration, when it has something to say and something to say it with.
+                    val sentenceLine = reading.narration.indexOfFirst { it.p == o.p && o.i in it.words }
+                        .takeIf { it >= 0 && !(voice.missing && reading.clips.getOrNull(it) == null) }
+                    SentenceCard(openSentence?.translation, onPlay = sentenceLine?.let { l -> { vm.playLine(l) } })
+                }
                 // Keyed by place, so a grammar point followed in one word's card doesn't carry over to the next word.
                 openWord != null -> key(o.p, o.i) {
                     WordCard(
@@ -1377,12 +1382,19 @@ private fun RowScope.MenuOption(selected: Boolean, onClick: () -> Unit, content:
     }
 }
 
-/** A sentence's English, or why there isn't any. Centred in the pane when it fits, from the top when it scrolls. */
+/**
+ * A sentence's English, or why there isn't any. Centred in the pane when it
+ * fits, from the top when it scrolls. [onPlay], when the sentence can be
+ * read aloud, puts a speaker at the top that plays only it.
+ */
 @Composable
-private fun SentenceCard(translation: String?) {
+private fun SentenceCard(translation: String?, onPlay: (() -> Unit)?) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(
-            Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(horizontal = 20.dp, vertical = 10.dp),
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(start = 20.dp, end = 20.dp, top = if (onPlay != null) 40.dp else 10.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
@@ -1391,6 +1403,21 @@ private fun SentenceCard(translation: String?) {
                 lineHeight = 23.sp,
                 color = if (translation == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
             )
+        }
+        if (onPlay != null) {
+            Row(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 4.dp, end = 8.dp)
+                    .clip(WashiShape)
+                    .clickable(onClick = onPlay)
+                    .padding(start = 10.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Play this sentence", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.width(6.dp))
+                Icon(WashiIcons.Sound, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            }
         }
     }
 }
