@@ -51,11 +51,10 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
     dir.mkdirs()
+    // The clips that were recorded are kept and committed whatever else failed, as they're paid for.
+    // The rest are tried again on the next run.
     val failed = StoryAudio.record(missing, model, key, dir)
-    if (failed > 0) {
-        System.err.println("$failed sentences couldn't be recorded.")
-        exitProcess(1)
-    }
+    if (failed > 0) println("::warning::$failed sentences couldn't be recorded; the next run tries them again.")
 }
 
 object StoryAudio {
@@ -111,8 +110,8 @@ object StoryAudio {
                     val wav = File(dir, "$key.wav")
                     wav.writeBytes(response.body())
                     ok = level(wav, File(dir, "$key.${Recordings.EXTENSION}"))
+                    if (!ok) System.err.println("${take.page}: couldn't compress \"${take.text}\"")
                     wav.delete()
-                    if (!ok) System.err.println("${take.page}: couldn't level \"${take.text}\"")
                     break
                 }
                 if (response != null && response.statusCode() !in RETRY) {
@@ -139,17 +138,36 @@ object StoryAudio {
      * temporary name, so a stopped run never leaves half a clip.
      */
     fun level(wav: File, out: File): Boolean {
-        val target = "I=$LOUDNESS:TP=-1.5:LRA=11"
-        val measured = ffmpeg("-i", wav.path, "-af", "loudnorm=$target:print_format=json", "-f", "null", "-") ?: return false
-        val stats = Json.parseToJsonElement(measured.substring(measured.lastIndexOf('{'), measured.lastIndexOf('}') + 1)).jsonObject
-        fun stat(name: String) = stats.getValue(name).jsonPrimitive.content
-        val filter = "loudnorm=$target:linear=true:measured_I=${stat("input_i")}:measured_TP=${stat("input_tp")}" +
-            ":measured_LRA=${stat("input_lra")}:measured_thresh=${stat("input_thresh")}:offset=${stat("target_offset")}"
         val tmp = File(out.parentFile, "${out.name}.tmp")
-        ffmpeg("-y", "-i", wav.path, "-af", filter, "-ar", "48000", "-ac", "1", "-c:a", "libopus", "-b:a", "${Recordings.BITRATE}", "-f", "ogg", tmp.path)
-            ?: return false.also { tmp.delete() }
-        return tmp.renameTo(out)
+        // A clip that can't be leveled is still kept as it is: it's been paid for.
+        val ok = listOfNotNull(leveling(wav), "anull").any { filter ->
+            ffmpeg("-y", "-i", wav.path, "-af", filter, "-ar", "48000", "-ac", "1", "-c:a", "libopus", "-b:a", "${Recordings.BITRATE}", "-f", "ogg", tmp.path) != null
+        }
+        if (!ok) tmp.delete()
+        return ok && tmp.renameTo(out)
     }
+
+    /**
+     * The filter that levels [wav]. A clip too short or quiet to measure its
+     * loudness (a whispered 「…はい。」) is turned up by its peak instead, to
+     * where the peaks of a clip at [LOUDNESS] usually are.
+     */
+    private fun leveling(wav: File): String? {
+        val target = "I=$LOUDNESS:TP=-1.5:LRA=11"
+        val measured = ffmpeg("-i", wav.path, "-af", "loudnorm=$target:print_format=json", "-f", "null", "-") ?: return null
+        val stats = runCatching {
+            Json.parseToJsonElement(measured.substring(measured.lastIndexOf('{'), measured.lastIndexOf('}') + 1)).jsonObject
+        }.getOrNull() ?: return null
+        fun stat(name: String) = stats[name]?.jsonPrimitive?.content?.toDoubleOrNull()?.takeIf { it.isFinite() }
+        val loudness = stat("input_i")
+        val peak = stat("input_tp") ?: return null
+        if (loudness == null) return "volume=${"%.2f".format(java.util.Locale.ROOT, PEAK - peak)}dB"
+        return "loudnorm=$target:linear=true:measured_I=$loudness:measured_TP=$peak" +
+            ":measured_LRA=${stat("input_lra") ?: 0.0}:measured_thresh=${stat("input_thresh") ?: (loudness - 10)}:offset=${stat("target_offset") ?: 0.0}"
+    }
+
+    /** Where a clip's peaks are, in dB, when it's at [LOUDNESS]. */
+    private const val PEAK = -6.0
 
     /** Runs ffmpeg, giving what it printed, or null when it failed. */
     private fun ffmpeg(vararg args: String): String? {

@@ -67,8 +67,10 @@ jobs:
           FISH_API_KEY: ${{ secrets.FISH_API_KEY }}
         run: ./gradlew -PcoreOnly=true :core:storyAudio -Precord -Plimit=${{ inputs.limit || '5' }}
 
+      # Even when recording failed or was stopped: what was recorded is paid for.
       - name: Commit the clips
         id: commit
+        if: always()
         run: |
           # The assets folder, as audio/ isn't there until something's recorded.
           # The dictionary built into it is ignored.
@@ -84,7 +86,7 @@ jobs:
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Check again with the clips
-        if: steps.commit.outputs.changed == 'true'
+        if: always() && steps.commit.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
