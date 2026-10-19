@@ -71,7 +71,7 @@ object DailyReminder {
         val text = buildString {
             append(if (due == 1) "1 card is waiting" else "$due cards are waiting")
             if (summary.streak > 0 && summary.reviewedToday == 0) {
-                append(if (summary.streak == 1) " · keep your 1 day streak" else " · keep your ${summary.streak} day streak")
+                append(if (summary.streak == 1) " · keep your 1-day streak" else " · keep your ${summary.streak}-day streak")
             }
         }
         post(context, text)

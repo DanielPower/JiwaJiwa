@@ -1,5 +1,6 @@
 package ca.danielpower.jstudy.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,6 +32,8 @@ import ca.danielpower.jstudy.core.ImportPlan
 
 @Composable
 fun RenshuuImportScreen(step: ImportStep, vm: AppViewModel) {
+    // Back would leave before the import finishes, and its result would never show.
+    BackHandler(enabled = step is ImportStep.Applying) {}
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::closeImport, enabled = step !is ImportStep.Applying)
@@ -128,7 +131,7 @@ private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PrimaryButton(onClick = onImport) { Text("Import ${plan.updates.size} words") }
+            PrimaryButton(onClick = onImport) { Text(if (plan.updates.size == 1) "Import 1 word" else "Import ${plan.updates.size} words") }
             TextButton(onClick = onCancel) { Text("Cancel") }
         }
     }

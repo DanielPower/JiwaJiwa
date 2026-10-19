@@ -257,7 +257,7 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
                     "Nothing new to learn",
                     green,
                     chapterName(e),
-                    "$newToday new words today · side story",
+                    "${newWords(newToday)} today · side story",
                     open,
                     reviewAlt(next.orReview),
                     vm::startReview,
@@ -266,7 +266,7 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
         }
         is NextUp.Review -> if (next.backlog) {
             NextContent(
-                "${next.due} reviews waiting",
+                if (next.due == 1) "1 review waiting" else "${next.due} reviews waiting",
                 colors.tertiary,
                 "Catch up on reviews",
                 "The words you've started are slipping",
@@ -275,13 +275,13 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
                 { next.orRead?.let { vm.openStory(it.item.story.id) } },
             )
         } else {
-            NextContent("$newToday new words today", colors.secondary, "Review ${next.due} due", "Today's new words are in", vm::startReview)
+            NextContent("${newWords(newToday)} today", colors.secondary, "Review ${next.due} due", "Today's new words are in", vm::startReview)
         }
         is NextUp.Done -> NextContent(
             "Done for today",
             green,
             next.tomorrow?.let { "${shortName(it.item)} tomorrow" } ?: "See you tomorrow",
-            "$newToday new words, every review done",
+            "${newWords(newToday)}, every review done",
             null,
         )
         NextUp.AllRead -> NextContent("All read", green, "You've read every story", "More stories are on the way", null)
@@ -589,6 +589,8 @@ private fun WordsChart(days: List<WordDay>) {
         }
     }
 }
+
+private fun newWords(n: Int) = if (n == 1) "1 new word" else "$n new words"
 
 /** The next round number at or above [n]: 1, 2 or 5 times a power of ten, and even, so its half is whole. */
 private fun niceCeiling(n: Int): Int {
