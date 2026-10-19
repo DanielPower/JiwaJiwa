@@ -412,9 +412,9 @@ private fun WordsSection(words: List<WordDay>) {
         // This week's gains, against the end of the day a week ago.
         val weekAgo = words.getOrNull(words.size - 8) ?: WordDay(0, 0, 0, 0)
         Row(Modifier.fillMaxWidth()) {
-            Total(last.seen, "seen", last.seen - weekAgo.seen, " this week", MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
-            Total(last.known, "known", last.known - weekAgo.known, "", MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
-            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, "", rightGreen(), Modifier.weight(1f))
+            Total(last.seen, "seen", last.seen - weekAgo.seen, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
+            Total(last.known, "known", last.known - weekAgo.known, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
+            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, rightGreen(), Modifier.weight(1f))
         }
     }
 }
@@ -441,7 +441,7 @@ private fun RangeToggle(all: Boolean, onChange: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun Total(value: Int, label: String, gain: Int, gainSuffix: String, color: Color, modifier: Modifier) {
+private fun Total(value: Int, label: String, gain: Int, color: Color, modifier: Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("$value", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = color, modifier = Modifier.alignByBaseline())
@@ -449,7 +449,10 @@ private fun Total(value: Int, label: String, gain: Int, gainSuffix: String, colo
         }
         if (gain != 0) {
             Text(
-                (if (gain > 0) "+$gain" else "$gain") + gainSuffix,
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = color, fontWeight = FontWeight.Bold)) { append(if (gain > 0) "+$gain" else "$gain") }
+                    append(" this week")
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
