@@ -443,8 +443,10 @@ private fun RangeToggle(all: Boolean, onChange: (Boolean) -> Unit) {
 @Composable
 private fun Total(value: Int, label: String, gain: Int, gainSuffix: String, color: Color, modifier: Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("$value", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = color)
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("$value", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = color, modifier = Modifier.alignByBaseline())
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.alignByBaseline())
+        }
         if (gain != 0) {
             Text(
                 (if (gain > 0) "+$gain" else "$gain") + gainSuffix,
