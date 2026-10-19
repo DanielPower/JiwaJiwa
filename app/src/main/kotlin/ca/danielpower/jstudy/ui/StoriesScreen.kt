@@ -748,6 +748,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                         forgotten = state.forgotten,
                         onForgot = vm::toggleForgot,
                         onLesson = vm::openGrammar,
+                        onEntry = vm::openWord,
                         onSay = vm::sayWord,
                     )
                 }
@@ -1473,6 +1474,7 @@ private fun WordCard(
     forgotten: Set<Long>,
     onForgot: (Long) -> Unit,
     onLesson: (Long) -> Unit,
+    onEntry: (Long) -> Unit,
     onSay: (String) -> Unit,
 ) {
     val entry = word.wordId?.let { reading.words[it] }
@@ -1493,14 +1495,22 @@ private fun WordCard(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f, fill = false))
-            val kana = entry?.kana ?: word.reading
-            if (!grammarOnly && kana != title) {
-                Text(kana, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f, fill = false))
+                val kana = entry?.kana ?: word.reading
+                if (!grammarOnly && kana != title) {
+                    Text(kana, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // A particle on its own isn't said as it is in a sentence (は is wa), so it has no button.
+                if (!grammarOnly) SayButton { onSay(kana) }
             }
-            // A particle on its own isn't said as it is in a sentence (は is wa), so it has no button.
-            if (!grammarOnly) SayButton { onSay(kana) }
+            // The word's dictionary page, where there is one.
+            if (entry != null) {
+                TextButton(onClick = { onEntry(entry.id) }) {
+                    Text("Full entry →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                }
+            }
         }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
