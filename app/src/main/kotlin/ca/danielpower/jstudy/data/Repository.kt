@@ -1030,10 +1030,17 @@ class Repository private constructor(context: Context) {
     // ------------------------------------------------------------ backup
 
     /** Write a copy of all your progress, settings and stories. */
-    fun exportBackup(out: OutputStream) {
+    fun exportBackup(out: OutputStream, now: Long) {
         store.checkpoint()
         appContext.getDatabasePath(ProgressStore.NAME).inputStream().use { it.copyTo(out) }
+        backups.edit().putLong("last_saved", now).apply()
     }
+
+    // Outside the progress database, so restoring an older backup doesn't turn the date back.
+    private val backups = appContext.getSharedPreferences("backup", Context.MODE_PRIVATE)
+
+    /** When a backup was last saved, if ever. */
+    fun lastBackup(): Long? = backups.getLong("last_saved", 0).takeIf { it > 0 }
 
     /** Replace all progress with a backup. The file is checked before anything is replaced. */
     fun importBackup(input: InputStream) {

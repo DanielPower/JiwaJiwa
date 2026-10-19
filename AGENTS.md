@@ -147,9 +147,12 @@ Other features (all shipped):
   wrong (Daniel: checking conjugations and accidental taps shouldn't
   punish). No burning of words; FSRS long intervals handle mature words.
 - Daily reminder has **no default time**; the user picks one. Don't request
-  notification permission until they turn it on.
+  notification permission until they turn it on. With the reminder on and
+  notifications off, Settings says so and links to the app's notification
+  settings (2026-10-19).
 - Manual backup/restore only (`jiwajiwa-<date>.jstudy`, a copy of the progress
-  DB). No automatic backups.
+  DB). No automatic backups. Settings shows the last save's date, kept in
+  the `backup` shared preferences so a restore doesn't turn it back.
 - Settings has a reset button that erases all user data.
 - Tabs (Daniel, 2026-10-17): Home, Read (the stories), Review, Dictionary.
   Settings opens from a gear on Home; it's rarely needed. The Review tab

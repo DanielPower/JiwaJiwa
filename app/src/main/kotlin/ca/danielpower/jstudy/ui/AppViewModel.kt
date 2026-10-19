@@ -123,6 +123,8 @@ sealed interface Screen {
         val reminder: Reminder,
         /** The result of the last backup export or import. */
         val backupMessage: String? = null,
+        /** When a backup was last saved, if ever. */
+        val lastBackup: Long? = null,
     ) : Screen
 
     /** First run, a page at a time: the level you can already read, reading direction, and the reminder. */
@@ -462,6 +464,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             levelCounts = repo.levelCounts(),
             reminder = repo.reminder(),
             backupMessage = backupMessage,
+            lastBackup = repo.lastBackup(),
         )
     }
 
@@ -483,12 +486,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun exportBackup(uri: Uri) = launchIo {
         val message = try {
             val out = getApplication<Application>().contentResolver.openOutputStream(uri) ?: error("no stream")
-            out.use { repo.exportBackup(it) }
+            out.use { repo.exportBackup(it, now()) }
             "Backup saved."
         } catch (e: Exception) {
             "Couldn't save the backup: ${e.message}"
         }
-        _screen.update { if (it is Screen.Settings) it.copy(backupMessage = message) else it }
+        _screen.update { if (it is Screen.Settings) it.copy(backupMessage = message, lastBackup = repo.lastBackup()) else it }
     }
 
     fun importBackup(uri: Uri) = launchIo {
