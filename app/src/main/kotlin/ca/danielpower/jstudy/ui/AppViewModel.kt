@@ -218,7 +218,7 @@ data class ReadImpact(
     val seen: List<Word>,
     val known: List<Word>,
     val mastered: List<Word>,
-    /** The grammar topic learned before reading it. */
+    /** The grammar topic it teaches, learned on its page before the chapter; only the first time it's read. */
     val topic: GrammarTopic? = null,
     /** The words you tapped while reading it, the new ones aside, in story order. */
     val lookedUp: List<Word> = emptyList(),
@@ -267,8 +267,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private lateinit var repo: Repository
     private var session: StudySession? = null
-    // The grammar topic read before the open chapter, for its end page.
-    private var topicForStory: GrammarTopic? = null
     // Where Back goes from a grammar page: the screen it was opened from.
     private var beforeGrammar: Screen? = null
     // The page the open story is on, set from the main thread.
@@ -714,7 +712,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             )
             return@launchIo
         }
-        topicForStory = null
         continueChapter(story, learn)
     }
 
@@ -731,10 +728,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun readAfterLesson() = launchIo {
         val state = _screen.value as? Screen.StoryReader ?: return@launchIo
         val then = state.then ?: return@launchIo
-        repo.topicOfPage(state.reading.story)?.let { topic ->
-            repo.learnGrammar(topic, now())
-            topicForStory = topic
-        }
+        repo.topicOfPage(state.reading.story)?.let { repo.learnGrammar(it, now()) }
         showStory(then.storyId)
     }
 
@@ -775,7 +769,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openStoryAt(use: StoryUse) = launchIo {
         val page = _screen.value as? Screen.WordPage ?: return@launchIo
         trail.addLast(page)
-        topicForStory = null
         showStory(use.storyId, startAt = use.paragraph to use.index)
     }
 
@@ -834,7 +827,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             seen = started.mapNotNull { words[it] },
             known = crossed(MasteryRules.HIDE_AT).mapNotNull { words[it] },
             mastered = crossed(MasteryRules.OFF_AT).mapNotNull { words[it] },
-            topic = topicForStory,
+            // Worked out from what's saved, so leaving the chapter and coming back keeps it.
+            topic = state.reading.teaches?.takeIf { story.readAt == null && repo.seenGrammar().containsAll(it.points) },
             lookedUp = state.reading.paragraphs.flatten().mapNotNull { it.wordId }.distinct()
                 .filter { it in lookedUp && it !in started }.mapNotNull { words[it] },
         )
@@ -850,7 +844,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** "Read it again" on a story's end page: it opens again on its first page. */
     fun readAgain() = launchIo {
         val state = _screen.value as? Screen.StoryReader ?: return@launchIo
-        topicForStory = null
         showStory(state.reading.story.id)
     }
 
