@@ -6,7 +6,7 @@
     [["ユキ|「アレックス、お腹は？」", "\"How's your stomach, Alex?\""], ["アレックス|「…すいた。」", "\"…Still hungry.\""]],
     [["ユキ|「卵、食べたい？」", "\"Want an egg?\""], ["アレックス|「食べたい！」", "\"Yes!\""]],
     [["ユキ|「ラーメンも？」", "\"More ramen too?\""], ["アレックス|「…うん、ラーメンも！」", "\"…Yeah, ramen too!\""]],
-    [["チケットを買う。", "Another ticket."]],
+    [["食券を買った。", "I bought another ticket."]],
     [["店長が来た。", "The manager came over."]],
     [["店長|「うまい？」", "\"Good?\""], ["アレックス|「うまい！熱い！」", "\"Great! Hot!\""], ["店長|「ゆっくりね。」", "\"Take it slow.\""]],
     [["店長|「アレックス、バイトは？」", "\"Alex, about the job?\""], ["アレックス|「やりたい！」", "\"I want it!\""]],

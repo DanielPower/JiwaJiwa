@@ -4,7 +4,7 @@ Written by `./gradlew -PcoreOnly=true :core:stories` from the stories. Don't edi
 
 What the stories cover so far, and what's left to bring in: pick a chapter's new words and grammar from here. A word counts once any chapter uses it, and a grammar point once a chapter uses it or teaches its topic.
 
-The stories use 372 words, 303 of them among the 3,000 most common (Jiten's frequency list, from anime, drama, novels, manga and games).
+The stories use 374 words, 303 of them among the 3,000 most common (Jiten's frequency list, from anime, drama, novels, manga and games).
 
 ## Words left
 

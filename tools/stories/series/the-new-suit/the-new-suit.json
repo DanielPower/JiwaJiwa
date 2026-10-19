@@ -5,7 +5,7 @@
     [["今日は、休みだ。", "A day off."], ["ケンタは、まだ寝ている。", "Kenta is still asleep."]],
     [["ユキ|「ケンタ、起きて！」", "\"Kenta, get up!\""], ["ケンタ|「…休み…」", "\"…Day off…\""]],
     [["ユキ|「今日は、新しいスーツを買うんでしょ！」", "\"You're buying a new suit today, remember!\""]],
-    [["ケンタのスーツは、毎日のスーツだ。", "Kenta has one suit, and he wears it every day."], ["部屋で、ゴミと一緒だった。", "It lives in his room, with the trash."]],
+    [["ケンタは、毎日、スーツで会社に行く。", "Kenta wears his suit to work every day."], ["部屋で、ゴミと一緒だった。", "It lives in his room, with the trash."]],
     [["ソラ|「新しいスーツ、楽しみですね！」", "\"I can't wait to see the new suit!\""], ["ケンタ|「…眠い。」", "\"…Sleepy.\""]],
     [["駅の向こうの、スーツの店に来た。", "We came to the suit shop on the other side of the station."]],
     [["店員|「いらっしゃいませ。どんなスーツがいいですか？」", "\"Welcome. What kind of suit are you looking for?\""]],
@@ -24,6 +24,6 @@
     [["ユキは、もう入っている。", "Yuki's already in."]],
     [["ゴミ、マンガ、ゲーム、新しいスーツ。", "Trash, manga, games, new suit."]],
     [["ユキ|「ケンタ！新しいスーツが、ゴミと一緒！」", "\"Kenta! Your new suit's in with the trash!\""], ["ケンタ|「…ごめん。」", "\"…Sorry.\""]],
-    [["ソラ|「ケンタさん、スーツ、また買いますか？」", "\"Kenta, shall we go buy another suit?\""]]
+    [["ソラ|「ケンタさん、スーツ、また買いますか？」", "\"Kenta, are you going to buy another suit?\""]]
   ]
 }

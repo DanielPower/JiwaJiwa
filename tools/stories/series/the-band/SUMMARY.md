@@ -137,9 +137,9 @@ The studio's air conditioner is out on the hottest day yet; Rin turns up with ic
 
 A week before the festival, a string on Rin's guitar snaps; while Daichi runs out for a new one, Rin admits stages scare her too.
 
-- 99 words; 3 new of 3 allowed.
+- 100 words; 3 new of 3 allowed.
 - Teaches ～ちゃう / ～てしまう (`te-shimau`).
-- New: 切れる (きれる, N3), 弦 (げん, not JLPT), 三つ (みっつ, N5).
+- New: 切れる (きれる, N3), 弦 (げん, not JLPT), 三本 (さんぼん, not JLPT).
 
 ### 17. Asleep (`the-band/asleep`)
 
@@ -152,8 +152,8 @@ Yuki falls asleep over her notebook still missing the last words; Kenta, on his 
 
 Over late-night ramen, loud Daichi tells Yuki quietly about the band he lost last year, and why he asked her that night at the live house.
 
-- 110 words; 2 new of 3 allowed.
-- New: 前 (まえ, N5), ずっと (N3).
+- 111 words; 3 new of 3 allowed.
+- New: 三つ (みっつ, N5), 前 (まえ, N5), ずっと (N3).
 
 ### 19. Try it (`the-band/try-it`)
 
@@ -196,7 +196,7 @@ Evening at the festival in the park: everyone turns up, Kenta included, the othe
 
 On the festival stage in the park, Summer Snow plays its three songs: spring, winter, and a summer night, as the fireworks begin.
 
-- 201 words; 0 new of 6 allowed.
+- 202 words; 0 new of 6 allowed.
 
 ## Known at the end
 
@@ -204,4 +204,4 @@ Read in order after the stories it follows, a reader knows these by the end of t
 
 Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます / か (`masu`), から / まで (`kara-made`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), で (`de`), から (`kara-because`), と (`to`), ～んだ / ～の？ (`n-desu`), あのー / えーと (`filler`), ～じゃない / じゃん (`janai`), ～けど / ～が (`keredo`), ～よう / ～おう (`volitional`), ～と思う / ～と (`to-omou`), ～って / ～という (`tte`), かな / かも (`kana`), ～える / ～られる (`potential`), ～たら (`tara`), ～なきゃ / ～なくてもいい (`nakereba`), ～くなる / ～になる / ～く (`naru`), ～みたい / ～そう (`mitai`), ～ちゃう / ～てしまう (`te-shimau`), ～てみる (`te-miru`), だけ / しか (`dake`).
 
-243 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう うまい チケット 買う これ 卵 ビール 熱い ゆっくり ラーメン屋 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ 日 はい おいしい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 写真 撮る 友達 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に いる 荷物 大学 この 今 僕 スーツ 俺 する 何 ある また こんばんは いつも みんな 誰 読む そう 歌 声 知る 聞く 私 バンド まだ 明日 疲れる 一人 どう 大丈夫 敬語 ほら 同じ ノート たくさん 作る オープン マイク 言う ライブハウス こっち ギター 楽しい 次 無理 最高 思う たぶん できる 忙しい 去年 毎日 練習 考える 名前 書く 字 なんで 怒る バカ 久しぶり 動画 送る 出る 忘れる 緊張する 手 ステージ 笑う 終わる 静か 弾く ドラム 音 上手 三 人 スタジオ 借りる 聞こえる 一番 勝つ もし 違う 決める 有名 話す 全然 絶対 いつ ちゃんと 自分 優しい 汗 三日 あの うれしい なる 一つ それ ない すごい 絵 描く かっこいい 顔 怖い 言葉 難しい 会う エアコン 死ぬ アイス 切れる 弦 三つ 寝る 上 最初 前 ずっと 泣く もっと 長い 子供 拍手する おやすみ 私たち ほか 俺たち 始まる 今年 呼ぶ
+244 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう うまい 食券 買う これ 卵 ビール 熱い ゆっくり ラーメン屋 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ 日 はい おいしい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 写真 撮る 友達 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に いる 荷物 大学 この 今 僕 スーツ 俺 する 何 ある また こんばんは いつも みんな 誰 読む そう 歌 声 知る 聞く 私 バンド まだ 明日 疲れる 一人 どう 大丈夫 敬語 ほら 同じ ノート たくさん 作る オープン マイク 言う ライブハウス こっち ギター 楽しい 次 無理 最高 思う たぶん できる 忙しい 去年 毎日 練習 考える 名前 書く 字 なんで 怒る バカ 久しぶり 動画 送る 出る 忘れる 緊張する 手 ステージ 笑う 終わる 静か 弾く ドラム 音 上手 三 人 スタジオ 借りる 聞こえる 一番 勝つ もし 違う 決める 有名 話す 全然 絶対 いつ ちゃんと 自分 優しい 汗 三日 あの うれしい なる 一つ それ ない すごい 絵 描く かっこいい 顔 怖い 言葉 難しい 会う エアコン 死ぬ アイス 切れる 弦 三本 寝る 上 最初 三つ 前 ずっと 泣く もっと 長い 子供 拍手する おやすみ 私たち ほか 俺たち 始まる 今年 呼ぶ
