@@ -78,7 +78,7 @@ The game comes out in summer, and Tanaka-san has rules: no photos, no telling fr
 
 Yuki and Sora want to hear about the new game, Kenta can't tell them, and he falls asleep on the floor.
 
-- 66 words; 3 new of 3 allowed.
+- 67 words; 3 new of 3 allowed.
 - New: どんな (N3), ご飯 (ごはん, N5), 起きる (おきる, N5).
 
 ### 9. The last night (`kentas-first-job/the-last-night`)

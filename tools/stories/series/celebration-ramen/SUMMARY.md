@@ -29,7 +29,7 @@ Everyone met by the end, in the chapter that introduces them.
 
 Everyone celebrates Miho's honourable mention at the manager's ramen shop, until she says who her next manga is about and they all turn to look at Kenta.
 
-- 80 words; 0 new of 3 allowed.
+- 79 words; 0 new of 3 allowed.
 
 ## Known at the end
 

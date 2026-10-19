@@ -31,7 +31,7 @@ On his last night, Alex packs his manga and photos with Yuki and Kenta, and reme
 
 A last game night in Kenta's tidied room: Alex finally wins, then Yuki joins and beats them both.
 
-- 47 words; 0 new of 3 allowed.
+- 48 words; 0 new of 3 allowed.
 
 ## Known at the end
 

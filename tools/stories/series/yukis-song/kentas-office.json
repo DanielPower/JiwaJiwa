@@ -3,8 +3,8 @@
   "plot": "Kenta is too shy to hand out flyers at work until Tanaka-san asks about them; she knows the live house, used to play drums, and hands them out for him at lunch.",
   "paragraphs": [
     [["朝の会社。", "Morning at the office."]],
-    [["僕の机の上に、チラシがある。", "There's a stack of flyers on my desk."], ["ユキのライブのチラシだ。", "Flyers for Yuki's show."]],
-    [["ソラが作って、ミホが絵を描いた。", "Sora made them, and Miho drew the picture."]],
+    [["俺の机の上に、チラシがある。", "There's a stack of flyers on my desk."], ["ユキのライブのチラシだ。", "Flyers for Yuki's show."]],
+    [["ソラが作って、ミホさんが絵を描いた。", "Sora made them, and Miho drew the picture."]],
     [["でも、会社の人に渡すのは、ちょっと恥ずかしい。", "But handing them out to people at work is a little embarrassing."]],
     [["田中|「ケンタさん、おはようございます。」", "\"Good morning, Kenta.\""], ["ケンタ|「おはようございます！」", "\"Good morning!\""]],
     [["田中さんが、チラシを見た。", "Tanaka-san saw the flyers."], ["田中|「それは、何ですか？」", "\"What are those?\""]],
@@ -39,7 +39,7 @@
     [["ケンタ|「昔、ドラムをやっていたって。」", "\"Turns out she used to play drums.\""], ["ユキ|「…ダイチが聞いたら、うるさいよ。」", "\"…If Daichi hears that, he'll never shut up.\""]],
     [["ケンタ|「会社のみんなも、楽しみにしてるよ。」", "\"Everyone at work is looking forward to it too.\""]],
     [["ユキ|「…ありがとう、ケンタ。」", "\"…Thanks, Kenta.\""], ["ケンタ|「俺は、渡しただけ。」", "\"All I did was hand them out.\""]],
-    [["ケンタ|「ソラが作ってくれたし、ミホが描いてくれたし、田中さんも渡してくれたし。」", "\"Sora made them, Miho drew them, Tanaka-san handed them out…\""]],
+    [["ケンタ|「ソラが作ってくれたし、ミホさんが描いてくれたし、田中さんも渡してくれたし。」", "\"Sora made them, Miho drew them, Tanaka-san handed them out…\""]],
     [["ユキが、笑った。", "Yuki laughed."], ["ユキ|「ケンタも、だよ。」", "\"You too, Kenta.\""]]
   ]
 }

@@ -7,7 +7,7 @@
     [["アレックス|「ケンタ！ユキ！久しぶり！」", "\"Kenta! Yuki! Long time no see!\""], ["ユキ|「アレックス！久しぶり！」", "\"Alex! It's been ages!\""]],
     [["電話に、アレックスさんがいる。", "Alex is there on the screen."], ["写真の人だ。", "The guy from the photo."]],
     [["アレックス|「この人は？」", "\"Who's this?\""], ["ユキ|「ソラ。アレックスの部屋の、新しい人。」", "\"Sora. The new guy in your room.\""]],
-    [["ソラ|「ソラです！よろしくお願いします！」", "\"I'm Sora! Nice to meet you!\""], ["アレックス|「よろしく！僕の部屋、どう？」", "\"Nice to meet you! How's my room?\""]],
+    [["ソラ|「ソラです！よろしくお願いします！」", "\"I'm Sora! Nice to meet you!\""], ["アレックス|「よろしく！俺の部屋、どう？」", "\"Nice to meet you! How's my room?\""]],
     [["ソラ|「いい部屋です。…あ、いい部屋だよ。」", "\"It's a nice room. …Oh, I mean, nice room.\""], ["アレックス|「でも、ユキのベースは、うるさいでしょ？」", "\"But Yuki's bass is loud, right?\""], ["ソラ|「うるさい！」", "\"So loud!\""]],
     [["ユキ|「もう…」", "\"Come on…\""]],
     [["アレックス|「ソラ、大学の友達、できた？」", "\"Sora, made any friends at university?\""], ["ソラ|「できたよ！」", "\"I have!\""]],
@@ -20,7 +20,7 @@
     [["アレックス|「ユキが歌うって！？本当に？」", "\"Yuki's singing?! Really?\""], ["ユキ|「…ソラが、私の名前を書いたの。」", "\"…Sora put my name down.\""]],
     [["アレックス|「なんで？」", "\"How come?\""], ["ユキ|「ソラが、バカだから。」", "\"Because Sora's an idiot.\""], ["ソラ|「ごめん…」", "\"Sorry…\""]],
     [["アレックス|「ソラ、ありがとう！」", "\"Sora, thank you!\""], ["ソラ|「えーと…」", "\"Um…\""]],
-    [["アレックス|「ユキの歌、僕も聞きたい。動画、送って！」", "\"I want to hear Yuki sing too. Send me a video!\""], ["ユキ|「無理！」", "\"No way!\""]],
+    [["アレックス|「ユキの歌、俺も聞きたい。動画、送って！」", "\"I want to hear Yuki sing too. Send me a video!\""], ["ユキ|「無理！」", "\"No way!\""]],
     [["アレックス|「ユキ、頑張って！」", "\"Yuki, good luck!\""], ["ユキ|「…頑張る。」", "\"…I'll do my best.\""]],
     [["ユキ|「アレックス、元気だったね。」", "\"Alex sounded good.\""], ["ソラ|「アレックスさん、いい人だね。」", "\"Alex seems like a nice guy.\""], ["ユキ|「…うん。」", "\"…Yeah.\""]]
   ]
