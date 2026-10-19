@@ -66,6 +66,8 @@ data class Summary(
     val answersPerDay: Map<Long, Int>,
     /** Study days a chapter was finished on. */
     val readDays: Set<Long>,
+    /** Reviews due on each of the next week's days, tomorrow first. */
+    val comingUp: List<Int>,
 ) {
     val anythingDue get() = newCards + learning + reviews > 0
 }
@@ -993,15 +995,7 @@ class Repository(context: Context) {
         val settings = settings()
         val clock = clock(settings)
         val today = clock.dayOf(now)
-        val forecast = IntArray(FORECAST_DAYS)
-        for (dueAt in store.reviewDueTimes(clock.startOf(today + FORECAST_DAYS))) {
-            forecast[(clock.dayOf(dueAt) - today).toInt().coerceIn(0, FORECAST_DAYS - 1)]++
-        }
-        forecast[0] += store.count(
-            "SELECT COUNT(*) FROM card WHERE state IN (?, ?) AND suspended = 0",
-            CardState.LEARNING.value,
-            CardState.RELEARNING.value,
-        )
+        val forecast = forecast(clock, today, FORECAST_DAYS)
         val perDay = store.answersAndRightPerDay(today - (HISTORY_DAYS - 1))
         val answers = (0 until HISTORY_DAYS).map { perDay[today - (HISTORY_DAYS - 1) + it] ?: (0 to 0) }
 
@@ -1020,7 +1014,7 @@ class Repository(context: Context) {
         }
         return Stats(
             today = today,
-            forecast = forecast.toList(),
+            forecast = forecast,
             answers = answers,
             recall30 = store.reviewRecall(today - (HISTORY_DAYS - 1)),
             recallAll = store.reviewRecall(Long.MIN_VALUE),
@@ -1145,6 +1139,20 @@ class Repository(context: Context) {
         )
     }
 
+    /** Reviews due on each of the [days] days from today; today includes anything overdue and still learning. */
+    private fun forecast(clock: StudyClock, today: Long, days: Int): List<Int> {
+        val forecast = IntArray(days)
+        for (dueAt in store.reviewDueTimes(clock.startOf(today + days))) {
+            forecast[(clock.dayOf(dueAt) - today).toInt().coerceIn(0, days - 1)]++
+        }
+        forecast[0] += store.count(
+            "SELECT COUNT(*) FROM card WHERE state IN (?, ?) AND suspended = 0",
+            CardState.LEARNING.value,
+            CardState.RELEARNING.value,
+        )
+        return forecast.toList()
+    }
+
     fun summary(now: Long): Summary {
         val settings = settings()
         val clock = clock(settings)
@@ -1161,6 +1169,7 @@ class Repository(context: Context) {
             today = today,
             answersPerDay = store.answersPerDay(today - 370),
             readDays = store.storyReadTimes().map(clock::dayOf).toSet(),
+            comingUp = forecast(clock, today, 8).drop(1),
         )
     }
 
