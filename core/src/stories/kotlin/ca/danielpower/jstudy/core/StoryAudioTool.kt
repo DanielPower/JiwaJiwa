@@ -8,7 +8,10 @@ import java.net.http.HttpResponse
 import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlin.system.exitProcess
 
@@ -18,7 +21,8 @@ import kotlin.system.exitProcess
  * Only sentences without a clip are recorded, since each costs money, and
  * clips no sentence uses any more are deleted. Without "record" it only says
  * what it would do. It stops before spending more than the second argument,
- * in dollars. The key comes from FISH_API_KEY.
+ * in dollars. The key comes from FISH_API_KEY. Each clip is leveled to the
+ * same loudness with ffmpeg, as some voices are much quieter than others.
  */
 fun main(args: Array<String>) {
     val root = File(args[0])
@@ -89,8 +93,8 @@ object StoryAudio {
             val body = buildJsonObject {
                 put("text", take.text)
                 put("reference_id", take.voice)
-                put("format", Recordings.EXTENSION)
-                put("opus_bitrate", Recordings.BITRATE)
+                // Uncompressed, as it's leveled and compressed here.
+                put("format", "wav")
                 put("language", "ja")
             }.toString()
             val request = HttpRequest.newBuilder(URI("https://api.fish.audio/v1/tts"))
@@ -104,10 +108,11 @@ object StoryAudio {
             for (attempt in 1..4) {
                 val response = runCatching { client.send(request, HttpResponse.BodyHandlers.ofByteArray()) }.getOrNull()
                 if (response != null && response.statusCode() == 200 && response.body().isNotEmpty()) {
-                    // Written whole, under a temporary name, so a stopped run never leaves half a clip.
-                    val tmp = File(dir, "$key.tmp")
-                    tmp.writeBytes(response.body())
-                    ok = tmp.renameTo(File(dir, "$key.${Recordings.EXTENSION}"))
+                    val wav = File(dir, "$key.wav")
+                    wav.writeBytes(response.body())
+                    ok = level(wav, File(dir, "$key.${Recordings.EXTENSION}"))
+                    wav.delete()
+                    if (!ok) System.err.println("${take.page}: couldn't level \"${take.text}\"")
                     break
                 }
                 if (response != null && response.statusCode() !in RETRY) {
@@ -123,6 +128,34 @@ object StoryAudio {
         pool.shutdown()
         pool.awaitTermination(6, java.util.concurrent.TimeUnit.HOURS)
         return failed.get()
+    }
+
+    /** How loud every clip is, in LUFS: Fish's voices range from -13 to -40. */
+    const val LOUDNESS = -18
+
+    /**
+     * Brings [wav] to [LOUDNESS], measured first so the whole clip is turned
+     * up or down evenly, and compresses it into [out]. Written under a
+     * temporary name, so a stopped run never leaves half a clip.
+     */
+    fun level(wav: File, out: File): Boolean {
+        val target = "I=$LOUDNESS:TP=-1.5:LRA=11"
+        val measured = ffmpeg("-i", wav.path, "-af", "loudnorm=$target:print_format=json", "-f", "null", "-") ?: return false
+        val stats = Json.parseToJsonElement(measured.substring(measured.lastIndexOf('{'), measured.lastIndexOf('}') + 1)).jsonObject
+        fun stat(name: String) = stats.getValue(name).jsonPrimitive.content
+        val filter = "loudnorm=$target:linear=true:measured_I=${stat("input_i")}:measured_TP=${stat("input_tp")}" +
+            ":measured_LRA=${stat("input_lra")}:measured_thresh=${stat("input_thresh")}:offset=${stat("target_offset")}"
+        val tmp = File(out.parentFile, "${out.name}.tmp")
+        ffmpeg("-y", "-i", wav.path, "-af", filter, "-ar", "48000", "-ac", "1", "-c:a", "libopus", "-b:a", "${Recordings.BITRATE}", "-f", "ogg", tmp.path)
+            ?: return false.also { tmp.delete() }
+        return tmp.renameTo(out)
+    }
+
+    /** Runs ffmpeg, giving what it printed, or null when it failed. */
+    private fun ffmpeg(vararg args: String): String? {
+        val process = ProcessBuilder(listOf("ffmpeg", "-hide_banner", "-nostats") + args).redirectErrorStream(true).start()
+        val output = process.inputStream.bufferedReader().readText()
+        return output.takeIf { process.waitFor() == 0 }
     }
 
     // Rate limits and server errors are worth another try; anything else isn't.

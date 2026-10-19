@@ -144,6 +144,7 @@ spending anything:
 
     ./gradlew -PcoreOnly=true :core:storyAudio
 
-With `-Precord` and `FISH_API_KEY` set it records too, stopping before
+With `-Precord` and `FISH_API_KEY` set it records too (it needs ffmpeg,
+which levels every clip to the same loudness, as Fish's voices differ a lot), stopping before
 spending more than `-Plimit` dollars (5 unless given). Clips conflict like
 the written files above: take either side and let the workflow run again.

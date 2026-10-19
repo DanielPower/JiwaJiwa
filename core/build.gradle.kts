@@ -68,13 +68,14 @@ tasks.register<JavaExec>("storyAssets") {
 // Records the stories' sentences with Fish Audio into the app's assets
 // (audio/), only those not recorded yet, and deletes clips nothing uses. Says
 // what it would record and cost unless -Precord; stops over -Plimit dollars
-// (5 unless given). Needs the dictionary built and FISH_API_KEY.
+// (5 unless given). Needs the dictionary built, FISH_API_KEY and ffmpeg.
 tasks.register<JavaExec>("storyAudio") {
     group = "stories"
     description = "Records the stories' new sentences with Fish Audio (-Precord to spend, -Plimit=dollars). Needs the dictionary built and FISH_API_KEY."
     classpath = stories.runtimeClasspath
     mainClass.set("ca.danielpower.jstudy.core.StoryAudioToolKt")
-    args(listOfNotNull(rootDir.path, findProperty("limit")?.toString() ?: "5", if (hasProperty("record")) "record" else null))
+    // project's, as a task has its own hasProperty.
+    args(listOfNotNull(rootDir.path, project.findProperty("limit")?.toString() ?: "5", if (project.hasProperty("record")) "record" else null))
 }
 
 tasks.test {
