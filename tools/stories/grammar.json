@@ -6,7 +6,9 @@
       ["ついに来た！", "I'm finally here!"],
       "Verbs change their endings to say when, and whether, something happens. The plain past ends in た, or だ after some verbs.",
       ["お腹すいた。", "I'm hungry. (My stomach has emptied.)"],
-      "This plain form is what you use with friends. The polite past, ～ました, comes later."
+      "This plain form is what you use with friends. The polite past, ～ました, comes later.",
+      "Which of た or だ a verb takes, and how its ending changes first, follows the same rules as the て form (～て / ～てください): 待った, 飲んだ, 書いた.",
+      "An i-adjective swaps its い for かった: うまい, うまかった; 高い, 高かった. いい becomes よかった."
     ]
   },
   {
@@ -18,7 +20,8 @@
       ["いい部屋だ！", "It's a nice room!"],
       "です means the same thing, politely. You'll hear it from staff and strangers.",
       ["きれいな部屋だ！", "It's a beautiful room!"],
-      "Before a noun, だ becomes な. Words like きれい that work this way are called na-adjectives."
+      "Before a noun, だ becomes な. Words like きれい that work this way are called na-adjectives.",
+      "だ never follows an i-adjective (高い, 多い): say 高い。 or 高いよ, not 高いだ."
     ]
   },
   {
@@ -27,7 +30,7 @@
     "parts": [
       ["駅は？", "Where's the station? (What about the station?)"],
       "The topic comes first, then は, then what you say about it.",
-      ["外は山だ。", "Outside, it's mountains."]
+      ["駅は、あっちだ。", "The station's that way."]
     ]
   },
   {
@@ -35,7 +38,7 @@
     "summary": "が points at who or what does something, or what a description is about: 人が多い, there are lots of people.",
     "parts": [
       ["人が多い。", "There are a lot of people."],
-      "は sets the topic for what follows; が picks out the one thing the sentence is about. Often either works, with a slightly different feel.",
+      "は sets the topic for what follows; が picks out the one thing the sentence is about. Question words take が, never は: 誰が来た？ が is also for what you've just noticed (雨が降ってる！), and for what you like, understand or have (ラーメンが好き). は sets one thing against others: コーヒーは飲まない, coffee I don't drink.",
       ["ビルが高い。", "The buildings are tall."]
     ]
   },
@@ -44,8 +47,9 @@
     "summary": "ない on a verb makes it negative, the way friends say it: わかる (understand), わからない (don't understand).",
     "parts": [
       ["わからない。", "I don't know."],
-      "The verb's ending changes before ない. For る verbs, drop る: 食べる, 食べない. For others, the last sound moves to the \"a\" row: わかる, わからない.",
-      ["いない。", "Nobody's here."]
+      "The verb's ending changes before ない. For る verbs, drop る: 食べる, 食べない. For others, the last sound moves to the \"a\" row: わかる, わからない; 書く, 書かない. A final う becomes わ, not あ: 言う, 言わない; 買う, 買わない. する becomes しない and 来る becomes 来ない (こない). ある has no ない form of its own: its negative is just ない.",
+      ["いない。", "Nobody's here."],
+      "An i-adjective swaps its い for くない: 多い, 多くない; 高い, 高くない. いい becomes よくない."
     ]
   },
   {
@@ -93,7 +97,8 @@
     "summary": "も means \"too\" or \"also\", in place of は, が or を: これも, this too.",
     "parts": [
       ["ラーメンも食べたい。", "I want ramen too."],
-      ["これも！", "This one too!"]
+      ["これも！", "This one too!"],
+      "After a question word, with a negative, も means \"no…\": 何も言わない, says nothing; 誰もいない, nobody's there."
     ]
   },
   {
@@ -113,6 +118,7 @@
     "parts": [
       ["ちょっと待ってください！", "Just a moment, please!"],
       "The て form of 待つ is 待って. With friends, 待って on its own is enough.",
+      "How the て form is made depends on the verb's last sound. る verbs drop る: 食べて. Otherwise う, つ and る become って (買って, 待って, わかって); む, ぶ and ぬ become んで (飲んで, 呼んで, 死んで); く becomes いて (書いて), ぐ becomes いで; す becomes して (話して). 行く is the odd one: 行って. する is して, 来る is 来て.",
       ["ラーメンを食べて、ビールを飲む。", "I eat ramen and drink a beer."],
       "In the middle of a sentence, the て form means \"and then\": one action, then the next."
     ]
@@ -130,7 +136,8 @@
     "summary": "A verb's て form plus いる says something is going on now. Friends shorten ている to てる.",
     "parts": [
       ["雨、降ってるよ！", "It's raining!"],
-      "It can also mean a state that's ongoing: 知ってる, I know (I'm in the state of having learned it)."
+      "It can also mean a state that's ongoing: 知ってる, I know (I'm in the state of having learned it).",
+      "With まだ and a negative it means \"not yet\": まだ食べていない, I haven't eaten yet. A bare 食べない would mean \"I don't eat\" or \"I won't\"."
     ]
   },
   {
@@ -138,7 +145,7 @@
     "summary": "で marks where something happens: 公園で食べた, ate in the park. に is where something is or goes; で is where it's done.",
     "parts": [
       ["公園でラーメンを食べた。", "I ate ramen in the park."],
-      "で also marks what you use to do something, but that comes later."
+      "で also marks how something's done (電車で, by train), a cause (雪で, because of the snow), and who's in it (みんなで, all together; 一人で, on your own)."
     ]
   },
   {
@@ -174,7 +181,8 @@
       ["どこから来たの？", "Where did you come from?"],
       "A の at the end, said with a rise, is how friends ask when they want to know more. Said flat, it explains, like ～んだ.",
       ["そうなんだ。", "Oh, I see. (So that's how it is.)"],
-      "After a noun or a na-adjective, な comes first: そうなんだ, 好きなの？"
+      "After a noun or a na-adjective, な comes first: そうなんだ, 好きなの？",
+      "Use it when there's something to explain or react to. On every sentence it sounds pushy, and ～んですか can sound like a challenge: 本当に行くんですか？, are you really going?"
     ]
   },
   {
@@ -222,7 +230,7 @@
     "summary": "と思う after a plain sentence says what you think: 歌うと思う, I think I'll sing. The same と quotes what someone said: 「来年は歌う」と言った.",
     "parts": [
       ["次は歌うと思う。", "I think I'll sing next time."],
-      "What you think comes first, in the plain form, then と思う. With strangers it's と思います.",
+      "What you think comes first, in the plain form, then と思う. A noun or na-adjective keeps its だ: 雨だと思う, I think it's rain. With strangers it's と思います.",
       ["ユキの歌は、いいと思う。", "I think Yuki's songs are good."],
       "と also marks the words of a quote, before 言う and verbs like it. The quote can be the exact words, in 「」, or put in your own.",
       ["ユキは「来年は歌う」と言った。", "Yuki said, \"I'll sing next year.\""]
@@ -288,7 +296,7 @@
       ["新しいバンドも、出られる？", "Can new bands play too?"],
       "う verbs change their last sound to the え row and add る: 行く, 行ける; 歌う, 歌える. る verbs take られる: 出る, 出られる. In speech that's often just れる: 出れる.",
       ["ユキさん、歌えるじゃん！", "Yuki, you can sing!"],
-      "The new verb changes like a る verb: 行けない (can't go), 歌えた (could sing). 来る becomes 来れる, and する becomes できる, which you know already.",
+      "The new verb changes like a る verb: 行けない (can't go), 歌えた (could sing). 来る becomes 来られる (in speech, often 来れる), and する becomes できる, which you know already.",
       ["明日は行けない。", "I can't go tomorrow."]
     ]
   },
@@ -319,14 +327,14 @@
   },
   {
     "id": "naru", "title": "～くなる / ～になる / ～く", "title_en": "Become; -ly", "points": ["naru", "ku-adverb"],
-    "summary": "なる means become: 暑くなる, get hot; 上手になる, get good. An adjective's く form on its own says how something's done: 大きく歌う, sing out loud.",
+    "summary": "なる means become: 暑くなる, get hot; 上手になる, get good. An adjective's く form on its own says how something's done: 早く起きる, get up early.",
     "parts": [
-      ["夏が、暑くなった。", "Summer has got hot."],
+      ["外が、暑くなった。", "It's got hot out."],
       "An i-adjective swaps its い for く before なる: 暑い, 暑くなる. いい becomes よくなる.",
       ["歌が、上手になった。", "Your singing's got good."],
       "A noun or a na-adjective takes に: 上手になる, 静かになる, 一つになる.",
-      ["今は、大きく歌える。", "Now I can sing out loud."],
-      "The same く form, with no なる after it, tells how something's done: 大きく (big, loud), 楽しく (happily), うまく (well)."
+      ["今は、うまく歌える。", "Now I can sing it well."],
+      "The same く form, with no なる after it, tells how something's done: 早く (early, fast), 楽しく (happily), うまく (well). Loud is 大きい声で: 大きい声で歌う."
     ]
   },
   {
@@ -338,7 +346,7 @@
       ["リン、怒ってるみたい。", "Rin seems angry."],
       "Before a noun it's みたいな: 雨みたいな曲, a song like rain. In writing and formal talk it's ～ようだ.",
       ["リンさん、ちょっと怖そう。", "Rin looks a bit scary."],
-      "そう goes on an adjective with its い dropped (怖い, 怖そう; 楽しい, 楽しそう) or on a verb's stem. It's how something looks to you, before you know. いい becomes よさそう."
+      "そう goes on an adjective with its い dropped (怖い, 怖そう; 楽しい, 楽しそう) or on a verb's stem. It's how something looks to you, before you know. On a verb it often means \"about to\": 泣きそう, about to cry; 降りそう, looks like rain. いい becomes よさそう."
     ]
   },
   {
@@ -347,7 +355,7 @@
     "parts": [
       ["切れちゃった。", "It snapped."],
       "て plus しまう shrinks to ちゃう, and で plus しまう to じゃう: 忘れちゃう, 飲んじゃう. In the past, ちゃった and じゃった.",
-      ["歌、忘れちゃった。", "I forgot the words."],
+      ["歌、忘れちゃった。", "I forgot the song."],
       "It's often a small \"oops\": it happened, and it can't be undone. It can also just say something's done completely, or can't be helped.",
       ["私、緊張しちゃう。", "I can't help getting nervous."],
       "The full てしまう is for writing and polite talk: 切れてしまいました."
@@ -433,7 +441,8 @@
       ["コンビニで、ビールや水を買った。", "I bought beer, water and stuff at the konbini."],
       "や joins nouns like と does, but と gives the whole list, and や only a few of them. ビールと水 is just those two; ビールや水 is those and more.",
       ["マンガやゲームなどが好き。", "I like manga, games, that sort of thing."],
-      "など after the last one says there's more where that came from. It often closes a list made with や, and can follow just one: ラーメンなど, ramen and the like."
+      "など after the last one says there's more where that came from. It often closes a list made with や, and can follow just one: ラーメンなど, ramen and the like.",
+      "Friends often say とか for both: ラーメンとか、卵とか."
     ]
   },
   {
@@ -465,7 +474,7 @@
     "summary": "ので gives a reason, softer than から: 仕事なので, since I've got work. し adds a reason, hinting there are more: 安いし、うまいし, it's cheap, it's good.",
     "parts": [
       ["明日は仕事なので、もう寝る。", "I've got work tomorrow, so I'm off to bed."],
-      "ので goes after a plain verb or adjective: 雨が降っているので, 寒いので. A noun or na-adjective takes な first: 仕事なので, 静かなので. It sounds softer and politer than から, so it's what people use with です and ます: 仕事があるので、行けません。",
+      "ので goes after a plain verb or adjective: 雨が降っているので, 寒いので. A noun or na-adjective takes な first: 仕事なので, 静かなので. It sounds softer and a little more formal than から, so it suits polite explanations and apologies: 仕事があるので、行けません。 Among friends, から is the usual one.",
       ["店長のラーメンは、安いし、うまいし、最高。", "The manager's ramen is cheap, it's good, it's the best."],
       "し after a plain form lists a reason, and leaves room for more. Two in a row make a case for something.",
       ["寒いし、もう帰ろう。", "It's cold and all, so let's head home."],
@@ -481,7 +490,8 @@
       ["休みなのに、仕事に行った。", "I went to work even though it was my day off."],
       "Compare けど: けど just says \"but\"; のに says it went against what should have happened.",
       ["見たかったのに。", "And I wanted to see it, too."],
-      "At the end of a sentence, のに is a sigh about what should have been, with the rest left unsaid."
+      "At the end of a sentence, のに is a sigh about what should have been, with the rest left unsaid.",
+      "Unlike けど, のに can't lead into a request, a suggestion or a plan: not 雨なのに、行こう, but 雨だけど、行こう."
     ]
   },
   {
