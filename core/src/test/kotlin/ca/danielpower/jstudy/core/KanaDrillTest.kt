@@ -100,24 +100,23 @@ class KanaDrillTest {
     @Test
     fun `teaches the kana the first chapters use most, first`() {
         val order = KanaCourse.order(listOf("ついについに", "たいした", "いい"))
-        // Only the kana the stories use.
-        assertEquals(listOf("い", "つ", "に", "た", "し"), order)
-        // The rest of the chart, most useful first: basic kana, then voiced, then combined.
-        val rest = KanaCourse.rest(order)
-        assertEquals(KanaCourse.units.size, order.size + rest.size)
-        assertEquals(listOf("あ", "う", "え", "お", "か"), rest.take(5))
-        assertTrue(rest.indexOf("ン") < rest.indexOf("が"))
-        assertTrue(rest.indexOf("ぽ") < rest.indexOf("きゃ"))
-        assertTrue(rest.indexOf("ピョ") < rest.indexOf("ティ"))
+        // The kana the stories use first.
+        assertEquals(listOf("い", "つ", "に", "た", "し"), order.take(5))
+        // Then the rest of the chart, most useful first: basic kana, then voiced, then combined.
+        assertEquals(KanaCourse.units.size, order.size)
+        assertEquals(listOf("あ", "う", "え", "お", "か"), order.subList(5, 10))
+        assertTrue(order.indexOf("ン") < order.indexOf("が"))
+        assertTrue(order.indexOf("ぽ") < order.indexOf("きゃ"))
+        assertTrue(order.indexOf("ピョ") < order.indexOf("ティ"))
     }
 
     @Test
     fun `a voiced or combined kana comes after the one it's built on`() {
         // フ and ト aren't used, but ブ and ド are: each comes in just before.
         val order = KanaCourse.order(listOf("ブドウ"))
-        assertEquals(listOf("ウ", "ト", "ド", "フ", "ブ"), order)
-        assertEquals(listOf("き", "きゃ"), KanaCourse.order(listOf("きゃ")))
-        assertEquals(listOf("か", "が", "き", "ぎ", "ぎゃ"), KanaCourse.order(listOf("ぎゃが")))
+        assertEquals(listOf("ウ", "ト", "ド", "フ", "ブ"), order.take(5))
+        assertEquals(listOf("き", "きゃ"), KanaCourse.order(listOf("きゃ")).take(2))
+        assertEquals(listOf("か", "が", "き", "ぎ", "ぎゃ"), KanaCourse.order(listOf("ぎゃが")).take(5))
         // And in a set after it, whatever the order.
         for (list in listOf(order, KanaCourse.units.map { it.text }.reversed(), KanaCourse.order(listOf("ぴょんぴょん、パンダ、ジェット")))) {
             val sets = KanaCourse.sets(list)
@@ -134,45 +133,6 @@ class KanaDrillTest {
         assertNull(KanaCourse.built("か"))
         assertNull(KanaCourse.built("っ"))
         assertNull(KanaCourse.base("ー"))
-    }
-
-    @Test
-    fun `kana the stories don't use are there to learn if you ask, and nothing waits on them`() {
-        var state = none()
-        assertTrue(state.toLearn.isNotEmpty())
-        assertTrue(state.toLearn.all { state.inStories(it) })
-        assertEquals(KanaCourse.units.size, state.toLearn.size + state.optional.size)
-        assertTrue("サ" in state.optional)
-        val clear = state.toLearn.associateWith { KanaProgress(it, KanaStage.CLEAR, introducedDay = day - 30, passDays = 3, lastDay = day - 1) }
-        state = state.copy(progress = clear)
-        // Every story kana clear: done, though the rest of the chart isn't started.
-        assertTrue(state.done)
-        assertFalse(state.ongoing)
-        assertNull(state.nextSet())
-        assertTrue(state.unclear.isEmpty())
-        assertEquals(state.optionalSets.first(), state.nextOptionalSet())
-        assertEquals(state.toLearn.size, state.counts(day, noon).total)
-        // Asked for, they're practised like any other, and checked until clear, but don't undo done.
-        val set = state.nextOptionalSet()!!.map { KanaCourse.unit(it)!! }
-        assertEquals(1, state.setNumber(set[0].text))
-        state = state.copy(progress = state.progress + drill(KanaSession(state, day, noon, set, random = Random(9))))
-        assertTrue(state.done)
-        assertTrue(state.ongoing)
-        assertEquals(set.size, state.counts(day + 1, noon + 86_400_000L).check)
-        assertEquals(0, state.counts(day + 1, noon + 86_400_000L).new)
-    }
-
-    @Test
-    fun `a kana the stories start to use joins the course`() {
-        val before = none()
-        val clear = before.toLearn.associateWith { KanaProgress(it, KanaStage.CLEAR, introducedDay = day - 30, passDays = 3, lastDay = day - 1) }
-        assertTrue(before.copy(progress = clear).done)
-        // A new chapter uses サ: the next build's kana.txt has it, and it's the next set.
-        val after = before.copy(order = before.order + "サ", progress = clear)
-        assertFalse(after.done)
-        assertEquals(listOf("サ"), after.nextSet())
-        assertEquals(1, after.counts(day, noon).new)
-        assertFalse("サ" in after.optional)
     }
 
     @Test
@@ -231,7 +191,7 @@ class KanaDrillTest {
         return session.practised.associateWith { session.progress(it) }
     }
 
-    private fun none() = KanaState(KanaKnown.NONE, KanaCourse.order(listOf("ついに来たよ。ここはどこ？")), emptyMap())
+    private fun none() = KanaState(KanaKnown.NONE, KanaCourse.order(listOf("ついに来た")), emptyMap())
 
     @Test
     fun `a new set is practised until each is right three times, then looked at again later that day`() {

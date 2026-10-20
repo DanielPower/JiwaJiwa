@@ -242,12 +242,8 @@ sealed interface Screen {
 
 /** What kana practice shows. */
 sealed interface KanaStep {
-    /**
-     * A new set: each kana, its sound, and a word from the stories with it in,
-     * by kana. [set] of [sets] counts the stories' sets, or the rest of the
-     * chart's when it's not a [story] set.
-     */
-    data class Intro(val units: List<KanaUnit>, val examples: Map<String, KanaExample>, val set: Int, val sets: Int, val story: Boolean = true) : KanaStep
+    /** A new set: each kana, its sound, and a word from the stories with it in, by kana. */
+    data class Intro(val units: List<KanaUnit>, val examples: Map<String, KanaExample>, val set: Int, val sets: Int) : KanaStep
 
     /**
      * A question, shown at [shownAt], about a kana from this sitting's new set
@@ -368,7 +364,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var kanaSession: KanaSession? = null
     private var kanaThenCards = false
     private var kanaFromReviewTab = false
-    private var kanaFromChart = false
     // How far the sitting's progress line has got: it never goes back when a miss adds a question.
     private var kanaProgressShown = 0f
     // The study day a new set's intro was closed on: Start studying leaves that set out then, so it still reaches the cards.
@@ -668,21 +663,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Kana practice on its own, from Home's Next card. */
     fun startKana() = launchIo { beginKana(thenCards = false) }
 
-    /** "5 more" at the end of kana practice: the next set, now; once the stories' are all started, from the rest of the chart. */
+    /** "5 more" at the end of kana practice: the next set, now. */
     fun moreKana() = launchIo { beginKana(thenCards = kanaThenCards, more = true) }
 
-    /** "Learn the rest of the chart", under the Dictionary's kana chart: the next set of kana the stories don't use, and back to the chart after. */
-    fun learnRestOfChart() = launchIo {
-        kanaFromReviewTab = false
-        kanaFromChart = true
-        beginKana(thenCards = false, more = true)
-    }
-
     private fun beginKana(thenCards: Boolean, more: Boolean = false, withSet: Boolean = true) {
-        if (!more) {
-            kanaFromReviewTab = _screen.value is Screen.ReviewTab
-            kanaFromChart = false
-        }
+        if (!more) kanaFromReviewTab = _screen.value is Screen.ReviewTab
         kanaThenCards = thenCards
         kanaProgressShown = 0f
         // Until the phone's speech engine says, assume it has a Japanese voice; it's started here, for the sounds.
@@ -694,9 +679,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (s.newSet.isEmpty()) return askKana()
         val state = repo.kanaState()
         val texts = s.newSet.map { it.text }
-        val story = state.inStories(texts.first())
         _screen.value = Screen.Kana(
-            KanaStep.Intro(s.newSet, repo.kanaExamples(texts), state.setNumber(texts.first()), (if (story) state.sets else state.optionalSets).size, story),
+            KanaStep.Intro(s.newSet, repo.kanaExamples(texts), state.setNumber(texts.first()), state.sets.size),
             s.newRemaining,
             s.checkRemaining,
         )
@@ -760,7 +744,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 checked = practised.count { it !in brought },
                 chart = KanaChart(state, today),
                 later = counts.later,
-                more = state.nextSet() != null || state.nextOptionalSet() != null,
+                more = state.nextSet() != null,
                 cardsNext = if (kanaThenCards) repo.cardsDue(at) else 0,
             ),
             progress = 1f,
@@ -777,11 +761,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun closeKana() = launchIo {
         if ((_screen.value as? Screen.Kana)?.step is KanaStep.Intro) kanaSetPutOff = repo.clock().dayOf(now())
         kanaSession = null
-        when {
-            kanaFromChart -> openDictionary(kana = true)
-            kanaFromReviewTab -> showReviewTab()
-            else -> showHome()
-        }
+        if (kanaFromReviewTab) showReviewTab() else showHome()
     }
 
     /** A kana's sound: its recording, else the phone's voice. */

@@ -146,14 +146,14 @@ object KanaCourse {
     fun unitsIn(text: String): List<KanaUnit> = segments(text).mapNotNull { byText[it] }
 
     /**
-     * The kana the stories use, in the order to teach them, from the text
-     * they show, chapter by chapter along the path: the ones most used in
-     * the first [window] chapters first, so romaji leaves the early stories
-     * as fast as it can, then the rest in the order the stories meet them.
-     * A voiced or combined kana comes just after the one it's built on
-     * ([base]), which joins the course for it if no chapter uses it: フ
-     * before ブ, き before きゃ. Kana no chapter needs aren't in it: they're
-     * the [rest] of the chart.
+     * The order to teach kana in, from the text the stories show, chapter by
+     * chapter along the path: the ones most used in the first [window]
+     * chapters first, so romaji leaves the early stories as fast as it can,
+     * then the rest in the order the stories meet them, then the rest of the
+     * chart, most useful first: plain kana, then voiced, then combined, then
+     * katakana's spellings for borrowed sounds. A voiced or combined kana
+     * comes just after the one it's built on ([base]): フ before ブ, き
+     * before きゃ.
      */
     fun order(chapters: List<String>, window: Int = 40): List<String> {
         val counts = HashMap<String, Int>()
@@ -169,14 +169,22 @@ object KanaCourse {
                 .thenBy { first.getValue(it) }
                 .thenBy { chartIndex(it) },
         )
+        val rest = units.filter { it.text !in first }.sortedBy(::usefulness).map { it.text }
         val out = LinkedHashSet<String>()
         fun add(text: String) {
             if (text in out) return
             base(text)?.let { add(it) }
             out.add(text)
         }
-        for (text in used) add(text)
+        for (text in used + rest) add(text)
         return out.toList()
+    }
+
+    private fun usefulness(unit: KanaUnit): Int = when {
+        unit.mark -> 3
+        unit.text.length == 2 -> if (unit.text[1] in "ゃゅょャュョ") 2 else 3
+        KanaLooks.dakuten(unit.text) != null -> 1
+        else -> 0
     }
 
     /** The kana [text] is built on: か for が, は for ぱ, き for きゃ, ぎ for ぎゃ, フ for ファ; null for one that isn't. */
@@ -196,23 +204,6 @@ object KanaCourse {
         if (text.length == 2) return "${base.text} + small ${text.substring(1)} · ${unit.romaji}"
         val mark = if (java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).endsWith("\u309A")) "゜" else "゛"
         return "${base.text} with $mark · ${base.romaji} → ${unit.romaji}"
-    }
-
-    /**
-     * The kana [order] leaves out, most useful first: the basic ones, then
-     * voiced, then combined, then katakana's spellings for borrowed sounds,
-     * in chart order within each.
-     */
-    fun rest(order: Collection<String>): List<String> {
-        val taught = order.toSet()
-        return units.filter { it.text !in taught }.sortedBy { usefulness(it) }.map { it.text }
-    }
-
-    private fun usefulness(unit: KanaUnit): Int = when {
-        unit.mark -> 3
-        unit.text.length == 2 -> if (unit.text[1] in "ゃゅょャュョ") 2 else 3
-        KanaLooks.dakuten(unit.text) != null -> 1
-        else -> 0
     }
 
     /**

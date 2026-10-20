@@ -8,10 +8,9 @@ import java.io.File
  * path (path.json), each chapter's words and grammar (needs.json), and every
  * chapter and grammar page as read (read/, with the Japanese in grammar
  * pages' notes), where each grammar topic is used (lines.json), and the
- * kana the stories use in the order to teach them (kana.txt, a unit a line,
- * from the text the chapters show along the path: their kana, the readings
- * over their kanji, and each speaker's name once a chapter, however many
- * lines they have).
+ * order to teach kana in (kana.txt, a unit a line, from the text the
+ * chapters show along the path: their kana, the readings over their kanji,
+ * and each speaker's name once a chapter, however many lines they have).
  */
 fun main(args: Array<String>) {
     val out = File(args[1])

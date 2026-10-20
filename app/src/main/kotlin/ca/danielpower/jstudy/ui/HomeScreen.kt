@@ -457,7 +457,7 @@ private fun weekRange(monday: Long): String {
 }
 
 /** A dashed outline with rounded corners of [radius]; [dash] is the dash length in dp. */
-internal fun Modifier.dashedOutline(color: Color, radius: Dp, dash: Float = 4f): Modifier = drawBehind {
+private fun Modifier.dashedOutline(color: Color, radius: Dp, dash: Float = 4f): Modifier = drawBehind {
     val width = 1.5.dp.toPx()
     drawRoundRect(
         color = color,

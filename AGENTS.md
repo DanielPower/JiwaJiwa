@@ -130,16 +130,12 @@ version 9 deleted the old kana cards):
   voicing pairs and similar sounds, never one that sounds the same.
 - Taught in the order the stories use them (`stories/kana.txt`, built in
   CI; a speaker's name counts once a chapter), lookalikes in different sets,
-  so new kana show up in stories at once. A voiced or combined kana comes
-  in a set after the kana it's built on, which joins the course for it if
-  no story uses it (フ for ブ), and its intro says how it's built: "フ with
-  ゛ · fu → bu", "き + small ゃ · kya" (draft, 2026-10-20).
-- Only kana the stories use are taught and counted (draft, 2026-10-20). The
-  rest of the chart is optional: dashed on the chart ("not in your stories
-  yet"), learned only when asked for ("5 more" once the stories' sets are
-  all started, or "Learn the rest of the chart" under the Dictionary's
-  chart), and nothing waits on it. A kana a new chapter uses joins the
-  course with the next build.
+  so new kana show up in stories at once, then the rest of the chart, most
+  useful first (plain, voiced, combined, then katakana for borrowed sounds).
+  A voiced or combined kana comes in a set after the kana it's built on, and
+  its intro says how it's built: "フ with ゛ · fu → bu", "き + small ゃ ·
+  kya" (draft, 2026-10-20). Every kana is taught, not only the stories'
+  (Daniel, 2026-10-20: more stories will use them all).
 - No kana gating. Stories show romaji (Hepburn without macrons: koohii,
   kon'ya; the particles は and へ as wa and e, from the tokenizer's
   pronunciation, `ReadingWord.particles`; indigo) over kana not
@@ -149,7 +145,7 @@ version 9 deleted the old kana cards):
 - Setup asks Both / Hiragana only / Neither; unset (older installs) is
   Both. Settings has the same row. Unless Both, setup skips the Level page
   (they start from the first story, no JLPT level) and the Direction page;
-  the reader's Direction row only shows once every kana the stories use is Clear (vertical text is off
+  the reader's Direction row only shows once every kana is Clear (vertical text is off
   until then, and the gear marks it new once). Once they've all been Clear,
   it stays, whatever a later check does (`Repository.verticalAllowed`).
 - Kana practice lives on the Review tab: a Kana section above Today, and

@@ -103,36 +103,22 @@ data class KanaCounts(
 }
 
 /**
- * Where you are with kana: what you read already ([known]), the kana the
- * stories use in the order to teach them ([order]), and your progress with
- * each. The rest of the chart is [optional]: there to learn if you ask,
- * but nothing waits on it.
+ * Where you are with kana: what you read already ([known]), the order the
+ * stories need the rest in, and your progress with each.
  */
 data class KanaState(
     val known: KanaKnown,
-    /** The kana the stories use, in the order to teach them (stories/kana.txt). */
     val order: List<String>,
     val progress: Map<String, KanaProgress>,
     /** The study day a new set was last brought in by itself; "5 more" brings in more. */
     val lastSetDay: Long? = null,
 ) {
-    /** The kana to learn, in order: the ones the stories use that you didn't read already. */
-    val toLearn: List<String> by lazy { order.filter(::unknown) }
-
-    /** The rest of the chart you don't read already, most useful first: kana the stories don't use (yet). */
-    val optional: List<String> by lazy { KanaCourse.rest(order).filter(::unknown) }
-
-    private fun unknown(text: String) = KanaCourse.unit(text)?.let { !known.covers(it.script) } == true
-
-    private val inOrder: Set<String> by lazy { order.toSet() }
-
-    /** Whether the stories use [text], so it's part of the course rather than the rest of the chart. */
-    fun inStories(text: String): Boolean = text in inOrder
+    /** The kana to learn, in order: everything you didn't read already. */
+    val toLearn: List<String> by lazy {
+        order.filter { text -> KanaCourse.unit(text)?.let { !known.covers(it.script) } == true }
+    }
 
     val sets: List<List<String>> by lazy { KanaCourse.sets(toLearn) }
-
-    /** The rest of the chart in sets, learned only when you ask. */
-    val optionalSets: List<List<String>> by lazy { KanaCourse.sets(optional) }
 
     fun stage(text: String): KanaStage {
         val unit = KanaCourse.unit(text) ?: return KanaStage.CLEAR
@@ -140,11 +126,8 @@ data class KanaState(
         return progress[text]?.stage ?: KanaStage.NEW
     }
 
-    /** Every kana the stories use is clear: no romaji, and vertical text is back. */
+    /** Every kana is clear: nothing to practise, no romaji, and vertical text is back. */
     val done: Boolean get() = toLearn.all { stage(it) == KanaStage.CLEAR }
-
-    /** Kana practice still has something for you: the stories' kana, or ones you chose from the rest of the chart and are learning. */
-    val ongoing: Boolean get() = !done || optional.any { stage(it) == KanaStage.LEARNING }
 
     /** Kana you've never practised, whose romaji stories show. */
     val unread: Set<String> by lazy { toLearn.filter { stage(it) == KanaStage.NEW }.toSet() }
@@ -153,15 +136,10 @@ data class KanaState(
     val unclear: Set<String> by lazy { toLearn.filter { stage(it) != KanaStage.CLEAR }.toSet() }
 
     /** The next set's kana not practised yet. */
-    fun nextSet(): List<String>? = next(sets)
+    fun nextSet(): List<String>? = sets.firstOrNull { set -> set.any { stage(it) == KanaStage.NEW } }?.filter { stage(it) == KanaStage.NEW }
 
-    /** The next set from the rest of the chart, for when you ask for more than the stories need. */
-    fun nextOptionalSet(): List<String>? = next(optionalSets)
-
-    private fun next(sets: List<List<String>>) = sets.firstOrNull { set -> set.any { stage(it) == KanaStage.NEW } }?.filter { stage(it) == KanaStage.NEW }
-
-    /** Which set [text] is in, counting from 1: of the stories' [sets], or of the [optionalSets] for the rest of the chart. */
-    fun setNumber(text: String): Int = (if (inStories(text)) sets else optionalSets).indexOfFirst { text in it } + 1
+    /** Which set [text] is in, counting from 1. */
+    fun setNumber(text: String): Int = sets.indexOfFirst { text in it } + 1
 
     fun isDue(text: String, today: Long, now: Long): Boolean {
         val p = progress[text] ?: return false
@@ -177,16 +155,15 @@ data class KanaState(
         }
     }
 
-    /** Kana to check now: the stories', and any from the rest of the chart you've practised. */
-    fun due(today: Long, now: Long): List<String> = (toLearn + optional).filter { isDue(it, today, now) }
+    fun due(today: Long, now: Long): List<String> = toLearn.filter { isDue(it, today, now) }
 
-    /** What a session would ask now, [tomorrow] being when the next study day starts; how many are clear counts only the stories' kana. */
+    /** What a session would ask now, [tomorrow] being when the next study day starts. */
     fun counts(today: Long, now: Long, tomorrow: Long = Long.MAX_VALUE): KanaCounts = KanaCounts(
         new = if (lastSetDay == today) 0 else nextSet()?.size ?: 0,
         check = due(today, now).size,
         clear = toLearn.count { stage(it) == KanaStage.CLEAR },
         total = toLearn.size,
-        later = (toLearn + optional).count { t ->
+        later = toLearn.count { t ->
             val p = progress[t]
             p?.lateCheckAt != null && p.introducedDay == today && p.lateCheckAt > now && p.lateCheckAt < tomorrow
         },
