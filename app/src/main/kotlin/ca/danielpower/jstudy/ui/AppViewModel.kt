@@ -39,6 +39,7 @@ import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderPlace
 import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.SpeechSettings
+import ca.danielpower.jstudy.audio.Clips
 import ca.danielpower.jstudy.audio.SpokenLine
 import ca.danielpower.jstudy.audio.StoryVoice
 import ca.danielpower.jstudy.core.Voices
@@ -66,11 +67,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class ReviewCard(
     val card: Card,
@@ -290,6 +293,8 @@ data class ReadImpact(
 /** The next chapter to read, and how to name it on the button. */
 data class NextStep(val storyId: Long, val label: String)
 
+
+
 enum class SetupPage { WELCOME, KANA, LEVEL, DIRECTION, REMINDER }
 
 sealed interface ImportStep {
@@ -323,9 +328,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _speech = MutableStateFlow(SpeechSettings())
     val speech: StateFlow<SpeechSettings> = _speech.asStateFlow()
 
+    // The stories' recordings, downloaded as chapters open.
+    private val clips = Clips(app)
+
     // The phone's speech engine, started the first time something is read aloud or a reader opens.
     private var voiceEngine: StoryVoice? = null
-    private val voice: StoryVoice get() = voiceEngine ?: StoryVoice(getApplication()).also { voiceEngine = it }
+    private val voice: StoryVoice get() = voiceEngine ?: StoryVoice(getApplication(), clips).also { voiceEngine = it }
     val voiceState: StateFlow<StoryVoice.State> get() = voice.state
 
     private lateinit var repo: Repository
@@ -361,6 +369,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var kanaSession: KanaSession? = null
     private var kanaThenCards = false
     private var kanaFromReviewTab = false
+    // How far the sitting's progress line has got: it never goes back when a miss adds a question.
+    private var kanaProgressShown = 0f
+    // The study day a new set's intro was closed on: Start studying leaves that set out then, so it still reaches the cards.
+    private var kanaSetPutOff: Long? = null
     // The kana not clear yet as the review session began, for its cards' romaji.
     private var reviewKana: KanaState? = null
 
@@ -641,7 +653,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Start studying, on the Review tab: any kana due first, then the word cards. */
     fun startStudy() = launchIo {
-        if ((repo.kanaCounts(now())?.due ?: 0) > 0) beginKana(thenCards = true) else beginReview()
+        val now = now()
+        val kana = repo.kanaCounts(now)
+        // A new set closed at its intro today waits for Home's card, unless there's nothing else to do.
+        val putOff = kanaSetPutOff == repo.clock().dayOf(now)
+        when {
+            kana == null -> beginReview()
+            kana.check > 0 -> beginKana(thenCards = true, withSet = !putOff)
+            kana.new > 0 && (!putOff || repo.cardsDue(now) == 0) -> beginKana(thenCards = true)
+            else -> beginReview()
+        }
     }
 
     /** Kana practice on its own, from Home's Next card. */
@@ -650,14 +671,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** "5 more" at the end of kana practice: the next set, now. */
     fun moreKana() = launchIo { beginKana(thenCards = kanaThenCards, more = true) }
 
-    private fun beginKana(thenCards: Boolean, more: Boolean = false) {
+    private fun beginKana(thenCards: Boolean, more: Boolean = false, withSet: Boolean = true) {
         if (!more) kanaFromReviewTab = _screen.value is Screen.ReviewTab
         kanaThenCards = thenCards
+        kanaProgressShown = 0f
         // Until the phone's speech engine says, assume it has a Japanese voice; it's started here, for the sounds.
         val phone = voiceEngine?.state?.value
         repo.hasJapaneseVoice = phone == null || !phone.ready || !phone.missing
         if (voiceEngine == null) viewModelScope.launch { voice.state }
-        val s = repo.kanaSession(now(), more)
+        val s = repo.kanaSession(now(), more, withSet)
         kanaSession = s
         if (s.newSet.isEmpty()) return askKana()
         val state = repo.kanaState()
@@ -684,7 +706,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (q.listen) sayKana(q.unit.text)
     }
 
-    private fun kanaProgress(s: KanaSession) = s.answered.toFloat() / (s.answered + s.asksLeft).coerceAtLeast(1)
+    private fun kanaProgress(s: KanaSession): Float {
+        val done = s.answered.toFloat() / (s.answered + s.asksLeft).coerceAtLeast(1)
+        kanaProgressShown = maxOf(kanaProgressShown, done)
+        return kanaProgressShown
+    }
 
     /** Answer the open kana question with [choice]: timed from when it opened, and saved straight away. */
     fun answerKana(choice: String) = launchIo {
@@ -698,7 +724,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         repo.saveKana(result, at, millis)
         if (ask.fresh) repo.kanaSetStarted(at)
         _screen.value = Screen.Kana(ask.copy(picked = choice, result = result), s.newRemaining, s.checkRemaining, kanaProgress(s))
-        if (result.correct) sayKanaAnswer(ask.question)
+        // Right or wrong, the right answer's sound: after a miss, it's the one to hear.
+        sayKanaAnswer(ask.question)
     }
 
     /** On from an answered question: a right one goes by itself, a wrong one on a tap. */
@@ -711,8 +738,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val s = kanaSession ?: return showHome()
         val at = now()
         val state = repo.kanaState()
-        val today = repo.clock().dayOf(at)
-        val counts = state.counts(today, at)
+        val clock = repo.clock()
+        val today = clock.dayOf(at)
+        val counts = state.counts(today, at, clock.startOf(today + 1))
         val brought = s.newSet.map { it.text }.toSet()
         val practised = s.practised
         _screen.value = Screen.Kana(
@@ -736,6 +764,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Leave kana practice: what's answered is saved already. */
     fun closeKana() = launchIo {
+        if ((_screen.value as? Screen.Kana)?.step is KanaStep.Intro) kanaSetPutOff = repo.clock().dayOf(now())
         kanaSession = null
         if (kanaFromReviewTab) showReviewTab() else showHome()
     }
@@ -751,6 +780,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 voice.play(KANA_KEY, 0, rate, single = true) { voices -> listOf(SpokenLine(text, Voices.narrator(voices, null), clip)) }
             }
         }
+    }
+
+    /** Waits, up to [max] ms, while a kana's recording is still playing, so the next question's sound doesn't cut it off. */
+    suspend fun awaitKanaSound(max: Long) {
+        withTimeoutOrNull(max) { voice.state.first { !(it.playing && it.key == KANA_KEY) } }
     }
 
     /** The sound of a right answer: the kana's, or for a mark, the word it's in. */
@@ -1011,6 +1045,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage, startAt = startAt,
             verticalNew = repo.verticalNew(),
         )
+        getClips(reading)
+    }
+
+    // ------------------------------------------------------------ recordings
+
+    /** Downloads [reading]'s recordings that aren't on the phone yet; a chapter's are a few hundred KB. */
+    private fun getClips(reading: StoryReading) {
+        clips.fetch(reading.clips.filterNotNull().filter { !it.bundled && clips.local(it) == null })
+    }
+
+    /** The next chapter's recordings, fetched as one ends so it plays offline too. */
+    private fun prefetchClips(next: NextStep?) {
+        next?.let { repo.readStory(it.storyId) }?.let { clips.fetch(it.clips) }
     }
 
     /**
@@ -1060,6 +1107,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val pace = repo.pace(at)
         _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
         refreshStory()
+        prefetchClips((_screen.value as? Screen.StoryReader)?.next)
     }
 
     /** "Read it again" on a story's end page: it opens again on its first page. */

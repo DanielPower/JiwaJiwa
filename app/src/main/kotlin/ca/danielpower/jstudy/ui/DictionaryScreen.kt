@@ -95,6 +95,8 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
                 kana,
                 vm::sayKana,
                 modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+                // What the colours mean, while there are any to tell apart.
+                legend = !kana.state.done,
             )
         } else if (grammar != null) {
             GrammarList(grammar, vm)
