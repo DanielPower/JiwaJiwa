@@ -66,7 +66,7 @@ class TopicLinesTest {
             summary = "",
             page = PathStory("grammar/kara-made", "～から～まで", "今夜から朝まで？", listOf("From tonight till morning?"), lesson = true),
         )
-        val chapter = PathStory("night", "Night", "ユキ|「今夜から朝まで？」\n駅まで歩いた。朝から雨だった。", listOf("", "", ""))
+        val chapter = PathStory("night", "Night", "ユキ|「ケンタ、今夜から朝まで？」\n駅まで歩いた。朝から雨だった。", listOf("", "", ""))
         val catalog = StoryCatalog(
             series = listOf(PathSeries("night", "Night", "", emptyList(), listOf(Chapter(chapter, 1, "kara-made", emptyList())))),
             grammar = listOf(topic),

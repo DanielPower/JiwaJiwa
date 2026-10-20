@@ -73,6 +73,17 @@ class StorySourceTest {
     }
 
     @Test
+    fun `a lesson's line is a chapter's sentence, or its end with a name or lead-in left off`() {
+        assertTrue(Lessons.sameLine("今夜から朝まで？", "ケンタ|「今夜から朝まで？」"))
+        assertTrue(Lessons.sameLine("雨、降ってるよ！", "「アレックス、雨、降ってるよ！」"))
+        assertTrue(Lessons.sameLine("私、大丈夫かな。", "ソラ…私、大丈夫かな。"))
+        // Cut short, or another sentence ending in the same words, it isn't the chapter's.
+        assertFalse(Lessons.sameLine("朝までゲーム。", "朝までゲームだった。"))
+        assertFalse(Lessons.sameLine("人が多い。", "人が多い！"))
+        assertFalse(Lessons.sameLine("部屋だ。", "ユキの部屋だ。"))
+    }
+
+    @Test
     fun `a lone kana or an ending written with ～ is shown as written, not read`() {
         for (run in listOf("た", "だ。", "～てる", "～った")) assertTrue(Lessons.fragment(run), run)
         for (run in listOf("来た", "雨", "いい", "成田？")) assertFalse(Lessons.fragment(run), run)

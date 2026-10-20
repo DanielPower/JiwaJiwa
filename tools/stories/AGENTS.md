@@ -143,8 +143,11 @@ same shape, so a reader always knows where to look:
 1. **`summary`**: what the pattern does, in one or two sentences with a
    short example (`勝ったら, if we win`). At most 35 words.
 2. **The chapter's line**: the first of `parts` is a line from the chapter
-   that teaches it, with its English. Its words should be ones the reader
-   has by then.
+   that teaches it, with its English: one of its sentences as written, or
+   the end of one with a name or lead-in left off (雨、降ってるよ！ for
+   アレックス、雨、降ってるよ！), and one sentence on its own. Its words
+   should be ones the reader has by then. The check fails a line that
+   isn't the chapter's.
 3. **`forms`**, for a pattern that changes a word: a small table of the
    form the reader knows and the new form, with a few words of English.
    `{"head": ["Verb", "Past"], "rows": [["来る", "来た", "come, came"]]}`,

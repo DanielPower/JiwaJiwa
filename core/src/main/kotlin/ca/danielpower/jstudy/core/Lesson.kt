@@ -91,11 +91,19 @@ object Lessons {
         return text.length == 1 && Kana.isKana(text)
     }
 
-    /**
-     * A line as a lesson and a chapter can both write it, to tell when they're
-     * the same: without its speaker, the 「」 around it, or spaces.
-     */
+    /** A line as a lesson and a chapter can both write it: without its speaker, the 「」 around it, or spaces. */
     fun lineKey(text: String): String = Speech.of(text).text.filter { it !in "「」 　" }
+
+    /**
+     * Whether a lesson's [line] is a chapter's [sentence]: the same, or its
+     * end after a pause, with a name or a lead-in left off (雨、降ってるよ！
+     * for アレックス、雨、降ってるよ！; 私、大丈夫かな。 for ソラ…私、大丈夫かな。).
+     */
+    fun sameLine(line: String, sentence: String): Boolean {
+        val a = lineKey(line)
+        val b = lineKey(sentence)
+        return a == b || (b.length > a.length && b.endsWith(a) && b[b.length - a.length - 1] in PAUSES)
+    }
 
     /** The id the story tools give [topic]'s runs, read, beside its page (grammar/tara/runs). */
     fun runsId(topic: GrammarTopic) = topic.page.id + "/runs"
@@ -118,6 +126,7 @@ object Lessons {
     }
 
     private const val MARKS = "～〜「」『』、。！？…"
+    private const val PAUSES = "、。！？…"
 
     // Kana, kanji and the marks that go with them; a run needs at least one kana or kanji.
     private val JAPANESE = Regex("[～〜「」『』、。！？…ー]*[\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF々][\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF々～〜「」『』、。！？…ー]*")

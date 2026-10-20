@@ -141,16 +141,21 @@ class StoryCheck(private val tools: StoryTools) {
 
     /**
      * What's wrong with [topic]'s page as a lesson (the lesson guide in
-     * tools/stories/AGENTS.md), or null: a short summary, at most three
-     * examples and two notes before "More", English before "More" in
-     * proportion to the chapter that teaches it, and a short forms table.
+     * tools/stories/AGENTS.md), or null: a first line from the chapter that
+     * teaches it, a short summary, at most three examples and two notes
+     * before "More", English before "More" in proportion to that chapter,
+     * and a short forms table.
      */
     private fun lesson(topic: GrammarTopic): String? {
-        val chapter = catalog.teaching(topic.id).firstOrNull() ?: return null
+        val teaching = catalog.teaching(topic.id)
+        val chapter = teaching.firstOrNull() ?: return null
         val budget = lessonBudget(tools.needs.getValue(chapter.second.story.id).running)
         val shown = topic.page.notes.filter { !it.more }
         val words = shown.sumOf { countWords(it.text) }
+        val first = topic.example?.first
         return when {
+            first != null && teaching.none { (_, c) -> sentences(c.story.id).any { Lessons.sameLine(first, it) } } ->
+                "its first line, $first, isn't a line of ${chapter.second.story.id}; open with one of the chapter's own sentences"
             countWords(topic.summary) > SUMMARY_WORDS -> "its summary is ${countWords(topic.summary)} words; keep it to $SUMMARY_WORDS"
             topic.moreAt > 3 -> "${topic.moreAt} examples before More; keep three at most and fold the rest"
             shown.size > 2 -> "${shown.size} notes before More; keep two at most and fold the rest"
@@ -158,6 +163,11 @@ class StoryCheck(private val tools: StoryTools) {
             (topic.forms?.rows?.size ?: 0) > 6 -> "${topic.forms!!.rows.size} rows of forms; keep six at most"
             else -> null
         }
+    }
+
+    /** Chapter [id]'s sentences, as it's read. */
+    private fun sentences(id: String): List<String> = tools.text.getValue(id).flatMap { words ->
+        sentenceRanges(words).map { r -> r.joinToString("") { words[it].surface } }
     }
 
     /**
@@ -249,7 +259,7 @@ class StoryCheck(private val tools: StoryTools) {
         /**
          * The most words of notes a lesson shows before "More": short for the
          * first chapters, which are a dozen words long, and up to 90 once
-         * chapters run past a hundred.
+         * chapters reach 120 words.
          */
         fun lessonBudget(chapterWords: Int) = minOf(90, 30 + chapterWords / 2)
 

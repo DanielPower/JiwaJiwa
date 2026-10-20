@@ -28,21 +28,21 @@ object TopicLines {
 
     /**
      * Each topic's lines, in the order the catalog lists the chapters, by
-     * topic id. A sentence that's one of the topic's own examples is left
-     * out: its page already shows it.
+     * topic id. A sentence that's one of the topic's own examples
+     * ([Lessons.sameLine]) is left out: its page already shows it.
      */
     fun of(catalog: StoryCatalog, text: (String) -> List<List<ReadingWord>>): Map<String, List<TopicLine>> {
         val topicOf = catalog.grammar.flatMap { t -> t.points.map { it to t } }.toMap()
-        val examples = catalog.grammar.associate { t -> t.id to paragraphs(t.page.body).map(Lessons::lineKey).toSet() }
+        val examples = catalog.grammar.associate { t -> t.id to paragraphs(t.page.body) }
         val out = LinkedHashMap<String, MutableList<TopicLine>>()
         for ((_, c) in catalog.chapters) {
             text(c.story.id).forEachIndexed { p, words ->
                 for (range in sentenceRanges(words)) {
                     val used = range.flatMap { i -> words[i].grammar.map { it.point.id } }.distinct()
-                    val key = Lessons.lineKey(range.joinToString("") { words[it].surface })
+                    val sentence = range.joinToString("") { words[it].surface }
                     val size = range.count { words[it].kind != WordKind.PUNCTUATION }
                     for (t in used.mapNotNull { topicOf[it] }.distinct()) {
-                        if (key in examples.getValue(t.id)) continue
+                        if (examples.getValue(t.id).any { Lessons.sameLine(it, sentence) }) continue
                         val points = t.points.indices.filter { t.points[it] in used }
                         out.getOrPut(t.id) { ArrayList() } += TopicLine(c.story.id, p, range, size, points)
                     }
