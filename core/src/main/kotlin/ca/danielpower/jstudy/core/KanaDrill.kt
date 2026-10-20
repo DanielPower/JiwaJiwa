@@ -130,8 +130,19 @@ data class KanaState(
     /** Kana that aren't clear yet, whose romaji a word's pane shows. */
     val unclear: Set<String> by lazy { toLearn.filter { stage(it) != KanaStage.CLEAR }.toSet() }
 
+    private fun next(): KanaSet? = sets.firstOrNull { set -> set.kana.any { stage(it) == KanaStage.NEW } }
+
     /** The next set's kana not practised yet. */
-    fun nextSet(): List<String>? = sets.firstOrNull { set -> set.kana.any { stage(it) == KanaStage.NEW } }?.kana?.filter { stage(it) == KanaStage.NEW }
+    fun nextSet(): List<String>? = next()?.kana?.filter { stage(it) == KanaStage.NEW }
+
+    /**
+     * The lesson before the next set, while none of its kana has been
+     * practised: closed before practice, it shows again next time.
+     */
+    fun nextLesson(): KanaLesson? = next()?.takeIf { set -> set.kana.all { stage(it) == KanaStage.NEW } }?.lesson
+
+    /** The line its intro opens with, for the set [text] is in. */
+    fun introLine(text: String): String = KanaCourse.introLine(sets.first { text in it.kana })
 
     /** Which set [text] is in, counting from 1. */
     fun setNumber(text: String): Int = sets.indexOfFirst { text in it.kana } + 1

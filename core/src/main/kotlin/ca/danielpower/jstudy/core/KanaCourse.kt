@@ -90,6 +90,8 @@ object KanaCourse {
         listOf("シェ" to "she", "チェ" to "che", "ジェ" to "je", "ウィ" to "wi", "ウェ" to "we", "ウォ" to "wo"),
     )
 
+    private val borrowed = loanSounds.flatten().map { it.first }.toSet()
+
     private val notes = mapOf(
         "ぢ" to "Sounds like じ. Rare: mostly in words like はなぢ.",
         "づ" to "Sounds like ず. Rare: mostly in words like つづく.",
@@ -192,13 +194,87 @@ object KanaCourse {
         val unit = byText[text] ?: return null
         val base = base(text)?.let { byText[it] } ?: return null
         if (text.length == 2) return "${base.text} + small ${text.substring(1)} · ${unit.romaji}"
-        val mark = if (java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).endsWith("\u309A")) "゜" else "゛"
-        return "${base.text} with $mark · ${base.romaji} → ${unit.romaji}"
+        return "${base.text} with ${mark(text)} · ${base.romaji} → ${unit.romaji}"
     }
+
+    /** ゜ for a kana that has one (ぱ), else ゛. */
+    private fun mark(text: String) =
+        if (java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).endsWith("\u309A")) "゜" else "゛"
+
+    /**
+     * A set's first line on its intro: its row and the rule the row follows,
+     * worked out from the chart, so a kana that bends it is named: "The k
+     * row: k + each vowel.", "The s row: s + each vowel, except し, said
+     * shi.", "The k row with ゛: k becomes g.", "き and し with small ゃ ゅ ょ."
+     */
+    fun introLine(set: KanaSet): String {
+        val units = set.kana.mapNotNull { byText[it] }
+        if (units.all { it.mark }) {
+            return units.joinToString(" and ") { if (it.text == "ー") "the dash ー" else "small ${it.text}" }.replaceFirstChar { it.uppercase() } + "."
+        }
+        val first = units.first()
+        val base = base(first.text)?.let { byText[it] }
+        val line = when {
+            units.any { it.text in borrowed } -> "Sounds from other languages"
+            first.text.length == 2 ->
+                "${units.map { it.text.substring(0, 1) }.distinct().joinToString(" and ")} with small ${units.map { it.text.substring(1) }.distinct().joinToString(" ")}"
+            base != null -> {
+                val from = base.romaji.dropLast(1)
+                val to = first.romaji.dropLast(1)
+                "The $from row with ${mark(first.text)}: $from becomes $to" + except(units.filter { it.romaji != to + byText.getValue(base(it.text)!!).romaji.last() })
+            }
+            first.romaji.length == 1 -> "The five vowels"
+            else -> {
+                val consonant = first.romaji.dropLast(1)
+                val n = units.find { it.romaji == "n" }
+                val row = units.filter { it != n }
+                val odd = except(row.filter { it.romaji != consonant + it.romaji.last() })
+                when {
+                    n != null -> "The $consonant row, which keeps only ${row.joinToString(" and ") { it.text }}, then ${n.text}"
+                    row.size == 5 -> "The $consonant row: $consonant + each vowel$odd"
+                    else -> "The $consonant row: $consonant + ${row.map { it.romaji.last() }.let { v -> v.dropLast(1).joinToString(", ") + " and " + v.last() }}$odd"
+                }
+            }
+        }
+        return "$line. Tap one to hear it."
+    }
+
+    /** ", except し, said shi", for the kana in a row that don't follow it. */
+    private fun except(odd: List<KanaUnit>) =
+        if (odd.isEmpty()) "" else ", except " + odd.joinToString(", and ") { "${it.text}, said ${it.romaji}" }
 }
 
-/** Kana that are easy to mistake for each other, for choosing wrong answers. */
+/** A kana easy to take for [like], met already or in the same set, and how to tell them apart. */
+data class KanaLookNote(val kana: String, val like: List<String>, val tell: String)
+
+/** Kana that are easy to mistake for each other, for choosing wrong answers, and the worst of them pointed out as they come in. */
 object KanaLooks {
+    /**
+     * The worst lookalikes, each told apart on the intro of the set that
+     * brings in the later one, whatever row the other is in (Daniel,
+     * 2026-10-20: ぬ and め differ only in a loop, ね and れ, る and ろ).
+     */
+    private val notes = listOf(
+        KanaLookNote("お", listOf("あ"), "お has a short stroke at the top right; あ doesn't."),
+        KanaLookNote("さ", listOf("き"), "き has two crossbars; さ has one."),
+        KanaLookNote("ち", listOf("さ"), "Their curves face opposite ways: さ's opens to the right, ち's to the left."),
+        KanaLookNote("め", listOf("ぬ"), "ぬ ends in a loop; め doesn't."),
+        KanaLookNote("り", listOf("い"), "In い, the left stroke is the longer; in り, the right one."),
+        KanaLookNote("れ", listOf("ね"), "ね ends in a loop; れ kicks out to the right."),
+        KanaLookNote("ろ", listOf("る"), "る ends in a loop; ろ doesn't."),
+        KanaLookNote("わ", listOf("ね", "れ"), "ね ends in a loop, れ kicks out, and わ curves round."),
+        KanaLookNote("ツ", listOf("シ"), "ツ's short strokes sit on top, and its long one sweeps down; シ's sit on the left, and its long one sweeps up."),
+        KanaLookNote("タ", listOf("ク"), "タ is ク with one more stroke, across the middle."),
+        KanaLookNote("ヌ", listOf("ス"), "ヌ's short stroke cuts across the long one; ス's grows out of it."),
+        KanaLookNote("マ", listOf("ア"), "ア ends in a long stroke down to the left; マ, in a short tick to the right."),
+        KanaLookNote("ユ", listOf("コ"), "ユ's bottom line runs out past its side; コ's stops at the corner."),
+        KanaLookNote("ン", listOf("ソ"), "ソ's long stroke sweeps down from the top; ン's sweeps up from the bottom."),
+        KanaLookNote("ワ", listOf("ウ"), "ウ has a short stroke on top; ワ doesn't."),
+    )
+
+    /** The notes for the new kana in [texts], in their order. */
+    fun notesFor(texts: List<String>): List<KanaLookNote> = notes.filter { it.kana in texts }.sortedBy { texts.indexOf(it.kana) }
+
     private val groups = listOf(
         "さちき", "ぬめの", "ねれわ", "ぬね", "るろ", "はほけ", "いり", "こにた", "あおめ", "うつら", "しつ", "そて", "くへ",
         "まも", "ゆよ", "んそ", "みよ", "なた", "ふう",

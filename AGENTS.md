@@ -137,6 +137,15 @@ version 9 deleted the old kana cards):
   built: "フ with ゛ · fu → bu", "き + small ゃ · kya". Every kana is
   taught, not only the stories' (Daniel, 2026-10-20: more stories will use
   them all).
+- A lesson page comes before each new idea (`KanaLesson`, app
+  `KanaLessons.kt`): the vowels and the chart as a grid, ゛, ゜, small
+  ゃ ゅ ょ, small っ, katakana, ー and ッ, borrowed sounds. It shows until
+  one of its set's kana has been practised (`KanaState.nextLesson`), so
+  nothing is stored for it. A set's intro opens with its row's rule,
+  worked out from the chart (`KanaCourse.introLine`: "The s row: s + each
+  vowel, except し, said shi."), and ends with the worst lookalikes, each
+  told apart on the later kana's set whatever row the other is in
+  (`KanaLooks.notesFor`; Daniel, 2026-10-20: ぬ and め, ね and れ, る and ろ).
 - No kana gating. Stories show romaji (Hepburn without macrons: koohii,
   kon'ya; the particles は and へ as wa and e, from the tokenizer's
   pronunciation, `ReadingWord.particles`; indigo) over kana not

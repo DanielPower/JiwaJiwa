@@ -135,6 +135,56 @@ class KanaDrillTest {
     }
 
     @Test
+    fun `a set's intro names its row and the kana that bend it`() {
+        val lines = KanaCourse.sets.map { KanaCourse.introLine(it) }
+        assertEquals("The five vowels. Tap one to hear it.", lines[0])
+        assertEquals("The k row: k + each vowel. Tap one to hear it.", lines[1])
+        assertEquals("The s row: s + each vowel, except し, said shi. Tap one to hear it.", lines[2])
+        assertEquals("The t row: t + each vowel, except ち, said chi, and つ, said tsu. Tap one to hear it.", lines[3])
+        assertEquals("The y row: y + a, u and o. Tap one to hear it.", lines[7])
+        assertEquals("The w row, which keeps only わ and を, then ん. Tap one to hear it.", lines[9])
+        assertEquals("The k row with ゛: k becomes g. Tap one to hear it.", lines[10])
+        assertEquals("The t row with ゛: t becomes d, except ぢ, said ji, and づ, said zu. Tap one to hear it.", lines[12])
+        assertEquals("The h row with ゛: h becomes b. Tap one to hear it.", lines[13])
+        assertEquals("The h row with ゜: h becomes p. Tap one to hear it.", lines[14])
+        assertEquals("き and し with small ゃ ゅ ょ. Tap one to hear it.", lines[15])
+        assertEquals("ぴ with small ゃ ゅ ょ. Tap one to hear it.", lines[20])
+        assertEquals("Small っ.", lines[21])
+        assertEquals("The h row: h + each vowel, except フ, said fu. Tap one to hear it.", lines[27])
+        assertEquals("Small ッ and the dash ー.", lines[43])
+        assertEquals("Sounds from other languages. Tap one to hear it.", lines[44])
+    }
+
+    @Test
+    fun `the worst lookalikes are told apart on the later one's set, and practice mixes them in`() {
+        val setOf = KanaCourse.sets.withIndex().flatMap { (i, set) -> set.kana.map { it to i } }.toMap()
+        val notes = KanaCourse.sets.flatMap { KanaLooks.notesFor(it.kana) }
+        assertEquals(15, notes.size)
+        for (note in notes) {
+            for (like in note.like) {
+                assertTrue(setOf.getValue(like) <= setOf.getValue(note.kana), "$like by ${note.kana}")
+                assertTrue(KanaLooks.alike(note.kana, like), "${note.kana} and $like")
+            }
+        }
+        // ぬ is in the n row, め in the m row.
+        assertEquals(listOf("ぬ"), KanaLooks.notesFor(KanaCourse.sets[6].kana).single().like)
+        assertEquals(listOf("り", "れ", "ろ"), KanaLooks.notesFor(KanaCourse.sets[8].kana).map { it.kana })
+        assertTrue(KanaLooks.notesFor(KanaCourse.sets[1].kana).isEmpty())
+    }
+
+    @Test
+    fun `a set's lesson comes first until one of its kana is practised`() {
+        assertEquals(KanaLesson.VOWELS, none().nextLesson())
+        val started = none().copy(progress = mapOf("い" to KanaProgress("い", KanaStage.LEARNING, introducedDay = day)))
+        assertEquals(listOf("あ", "う", "え", "お"), started.nextSet())
+        assertNull(started.nextLesson())
+        // A set without one.
+        val vowels = KanaCourse.sets[0].kana.associateWith { KanaProgress(it, KanaStage.LEARNING, introducedDay = day) }
+        assertNull(none().copy(progress = vowels).nextLesson())
+        assertEquals(KanaLesson.KATAKANA, KanaState(KanaKnown.HIRAGANA, emptyMap()).nextLesson())
+    }
+
+    @Test
     fun `classic lookalikes and voicing pairs are alike`() {
         for ((a, b) in listOf("ツ" to "ソ", "シ" to "ン", "シ" to "ツ", "ぬ" to "ね", "ば" to "ぱ", "ブ" to "プ", "は" to "ば", "しゃ" to "じゃ", "きゅ" to "きょ", "ティ" to "ディ")) {
             assertTrue(KanaLooks.alike(a, b), "$a and $b")
