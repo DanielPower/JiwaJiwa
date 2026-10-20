@@ -141,7 +141,7 @@ class Reader(private val lexicon: Lexicon) {
      * [names] are always names, never words: リン the guitarist, not 燐.
      */
     fun words(paragraph: String, readings: Map<String, String> = emptyMap(), names: Set<String> = emptySet()): List<ReadingWord> {
-        val tokens = purposeStems(Tokens.repair(tokenizer.tokenize(paragraph).map { it.morpheme() }))
+        val tokens = purposeStems(loanwords(Tokens.repair(tokenizer.tokenize(paragraph).map { it.morpheme() }), names))
         val out = ArrayList<ReadingWord>()
         // The tokens each word was made from, for placing grammar points.
         val spans = ArrayList<IntRange>()
@@ -196,7 +196,8 @@ class Reader(private val lexicon: Lexicon) {
             spans += from until i
         }
         val pins = DEFAULT_READINGS + readings
-        val read = out.map { w -> if (w.surface in names) w.copy(kind = WordKind.NAME, wordId = null) else pinned(w, pins) }
+        val said = out.mapIndexed { w, word -> if (saidNan(word, tokens.getOrNull(spans[w].last + 1), tokens.getOrNull(spans[w].last + 2))) word.copy(reading = "なん", ruby = ruby(word.surface, "なん")) else word }
+        val read = said.map { w -> if (w.surface in names) w.copy(kind = WordKind.NAME, wordId = null) else pinned(w, pins) }
         return stutters(joinGrammar(withGrammar(read, spans, tokens)))
     }
 
@@ -276,6 +277,62 @@ class Reader(private val lexicon: Lexicon) {
         val godan = lexicon.verbs(verb).filter { it.godan }.maxOfOrNull { it.jlpt } ?: return@mapIndexed t
         if (godan == 0 || (lexicon.find(t.surface, t.readingOrSurface, WordClass.NOUN)?.jlpt ?: 0) > 0) return@mapIndexed t
         t.copy(pos = "動詞", pos2 = "自立", pos3 = "*", form = "連用形", type = "五段", base = verb)
+    }
+
+    /**
+     * Whether [word] is 何 said なん, before [next] and then [after]: before
+     * だ and です, の, quoting と, って and なんて, and でも (何ですか, 何の仕事,
+     * 何でもない). The tokenizer says なに everywhere but before a counter;
+     * 何を, 何が, 何か and 何も are なに. It stays the word 何 (なに), "what",
+     * so it's one card, not two: the dictionary's なん is the same word.
+     */
+    private fun saidNan(word: ReadingWord, next: Morpheme?, after: Morpheme?): Boolean {
+        if (word.surface != "何" || word.kind != WordKind.WORD || word.reading != "なに" || next == null) return false
+        return when {
+            next.pos == "助動詞" -> next.base in setOf("だ", "です")
+            next.pos != "助詞" -> false
+            next.base == "で" -> after?.base == "も"
+            next.base == "と" -> next.pos3 == "引用"
+            else -> next.base in setOf("の", "って", "て", "でも", "じゃ")
+        }
+    }
+
+    /**
+     * A loanword newer than the tokenizer, which it sometimes splits into
+     * pieces it does know (スマホで、 as スマ・ホ・で, though スマホで見た
+     * comes whole): one token, as the tokenizer gives a word it doesn't know,
+     * when the dictionary has it. The で after it is then the particle, as
+     * the tokenizer reads it after any noun it knows (電話で、), not だ.
+     */
+    private fun loanwords(tokens: List<Morpheme>, names: Set<String>): List<Morpheme> {
+        fun piece(t: Morpheme) = t.pos == "名詞" && t.surface.all { it in 'ァ'..'ヺ' || it == 'ー' } && t.surface !in names
+        val out = ArrayList<Morpheme>(tokens.size)
+        var i = 0
+        while (i < tokens.size) {
+            var end = i
+            while (end < tokens.size && piece(tokens[end])) end++
+            // Only a run with a piece the tokenizer shouldn't have found there (a name, a dependent noun);
+            // runs of ordinary nouns are compounds, joined later.
+            val stop = (end downTo i + 2).firstOrNull { stop ->
+                val run = tokens.subList(i, stop)
+                val text = run.joinToString("") { it.surface }
+                run.any { it.pos2 == "固有名詞" || it.pos2 == "非自立" || it.unknown } &&
+                    lexicon.find(text, Kana.toHiragana(text))?.reading == Kana.toHiragana(text)
+            }
+            if (stop == null) {
+                out += tokens[i++]
+                continue
+            }
+            val text = tokens.subList(i, stop).joinToString("") { it.surface }
+            out += Morpheme(text, "名詞", "一般", "*", "*", "*", text, null, unknown = true)
+            val next = tokens.getOrNull(stop)
+            i = stop
+            if (next != null && next.surface == "で" && next.pos == "助動詞") {
+                out += Morpheme("で", "助詞", "格助詞", "一般", "*", "*", "で", "で")
+                i++
+            }
+        }
+        return out
     }
 
     /** [word] as [readings] reads it, if it pins it and the dictionary has it with that reading. */
@@ -541,10 +598,11 @@ class Reader(private val lexicon: Lexicon) {
     private fun content(t: Morpheme): ReadingWord {
         // Numbers written in kanji (三, 百, 何) and counters (時, 円, 人) are words to learn; digits aren't.
         // Katakana the tokenizer doesn't know is a name, unless the dictionary has it: a loanword newer than
-        // the tokenizer (スマホ). Cast names are read as names before this.
+        // the tokenizer (スマホ). Cast names are read as names before this. A suffix (さん) is part of a name,
+        // but not a na-adjective the tokenizer takes for one: 好き in ゲーム好き？, "like games?", is the word.
         val newWord = t.unknown && Kana.isKana(t.surface) && lexicon.find(t.surface, t.surface) != null
         val name = t.pos2 == "固有名詞" && !newWord || (t.isNumber && t.surface.any(Char::isDigit)) ||
-            (t.pos2 == "接尾" && !t.isCounter) || (t.unknown && Kana.isKana(t.surface) && !newWord)
+            (t.pos2 == "接尾" && !t.isCounter && t.pos3 != "形容動詞語幹") || (t.unknown && Kana.isKana(t.surface) && !newWord)
         val match = if (t.unknown && name) null else lexicon.find(t.base, t.readingOrSurface, WordClass.of(t))
         // The tokenizer files some everyday words as names (毎日 the newspaper, 日本 the country): a word on the JLPT lists is a word.
         val word = t.pos2 == "固有名詞" && t.surface.any(::isKanji) && (match?.jlpt ?: 0) > 0

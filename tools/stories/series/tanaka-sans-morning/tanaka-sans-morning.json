@@ -8,11 +8,11 @@
     [["仕事のゲームだ。", "It's the game for work."], ["でも、田中さんは、ゲームが好きだ。", "But she loves games anyway."]],
     [["ケンタが来た。", "Kenta arrives."], ["スーツのケンタは、眠い。", "Kenta, in his suit, is sleepy."]],
     [["ケンタ|「おはよう…あ、すみません！」", "\"Mornin'… oh, I'm sorry!\""]],
-    [["田中|「ケンタさん、眠いですか？」", "\"Are you sleepy, Kenta-san?\""], ["ケンタ|「…はい。」", "\"…Yes.\""]],
+    [["田中|「ケンタさん、眠いですか？」", "\"Are you sleepy, Kenta?\""], ["ケンタ|「…はい。」", "\"…Yes.\""]],
     [["田中|「コーヒー、飲みませんか？」", "\"Would you like some coffee?\""], ["ケンタ|「ありがとうございます！」", "\"Thank you!\""]],
     [["田中|「じゃあ、始めましょうか。」", "\"Well then, shall we start?\""], ["ケンタ|「はい！」", "\"Yes!\""]],
     [["ケンタは、ゲームをしている。", "Kenta plays the game."], ["田中さんも、ゲームをしている。", "So does Tanaka-san."]],
-    [["お昼だ。", "Lunchtime."], ["田中|「ケンタさん、今日も、ラーメン屋に行きませんか？」", "\"Kenta-san, shall we go to the ramen place again today?\""]],
+    [["お昼だ。", "Lunchtime."], ["田中|「ケンタさん、今日も、ラーメン屋に行きませんか？」", "\"Kenta, shall we go to the ramen place again today?\""]],
     [["ケンタ|「行きます！」", "\"I'm in!\""], ["ケンタは、もう眠くない。", "Kenta isn't sleepy anymore."]]
   ]
 }

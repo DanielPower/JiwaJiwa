@@ -47,6 +47,15 @@ class ReaderTrapsTest {
         Case("「です、ます」は大事。", "ます", "ます", "ます", null, "masu"),
         Case("ご、ごめん。", "ご", "ご", "ご", null),
         Case("スマホを見た。", "スマホ", "スマホ", "すまほ", "スマホ"),
+        Case("スマホで、写真を撮った。", "スマホ", "スマホ", "すまほ", "スマホ"),
+        Case("スマホで、写真を撮った。", "で", "で", "で", null, "de"),
+        // 何 said なん is still the word 何 (なに).
+        Case("これは何ですか？", "何", "何", "なん", "なに"),
+        Case("何の仕事？", "何", "何", "なん", "なに"),
+        Case("何でもない。", "何", "何", "なん", "なに"),
+        Case("何を食べる？", "何", "何", "なに", "なに"),
+        Case("何か食べる？", "何", "何", "なに", "なに"),
+        Case("アレックス、ゲーム好き？", "好き", "好き", "すき", "すき"),
         Case("行ったことはない。", "ことは", "こと", "ことは", null, "ta-koto-ga-aru"),
         Case("大きすぎ！", "すぎ", "すぎる", "すぎ", null, "sugiru"),
         Case("練習しすぎ。", "すぎ", "すぎる", "すぎ", null, "sugiru"),
@@ -74,9 +83,21 @@ class ReaderTrapsTest {
                 if (got != "${c.lemma}/${c.reading}/${c.kana}") wrong += "${c.text} ${c.surface}: $got, wanted ${c.lemma}/${c.reading}/${c.kana}"
                 if (c.grammar != null && w.grammar.none { it.point.id == c.grammar }) wrong += "${c.text} ${c.surface}: no ${c.grammar} in ${w.grammar.map { it.point.id }}"
                 if (c.kana == null && w.kind == WordKind.WORD) wrong += "${c.text} ${c.surface}: counted as a word"
+                if (c.kana != null && w.kind != WordKind.WORD) wrong += "${c.text} ${c.surface}: read as ${w.kind}, not a word"
                 if (w.kind == WordKind.GRAMMAR) assertTrue(w.grammar.isNotEmpty(), "${c.text} ${c.surface}: no grammar point explains it")
             }
             assertEquals(emptyList(), wrong)
+        }
+    }
+
+    @Test
+    fun `the recorded voice says 何 the way the reader reads it`() {
+        val root = File("..")
+        assumeTrue(StoryTools.dictionary(root).exists(), "dictionary not built")
+        StoryTools.open(root).use { tools ->
+            fun said(text: String) = Narration.lines(listOf(tools.reader.words(text)), listOf(null)).single().text
+            assertEquals("これはなんですか？", said("これは何ですか？"))
+            assertEquals("なにを食べる？", said("何を食べる？"))
         }
     }
 }

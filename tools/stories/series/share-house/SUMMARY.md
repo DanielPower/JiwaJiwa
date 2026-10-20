@@ -31,7 +31,7 @@ Alex meets Kenta, the sleepy housemate, one morning.
 
 Kenta gamed until morning; he and Alex plan a game night.
 
-- 14 words; 3 new of 3 allowed.
+- 15 words; 3 new of 3 allowed.
 - Teaches から / まで (`kara-made`).
 - New: ゲーム (N3), 好き (すき, N5), 今夜 (こんや, N4).
 
