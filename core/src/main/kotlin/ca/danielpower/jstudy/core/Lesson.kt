@@ -91,6 +91,12 @@ object Lessons {
         return text.length == 1 && Kana.isKana(text)
     }
 
+    /**
+     * A line as a lesson and a chapter can both write it, to tell when they're
+     * the same: without its speaker, the 「」 around it, or spaces.
+     */
+    fun lineKey(text: String): String = Speech.of(text).text.filter { it !in "「」 　" }
+
     /** The id the story tools give [topic]'s runs, read, beside its page (grammar/tara/runs). */
     fun runsId(topic: GrammarTopic) = topic.page.id + "/runs"
 

@@ -828,13 +828,11 @@ class Repository private constructor(context: Context) {
         TopicLines.parse(appContext.assets.open("stories/lines.json").bufferedReader().use { it.readText() })
     }
 
-    /** The lines using [topic] in the chapters you've read, the chapter read last first, up to [STORY_LINES]. */
+    /** A few lines using [topic] in the chapters you've read, the chapter read last first, as core [TopicLines.pick] picks them. */
     private fun storyLines(topic: GrammarTopic): List<StoryLine> {
         val saved = store.pathStories()
-        return topicLines[topic.id].orEmpty()
-            .filter { saved[it.chapter]?.readAt != null }
-            .sortedByDescending { saved.getValue(it.chapter).readAt }
-            .take(STORY_LINES)
+        val readAt = saved.mapNotNull { (id, story) -> story.readAt?.let { id to it } }.toMap()
+        return TopicLines.pick(topicLines[topic.id].orEmpty(), readAt, topic.points.size)
             .mapNotNull { line ->
                 val story = saved.getValue(line.chapter)
                 val paragraphs = paragraphs(story)
@@ -1550,9 +1548,6 @@ class Repository private constructor(context: Context) {
 
         /** How far into the stories to look for a word to show a new kana in. */
         private const val KANA_EXAMPLE_CHAPTERS = 120
-
-        /** Lines from your stories to show on a grammar page. */
-        private const val STORY_LINES = 20
 
         @Volatile private var instance: Repository? = null
 
