@@ -66,11 +66,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class ReviewCard(
     val card: Card,
@@ -362,6 +364,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var kanaSession: KanaSession? = null
     private var kanaThenCards = false
     private var kanaFromReviewTab = false
+    // How far the sitting's progress line has got: it never goes back when a miss adds a question.
+    private var kanaProgressShown = 0f
+    // The study day a new set's intro was closed on: Start studying leaves that set out then, so it still reaches the cards.
+    private var kanaSetPutOff: Long? = null
     // The kana not clear yet as the review session began, for its cards' romaji.
     private var reviewKana: KanaState? = null
 
@@ -642,7 +648,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Start studying, on the Review tab: any kana due first, then the word cards. */
     fun startStudy() = launchIo {
-        if ((repo.kanaCounts(now())?.due ?: 0) > 0) beginKana(thenCards = true) else beginReview()
+        val now = now()
+        val kana = repo.kanaCounts(now)
+        // A new set closed at its intro today waits for Home's card, unless there's nothing else to do.
+        val putOff = kanaSetPutOff == repo.clock().dayOf(now)
+        when {
+            kana == null -> beginReview()
+            kana.check > 0 -> beginKana(thenCards = true, withSet = !putOff)
+            kana.new > 0 && (!putOff || repo.cardsDue(now) == 0) -> beginKana(thenCards = true)
+            else -> beginReview()
+        }
     }
 
     /** Kana practice on its own, from Home's Next card. */
@@ -651,14 +666,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** "5 more" at the end of kana practice: the next set, now. */
     fun moreKana() = launchIo { beginKana(thenCards = kanaThenCards, more = true) }
 
-    private fun beginKana(thenCards: Boolean, more: Boolean = false) {
+    private fun beginKana(thenCards: Boolean, more: Boolean = false, withSet: Boolean = true) {
         if (!more) kanaFromReviewTab = _screen.value is Screen.ReviewTab
         kanaThenCards = thenCards
+        kanaProgressShown = 0f
         // Until the phone's speech engine says, assume it has a Japanese voice; it's started here, for the sounds.
         val phone = voiceEngine?.state?.value
         repo.hasJapaneseVoice = phone == null || !phone.ready || !phone.missing
         if (voiceEngine == null) viewModelScope.launch { voice.state }
-        val s = repo.kanaSession(now(), more)
+        val s = repo.kanaSession(now(), more, withSet)
         kanaSession = s
         if (s.newSet.isEmpty()) return askKana()
         val state = repo.kanaState()
@@ -685,7 +701,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (q.listen) sayKana(q.unit.text)
     }
 
-    private fun kanaProgress(s: KanaSession) = s.answered.toFloat() / (s.answered + s.asksLeft).coerceAtLeast(1)
+    private fun kanaProgress(s: KanaSession): Float {
+        val done = s.answered.toFloat() / (s.answered + s.asksLeft).coerceAtLeast(1)
+        kanaProgressShown = maxOf(kanaProgressShown, done)
+        return kanaProgressShown
+    }
 
     /** Answer the open kana question with [choice]: timed from when it opened, and saved straight away. */
     fun answerKana(choice: String) = launchIo {
@@ -699,7 +719,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         repo.saveKana(result, at, millis)
         if (ask.fresh) repo.kanaSetStarted(at)
         _screen.value = Screen.Kana(ask.copy(picked = choice, result = result), s.newRemaining, s.checkRemaining, kanaProgress(s))
-        if (result.correct) sayKanaAnswer(ask.question)
+        // Right or wrong, the right answer's sound: after a miss, it's the one to hear.
+        sayKanaAnswer(ask.question)
     }
 
     /** On from an answered question: a right one goes by itself, a wrong one on a tap. */
@@ -738,6 +759,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Leave kana practice: what's answered is saved already. */
     fun closeKana() = launchIo {
+        if ((_screen.value as? Screen.Kana)?.step is KanaStep.Intro) kanaSetPutOff = repo.clock().dayOf(now())
         kanaSession = null
         if (kanaFromReviewTab) showReviewTab() else showHome()
     }
@@ -753,6 +775,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 voice.play(KANA_KEY, 0, rate, single = true) { voices -> listOf(SpokenLine(text, Voices.narrator(voices, null), clip)) }
             }
         }
+    }
+
+    /** Waits, up to [max] ms, while a kana's recording is still playing, so the next question's sound doesn't cut it off. */
+    suspend fun awaitKanaSound(max: Long) {
+        withTimeoutOrNull(max) { voice.state.first { !(it.playing && it.key == KANA_KEY) } }
     }
 
     /** The sound of a right answer: the kana's, or for a mark, the word it's in. */

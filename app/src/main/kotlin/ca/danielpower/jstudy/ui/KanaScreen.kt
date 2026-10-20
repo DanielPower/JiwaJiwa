@@ -131,10 +131,11 @@ private fun KanaAsk(state: Screen.Kana, step: KanaStep.Ask, vm: AppViewModel) {
     val q = step.question
     val result = step.result
     val noRipple = remember { MutableInteractionSource() }
-    // A right answer moves on by itself once its sound has started; a wrong one waits for a tap.
+    // A right answer moves on by itself once its sound has had time to play out; a wrong one waits for a tap.
     LaunchedEffect(step) {
         if (result?.correct == true) {
-            delay(RIGHT_PAUSE)
+            delay(if (q.unit.mark) MARK_PAUSE else RIGHT_PAUSE)
+            vm.awaitKanaSound(SOUND_WAIT)
             vm.nextKana()
         }
     }
@@ -281,8 +282,12 @@ private fun ProgressLine(done: Float, modifier: Modifier = Modifier) {
     }
 }
 
-/** How long a right answer stays up, its sound playing, before the next question. */
+// How long a right answer stays up, its sound playing, before the next question: at least RIGHT_PAUSE
+// (MARK_PAUSE for a mark's word, which the phone's voice is slower to say), then on until its
+// recording ends, but no more than SOUND_WAIT longer.
 private const val RIGHT_PAUSE = 600L
+private const val MARK_PAUSE = 1200L
+private const val SOUND_WAIT = 2500L
 
 // ------------------------------------------------------------------ done
 
