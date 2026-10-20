@@ -107,7 +107,8 @@ private fun IntroRow(unit: KanaUnit, example: KanaExample?, onSay: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(unit.text, fontFamily = Gothic, fontSize = 44.sp, lineHeight = 50.sp, modifier = Modifier.width(76.dp), textAlign = TextAlign.Center)
+        // A combined kana (しゃ) is two glyphs wide, too wide for this column at 44sp.
+        Text(unit.text, fontFamily = Gothic, fontSize = if (unit.text.length > 1) 34.sp else 44.sp, lineHeight = 50.sp, modifier = Modifier.width(76.dp), textAlign = TextAlign.Center)
         Column(Modifier.weight(1f)) {
             Text(soundLabel(unit), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             val line = unit.note ?: example?.let { e ->
