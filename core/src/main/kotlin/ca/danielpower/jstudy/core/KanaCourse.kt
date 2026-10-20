@@ -197,9 +197,9 @@ object KanaCourse {
 /** Kana that are easy to mistake for each other, for choosing wrong answers and keeping them apart when teaching. */
 object KanaLooks {
     private val groups = listOf(
-        "さちき", "ぬめの", "ねれわ", "るろ", "はほけ", "いり", "こにた", "あおめ", "うつら", "しつ", "そて", "くへ",
+        "さちき", "ぬめの", "ねれわ", "ぬね", "るろ", "はほけ", "いり", "こにた", "あおめ", "うつら", "しつ", "そて", "くへ",
         "まも", "ゆよ", "んそ", "みよ", "なた", "ふう",
-        "シツ", "ソンリノ", "クケタワ", "フヌス", "ウワラフ", "コユロ", "アマヤ", "チテナ", "セヒ", "ノメ", "オホ",
+        "シツソン", "ソンリノ", "クケタワ", "フヌス", "ウワラフ", "コユロ", "アマヤ", "チテナ", "セヒ", "ノメ", "オホ",
         "エニコ", "ルレ", "ヲラヨ", "キチモ", "ハル", "ヘハ", "ヨユ", "ミシ",
     )
 
@@ -207,7 +207,30 @@ object KanaLooks {
         for (group in groups) for (a in group) for (b in group) if (a != b) getOrPut(a.toString()) { mutableSetOf() }.add(b.toString())
     }
 
-    fun alike(a: String, b: String): Boolean = alikeOf[a]?.contains(b) == true || dakuten(a) == b || dakuten(b) == a
+    /**
+     * Whether [a] and [b] are easy to mix up: a lookalike pair, a kana and
+     * itself with ゛ or ゜ (は and ば), the two marked forms (ば and ぱ), or
+     * two combinations whose kana are alike that way (しゃ and じゃ, きゅ and きょ).
+     */
+    fun alike(a: String, b: String): Boolean {
+        if (a == b) return false
+        if (a.length == 2 && b.length == 2) return sameOrAlike(a.substring(0, 1), b.substring(0, 1)) && sameOrAlike(full(a[1]), full(b[1]))
+        return single(a, b)
+    }
+
+    private fun single(a: String, b: String): Boolean {
+        val baseA = dakuten(a)
+        val baseB = dakuten(b)
+        return alikeOf[a]?.contains(b) == true || baseA == b || baseB == a || (baseA != null && baseA == baseB)
+    }
+
+    private fun sameOrAlike(a: String, b: String) = a == b || single(a, b)
+
+    /** A small kana's full size (ゅ is ゆ), for comparing combinations. */
+    private fun full(c: Char): String = (SMALL.indexOf(c).takeIf { it >= 0 }?.let { FULL[it] } ?: c).toString()
+
+    private const val SMALL = "ぁぃぅぇぉゃゅょァィゥェォャュョ"
+    private const val FULL = "あいうえおやゆよアイウエオヤユヨ"
 
     fun lookalikes(text: String): Set<String> = alikeOf[text].orEmpty()
 

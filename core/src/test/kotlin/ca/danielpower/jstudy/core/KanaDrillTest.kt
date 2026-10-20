@@ -105,6 +105,22 @@ class KanaDrillTest {
     }
 
     @Test
+    fun `classic lookalikes and voicing pairs are alike`() {
+        for ((a, b) in listOf("ツ" to "ソ", "シ" to "ン", "シ" to "ツ", "ぬ" to "ね", "ば" to "ぱ", "ブ" to "プ", "は" to "ば", "しゃ" to "じゃ", "きゅ" to "きょ", "ティ" to "ディ")) {
+            assertTrue(KanaLooks.alike(a, b), "$a and $b")
+            assertTrue(KanaLooks.alike(b, a), "$b and $a")
+        }
+        assertTrue(KanaLooks.alike("か", "が"))
+        assertFalse(KanaLooks.alike("あ", "ア"))
+        assertFalse(KanaLooks.alike("ば", "ば"))
+        assertFalse(KanaLooks.alike("が", "ぎ"))
+        assertFalse(KanaLooks.alike("きゃ", "きゅ"))
+        val sets = KanaCourse.sets(listOf("ツ", "ソ", "シ", "ン", "ア", "イ", "ば", "ぱ"))
+        fun where(t: String) = sets.indexOfFirst { t in it }
+        assertTrue(where("ツ") != where("ソ") && where("シ") != where("ン") && where("ば") != where("ぱ"))
+    }
+
+    @Test
     fun `keeps lookalikes in different sets`() {
         val sets = KanaCourse.sets(listOf("さ", "ち", "き", "か", "た", "な", "い"))
         assertEquals(listOf("さ", "か", "た", "い"), sets[0].take(4))
