@@ -29,7 +29,11 @@ data class KanaProgress(
     val passDays: Int = 0,
     /** The study day it was last asked. */
     val lastDay: Long? = null,
-    /** When the day it's introduced, a second look falls due. Null once it's had it. */
+    /**
+     * When it's next asked, once introduced: the day's second look, or for
+     * one learned late at night, the earliest the next day's check can be.
+     * Null once it's had it.
+     */
     val lateCheckAt: Long? = null,
     /** Once clear, the study day of its next weekly check, or null once the checks are over. */
     val checkDue: Long? = null,
@@ -63,6 +67,19 @@ object KanaRules {
 
     const val OPTIONS = 4
     const val CONFUSIONS = 4
+
+    /**
+     * When kana learned at [at] are next asked: [LATE_CHECK_MILLIS] later,
+     * that day. Too late for that before midnight, they wait for the next
+     * study day's check instead, and no sooner than that long after, so
+     * they're never asked in the night, and a set learned just before the
+     * rollover doesn't count a day's pass half an hour later.
+     */
+    fun lateCheckAt(at: Long, clock: StudyClock): Long {
+        val day = clock.dayOf(at)
+        val check = at + LATE_CHECK_MILLIS
+        return if (check <= clock.midnightOf(day)) check else maxOf(check, clock.startOf(day + 1))
+    }
 }
 
 /** How many kana a session would ask, for Home, the Review tab and the badge. */
@@ -130,21 +147,29 @@ data class KanaState(
         if (KanaCourse.unit(text)?.let { known.covers(it.script) } != false) return false
         return when (p.stage) {
             KanaStage.NEW -> false
-            KanaStage.LEARNING -> if (p.introducedDay == today) p.lateCheckAt != null && p.lateCheckAt <= now else (p.lastDay ?: Long.MIN_VALUE) < today
+            KanaStage.LEARNING -> if (p.introducedDay == today) {
+                p.lateCheckAt != null && p.lateCheckAt <= now
+            } else {
+                (p.lastDay ?: Long.MIN_VALUE) < today && (p.lateCheckAt == null || p.lateCheckAt <= now)
+            }
             KanaStage.CLEAR -> p.checkDue != null && p.checkDue <= today
         }
     }
 
     fun due(today: Long, now: Long): List<String> = toLearn.filter { isDue(it, today, now) }
 
-    fun counts(today: Long, now: Long): KanaCounts {
+    /** What a session would ask now, [tomorrow] being when the next study day starts. */
+    fun counts(today: Long, now: Long, tomorrow: Long = Long.MAX_VALUE): KanaCounts {
         val due = due(today, now)
         return KanaCounts(
             new = if (lastSetDay == today) 0 else nextSet()?.size ?: 0,
             check = due.size,
             clear = toLearn.count { stage(it) == KanaStage.CLEAR },
             total = toLearn.size,
-            later = toLearn.count { t -> progress[t]?.let { it.introducedDay == today && it.lateCheckAt != null && it.lateCheckAt > now } == true },
+            later = toLearn.count { t ->
+                val p = progress[t]
+                p?.lateCheckAt != null && p.introducedDay == today && p.lateCheckAt > now && p.lateCheckAt < tomorrow
+            },
             late = due.count { progress[it]?.introducedDay == today },
             learning = toLearn.count { stage(it) == KanaStage.LEARNING },
         )
@@ -192,6 +217,8 @@ class KanaSession(
     /** Whether a kana has a sound to play, for asking it by sound. */
     private val canListen: (String) -> Boolean = { true },
     private val random: Random = Random.Default,
+    /** When kana learned at a time are next asked ([KanaRules.lateCheckAt]). */
+    private val lateCheck: (Long) -> Long = { it + KanaRules.LATE_CHECK_MILLIS },
 ) {
     private enum class Kind { NEW, KNOW_CHECK, DUE, LATE, CHECK }
 
@@ -294,7 +321,7 @@ class KanaSession(
                     if (p.stage == KanaStage.NEW) p = p.copy(stage = KanaStage.LEARNING, introducedDay = today)
                     item.needed--
                     p = p.copy(lastDay = today)
-                    if (item.needed <= 0) p = p.copy(lateCheckAt = now + KanaRules.LATE_CHECK_MILLIS)
+                    if (item.needed <= 0) p = p.copy(lateCheckAt = lateCheck(now))
                 } else {
                     item.needed = maxOf(item.needed, KanaRules.AFTER_MISS)
                 }
@@ -312,7 +339,7 @@ class KanaSession(
                         }
                         correct -> p
                         else -> p.copy(passDays = 0)
-                    }.copy(lastDay = today)
+                    }.copy(lastDay = today, lateCheckAt = null)
                 }
                 item.needed = if (correct) item.needed - 1 else maxOf(item.needed, 1)
             }
@@ -341,27 +368,31 @@ class KanaSession(
     companion object {
         private val NEW_KINDS = setOf(Kind.NEW, Kind.KNOW_CHECK)
 
-        /** Words that show a mark at work, each with its sound first and three near misses. */
+        /**
+         * Words that show a mark at work, each with its sound first and three
+         * near misses. The misses differ only in what the marks do (a sound
+         * doubled or held), never in a kana, which may not have been met yet.
+         */
         val MARK_WORDS: Map<String, List<Pair<String, List<String>>>> = mapOf(
             "っ" to listOf(
-                "きって" to listOf("kitte", "kite", "kiite", "kitto"),
-                "ちょっと" to listOf("chotto", "choto", "chooto", "chotte"),
-                "もっと" to listOf("motto", "moto", "mooto", "mutto"),
-                "ずっと" to listOf("zutto", "zuto", "zuuto", "jutto"),
-                "やった" to listOf("yatta", "yata", "yaata", "yotta"),
+                "きって" to listOf("kitte", "kite", "kiite", "kittee"),
+                "ちょっと" to listOf("chotto", "choto", "chooto", "chottoo"),
+                "もっと" to listOf("motto", "moto", "mooto", "mottoo"),
+                "ずっと" to listOf("zutto", "zuto", "zuuto", "zuttoo"),
+                "やった" to listOf("yatta", "yata", "yaata", "yattaa"),
             ),
             "ッ" to listOf(
-                "ベッド" to listOf("beddo", "bedo", "beedo", "betto"),
-                "カップ" to listOf("kappu", "kapu", "kaapu", "koppu"),
-                "ネット" to listOf("netto", "neto", "neeto", "natto"),
-                "ロック" to listOf("rokku", "roku", "rooku", "rakku"),
-                "チケット" to listOf("chiketto", "chiketo", "chikeeto", "chikatto"),
+                "ベッド" to listOf("beddo", "bedo", "beedo", "beddoo"),
+                "カップ" to listOf("kappu", "kapu", "kaapu", "kappuu"),
+                "ネット" to listOf("netto", "neto", "neeto", "nettoo"),
+                "ロック" to listOf("rokku", "roku", "rooku", "rokkuu"),
+                "チケット" to listOf("chiketto", "chiketo", "chikeeto", "chikettoo"),
             ),
             "ー" to listOf(
-                "ラーメン" to listOf("raamen", "ramen", "rameen", "raamon"),
+                "ラーメン" to listOf("raamen", "ramen", "rameen", "raameen"),
                 "コーヒー" to listOf("koohii", "kohi", "koohi", "kohii"),
-                "ゲーム" to listOf("geemu", "gemu", "gemuu", "gaamu"),
-                "ケーキ" to listOf("keeki", "keki", "kekii", "kaaki"),
+                "ゲーム" to listOf("geemu", "gemu", "gemuu", "geemuu"),
+                "ケーキ" to listOf("keeki", "keki", "kekii", "keekii"),
                 "スーパー" to listOf("suupaa", "supa", "suupa", "supaa"),
             ),
         )

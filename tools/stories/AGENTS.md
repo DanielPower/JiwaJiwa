@@ -41,7 +41,8 @@ has no tokenizer of its own: what the check passes is exactly what it shows.
   "ほう"}`). A pinned dictionary form pins its conjugations too. Few
   chapters need one: the reader already reads 何時 なんじ, 描く かく, 弦
   げん, 弾く ひく and 日本 にほん everywhere (`DEFAULT_READINGS` in the
-  reader), and あの方 as かた. Check the new words the chapter check lists:
+  reader), あの方 as かた, and 何 as なん before だ, です, の and って
+  (何ですか; still the word 何). Check the new words the chapter check lists:
   a wrong reading there means a wrong card. It also lists the kanji words
   off the JLPT lists, the likeliest to be read the wrong way. The check
   fails if a pin isn't needed, or doesn't take.

@@ -294,7 +294,7 @@ private fun KanaSection(summary: Summary, vm: AppViewModel) {
                 listOfNotNull(
                     kana.new.takeIf { it > 0 }?.let { "$it new" },
                     kana.check.takeIf { it > 0 }?.let { "$it to check" },
-                ).joinToString(", ").ifEmpty { if (kana.later > 0) "A quick check later today" else "Done for today" },
+                ).joinToString(", ").ifEmpty { if (kana.later > 0) "A quick check later today" else "Nothing to practice today" },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f),

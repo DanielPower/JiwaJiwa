@@ -3,10 +3,10 @@
   "plot": "Miho recommends manga, and Alex buys them all.",
   "paragraphs": [
     [["アレックス|「すみません、ミホさん。」", "\"Excuse me, Miho.\""], ["ミホ|「はい？」", "\"Yes?\""]],
-    [["ミホ|「アレックスさん、マンガは好きですか？」", "\"Alex, do you like manga?\""], ["アレックス|「好き！」", "\"I love it!\""]],
-    [["ミホ|「これは、好きですか？」", "\"Do you like this one?\""], ["アレックス|「好き！」", "\"I love it!\""]],
+    [["ミホ|「アレックスさん、マンガは好きですか？」", "\"Alex, do you like manga?\""], ["アレックス|「好きです！」", "\"I love it!\""]],
+    [["ミホ|「これは、好きですか？」", "\"Do you like this one?\""], ["アレックス|「好きです！」", "\"I love it!\""]],
     [["ミホ|「じゃあ、これも。おもしろいですよ。」", "\"Then this one too. It's good.\""]],
-    [["アレックス|「これもおもしろい？」", "\"Is this one good too?\""], ["ミホ|「はい、おもしろいです。」", "\"Yes, it's good.\""]],
-    [["アレックス|「…買う！」", "\"…I'll take it!\""], ["アレックス|「これも買う！」", "\"This one too!\""]]
+    [["アレックス|「これもおもしろいですか？」", "\"Is this one good too?\""], ["ミホ|「はい、おもしろいです。」", "\"Yes, it's good.\""]],
+    [["アレックス|「…買います！」", "\"…I'll take it!\""], ["アレックス|「これも買います！」", "\"This one too!\""]]
   ]
 }

@@ -1,7 +1,6 @@
 {
   "title": "Waiting",
   "plot": "Summer turns to autumn and Miho waits for the results without drawing, until Kenta tells her to start the next one; then the woman from the publisher calls: she's an editor, and she's read it.",
-  "meets": [{"name": "佐藤", "about": "editor at the manga magazine; Miho met her at the publisher", "voice": "woman", "pitch": 0.92}],
   "paragraphs": [
     [["マンガを送ってから、毎日が静かだ。", "Since I sent off the manga, every day has been quiet."]],
     [["朝、仕事に行く。", "In the morning, I go to work."], ["夜、帰る。", "At night, I come home."], ["描かない。", "I don't draw."]],
