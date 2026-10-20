@@ -178,11 +178,12 @@ above, and names the limit.
 
 Each sentence is recorded with Fish Audio into `app/src/main/assets/audio`,
 one clip a sentence, named by a hash of the model, voice and text. The
-"Record story audio" workflow records what's missing on each pull request
-that changes the stories and commits the clips to its branch, so a changed
-sentence is recorded again and its old clip deleted. Never edit or rename
-clips by hand. To see what a change would record and cost, without
-spending anything:
+"Record story audio" workflow records what's missing once a pull request
+is merged, as the release's first step, and commits the clips to main, so
+a changed sentence is recorded again and its old clip deleted. Until then
+the app reads new lines in the phone's voice, debug APKs included. Never
+edit or rename clips by hand. To see what a change would record and cost,
+without spending anything:
 
     ./gradlew -PcoreOnly=true :core:storyAudio
 

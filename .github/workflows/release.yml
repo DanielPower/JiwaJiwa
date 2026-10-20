@@ -16,9 +16,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    # Releases come from main only, even when started by hand.
+  # Records what main has no clips for yet and commits them, so the release has them.
+  record:
     if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/audio.yml
+    secrets: inherit
+
+  release:
+    needs: record
+    # Releases come from main only, even when started by hand. A failed
+    # recording doesn't hold one up: the app reads lines with no clip in the
+    # phone's voice.
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -31,6 +40,9 @@ jobs:
       VERSION_BASE: 0
     steps:
       - uses: actions/checkout@v4
+        with:
+          # With the clips just recorded, when there were any.
+          ref: ${{ needs.record.outputs.sha || github.sha }}
 
       - uses: actions/setup-java@v5
         with:
@@ -78,14 +90,16 @@ jobs:
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: ./gradlew :core:test :app:testReleaseUnitTest :app:assembleRelease :app:bundleRelease
 
-      # What's new is the change's one-line summary. A merge commit's subject is
+      # What's new is the change's one-line summary, from the commit that started
+      # the run rather than the clips' commit. A merge commit's subject is
       # "Merge pull request #… from …", with the pull request's title under it.
       - name: Write the release notes
         run: |
-          subject="$(git log -1 --pretty=%s)"
+          git fetch -q --depth=1 origin "$GITHUB_SHA"
+          subject="$(git log -1 --pretty=%s "$GITHUB_SHA")"
           title="$subject"
           case "$subject" in
-            "Merge pull request #"*) title="$(git log -1 --pretty=%b | sed -n '/[^[:space:]]/{p;q}')" ;;
+            "Merge pull request #"*) title="$(git log -1 --pretty=%b "$GITHUB_SHA" | sed -n '/[^[:space:]]/{p;q}')" ;;
           esac
           printf '%s\n' "${title:-$subject}" > notes.txt
           # Play's "What's new" takes 500 characters. Cut characters, not bytes, as notes can be in Japanese.
@@ -128,5 +142,5 @@ jobs:
             gh release upload "v${version}" "$apk" "$aab" --clobber
             gh release edit "v${version}" --draft=false
           else
-            gh release create "v${version}" "$apk" "$aab" --title "Jiwa Jiwa ${version}" --notes "$notes" --target "$GITHUB_SHA"
+            gh release create "v${version}" "$apk" "$aab" --title "Jiwa Jiwa ${version}" --notes "$notes" --target "$(git rev-parse HEAD)"
           fi

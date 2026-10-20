@@ -102,3 +102,17 @@ upload key, so APKs from GitHub releases can't update an install from Play,
 or the other way round.
 
 The privacy policy is [PRIVACY.md](PRIVACY.md).
+
+## Story audio
+
+Each release first records the story sentences main has no clip for yet,
+with Fish Audio (the `FISH_API_KEY` secret), and commits the clips to `main`.
+When `main` takes no direct pushes, give the workflow a way past that:
+
+```sh
+ssh-keygen -t ed25519 -N "" -C "story audio" -f audio_key
+```
+
+Add `audio_key.pub` as a deploy key with write access (Settings → Deploy
+keys), put `audio_key` in the `AUDIO_DEPLOY_KEY` repository secret, and add
+"Deploy keys" to the bypass list of the ruleset that protects `main`.

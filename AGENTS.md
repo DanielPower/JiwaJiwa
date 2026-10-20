@@ -61,8 +61,8 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | --- | --- | --- |
 | `test.yml` (Tests) | every PR, every push to main | core tests, app unit tests, dictionary tests, as separate checks |
 | `check.yml` (Check pull request) | every PR, or by hand on any branch | builds the dictionary, runs the core tests with it (so `StoryPathTest` checks the stories, which it skips in Tests), and builds the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it (a run started by hand updates its branch's PR comment too) |
-| `audio.yml` (Record story audio) | PRs that change `tools/stories/`, or by hand on a branch | records the clips that are missing with Fish Audio (`FISH_API_KEY`, stops over $5 unless run by hand with a higher limit) and commits them to the PR's branch, then starts the checks again |
-| `release.yml` | pushes to main that change more than `.md` files, or by hand on main | tests and builds, sends the signed bundle to Google Play internal testing (with `PLAY_SERVICE_ACCOUNT_JSON` and the signing secrets; `PLAY_RELEASE_STATUS` variable, "What's new" is the PR title), then publishes a GitHub release `v0.1.<run number>` (versionCode is ten times that, plus the attempt) |
+| `audio.yml` (Record story audio) | first job of `release.yml`, or by hand | records the clips main is missing with Fish Audio (`FISH_API_KEY`, stops over $5 unless run by hand with a higher limit) and commits them to main with `[skip ci]`, pushing with the `AUDIO_DEPLOY_KEY` deploy key (allowed past main's ruleset) when it's set. Pull requests record nothing: until a change merges, its new lines are read in the phone's voice |
+| `release.yml` | pushes to main that change more than `.md` files, or by hand on main | records the missing audio (`audio.yml`), then tests and builds main with the clips, sends the signed bundle to Google Play internal testing (with `PLAY_SERVICE_ACCOUNT_JSON` and the signing secrets; `PLAY_RELEASE_STATUS` variable, "What's new" is the PR title), then publishes a GitHub release `v0.1.<run number>` (versionCode is ten times that, plus the attempt) |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
 | `update-dictionary.yml` | monthly, or by hand | pins the newest JMdict, KANJIDIC2 and JmdictFurigana and opens a PR (close and reopen it to run its checks) |
 
@@ -225,9 +225,11 @@ Other features (all shipped):
   unused clips are deleted. The voices are in `tools/stories/voices.json`:
   the model, the narrator, each of the cast by name and one for each kind
   of voice for unnamed speakers; a story's `story.json` may set its own
-  `narrator`. The "Record story audio" workflow records on pull requests
-  that change the stories (`FISH_API_KEY` secret, stopping over $5 unless
-  run by hand with a higher limit) and commits the clips to the branch.
+  `narrator`. The "Record story audio" workflow records what's missing as the
+  release's first step, once a change is merged (`FISH_API_KEY` secret,
+  stopping over $5 unless run by hand with a higher limit), and commits the
+  clips to main (Daniel, 2026-10-20: so a story reworked over many pushes
+  isn't recorded each time).
   Each voice is measured once and played at a gain from `tools/stories/levels.json`
   (Daniel, 2026-10-19: per voice, not per clip, so shouts stay loud).
   A line with no clip is read by the phone's voice (`voice` and `pitch` in

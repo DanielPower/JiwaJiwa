@@ -2,43 +2,53 @@ name: Record story audio
 
 # Records the stories' sentences with Fish Audio (tools/stories/voices.json,
 # and each of the cast's `fish` voice), only the ones without a clip yet, and
-# commits the clips to app/src/main/assets/audio on the pull request's branch.
-# Each new voice is measured once, and its gain (tools/stories/levels.json)
-# evens out how loud the voices play in the app.
+# commits the clips to app/src/main/assets/audio on main. Each new voice is
+# measured once, and its gain (tools/stories/levels.json) evens out how loud
+# the voices play in the app.
+# It's the first job of "Build and release", so each merge ships with its
+# clips. Pull requests record nothing, so a story reworked over many pushes
+# isn't recorded each time; until it merges, the app reads its new lines in
+# the phone's voice.
 # Clips are named by a hash of the model, voice and sentence, so a sentence is
 # recorded again only when one of those changes, and clips no sentence uses
 # any more are deleted. Each recording costs money: a run stops before going
 # over $5, unless it's run by hand with a higher limit.
 
 on:
-  pull_request:
-    paths:
-      - tools/stories/**
+  workflow_call:
+    outputs:
+      sha:
+        description: The commit on main with the clips
+        value: ${{ jobs.record.outputs.sha }}
+  # Records main, whichever branch it's started on.
   workflow_dispatch:
     inputs:
       limit:
         description: Most to spend, in dollars
         default: "5"
 
-# One run a branch at a time, so two never record the same sentences.
-concurrency:
-  group: audio-${{ github.head_ref || github.ref_name }}
-
 permissions:
   contents: write
-  # To start the checks again after committing the clips: a push made with
-  # this workflow's token doesn't start other workflows on its own.
-  actions: write
 
 jobs:
   record:
-    # Pull requests from forks get no secrets and can't push here.
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # One run at a time, so two never record the same sentences.
+    concurrency:
+      group: audio
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          # The tip of main rather than the commit that started the run, which
+          # may be behind clips a later merge's run has already recorded.
+          ref: main
+          # Main takes no direct pushes, but this deploy key may bypass that.
+          # Without it the workflow's own token pushes, which is fine while
+          # main isn't protected.
+          ssh-key: ${{ secrets.AUDIO_DEPLOY_KEY }}
 
       - uses: actions/setup-java@v4
         with:
@@ -77,16 +87,18 @@ jobs:
           # The dictionary built into it is ignored. levels.json has each voice's gain.
           git add -A app/src/main/assets tools/stories/levels.json
           if git diff --cached --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Record story audio"
-          # Someone may have pushed while it recorded: the clips are new files, so they go on top.
+          # The release that started this builds the clips' commit, so pushing
+          # it mustn't start another.
+          git commit -m "Record story audio [skip ci]"
+          # A merge may have landed while it recorded: the clips are new files, so they go on top.
           pushed=false
           for attempt in 1 2 3 4; do
-            if git pull --rebase --autostash origin "${{ github.head_ref || github.ref_name }}" && git push; then
+            if git pull --rebase --autostash origin main && git push origin HEAD:main; then
               pushed=true
               break
             fi
@@ -97,7 +109,7 @@ jobs:
             echo "::error::Couldn't push the clips; they're attached to this run."
             exit 1
           fi
-          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Keep the clips if they couldn't be pushed
         if: failure() && steps.commit.outcome == 'failure'
@@ -108,11 +120,3 @@ jobs:
             app/src/main/assets/audio
             tools/stories/levels.json
           retention-days: 14
-
-      - name: Check again with the clips
-        if: always() && steps.commit.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run check.yml --ref "${{ github.head_ref || github.ref_name }}"
-          gh workflow run test.yml --ref "${{ github.head_ref || github.ref_name }}"
