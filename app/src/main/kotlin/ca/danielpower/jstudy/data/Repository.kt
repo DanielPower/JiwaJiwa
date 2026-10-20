@@ -324,7 +324,11 @@ data class ReaderStyle(
 }
 
 /** How stories are read aloud: the speed. */
-data class SpeechSettings(val rate: Float = 1f) {
+data class SpeechSettings(
+    val rate: Float = 1f,
+    /** Download stories' recordings on mobile data without asking first. */
+    val mobileData: Boolean = false,
+) {
     companion object {
         val RATES = listOf(0.6f, 0.8f, 1f, 1.2f)
     }
@@ -733,11 +737,12 @@ class Repository private constructor(context: Context) {
         val default = SpeechSettings()
         return SpeechSettings(
             rate = store.getValue("speech_rate")?.toFloatOrNull()?.takeIf { it in SpeechSettings.RATES } ?: default.rate,
+            mobileData = store.getValue("audio_mobile_data") == "1",
         )
     }
 
     fun setSpeechSettings(settings: SpeechSettings) {
-        store.setValues(mapOf("speech_rate" to settings.rate.toString()))
+        store.setValues(mapOf("speech_rate" to settings.rate.toString(), "audio_mobile_data" to if (settings.mobileData) "1" else "0"))
     }
 
     /** The stories' cast with their voices, in the order the stories meet them, so each keeps theirs as stories are added. */
@@ -782,19 +787,20 @@ class Repository private constructor(context: Context) {
         ).let { it.copy(clips = clips(story, it.narration)) }
     }
 
-    /** The recordings that come with the app, by file name. */
-    private val recorded: Set<String> by lazy { appContext.assets.list(Recordings.DIR).orEmpty().toSet() }
+    /** Kana's recordings, which come with the app, by file name. */
+    private val bundledClips: Set<String> by lazy { appContext.assets.list(Recordings.DIR).orEmpty().toSet() }
 
     /**
-     * Each of [lines]' recording, when it's been recorded: in its story's
-     * narrator's voice, and each of the cast's own, played at its voice's gain.
+     * Each of [lines]' recording, when it has a voice to be recorded in: in
+     * its story's narrator's voice, and each of the cast's own, played at its
+     * voice's gain. It's downloaded when wanted, and a line not recorded yet
+     * is read by the phone.
      */
     private fun clips(story: SavedStory, lines: List<NarrationLine>): List<Recording?> {
         val narrator = catalog.series.firstOrNull { s -> s.chapters.any { it.story.id == story.pathId } }?.narrator
         val voices = catalog.voices
         return Recordings.clips(lines, voices, catalog.cast.associateBy { it.name }, narrator).map { clip ->
-            clip?.takeIf { (key, _) -> "$key.${Recordings.EXTENSION}" in recorded }
-                ?.let { (key, voice) -> Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f) }
+            clip?.let { (key, voice) -> Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f) }
         }
     }
 
@@ -1191,10 +1197,9 @@ class Repository private constructor(context: Context) {
 
     /** A kana's recorded sound, if the app has one. */
     fun kanaClip(text: String): Recording? {
-        val voices = catalog.voices
-        val (key, voice) = Recordings.kana(text, voices) ?: return null
-        if ("$key.${Recordings.EXTENSION}" !in recorded) return null
-        return Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f)
+        val (key, voice) = Recordings.kana(text)
+        if ("$key.${Recordings.EXTENSION}" !in bundledClips) return null
+        return Recording(Recordings.file(key), catalog.voices.gains[voice]?.toFloat() ?: 0f, bundled = true)
     }
 
     /**

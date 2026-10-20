@@ -1,44 +1,56 @@
 name: Record story audio
 
 # Records the stories' sentences with Fish Audio (tools/stories/voices.json,
-# and each of the cast's `fish` voice), only the ones without a clip yet, and
-# commits the clips to app/src/main/assets/audio on the pull request's branch.
-# Each new voice is measured once, and its gain (tools/stories/levels.json)
-# evens out how loud the voices play in the app.
-# Clips are named by a hash of the model, voice and sentence, so a sentence is
-# recorded again only when one of those changes, and clips no sentence uses
-# any more are deleted. Each recording costs money: a run stops before going
-# over $5, unless it's run by hand with a higher limit.
+# and each of the cast's `fish` voice) and uploads the clips to the audio
+# bucket (DigitalOcean Spaces), where the app downloads them as chapters open.
+# Only sentences without a clip in the bucket are recorded: clips are named by
+# a hash of the model, voice and sentence, so a sentence is recorded again
+# only when one of those changes. Old clips are left in the bucket, as older
+# versions of the app still play them.
+# Each new voice is measured once, and its gain (levels.json, kept in the
+# bucket) evens out how loud the voices play in the app; builds download it.
+# It runs alongside the release, not before it: until a line's clip is
+# uploaded, the app reads it in the phone's voice.
+# Each recording costs money: a run stops before going over $5, unless it's
+# run by hand with a higher limit.
+#
+# Needs the FISH_API_KEY, SPACES_ACCESS_KEY_ID and SPACES_SECRET_ACCESS_KEY
+# secrets, and the SPACES_BUCKET and SPACES_REGION variables.
 
 on:
-  pull_request:
+  push:
+    branches: [main]
     paths:
       - tools/stories/**
+      - core/src/main/kotlin/ca/danielpower/jstudy/core/Recordings.kt
+      - .github/workflows/audio.yml
   workflow_dispatch:
     inputs:
       limit:
         description: Most to spend, in dollars
         default: "5"
 
-# One run a branch at a time, so two never record the same sentences.
+# One run at a time, so two never record the same sentences.
 concurrency:
-  group: audio-${{ github.head_ref || github.ref_name }}
+  group: audio
+  cancel-in-progress: false
 
 permissions:
-  contents: write
-  # To start the checks again after committing the clips: a push made with
-  # this workflow's token doesn't start other workflows on its own.
-  actions: write
+  contents: read
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.SPACES_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.SPACES_SECRET_ACCESS_KEY }}
+  # Spaces ignores it, but the AWS CLI wants one.
+  AWS_DEFAULT_REGION: us-east-1
+  ENDPOINT: https://${{ vars.SPACES_REGION }}.digitaloceanspaces.com
+  BUCKET: s3://${{ vars.SPACES_BUCKET }}
 
 jobs:
   record:
-    # Pull requests from forks get no secrets and can't push here.
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - uses: actions/setup-java@v4
         with:
@@ -63,56 +75,44 @@ jobs:
       - name: Install ffmpeg
         run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
 
+      # The first run fills the bucket with the clips and gains that were
+      # committed until audio moved there, rather than recording them again.
+      - name: Fill an empty bucket
+        run: |
+          if aws s3 ls "$BUCKET/levels.json" --endpoint-url "$ENDPOINT" > /dev/null; then exit 0; fi
+          git fetch --unshallow --quiet origin
+          last=$(git rev-list -1 HEAD -- tools/stories/levels.json)
+          mkdir -p build/seed
+          git --work-tree=build/seed checkout "$last^" -- app/src/main/assets/audio tools/stories/levels.json
+          git reset --quiet
+          aws s3 sync build/seed/app/src/main/assets/audio "$BUCKET/audio/" --endpoint-url "$ENDPOINT" \
+            --acl public-read --content-type audio/ogg --cache-control "public, max-age=31536000, immutable" --only-show-errors
+          aws s3 cp build/seed/tools/stories/levels.json "$BUCKET/levels.json" --endpoint-url "$ENDPOINT" \
+            --acl public-read --content-type application/json --cache-control "no-cache" --only-show-errors
+
+      - name: List the bucket
+        run: |
+          mkdir -p build
+          aws s3 cp "$BUCKET/levels.json" tools/stories/levels.json --endpoint-url "$ENDPOINT" --only-show-errors
+          aws s3 ls "$BUCKET/audio/" --endpoint-url "$ENDPOINT" | awk '{print $4}' | sed -n 's/\.opus$//p' > build/have.txt
+          echo "$(wc -l < build/have.txt) clips in the bucket"
+
       - name: Record
         env:
           FISH_API_KEY: ${{ secrets.FISH_API_KEY }}
-        run: ./gradlew -PcoreOnly=true :core:storyAudio -Precord -Plimit=${{ inputs.limit || '5' }}
+        run: ./gradlew -PcoreOnly=true :core:storyAudio -Precord -Plimit=${{ inputs.limit || '5' }} -Phave="$PWD/build/have.txt"
 
       # Even when recording failed or was stopped: what was recorded is paid for.
-      - name: Commit the clips
-        id: commit
+      # Clips never change, so phones and the CDN can keep them for good.
+      - name: Upload the clips
         if: always()
         run: |
-          # The assets folder, as audio/ isn't there until something's recorded.
-          # The dictionary built into it is ignored. levels.json has each voice's gain.
-          git add -A app/src/main/assets tools/stories/levels.json
-          if git diff --cached --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [ -d build/audio ]; then
+            aws s3 sync build/audio "$BUCKET/audio/" --endpoint-url "$ENDPOINT" --exclude "*" --include "*.opus" \
+              --acl public-read --content-type audio/ogg --cache-control "public, max-age=31536000, immutable" --only-show-errors
+            echo "Uploaded $(find build/audio -name '*.opus' | wc -l) clips"
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Record story audio"
-          # Someone may have pushed while it recorded: the clips are new files, so they go on top.
-          pushed=false
-          for attempt in 1 2 3 4; do
-            if git pull --rebase --autostash origin "${{ github.head_ref || github.ref_name }}" && git push; then
-              pushed=true
-              break
-            fi
-            sleep $((attempt * 5))
-          done
-          if [ "$pushed" != true ]; then
-            # Kept for two weeks so paid-for clips can still be committed by hand.
-            echo "::error::Couldn't push the clips; they're attached to this run."
-            exit 1
+          if [ -f tools/stories/levels.json ]; then
+            aws s3 cp tools/stories/levels.json "$BUCKET/levels.json" --endpoint-url "$ENDPOINT" \
+              --acl public-read --content-type application/json --cache-control "no-cache" --only-show-errors
           fi
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Keep the clips if they couldn't be pushed
-        if: failure() && steps.commit.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: story-audio
-          path: |
-            app/src/main/assets/audio
-            tools/stories/levels.json
-          retention-days: 14
-
-      - name: Check again with the clips
-        if: always() && steps.commit.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run check.yml --ref "${{ github.head_ref || github.ref_name }}"
-          gh workflow run test.yml --ref "${{ github.head_ref || github.ref_name }}"

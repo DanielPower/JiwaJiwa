@@ -16,6 +16,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Where the app downloads the stories' recordings from (see audio.yml).
+      AUDIO_URL: https://${{ vars.SPACES_BUCKET }}.${{ vars.SPACES_REGION }}.cdn.digitaloceanspaces.com
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +42,13 @@ jobs:
         run: |
           python3 tools/dictionary/build_dictionary.py
           git diff --exit-code tools/dictionary/build_report.md
+
+      # Each recorded voice's gain, kept in the audio bucket by audio.yml. Without
+      # it every voice plays as recorded.
+      - name: Get the voices' gains
+        run: |
+          curl -fsSL "https://${{ vars.SPACES_BUCKET }}.${{ vars.SPACES_REGION }}.digitaloceanspaces.com/levels.json" -o tools/stories/levels.json \
+            || { rm -f tools/stories/levels.json; echo "::warning::Couldn't get levels.json from the audio bucket; voices play without their gains."; }
 
       # The core tests in test.yml run without the dictionary, which skips
       # StoryPathTest; here it's built, so the stories are checked before merging.
