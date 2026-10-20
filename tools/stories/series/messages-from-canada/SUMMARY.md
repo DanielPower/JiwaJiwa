@@ -64,7 +64,7 @@ Kenta asks Alex for a game: morning in Canada, night in Tokyo. Sora joins and lo
 
 Daichi messages Alex out of the blue: the festival's video of Summer Snow is out. Alex watches it with his mom, and tells Yuki what he likes best.
 
-- 115 words; 3 new of 3 allowed.
+- 116 words; 3 new of 3 allowed.
 - Teaches ～の (`no-nominal`).
 - New: 見える (みえる, N4), 入れる (いれる, N5), 恥ずかしい (はずかしい, N4).
 
