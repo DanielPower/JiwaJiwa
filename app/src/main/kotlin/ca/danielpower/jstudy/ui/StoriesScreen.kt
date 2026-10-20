@@ -99,6 +99,7 @@ import ca.danielpower.jstudy.core.LessonBlock
 import ca.danielpower.jstudy.core.LessonPiece
 import ca.danielpower.jstudy.core.Lessons
 import ca.danielpower.jstudy.core.HorizontalText
+import ca.danielpower.jstudy.core.Kana
 import ca.danielpower.jstudy.core.KanaCourse
 import ca.danielpower.jstudy.core.Romaji
 import ca.danielpower.jstudy.core.RubyPiece
@@ -1432,9 +1433,21 @@ internal fun StoryReading.speakerRomaji(p: Int): String? =
     speakers.getOrNull(p)?.takeIf { name -> KanaCourse.unitsIn(name).any { it.text in unreadKana } }?.let { Romaji.of(it) }
 
 /** [kana] in romaji a sound at a time, tsu · i · ni, while it has a kana that isn't clear yet. */
-internal fun StoryReading.paneRomaji(kana: String): String? =
-    kana.takeIf { k -> KanaCourse.unitsIn(k).any { it.text in unclearKana } }
-        ?.let { k -> Romaji.split(k).mapNotNull { it.second }.joinToString(" · ") }
+internal fun StoryReading.paneRomaji(kana: String): String? = if (unclear(kana)) sounds(kana) else null
+
+/**
+ * The pane's romaji for [word], whose dictionary form is [kana]: as
+ * [paneRomaji], and for a changed form both, ku · ru → ki · ta, while either
+ * has a kana that isn't clear, so the ki over the text meets the ku of the title.
+ */
+internal fun StoryReading.paneRomaji(kana: String, word: ReadingWord): String? {
+    val form = word.reading.takeIf { word.conjugated && it != Kana.toHiragana(kana) } ?: return paneRomaji(kana)
+    return if (unclear(kana) || unclear(form)) sounds(kana) + " → " + sounds(form) else null
+}
+
+private fun StoryReading.unclear(kana: String) = KanaCourse.unitsIn(kana).any { it.text in unclearKana }
+
+private fun sounds(kana: String) = Romaji.split(kana).mapNotNull { it.second }.joinToString(" · ")
 
 internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME || grammar.isNotEmpty()
 
@@ -1752,7 +1765,7 @@ private fun WordCard(
         return
     }
     if (grammarOnly && points.isNotEmpty()) {
-        ParticleCard(points, ::lessonFor)
+        ParticleCard(word, points, ::lessonFor)
         return
     }
     // Always from the top, so the title line and its buttons sit in the same place for every word.
@@ -1782,14 +1795,14 @@ private fun WordCard(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             // While a kana in it isn't clear, its sounds: the answer to a kana you're learning, a tap away.
-            if (!grammarOnly) reading.paneRomaji(entry?.kana ?: word.reading)?.let {
+            if (!grammarOnly) reading.paneRomaji(entry?.kana ?: word.reading, word)?.let {
                 Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
             }
             if (!grammarOnly && points.isNotEmpty()) {
                 GrammarLinks(word, title, points, onOpen = { followed = it })
             } else if (word.conjugated) {
                 Text(
-                    "${word.surface}: ${word.conjugation.joinToString(", ")}",
+                    "${word.surface}: ${word.conjugation.joinToString(", ")}" + word.form?.let { "  ·  $it" }.orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.tertiary,
                 )
@@ -1841,10 +1854,11 @@ private fun WordCard(
 
 /**
  * A particle or ending's card: its grammar points, the first in the title's
- * place. What you tapped is already marked in the text, so it isn't repeated.
+ * place. What you tapped is already marked in the text, so it isn't repeated,
+ * except a form of the title's (だ → だった), which first says what it is.
  */
 @Composable
-private fun ParticleCard(points: List<GrammarPoint>, lessonFor: (GrammarPoint) -> (() -> Unit)?) {
+private fun ParticleCard(word: ReadingWord, points: List<GrammarPoint>, lessonFor: (GrammarPoint) -> (() -> Unit)?) {
     val first = points.first()
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
@@ -1867,6 +1881,9 @@ private fun ParticleCard(points: List<GrammarPoint>, lessonFor: (GrammarPoint) -
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
+            word.form?.let {
+                Text("${word.lemma} → ${word.surface}  ·  $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
+            }
             GrammarBody(first)
             for (point in points.drop(1)) GrammarNote(point, lessonFor(point))
         }
@@ -1885,7 +1902,8 @@ internal fun SayButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
  * A word's conjugation line naming its grammar points, each a link to its
  * explanation: 食べたい: ～たい want to ›. It takes the place of the word's
  * conjugation labels, except those no point explains, which follow the links:
- * 切れちゃった: ～てしまう … › · past.
+ * 切れちゃった: ～てしまう … › · past. Last, how the form is made from the
+ * title's: すいた: ～た did (plain past) › · く becomes い.
  */
 @Composable
 private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarPoint>, onOpen: (GrammarPoint) -> Unit) {
@@ -1902,6 +1920,7 @@ private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarP
             }
             val rest = word.unexplainedConjugation()
             if (rest.isNotEmpty()) append("  ·  " + rest.joinToString(", "))
+            word.form?.let { append("  ·  $it") }
         },
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.tertiary,
