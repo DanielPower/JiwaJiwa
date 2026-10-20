@@ -5,7 +5,7 @@ Written by `./gradlew -PcoreOnly=true :core:stories` from the chapter files here
 A magazine contest, a heroine who looks a lot like Yuki, and a deadline on the last day of summer.
 
 - Id `mihos-manga`, 12 chapters.
-- Follows `the-band/mihos-notebook`.
+- Follows `the-band/summer-snow`.
 
 ## Cast
 
@@ -65,16 +65,15 @@ Between shifts at the shop Miho has only a few pages done; Kenta, who knows dead
 
 Miho goes to the studio to draw the band as they play; Rin says the heroine's face is wrong, because on stage Yuki always smiles, and Daichi wants to look cooler.
 
-- 118 words; 3 new of 3 allowed.
-- New: 前 (まえ, N5), 顔 (かお, not JLPT), もっと (N5).
+- 118 words; 0 new of 3 allowed.
 
 ### 7. When I was a kid (`mihos-manga/when-i-was-a-kid`)
 
 Drawing late in Yuki's room, Miho tells her how she started: a quiet kid alone at home with her mom's manga, a dream she put away, and the night she saw Yuki's band.
 
-- 136 words; 4 new of 4 allowed.
+- 136 words; 3 new of 4 allowed.
 - Teaches ～とき (`toki`).
-- New: 子供 (こども, N5), 家 (いえ, N5), 夢 (ゆめ, N4), マンガ家 (まんがか, not JLPT).
+- New: 家 (いえ, N5), 夢 (ゆめ, N4), マンガ家 (まんがか, not JLPT).
 
 ### 8. Old notebooks (`mihos-manga/old-notebooks`)
 
@@ -94,9 +93,9 @@ Miho can't get her manga's last page right and asks the band; Daichi wants the h
 
 The last three days: drawing before work, after work and before bed; Yuki and Sora come to help, make her eat, and at dawn on the last day of summer they send it off from the konbini.
 
-- 147 words; 3 new of 4 allowed.
+- 147 words; 2 new of 4 allowed.
 - Teaches ～前に / ～た後で / ～てから (`mae-ni`).
-- New: あと (N5), 寝る (ねる, N5), 早い (はやい, N5).
+- New: あと (N5), 早い (はやい, N5).
 
 ### 11. Waiting (`mihos-manga/waiting`)
 
@@ -109,13 +108,13 @@ Summer turns to autumn and Miho waits for the results without drawing, until Ken
 
 Back at the publisher with Yuki, Miho learns her manga got an honourable mention; Sato liked its story best, cried at the last page, and gives Miho her card.
 
-- 172 words; 4 new of 5 allowed.
-- New: 佳作 (かさく, not JLPT), おめでとうございます (not JLPT), 泣く (なく, N4), 名刺 (めいし, N2).
+- 172 words; 3 new of 5 allowed.
+- New: 佳作 (かさく, not JLPT), おめでとうございます (not JLPT), 名刺 (めいし, N2).
 
 ## Known at the end
 
 Read in order after the stories it follows, a reader knows these by the end of the last chapter.
 
-Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます / か (`masu`), から / まで (`kara-made`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), で (`de`), から (`kara-because`), と (`to`), ～んだ / ～の？ (`n-desu`), あのー / えーと (`filler`), ～じゃない / じゃん (`janai`), ～けど / ～が (`keredo`), ～よう / ～おう (`volitional`), ～と思う / ～と (`to-omou`), ～って / ～という (`tte`), かな / かも (`kana`), ～える / ～られる (`potential`), ～たら (`tara`), ～なきゃ / ～なくてもいい (`nakereba`), ～くなる / ～になる / ～く (`naru`), ～に行く / へ (`ni-iku`), より / ～のほうが (`yori`), ～とき (`toki`), ～前に / ～た後で / ～てから (`mae-ni`).
+Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます / か (`masu`), から / まで (`kara-made`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), で (`de`), から (`kara-because`), と (`to`), ～んだ / ～の？ (`n-desu`), あのー / えーと (`filler`), ～じゃない / じゃん (`janai`), ～けど / ～が (`keredo`), ～よう / ～おう (`volitional`), ～と思う / ～と (`to-omou`), ～って / ～という (`tte`), かな / かも (`kana`), ～える / ～られる (`potential`), ～たら (`tara`), ～なきゃ / ～なくてもいい (`nakereba`), ～くなる / ～になる / ～く (`naru`), ～みたい / ～そう (`mitai`), ～ちゃう / ～てしまう (`te-shimau`), ～てみる (`te-miru`), だけ / しか (`dake`), ～に行く / へ (`ni-iku`), より / ～のほうが (`yori`), ～とき (`toki`), ～前に / ～た後で / ～てから (`mae-ni`).
 
-254 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう うまい 食券 買う これ 卵 ビール 熱い ゆっくり ラーメン屋 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ 日 はい おいしい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 写真 撮る 友達 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に いる 荷物 大学 この 今 僕 スーツ 俺 する 何 ある また こんばんは いつも みんな 誰 読む そう 歌 声 知る 聞く 私 バンド まだ 明日 疲れる 一人 どう 大丈夫 敬語 ほら 同じ ノート たくさん 作る オープン マイク 言う ライブハウス こっち ギター 楽しい 次 無理 最高 思う たぶん できる 忙しい 去年 毎日 練習 考える 名前 書く 字 なんで 怒る バカ 久しぶり 動画 送る 出る 忘れる 緊張する 手 ステージ 笑う 終わる 静か 弾く ドラム 音 上手 三 人 スタジオ 借りる 聞こえる 一番 勝つ もし 違う 決める 有名 話す 全然 絶対 いつ ちゃんと 自分 優しい 汗 三日 あの うれしい なる 一つ それ ない すごい 絵 描く かっこいい 雑誌 コンテスト 見せる 話 主人公 締め切り 出版社 プロ 電車 線 下手 どっち 時間 ページ 少し 前 顔 もっと 子供 家 夢 マンガ家 昔 全部 初めて そして 大事 心配 あと 寝る 早い 思い出す 結果 スマホ 編集者 佳作 おめでとうございます 泣く 名刺
+277 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう うまい 食券 買う これ 卵 ビール 熱い ゆっくり ラーメン屋 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ 日 はい おいしい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 写真 撮る 友達 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に いる 荷物 大学 この 今 僕 スーツ 俺 する 何 ある また こんばんは いつも みんな 誰 読む そう 歌 声 知る 聞く 私 バンド まだ 明日 疲れる 一人 どう 大丈夫 敬語 ほら 同じ ノート たくさん 作る オープン マイク 言う ライブハウス こっち ギター 楽しい 次 無理 最高 思う たぶん できる 忙しい 去年 毎日 練習 考える 名前 書く 字 なんで 怒る バカ 久しぶり 動画 送る 出る 忘れる 緊張する 手 ステージ 笑う 終わる 静か 弾く ドラム 音 上手 三 人 スタジオ 借りる 聞こえる 一番 勝つ もし 違う 決める 有名 話す 全然 絶対 いつ ちゃんと 自分 優しい 汗 三日 あの うれしい なる 一つ それ ない すごい 絵 描く かっこいい 顔 怖い 言葉 難しい 会う エアコン 死ぬ アイス 切れる 弦 三本 寝る 上 最初 三つ 前 ずっと 泣く もっと 長い 子供 拍手する おやすみ 私たち ほか 俺たち 始まる 今年 呼ぶ 雑誌 コンテスト 見せる 話 主人公 締め切り 出版社 プロ 電車 線 下手 どっち 時間 ページ 少し 家 夢 マンガ家 昔 全部 初めて そして 大事 心配 あと 早い 思い出す 結果 スマホ 編集者 佳作 おめでとうございます 名刺
