@@ -169,12 +169,8 @@ fun VerticalStory(
         val nameCell = cell * NAME_RATIO
         val nameCellDp = with(density) { nameCell.toDp() }
 
-        // The finish stamp stands in the column after the text, or on a page of its own when that's full.
-        val lastCol = spots.maxOfOrNull { it.col }
-        val stampWidth = with(density) { STAMP_DOWN_WIDTH.toPx() }
-        val stampX = lastCol?.let { right - (it % perPage + 1) * (colWidth + gap) - stampWidth }
-        val stampPage = stampX == null || stampX < 0f
-        val count = pages.size + if (stampPage) 1 else 0
+        // The finish stamp has the last page to itself.
+        val count = pages.size + 1
 
         val pageOf = { (p, i): Pair<Int, Int> -> pages.indexOfFirst { page -> page.any { pieces[it].p == p && pieces[it].i == i } }.takeIf { it >= 0 } }
         // The page with the word being read aloud, to turn to.
@@ -182,11 +178,10 @@ fun VerticalStory(
         val shown = { page: Int ->
             onPageShown(page, count, pages.getOrNull(page)?.firstOrNull { !pieces[it].note }?.let { pieces[it].p to pieces[it].i })
         }
-        StoryPager(count, reverse = true, startAt?.let(pageOf) ?: startPage, shown, followPage) { page ->
+        StoryPager(count, reverse = true, startAt?.let(pageOf) ?: startPage, shown, followPage, onFinish) { page ->
             val onPage = pages.getOrNull(page).orEmpty()
             // Speakers whose lines start on this page, by the piece their line starts with.
             val names = onPage.filter { pieces[it].paragraphStart && reading.speakers.getOrNull(pieces[it].p) != null }
-            val hasStamp = page == count - 1
             Layout(
                 modifier = Modifier.fillMaxSize().padding(PAGE_PADDING),
                 content = {
@@ -238,7 +233,6 @@ fun VerticalStory(
                             }
                         }
                     }
-                    if (hasStamp) FinishStamp(vertical = true, onClick = onFinish)
                 },
             ) { measurables, constraints ->
                 fun left(spot: VerticalSpot): Float {
@@ -255,7 +249,6 @@ fun VerticalStory(
                     m.measure(Constraints.fixed(colWidth.roundToInt(), height))
                 }
                 val nameables = measurables.drop(onPage.size).take(names.size).map { it.measure(Constraints()) }
-                val stamp = measurables.getOrNull(onPage.size + names.size)?.measure(Constraints())
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeables.forEachIndexed { n, placeable ->
                         val spot = spots[onPage[n]]
@@ -269,12 +262,6 @@ fun VerticalStory(
                         val x = left(spots[names[n]]) + (cell - nameCell) / 2
                         val drop = (nameRows[line]!! - nameLengths[line]!! - NAME_GAP) * cell
                         placeable.place(x.roundToInt(), drop.roundToInt())
-                    }
-                    if (stamp != null) {
-                        // Centred in its room, a row down from the top, as a seal sits beside the text.
-                        val room = if (stampPage) (width - stampWidth) / 2 else stampX!!
-                        val x = room + (stampWidth - stamp.width) / 2
-                        stamp.place(x.roundToInt(), cell.roundToInt())
                     }
                 }
             }

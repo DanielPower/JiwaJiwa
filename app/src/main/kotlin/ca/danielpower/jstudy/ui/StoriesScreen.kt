@@ -54,6 +54,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -115,6 +116,7 @@ import ca.danielpower.jstudy.data.SpeechSettings
 import ca.danielpower.jstudy.data.StoryReading
 import ca.danielpower.jstudy.data.Word
 import ca.danielpower.jstudy.data.levelLabel
+import kotlinx.coroutines.launch
 
 // ------------------------------------------------------------------ list
 
@@ -1066,19 +1068,15 @@ private fun HorizontalStory(
         }
         val nameColor = speakerColor()
         val lineDp = with(density) { lineHeight.toDp() }
-        // The finish stamp goes under the last line, or on a page of its own when that's full.
-        val used = pages.lastOrNull()?.withIndex()?.sumOf { (n, line) ->
-            (lineHeight + if (n > 0 && line.words.first == 0) gap else 0f).toDouble()
-        } ?: 0.0
-        val stampPage = pages.isEmpty() || used + with(density) { STAMP_ACROSS_HEIGHT.toPx() } > height
-        val count = pages.size + if (stampPage) 1 else 0
+        // The finish stamp has the last page to itself.
+        val count = pages.size + 1
         val pageOf = { (p, i): Pair<Int, Int> -> pages.indexOfFirst { page -> page.any { it.paragraph == p && i in it.words } }.takeIf { it >= 0 } }
         // The page with the word being read aloud, to turn to.
         val followPage = follow?.let(pageOf)
         val shown = { page: Int ->
             onPageShown(page, count, pages.getOrNull(page)?.firstOrNull()?.let { it.paragraph to it.words.first })
         }
-        StoryPager(count, reverse = false, startAt?.let(pageOf) ?: startPage, shown, followPage) { page ->
+        StoryPager(count, reverse = false, startAt?.let(pageOf) ?: startPage, shown, followPage, onFinish) { page ->
             Column(Modifier.fillMaxSize().padding(horizontal = PAGE_PADDING_H, vertical = PAGE_PADDING)) {
                 pages.getOrNull(page).orEmpty().forEachIndexed { n, line ->
                     if (n > 0 && line.words.first == 0) Spacer(Modifier.height(PARAGRAPH_GAP))
@@ -1128,9 +1126,6 @@ private fun HorizontalStory(
                             )
                         }
                     }
-                }
-                if (page == count - 1) {
-                    FinishStamp(vertical = false, onClick = onFinish, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
                 }
             }
         }
@@ -1351,6 +1346,10 @@ private const val STORY_LINE_SIZE = 20f
  * [count] pages to swipe between, with the page number under them. [reverse]
  * puts the next page on the left. It opens on [startPage], and tells
  * [onPageShown] each page it settles on, so a story can reopen where you were.
+ * The last page is the [FinishStamp], on its own so it isn't tapped by
+ * mistake while reading; [page] draws the others. The page before it has a
+ * "Finish" link by the page number that turns to it, since its text may not
+ * fill the page and so not show there's more.
  */
 @Composable
 internal fun StoryPager(
@@ -1359,9 +1358,11 @@ internal fun StoryPager(
     startPage: Int,
     onPageShown: (Int) -> Unit,
     followPage: Int?,
+    onFinish: () -> Unit,
     page: @Composable (Int) -> Unit,
 ) {
     val state = rememberPagerState(startPage.coerceIn(0, (count - 1).coerceAtLeast(0))) { count }
+    val scope = rememberCoroutineScope()
     val shown by rememberUpdatedState(onPageShown)
     LaunchedEffect(state) { snapshotFlow { state.settledPage }.collect { shown(it) } }
     // Reading aloud turns the page when it reaches the next one.
@@ -1370,7 +1371,11 @@ internal fun StoryPager(
     }
     Column(Modifier.fillMaxSize()) {
         HorizontalPager(state, Modifier.weight(1f).fillMaxWidth(), reverseLayout = reverse, verticalAlignment = Alignment.Top) {
-            page(it)
+            if (it == count - 1) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { FinishStamp(vertical = reverse, onClick = onFinish) }
+            } else {
+                page(it)
+            }
         }
         Box(Modifier.fillMaxWidth().height(PAGE_LABEL_HEIGHT), contentAlignment = Alignment.Center) {
             if (count > 1) {
@@ -1378,6 +1383,13 @@ internal fun StoryPager(
                     "${state.currentPage + 1} / $count",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (state.currentPage == count - 2) {
+                FinishLink(
+                    toLeft = reverse,
+                    onClick = { scope.launch { state.animateScrollToPage(count - 1) } },
+                    modifier = Modifier.align(if (reverse) Alignment.CenterStart else Alignment.CenterEnd),
                 )
             }
         }
