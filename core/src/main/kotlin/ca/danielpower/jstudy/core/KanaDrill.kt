@@ -102,23 +102,18 @@ data class KanaCounts(
     val minutes get() = maxOf(1, ((new * KanaRules.FIRST_RIGHTS + check) * 4 + 59) / 60)
 }
 
-/**
- * Where you are with kana: what you read already ([known]), the order the
- * stories need the rest in, and your progress with each.
- */
+/** Where you are with kana: what you read already ([known]), and your progress with each of the rest. */
 data class KanaState(
     val known: KanaKnown,
-    val order: List<String>,
     val progress: Map<String, KanaProgress>,
     /** The study day a new set was last brought in by itself; "5 more" brings in more. */
     val lastSetDay: Long? = null,
 ) {
-    /** The kana to learn, in order: everything you didn't read already. */
-    val toLearn: List<String> by lazy {
-        order.filter { text -> KanaCourse.unit(text)?.let { !known.covers(it.script) } == true }
-    }
+    /** The course's sets for the kana you didn't read already. */
+    val sets: List<KanaSet> by lazy { KanaCourse.sets.filter { !known.covers(it.script) } }
 
-    val sets: List<List<String>> by lazy { KanaCourse.sets(toLearn) }
+    /** The kana to learn, in order. */
+    val toLearn: List<String> by lazy { sets.flatMap { it.kana } }
 
     fun stage(text: String): KanaStage {
         val unit = KanaCourse.unit(text) ?: return KanaStage.CLEAR
@@ -136,10 +131,10 @@ data class KanaState(
     val unclear: Set<String> by lazy { toLearn.filter { stage(it) != KanaStage.CLEAR }.toSet() }
 
     /** The next set's kana not practised yet. */
-    fun nextSet(): List<String>? = sets.firstOrNull { set -> set.any { stage(it) == KanaStage.NEW } }?.filter { stage(it) == KanaStage.NEW }
+    fun nextSet(): List<String>? = sets.firstOrNull { set -> set.kana.any { stage(it) == KanaStage.NEW } }?.kana?.filter { stage(it) == KanaStage.NEW }
 
     /** Which set [text] is in, counting from 1. */
-    fun setNumber(text: String): Int = sets.indexOfFirst { text in it } + 1
+    fun setNumber(text: String): Int = sets.indexOfFirst { text in it.kana } + 1
 
     fun isDue(text: String, today: Long, now: Long): Boolean {
         val p = progress[text] ?: return false

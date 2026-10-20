@@ -253,10 +253,11 @@ sealed interface KanaStep {
 
     /**
      * The end: how many kana were new and how many checked, the chart, how
-     * many of today's new kana have their second look later, whether another
-     * set is ready, and the word cards waiting next when Start studying began it.
+     * many of today's new kana have their second look later, how many kana
+     * the next set has ([more], none once they're all in), and the word cards
+     * waiting next when Start studying began it.
      */
-    data class Done(val learned: Int, val checked: Int, val chart: KanaChart, val later: Int, val more: Boolean, val cardsNext: Int) : KanaStep
+    data class Done(val learned: Int, val checked: Int, val chart: KanaChart, val later: Int, val more: Int, val cardsNext: Int) : KanaStep
 }
 
 /** The kana chart: every kana's stage, and today, to pick out the ones met today. */
@@ -744,7 +745,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 checked = practised.count { it !in brought },
                 chart = KanaChart(state, today),
                 later = counts.later,
-                more = state.nextSet() != null,
+                more = state.nextSet()?.size ?: 0,
                 cardsNext = if (kanaThenCards) repo.cardsDue(at) else 0,
             ),
             progress = 1f,

@@ -338,8 +338,8 @@ private fun KanaDone(step: KanaStep.Done, vm: AppViewModel) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (step.more) {
-                    SecondaryButton(onClick = vm::moreKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("5 more", fontSize = 16.sp) }
+                if (step.more > 0) {
+                    SecondaryButton(onClick = vm::moreKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("${step.more} more", fontSize = 16.sp) }
                 }
                 if (step.cardsNext > 0) {
                     SecondaryButton(onClick = vm::closeKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("Done", fontSize = 16.sp) }

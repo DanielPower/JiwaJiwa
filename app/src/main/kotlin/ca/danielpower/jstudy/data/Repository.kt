@@ -1148,16 +1148,8 @@ class Repository private constructor(context: Context) {
 
     fun setKanaKnown(known: KanaKnown) = store.setValues(mapOf("kana_known" to known.value))
 
-    /** The order the stories need kana in (the app build's stories/kana.txt), then any it leaves out, in chart order. */
-    private val kanaOrder: List<String> by lazy {
-        val listed = runCatching {
-            appContext.assets.open("stories/kana.txt").bufferedReader().use { it.readLines() }
-        }.getOrDefault(emptyList()).map { it.trim() }.filter { KanaCourse.unit(it) != null }.distinct()
-        listed + KanaCourse.units.map { it.text }.filter { it !in listed }
-    }
-
     fun kanaState(): KanaState =
-        KanaState(kanaKnown(), kanaOrder, store.kanaProgress(), store.getValue("kana_set_day")?.toLongOrNull())
+        KanaState(kanaKnown(), store.kanaProgress(), store.getValue("kana_set_day")?.toLongOrNull())
 
     /** What kana practice would ask now, or null once every kana is clear. */
     fun kanaCounts(now: Long, state: KanaState = kanaState()): KanaCounts? {
