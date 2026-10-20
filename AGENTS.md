@@ -235,7 +235,10 @@ Other features (all shipped):
   bundled ones only. Tapping a word
   shows its meaning (and conjugation, when conjugated), plus any grammar
   point it's part of (`core/Grammar.kt`); particles and endings are tappable
-  for their grammar alone. A word's grammar points are links in its
+  for their grammar alone. A point's example in the pane is its topic's
+  own first line (drawn as the lesson draws it, with its English) right
+  under its meaning; a point with no topic keeps its `Grammar.kt` example
+  (2026-10-20). A word's grammar points are links in its
   conjugation line ("食べたい: ～たい want to ›"), each opening the point in
   the pane with a back link, followed by any conjugation label no point
   explains ("· past" in 切れちゃった); Daniel picked this over tabs,

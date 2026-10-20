@@ -213,6 +213,8 @@ data class StoryReading(
     val unreadKana: Set<String> = emptySet(),
     /** Kana that aren't clear yet, whose words' panes show their romaji. */
     val unclearKana: Set<String> = emptySet(),
+    /** The example the pane shows for each grammar point that has a topic, by point id: the topic's own first line. */
+    val examples: Map<String, GrammarExample> = emptyMap(),
 ) {
     private val newPoints = teaches?.points.orEmpty().toSet()
 
@@ -346,6 +348,9 @@ data class SpeechSettings(val rate: Float = 1f) {
         val RATES = listOf(0.6f, 0.8f, 1f, 1.2f)
     }
 }
+
+/** A grammar topic's first line as the story tools read it, and its English. */
+data class GrammarExample(val words: List<ReadingWord>, val english: String?)
 
 /** A sentence of a story: its words in their paragraph, and its English if the story has translations. */
 data class StorySentence(val words: IntRange, val translation: String?)
@@ -795,6 +800,7 @@ class Repository private constructor(context: Context) {
             teaches = catalog.teaches(story.pathId, store.pathStories().filterValues { it.readAt != null }.keys),
             unreadKana = kana.unread,
             unclearKana = kana.unclear,
+            examples = grammarExamples,
         ).let { it.copy(clips = clips(story, it.narration)) }
     }
 
@@ -877,6 +883,16 @@ class Repository private constructor(context: Context) {
     private fun lessons(): Map<String, Long> {
         val saved = store.pathStories().mapValues { it.value.id }
         return catalog.grammar.flatMap { t -> saved[t.page.id]?.let { id -> t.points.map { it to id } }.orEmpty() }.toMap()
+    }
+
+    /** Each grammar point's topic's first line (the first paragraph of its page), the example the pane shows for it. */
+    private val grammarExamples: Map<String, GrammarExample> by lazy {
+        val out = HashMap<String, GrammarExample>()
+        for (t in catalog.grammar) {
+            val words = text(t.page.id).firstOrNull() ?: continue
+            for (point in t.points) out[point] = GrammarExample(words, t.page.translations.firstOrNull())
+        }
+        out
     }
 
     /** The grammar topic whose page [story] is, if it's one. */

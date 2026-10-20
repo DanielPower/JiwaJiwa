@@ -1912,7 +1912,7 @@ private fun ParticleCard(word: ReadingWord, points: List<GrammarPoint>, reading:
             word.form?.let {
                 Text("${word.lemma} → ${word.surface}  ·  $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
             }
-            GrammarBody(first)
+            GrammarBody(first, reading)
             for (point in points.drop(1)) GrammarNote(point, reading, lessonFor(point))
         }
     }
@@ -1977,7 +1977,7 @@ private fun GrammarCard(point: GrammarPoint, reading: StoryReading, back: String
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            GrammarBody(point)
+            GrammarBody(point, reading)
         }
     }
 }
@@ -1991,7 +1991,7 @@ private fun GrammarNote(point: GrammarPoint, reading: StoryReading, onLesson: ((
             Text(reading.paneName(point), fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             GrammarLevel(point, onLesson)
         }
-        GrammarBody(point)
+        GrammarBody(point, reading)
     }
 }
 
@@ -2011,13 +2011,45 @@ private fun RowScope.GrammarLevel(point: GrammarPoint, onLesson: (() -> Unit)?) 
     }
 }
 
+/**
+ * What a grammar point means, its note and an example. A point with a topic
+ * shows the topic's own first line, drawn as the lesson draws it, right
+ * under the meaning so it's in view; one without keeps its own, after the note.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GrammarBody(point: GrammarPoint) {
+private fun GrammarBody(point: GrammarPoint, reading: StoryReading) {
     Text(point.meaning, fontSize = 16.sp, lineHeight = 21.sp)
+    val line = reading.examples[point.id]
+    if (line != null) {
+        FlowRow(Modifier.padding(top = 2.dp)) {
+            for (word in line.words) {
+                StoryWord(
+                    word = word,
+                    reading = reading,
+                    selected = false,
+                    lit = false,
+                    washed = false,
+                    spoken = false,
+                    onTap = {},
+                    onHold = {},
+                    size = EXAMPLE_SIZE.sp,
+                    rubySize = (EXAMPLE_SIZE * RUBY_RATIO).sp,
+                    family = Gothic,
+                )
+            }
+        }
+        line.english?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+    }
     Text(point.note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Text(point.example, fontFamily = Gothic, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
-    Text(point.exampleMeaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (line == null) {
+        Text(point.example, fontFamily = Gothic, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
+        Text(point.exampleMeaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
+
+/** A grammar point's example line in the pane, in sp, as a lesson's lines from your stories. */
+private const val EXAMPLE_SIZE = 20f
 
 // ------------------------------------------------------------------ end page
 
