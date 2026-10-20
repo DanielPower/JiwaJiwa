@@ -244,7 +244,10 @@ Other features (all shipped):
   (plain past) › · く becomes い", "· its own way" for 来る and する),
   and while their kana aren't clear the romaji line shows both forms,
   "ku · ru → ki · ta" (review 09, 2026-10-20). だった or でした on its own
-  starts its card with "だ → だった · was, its past". The meaning opens in a
+  starts its card with "だ → だった · was, its past". A word the story
+  writes in kana is titled in kana there (ついに, not the dictionary's
+  遂に; すく for すいた), with its kanji left to Full entry; cards and word
+  pages keep the dictionary's spelling. The meaning opens in a
   pane fixed at the top of the reader, always visible with the story below
   it so it never covers the text (as in Yomu Yomu), not a popover. Long-pressing a word shows its sentence's English,
   bundled with the story. Story

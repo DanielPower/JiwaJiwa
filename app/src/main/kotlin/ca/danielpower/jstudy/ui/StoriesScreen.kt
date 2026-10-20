@@ -101,6 +101,7 @@ import ca.danielpower.jstudy.core.Lessons
 import ca.danielpower.jstudy.core.HorizontalText
 import ca.danielpower.jstudy.core.Kana
 import ca.danielpower.jstudy.core.KanaCourse
+import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.Romaji
 import ca.danielpower.jstudy.core.RubyPiece
 import ca.danielpower.jstudy.core.romajiPieces
@@ -1758,7 +1759,12 @@ private fun WordCard(
     // The topic's page, unless that's the page you're on.
     fun lessonFor(point: GrammarPoint): (() -> Unit)? = reading.lessons[point.id]?.takeIf { it != reading.story.id }?.let { id -> { onLesson(id) } }
     var followed by remember { mutableStateOf<GrammarPoint?>(null) }
-    val title = if (grammarOnly) word.surface else entry?.display ?: word.lemma
+    // As the story writes it: a word written in kana is titled in kana (ついに, not 遂に), and its kanji wait on its full entry.
+    val title = when {
+        grammarOnly -> word.surface
+        entry != null && word.surface.none(Kanjis::isKanji) -> word.lemma.takeIf { it.none(Kanjis::isKanji) } ?: entry.kana
+        else -> entry?.display ?: word.lemma
+    }
     followed?.let { point ->
         BackHandler { followed = null }
         GrammarCard(point, back = title, onBack = { followed = null }, onLesson = lessonFor(point))
@@ -1777,7 +1783,7 @@ private fun WordCard(
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f, fill = false))
                 val kana = entry?.kana ?: word.reading
-                if (!grammarOnly && kana != title) {
+                if (!grammarOnly && Kana.toHiragana(kana) != Kana.toHiragana(title)) {
                     Text(kana, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 // A particle on its own isn't said as it is in a sentence (は is wa), so it has no button.
