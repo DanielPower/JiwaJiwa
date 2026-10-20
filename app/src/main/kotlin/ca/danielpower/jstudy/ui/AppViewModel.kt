@@ -331,7 +331,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     @Volatile private var mobileDataNow: Boolean? = null
 
     // The stories' recordings, downloaded as chapters open.
-    private val clips = Clips(app) { _speech.value.mobileData || mobileDataNow == true }
+    private val clips = Clips(app, onMobileData = { _speech.value.mobileData || mobileDataNow == true })
 
     /** Asking whether to download a chapter's recordings on mobile data. */
     private val _audioAsk = MutableStateFlow<AudioAsk?>(null)
