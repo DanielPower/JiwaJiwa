@@ -1,5 +1,7 @@
 package ca.danielpower.jstudy.core
 
+import java.time.LocalDateTime
+import java.time.ZoneId
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -255,6 +257,64 @@ class KanaDrillTest {
         assertFalse(r.correct)
         assertEquals(KanaStage.LEARNING, r.progress.stage)
         assertNull(r.progress.checkDue)
+    }
+
+    @Test
+    fun `the second look never falls in the night, and kana learned before the rollover wait three hours`() {
+        val zone = ZoneId.of("America/St_Johns")
+        val clock = StudyClock(zone)
+        fun at(text: String) = LocalDateTime.parse(text).atZone(zone).toInstant().toEpochMilli()
+        // In the afternoon: three hours on, the same day.
+        assertEquals(at("2026-10-20T17:00"), KanaRules.lateCheckAt(at("2026-10-20T14:00"), clock))
+        // At 10pm it would fall after midnight, so it's the next study day's check.
+        assertEquals(at("2026-10-21T04:00"), KanaRules.lateCheckAt(at("2026-10-20T22:00"), clock))
+        // At 3:30am, just before the rollover: not before 6:30.
+        assertEquals(at("2026-10-21T06:30"), KanaRules.lateCheckAt(at("2026-10-21T03:30"), clock))
+
+        fun learnAt(time: String): KanaState {
+            val now = at(time)
+            val day = clock.dayOf(now)
+            val state = none()
+            val set = state.nextSet()!!.map { KanaCourse.unit(it)!! }
+            val s = KanaSession(state, day, now, set, random = Random(9), lateCheck = { KanaRules.lateCheckAt(it, clock) })
+            while (true) {
+                val q = s.next() ?: break
+                s.answer(q, q.answer, 1000, now)
+            }
+            return state.copy(progress = s.practised.associateWith { s.progress(it) }, lastSetDay = day)
+        }
+        fun counts(state: KanaState, time: String): KanaCounts {
+            val now = at(time)
+            val day = clock.dayOf(now)
+            return state.counts(day, now, clock.startOf(day + 1))
+        }
+
+        val afternoon = learnAt("2026-10-20T14:00")
+        assertEquals(5, counts(afternoon, "2026-10-20T15:00").later)
+        assertEquals(5, counts(afternoon, "2026-10-20T17:00").check)
+
+        // At 10pm: nothing later that night, and the next day's check from the rollover.
+        val evening = learnAt("2026-10-20T22:00")
+        assertEquals(0, counts(evening, "2026-10-20T22:30").later)
+        assertEquals(0, counts(evening, "2026-10-21T02:00").check)
+        assertEquals(5, counts(evening, "2026-10-21T04:01").check)
+
+        // At 3:30am: not due just after the rollover, half an hour on, but by 6:30.
+        val night = learnAt("2026-10-21T03:30")
+        assertEquals(0, counts(night, "2026-10-21T03:45").later)
+        assertEquals(0, counts(night, "2026-10-21T04:05").check)
+        assertEquals(5, counts(night, "2026-10-21T06:31").check)
+        // And that check counts a day's pass.
+        val now = at("2026-10-21T06:31")
+        val s = KanaSession(night, clock.dayOf(now), now, emptyList(), random = Random(10))
+        while (true) {
+            val q = s.next() ?: break
+            s.answer(q, q.answer, 1000, now)
+        }
+        for (text in s.practised) {
+            assertEquals(1, s.progress(text).passDays, text)
+            assertNull(s.progress(text).lateCheckAt, text)
+        }
     }
 
     @Test

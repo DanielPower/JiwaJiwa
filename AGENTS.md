@@ -119,9 +119,10 @@ version 9 deleted the old kana cards):
 
 - Kana don't go through FSRS. Their own drill (core `KanaDrill.kt`): sets
   of 5, each right 3 times in the first sitting (a miss means 2 more), a
-  quick check 3 hours later, then once a day until quick (under 3 s) and
-  right on 3 days. Then Clear, with a weekly check for a month; a miss sends
-  a kana back to Learning.
+  quick check 3 hours later (when that would be after midnight, the next
+  day's check instead, and never under 3 hours on), then once a day until
+  quick (under 3 s) and right on 3 days. Then Clear, with a weekly check
+  for a month; a miss sends a kana back to Learning.
 - Multiple choice, four answers, mostly kana → sound, one in four sound →
   kana. Wrong answers come from past mix-ups, lookalikes (`KanaLooks`),
   voicing pairs and similar sounds, never one that sounds the same.

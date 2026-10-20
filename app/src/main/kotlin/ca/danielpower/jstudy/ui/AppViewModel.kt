@@ -712,8 +712,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val s = kanaSession ?: return showHome()
         val at = now()
         val state = repo.kanaState()
-        val today = repo.clock().dayOf(at)
-        val counts = state.counts(today, at)
+        val clock = repo.clock()
+        val today = clock.dayOf(at)
+        val counts = state.counts(today, at, clock.startOf(today + 1))
         val brought = s.newSet.map { it.text }.toSet()
         val practised = s.practised
         _screen.value = Screen.Kana(

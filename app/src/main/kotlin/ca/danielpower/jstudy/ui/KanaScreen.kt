@@ -303,7 +303,7 @@ private fun KanaDone(step: KanaStep.Done, vm: AppViewModel) {
                         step.learned.takeIf { it > 0 }?.let { if (it == 1) "1 new kana" else "$it new kana" },
                         step.checked.takeIf { it > 0 }?.let { "$it checked" },
                     ).joinToString(", ").takeIf { it.isNotEmpty() }?.let { "$it." },
-                    "One more quick check of today's new kana later today.".takeIf { step.later > 0 },
+                    "One more quick check of the new kana later today.".takeIf { step.later > 0 },
                 ).joinToString(" "),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
