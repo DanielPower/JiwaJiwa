@@ -4,14 +4,14 @@
   "paragraphs": [
     [["夜。", "Night."], ["ユキさんとケンタさんと、ラーメン屋に来た。", "I came to the ramen shop with Yuki and Kenta."]],
     [["店長|「いらっしゃいませ！」", "\"Welcome!\""]],
-    [["店長|「あ、ユキさん、ケンタさん！」", "\"Oh, Yuki, Kenta!\""], ["ユキ|「店長、こんばんは！」", "\"Evening, boss!\""]],
+    [["店長|「あ、ユキ、ケンタ！」", "\"Oh, Yuki, Kenta!\""], ["ユキ|「店長、こんばんは！」", "\"Evening, boss!\""]],
     [["店長|「この人は？」", "\"And who's this?\""], ["ユキ|「ソラ。アレックスの部屋の、新しい人。」", "\"Sora. He's the new guy in Alex's room.\""]],
     [["ソラ|「あのー、ソラです。よろしくお願いします。」", "\"Um, I'm Sora. Nice to meet you.\""], ["店長|「よろしくお願いします。」", "\"Nice to meet you.\""]],
-    [["店長|「アレックスさんは、元気ですか？」", "\"How's Alex doing?\""], ["ユキ|「元気だよ。でも、カナダは今も寒いの。」", "\"He's fine. But it's still cold in Canada.\""]],
+    [["店長|「アレックスは、元気？」", "\"How's Alex doing?\""], ["ユキ|「元気だよ。でも、カナダは今も寒いの。」", "\"He's fine. But it's still cold in Canada.\""]],
     [["ケンタ|「ラーメン、お願いします！」", "\"Ramen, please!\""]],
     [["ラーメンが来た。", "The ramen came."], ["熱い。", "It's hot."]],
     [["ソラ|「…うまい！」", "\"…So good!\""], ["ケンタ|「でしょ？」", "\"Right?\""]],
-    [["店長|「アレックスさんも、いつもここで食べていました。」", "\"Alex always ate here too.\""]],
+    [["店長|「アレックスも、いつもここで食べてたよ。」", "\"Alex always ate here too.\""]],
     [["ソラ|「みんな、アレックスさんが好きですね。」", "\"Everyone really likes Alex.\""], ["ユキ|「うん。」", "\"Yeah.\""]],
     [["ユキ|「でも、今はソラもいるよ。」", "\"But now we've got you too.\""], ["ケンタ|「うん、みんなの友達。」", "\"Yeah. Everyone's friend.\""]],
     [["店長|「ソラさん、また来てくださいね。」", "\"Sora, come again.\""], ["ソラ|「はい！また来ます！」", "\"Yes! I'll be back!\""]]

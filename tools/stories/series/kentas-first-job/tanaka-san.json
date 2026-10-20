@@ -13,7 +13,7 @@
     [["田中|「ゲームをしましょう。」", "\"Let's play the game.\""], ["ケンタ|「…ゲーム、ですか？」", "\"…The game?\""]],
     [["田中|「はい。会社の新しいゲームです。」", "\"Yes. The company's new game.\""], ["田中|「朝から夜まで、しましょう。」", "\"Let's play it from morning till night.\""]],
     [["ケンタ|「仕事で、ゲーム…！」", "\"Games, for work…!\""], ["田中|「仕事ですよ、ケンタさん。」", "\"It is work, Kenta.\""]],
-    [["夜。", "Night."], ["田中|「今日は、ここまでです。帰りましょう。」", "\"That's it for today. Let's go home.\""]],
+    [["夜。", "Night."], ["田中|「今日は、ここまでです。ケンタさんは、帰ってください。」", "\"That's it for today. You go on home, Kenta.\""]],
     [["田中|「明日も、頑張りましょう。」", "\"Let's work hard tomorrow too.\""], ["ケンタ|「はい！ありがとうございます！」", "\"Yes! Thank you very much!\""]],
     [["ケンタは帰った。", "Kenta went home."], ["田中さんは、まだ仕事をしている。", "Tanaka is still working."]]
   ]

@@ -1,7 +1,6 @@
 {
   "title": "The festival",
   "plot": "A festival in the park: ramen, crowds, and talk of fireworks.",
-  "topic": "de",
   "paragraphs": [
     [["今夜は祭りだ。", "There's a festival tonight."]],
     [["ユキ|「公園で祭りだよ。行く？」", "\"There's a festival in the park. Coming?\""], ["アレックス|「行く！」", "\"Yes!\""]],
@@ -11,6 +10,6 @@
     [["公園でラーメンを食べた。", "We ate ramen in the park."], ["祭りのラーメンも、うまい。", "Festival ramen is good too."]],
     [["ミホさんも来た。", "Miho came too."]],
     [["ミホ|「アレックスさん、花火を見ますか？」", "\"Alex, are you going to watch the fireworks?\""], ["アレックス|「花火？見たい！」", "\"Fireworks? I want to see them!\""]],
-    [["ミホ|「花火は、あっちで見ます。」", "\"We watch them from over there.\""]]
+    [["ミホ|「花火は、あっちで見ます。」", "\"We'll watch them from over there.\""]]
   ]
 }

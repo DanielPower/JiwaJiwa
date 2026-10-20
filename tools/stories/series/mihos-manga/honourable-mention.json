@@ -11,11 +11,11 @@
     [["佐藤|「あ、ユキさんですね。主人公の！」", "\"Oh, you must be Yuki. The heroine!\""], ["ユキ|「…主人公じゃないです。」", "\"…I'm not the heroine.\""]],
     [["佐藤|「ミホさん、来られましたね。」", "\"Miho, you made it.\""], ["佐藤|「これが、秋の雑誌です。」", "\"This is the autumn issue.\""]],
     [["佐藤さんが、雑誌を見せた。", "Sato showed us the magazine."], ["コンテストの結果のページだ。", "The page with the contest results."]],
-    [["一番の人の名前。", "The winner's name."], ["そして、私の名前。", "And then, my name."]],
+    [["一番のマンガの名前。", "The winning manga's title."], ["そして、私の名前。", "And then, my name."]],
     [["名前の前に、『佳作』。", "In front of it: 'Honourable mention'."]],
     [["ミホ|「…佳作？」", "\"…Honourable mention?\""], ["佐藤|「はい。佳作です。おめでとうございます。」", "\"Yes. An honourable mention. Congratulations.\""]],
     [["ミホ|「一番じゃない…」", "\"Not first…\""], ["ユキ|「でも、ミホの名前が、雑誌に出たよ！」", "\"But your name's in the magazine!\""]],
-    [["佐藤|「一番の人は、絵が本当に上手でした。」", "\"The winner draws really well.\""], ["佐藤|「線も、ミホさんよりきれいでした。」", "\"Cleaner lines than yours, too.\""]],
+    [["佐藤|「一番のマンガは、絵が本当にすごかったです。」", "\"The winning manga's art was really something.\""], ["佐藤|「線も、ミホさんよりきれいでした。」", "\"Cleaner lines than yours, too.\""]],
     [["佐藤|「でも、話は、ミホさんのマンガのほうが好きでした。」", "\"But I liked your story better.\""]],
     [["佐藤|「下手な線もありました。でも、楽しい線でした。」", "\"Some of the lines were rough. But they were fun lines.\""], ["佐藤|「三人の音が、聞こえました。」", "\"I could hear the three of them playing.\""]],
     [["佐藤|「最後のページ。」", "\"The last page.\""], ["佐藤|「主人公が、みんなの顔を見て、笑うとき。」", "\"When the heroine sees everyone's faces and smiles.\""]],
@@ -36,7 +36,7 @@
     [["部屋で、名刺と、初めてのマンガのノートを見た。", "In my room, I looked at the card, and at the notebook with my first manga."]],
     [["昔の私の夢は、マンガ家。", "Old me dreamed of being a manga artist."], ["今の私の夢も、マンガ家。", "So does the me now."]],
     [["昔の私に、この名刺を見せたい。", "I'd love to show old me this card."]],
-    [["早く、次のマンガを見せに行きたい。", "I can't wait to go and show her the next one."]],
+    [["早く、次のマンガを見せに行きたい。", "I can't wait to go and show Sato the next one."]],
     [["夜、新しいマンガを描いた。", "That night, I drew my new manga."]]
   ]
 }

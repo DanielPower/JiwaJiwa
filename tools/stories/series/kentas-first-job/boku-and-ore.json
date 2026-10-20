@@ -4,11 +4,11 @@
   "paragraphs": [
     [["夜だ。", "Night."], ["ケンタが帰った。", "Kenta's home."]],
     [["ケンタ|「ただいま。」", "\"I'm home.\""], ["ユキ|「おかえり！」", "\"Welcome back!\""]],
-    [["ソラ|「ケンタさん、新しい仕事は、おもしろいですか？」", "\"Kenta, is the new job fun?\""]],
+    [["ソラ|「ケンタさん、新しい仕事は、おもしろい？」", "\"Kenta, is the new job fun?\""]],
     [["ケンタ|「おもしろいよ。朝から夜まで、ゲーム。」", "\"It's great. Games from morning till night.\""], ["ユキ|「いいね！」", "\"Nice!\""]],
     [["ケンタ|「でも、田中さんがいるんだ。」", "\"But there's Tanaka-san.\""], ["ソラ|「田中さん？」", "\"Tanaka-san?\""]],
     [["ケンタ|「会社の人。いつも敬語なんだ。」", "\"Someone at work. She's always polite.\""]],
-    [["ソラ|「田中さんも、ゲームが好きですか？」", "\"Does Tanaka-san like games too?\""], ["ケンタ|「うん。夜は、いつもゲームなんだ。」", "\"Yeah. She plays every night.\""]],
+    [["ソラ|「田中さんも、ゲームが好きなの？」", "\"Does Tanaka-san like games too?\""], ["ケンタ|「うん。夜は、いつもゲームなんだ。」", "\"Yeah. She plays every night.\""]],
     [["ユキ|「いい人じゃん。」", "\"Sounds like a good person.\""], ["ケンタ|「…うん。いい人。」", "\"…Yeah. She is.\""]],
     [["ケンタ|「『ケンタさん、始めましょうか。』『明日も頑張りましょう。』」", "\"'Kenta, shall we begin?' 'Let's work hard tomorrow too.'\""]],
     [["ユキ|「ケンタも、会社では敬語？」", "\"Are you polite at work too?\""], ["ケンタ|「うん。会社では、『僕』なんだ。」", "\"Yeah. At work, I'm 'boku'.\""]],
@@ -16,6 +16,6 @@
     [["ケンタ|「ここでは、『俺』だよ。」", "\"Here, I'm 'ore'.\""]],
     [["ユキ|「ケンタ、コーヒー飲む？」", "\"Kenta, want a coffee?\""], ["ケンタ|「…お願いします。」", "\"…Yes, please.\""]],
     [["ユキ|「あ、敬語！」", "\"Ha, polite!\""], ["ケンタ|「あ…飲む。ありがとう。」", "\"Oh… yeah. Thanks.\""]],
-    [["ソラ|「僕は、いつも敬語ですね。」", "\"I'm polite all the time, though.\""], ["ユキ|「ソラは、ソラだから。」", "\"Well, you're Sora.\""]]
+    [["ソラ|「僕も、前は、いつも敬語だった。」", "\"I used to be polite all the time too.\""], ["ユキ|「今は、友達だからね。」", "\"We're friends now, that's why.\""]]
   ]
 }

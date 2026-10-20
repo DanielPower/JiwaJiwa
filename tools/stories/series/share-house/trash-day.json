@@ -1,12 +1,14 @@
 {
   "title": "Trash day",
   "plot": "Yuki teaches Alex trash day; Kenta's trash is all coffee.",
+  "topic": "to",
   "paragraphs": [
     [["朝、ユキが来た。", "In the morning, Yuki came by."]],
     [["ユキ|「アレックス、今日はゴミの日だよ。」", "\"Alex, it's trash day.\""], ["アレックス|「ゴミ？」", "\"Trash?\""]],
     {"note": "Trash in Japan is sorted, and each kind goes out on its own morning: burnable, plastic, cans and bottles. Miss the day and it waits a week."},
-    [["ユキ|「うん。これは今日。」", "\"Yeah. This goes out today.\""], ["アレックス|「これも今日？」", "\"This too?\""], ["ユキ|「うん、これも。」", "\"Yep, that too.\""]],
+    [["ユキ|「うん。これとこれは今日。」", "\"Yeah. This and this go out today.\""], ["アレックス|「これも今日？」", "\"This too?\""], ["ユキ|「うん、これも。」", "\"Yep, that too.\""]],
     [["アレックス|「ケンタのゴミは？」", "\"What about Kenta's trash?\""], ["ユキ|「…あっち。」", "\"…Over there.\""]],
-    [["アレックス|「多い！」", "\"That's a lot!\""], ["ユキ|「コーヒーのゴミだよ。」", "\"It's all coffee.\""]]
+    [["アレックス|「多い！」", "\"That's a lot!\""], ["ユキ|「コーヒーと、コーヒーと、コーヒー。」", "\"Coffee, coffee and coffee.\""]],
+    [["ユキと、コーヒーを飲んだ。", "I had coffee with Yuki."], ["これも、コーヒーのゴミ。", "And that's more coffee trash."]]
   ]
 }

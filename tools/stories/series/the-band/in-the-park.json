@@ -2,7 +2,7 @@
   "title": "In the park",
   "plot": "Three days before the festival, the band tries playing in the park at night for whoever's there; Rin's nerves ease, a child asks for more, and Sora sends Alex the video anyway.",
   "paragraphs": [
-    [["三日で、祭りだ。", "Three days until the festival."]],
+    [["祭りまで、三日だ。", "Three days until the festival."]],
     [["練習が終わって、ダイチが言った。", "After practice, Daichi said:"]],
     [["ダイチ|「みんな、公園で弾いてみよう！」", "\"Let's all try playing in the park!\""], ["ダイチ|「人の前で、やってみたい！」", "\"I want to try it in front of people!\""]],
     [["リン|「…公園？人が、いる。」", "\"…The park? There are people there.\""], ["ダイチ|「人がいるから、いいんだ！」", "\"That's the whole point!\""]],
@@ -30,6 +30,6 @@
     [["ソラ|「この動画、アレックスさんに送るね！」", "\"I'm sending this video to Alex!\""]],
     [["ユキ|「勝ったら、送るって言ったじゃん！」", "\"I said I'd send it if we won!\""], ["ソラ|「…もう、送っちゃった。」", "\"…Already sent it.\""]],
     [["みんなで、笑った。", "We all laughed."]],
-    [["夜の公園。", "The park at night."], ["三日で、祭りだ。", "Three days until the festival."]]
+    [["夜の公園。", "The park at night."], ["祭りまで、三日だ。", "Three days until the festival."]]
   ]
 }

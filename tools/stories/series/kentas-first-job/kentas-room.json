@@ -1,20 +1,20 @@
 {
   "title": "Kenta's room",
-  "plot": "Kenta keeps slipping into office talk at home, and Sora finally gets to see Kenta's room.",
+  "plot": "Kenta keeps slipping into office talk at home, and a night of games in his room turns up his work suit in the trash.",
   "paragraphs": [
     [["夜だ。", "Night."], ["ケンタ|「ただいま。」", "\"I'm home.\""], ["ユキ|「おかえり。」", "\"Welcome back.\""]],
-    [["ソラ|「ケンタさん、明日は休みですか？」", "\"Kenta, are you off tomorrow?\""], ["ケンタ|「うん、休み！」", "\"Yep, day off!\""]],
+    [["ソラ|「ケンタさん、明日は休み？」", "\"Kenta, are you off tomorrow?\""], ["ケンタ|「うん、休み！」", "\"Yep, day off!\""]],
     [["ケンタ|「ソラ、今夜、ゲームをしませんか？」", "\"Sora, would you care to play games tonight?\""]],
-    [["ソラ|「…ケンタさん、敬語です。」", "\"…Kenta, you're being polite.\""], ["ケンタ|「あ…ゲーム、する？」", "\"Oh… wanna play?\""], ["ソラ|「します！」", "\"Yes!\""]],
-    [["ソラ|「ケンタさんの部屋に、入ってもいいですか？」", "\"May I come into your room?\""], ["ケンタ|「いいよ。」", "\"Sure.\""]],
+    [["ソラ|「…ケンタさん、敬語！」", "\"…Kenta, that was polite!\""], ["ケンタ|「あ…ゲーム、する？」", "\"Oh… wanna play?\""], ["ソラ|「する！」", "\"Yeah!\""]],
+    [["ソラ|「ケンタさんの部屋に、入ってもいい？」", "\"Can I come into your room?\""], ["ケンタ|「いいよ。」", "\"Sure.\""]],
     [["ユキ|「ソラ、ケンタの部屋には、入っちゃだめだよ。」", "\"Sora, you mustn't go into Kenta's room.\""]],
-    [["ソラ|「何があるんですか？」", "\"What's in there?\""], ["ユキ|「ゴミ。」", "\"Trash.\""]],
+    [["ソラ|「…まだ、ゴミ？」", "\"…Still trash?\""], ["ユキ|「ゴミ。」", "\"Trash.\""]],
     [["ケンタの部屋だ。", "Kenta's room."], ["ゴミ、マンガ、ゲーム、ゴミ。", "Trash, manga, games, trash."]],
-    [["ソラ|「…本当に、ゴミが多いですね。」", "\"…There really is a lot of trash.\""], ["ケンタ|「…うん。」", "\"…Yeah.\""]],
-    [["ソラ|「このマンガ、読んでもいいですか？」", "\"May I read this manga?\""], ["ケンタ|「いいよ。」", "\"Sure.\""]],
-    [["ソラ|「これは？触ってもいいですか？」", "\"What's this? May I touch it?\""], ["ケンタ|「それは、だめ！」", "\"Not that!\""]],
+    [["ソラ|「…本当に、ゴミが多いね。」", "\"…There really is a lot of trash.\""], ["ケンタ|「…うん。」", "\"…Yeah.\""]],
+    [["ソラ|「このマンガ、読んでもいい？」", "\"Can I read this manga?\""], ["ケンタ|「いいよ。」", "\"Sure.\""]],
+    [["ソラ|「これは？触ってもいい？」", "\"What's this? Can I touch it?\""], ["ケンタ|「それは、だめ！」", "\"Not that!\""]],
     [["ケンタ|「それは、会社のスーツ。」", "\"That's my work suit.\""], ["ソラ|「スーツが、ゴミと一緒に…」", "\"Your suit's in with the trash…\""]],
-    [["ケンタ|「…じゃあ、始めましょう！」", "\"…Right, shall we begin!\""], ["ソラ|「ケンタさん、また敬語です。」", "\"Kenta, polite again.\""]],
+    [["ケンタ|「…じゃあ、始めましょう！」", "\"…Right, shall we begin!\""], ["ソラ|「ケンタさん、また敬語！」", "\"Kenta, polite again!\""]],
     [["ケンタとソラは、朝までゲームをした。", "Kenta and Sora played games till morning."]]
   ]
 }

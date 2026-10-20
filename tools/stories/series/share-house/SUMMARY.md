@@ -46,7 +46,8 @@ Yuki makes coffee for Alex and a sleepy Kenta.
 
 Yuki teaches Alex trash day; Kenta's trash is all coffee.
 
-- 18 words; 3 new of 3 allowed.
+- 25 words; 3 new of 3 allowed.
+- Teaches と (`to`).
 - New: 今日 (きょう, N5), ゴミ (N4), 日 (ひ, N4).
 
 ### 5. The interview (`share-house/the-interview`)
@@ -119,7 +120,8 @@ Spring: the housemates see the cherry blossoms in the park.
 
 Hanami with Miho under the cherry blossoms, and photos; Kenta stays in bed.
 
-- 26 words; 3 new of 3 allowed.
+- 29 words; 3 new of 3 allowed.
+- Teaches で (`de`).
 - New: 写真 (しゃしん, N5), 撮る (とる, N5), 友達 (ともだち, N5).
 
 ### 15. A call from home (`share-house/a-call-from-home`)
@@ -141,7 +143,6 @@ Summer heat drives everyone into the konbini for water and beer.
 A festival in the park: ramen, crowds, and talk of fireworks.
 
 - 30 words; 3 new of 3 allowed.
-- Teaches で (`de`).
 - New: 祭り (まつり, N3), 花火 (はなび, N2), 見る (みる, N5).
 
 ### 18. Fireworks (`share-house/fireworks`)
@@ -177,15 +178,14 @@ Yuki writes a new song for Alex because he's leaving.
 
 Snow in Tokyo; Alex will be in Canada next year.
 
-- 28 words; 3 new of 3 allowed.
+- 27 words; 3 new of 3 allowed.
 - New: 冬 (ふゆ, N5), 雪 (ゆき, N5), 来年 (らいねん, N5).
 
 ### 23. The last shift (`share-house/the-last-shift`)
 
 Alex's last shift and one last ramen with his friends.
 
-- 31 words; 3 new of 3 allowed.
-- Teaches と (`to`).
+- 28 words; 3 new of 3 allowed.
 - New: 最後 (さいご, N4), 寂しい (さびしい, N4), 本当に (ほんとうに, not JLPT).
 
 ### 24. Goodbye (`share-house/goodbye`)
@@ -198,6 +198,6 @@ Goodbyes at the station; Alex flies home, and Yuki wonders whether to sing her n
 
 Read in order after the stories it follows, a reader knows these by the end of the last chapter.
 
-Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます / か (`masu`), から / まで (`kara-made`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), で (`de`), から (`kara-because`), と (`to`).
+Grammar: ～た (`ta`), だ / です (`da`), が (`ga`), は (`wa`), ～ない (`nai`), よ / ね / な / でしょ (`yo-ne`), の (`no`), ～たい (`tai`), を (`wo`), も (`mo`), です / ます / か (`masu`), から / まで (`kara-made`), と (`to`), ～て / ～てください (`te-kudasai`), に (`ni`), ～てる / ～ている (`te-iru`), で (`de`), から (`kara-because`).
 
-110 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう うまい チケット 買う これ 卵 ビール 熱い ゆっくり ラーメン屋 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ 日 はい おいしい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 写真 撮る 友達 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に
+110 words: 来る ついに 日本 大きい 空港 人 多い 駅 あっち 外 山 きれい ビル 高い あ ここ どこ わかる コンビニ いらっしゃいませ いい うん よろしく 部屋 お腹 すく でも ラーメン 食べる 向こう うまい 食券 買う これ 卵 ビール 熱い ゆっくり ラーメン屋 店長 バイト やる 朝 おはよう 眠い ゲーム 好き 今夜 コーヒー 飲む ありがとう 今日 ゴミ 日 はい おいしい お願いする すみません ちょっと 待つ 負ける もう 一回 休み マンガ 店 じゃあ おもしろい うるさい ベース ごめん 洗濯 雨 降る ライブ 行く 楽しみ 春 公園 桜 写真 撮る 友達 電話 母 元気 夏 暑い 水 祭り 花火 見る 夜 空 一緒 会社 仕事 頑張る 秋 寒い 帰る 新しい 曲 歌う 冬 雪 来年 最後 寂しい 本当に
