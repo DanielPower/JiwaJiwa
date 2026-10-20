@@ -3,6 +3,9 @@ name: Build and release
 on:
   push:
     branches: [main]
+    # A change to docs alone ships nothing new.
+    paths-ignore:
+      - "**/*.md"
   workflow_dispatch:
 
 permissions:
@@ -14,13 +17,22 @@ concurrency:
 
 jobs:
   release:
+    # Releases come from main only, even when started by hand.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
-      PLAY_UPLOAD: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+      # Play only takes bundles signed with the upload key, so a debug-signed one is never sent.
+      PLAY_UPLOAD: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' && secrets.SIGNING_KEYSTORE_BASE64 != '' }}
+      # Added to the run number to make the version. Play refuses a versionCode
+      # lower than one it already has, and run numbers start again at 1 if this
+      # workflow is renamed or made again: then set this to the last release's
+      # number (the N of v0.1.N) first.
+      VERSION_BASE: 0
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -46,6 +58,18 @@ jobs:
           python3 tools/dictionary/build_dictionary.py
           git diff --exit-code tools/dictionary/build_report.md
 
+      # Ten versionCodes a run (0.1.82 is 821, 822, ...), so a re-run gets a
+      # new one: Play refuses a versionCode it's had, even from a failed upload.
+      - name: Work out the version
+        run: |
+          if [ "$GITHUB_RUN_ATTEMPT" -gt 9 ]; then
+            echo "::error::A tenth attempt would take the next run's versionCode; start a new run instead."
+            exit 1
+          fi
+          number=$((GITHUB_RUN_NUMBER + VERSION_BASE))
+          echo "APP_VERSION_NAME=0.1.${number}" >> "$GITHUB_ENV"
+          echo "APP_VERSION_CODE=$((number * 10 + GITHUB_RUN_ATTEMPT))" >> "$GITHUB_ENV"
+
       # The tests also run in test.yml; running them here keeps a failing
       # build from being published.
       - name: Test and build
@@ -54,34 +78,28 @@ jobs:
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: ./gradlew :core:test :app:testReleaseUnitTest :app:assembleRelease :app:bundleRelease
 
-      - name: Publish the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SIGNED: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' }}
+      # What's new is the change's one-line summary. A merge commit's subject is
+      # "Merge pull request #… from …", with the pull request's title under it.
+      - name: Write the release notes
         run: |
-          version="0.1.${GITHUB_RUN_NUMBER}"
-          apk="jiwajiwa-${version}.apk"
-          cp app/build/outputs/apk/release/app-release.apk "$apk"
-          # The bundle is what Google Play takes; the APK is for installing directly.
-          cp app/build/outputs/bundle/release/app-release.aab "jiwajiwa-${version}.aab"
-          notes="$(git log -1 --pretty=%B)"
-          if [ "$SIGNED" != "true" ]; then
-            notes="${notes}"$'\n\n'"Signed with a temporary debug key. Add the signing secrets (see Release signing in the README) so updates install over each other."
-          fi
-          gh release create "v${version}" "$apk" "jiwajiwa-${version}.aab" --title "Jiwa Jiwa ${version}" --notes "$notes" --target "$GITHUB_SHA"
+          subject="$(git log -1 --pretty=%s)"
+          title="$subject"
+          case "$subject" in
+            "Merge pull request #"*) title="$(git log -1 --pretty=%b | sed -n '/[^[:space:]]/{p;q}')" ;;
+          esac
+          printf '%s\n' "${title:-$subject}" > notes.txt
+          # Play's "What's new" takes 500 characters. Cut characters, not bytes, as notes can be in Japanese.
+          mkdir -p whatsnew
+          python3 -c 'import sys; sys.stdout.write(sys.stdin.read().strip()[:500])' < notes.txt > whatsnew/whatsnew-en-US
 
       # Sends each release to Google Play's internal testing track, once the
       # PLAY_SERVICE_ACCOUNT_JSON secret is set (see "Google Play" in the README).
-      # Play's "What's new" text is the commit message, cut to its 500-character limit.
-      - name: Write Play release notes
-        if: env.PLAY_UPLOAD == 'true'
-        run: |
-          mkdir -p whatsnew
-          git log -1 --pretty=%B | head -c 500 > whatsnew/whatsnew-en-US
-
+      # It goes before the GitHub release: Play is the stricter of the two, and
+      # a run it fails can be re-run from the start.
       - name: Upload to Google Play internal testing
         if: env.PLAY_UPLOAD == 'true'
-        uses: r0adkll/upload-google-play@v1
+        # v1, pinned, as it's handed the Play service account.
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.crispyumbrella.jiwajiwa
@@ -89,3 +107,26 @@ jobs:
           tracks: internal
           status: ${{ vars.PLAY_RELEASE_STATUS || 'completed' }}
           whatsNewDirectory: whatsnew
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SIGNED: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' }}
+        run: |
+          version="$APP_VERSION_NAME"
+          apk="jiwajiwa-${version}.apk"
+          aab="jiwajiwa-${version}.aab"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          # The bundle is what Google Play takes; the APK is for installing directly.
+          cp app/build/outputs/bundle/release/app-release.aab "$aab"
+          notes="$(cat notes.txt)"
+          if [ "$SIGNED" != "true" ]; then
+            notes="${notes}"$'\n\n'"Signed with a temporary debug key. Add the signing secrets (see Release signing in the README) so updates install over each other."
+          fi
+          # A re-run finds the release an earlier attempt made: its files are replaced with this build's.
+          if gh release view "v${version}" > /dev/null 2>&1; then
+            gh release upload "v${version}" "$apk" "$aab" --clobber
+            gh release edit "v${version}" --draft=false
+          else
+            gh release create "v${version}" "$apk" "$aab" --title "Jiwa Jiwa ${version}" --notes "$notes" --target "$GITHUB_SHA"
+          fi

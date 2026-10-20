@@ -14,6 +14,10 @@ tools/dictionary/.cache/
 app/src/main/assets/databases/dictionary.db
 __pycache__/
 
+# What a recording run leaves if it's stopped partway; only finished .opus clips are committed
+app/src/main/assets/audio/*.wav
+app/src/main/assets/audio/*.tmp
+
 # Signing material is provided by CI secrets, never committed
 *.jks
 *.keystore

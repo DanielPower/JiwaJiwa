@@ -37,7 +37,7 @@ rootProject.name = "jstudy"
 include(":core")
 // The Android SDK isn't available everywhere (some sandboxes can't reach Google's
 // servers), so the pure-Kotlin core can be built and tested on its own with
-// ./gradlew -PcoreOnly :core:test
+// ./gradlew -PcoreOnly=true :core:test
 if (providers.gradleProperty("coreOnly").orNull != "true") {
     include(":app")
 }

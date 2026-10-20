@@ -5,8 +5,8 @@ new words and grammar a few at a time; the words you meet are reviewed
 Anki-style (you grade yourself Wrong or Right), scheduled with FSRS, and lose
 their furigana as each word's mastery grows.
 
-Every push to `main` builds a release APK and publishes it on the
-[Releases](../../releases) page.
+Every push to `main` (other than one changing only docs) builds a release
+APK and publishes it on the [Releases](../../releases) page.
 
 ## Layout
 
@@ -86,9 +86,16 @@ Every release also builds `jiwajiwa-<version>.aab`, the bundle Google Play takes
 and attaches it to the GitHub release. The first bundle has to be uploaded by
 hand in Play Console. After that, setting the `PLAY_SERVICE_ACCOUNT_JSON`
 repository secret (a Google Cloud service account key with release access in
-Play Console) makes each release go to the internal testing track, with the
-commit message as its release notes. Set the `PLAY_RELEASE_STATUS` repository
-variable to `draft` while the app is still a draft in Play Console.
+Play Console) makes each release go to the internal testing track, before
+the GitHub release, with the pull request's title as its release notes.
+Nothing goes to Play without the signing secrets, as Play only takes the upload
+key. Set the `PLAY_RELEASE_STATUS` repository variable to `draft` while the
+app is still a draft in Play Console.
+
+Release `0.1.N` (N is the workflow's run number) has versionCode `10 × N`
+plus the run's attempt, so re-running a release gets a new code, as Play
+refuses one it has had. Run numbers start again at 1 if `release.yml` is
+renamed or made again: then set `VERSION_BASE` in it to the last N first.
 
 Google Play holds the app signing key. The key in the signing secrets is the
 upload key, so APKs from GitHub releases can't update an install from Play,
