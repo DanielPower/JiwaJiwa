@@ -1,6 +1,7 @@
 package ca.danielpower.jstudy.audio
 
 import android.content.Context
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.audiofx.LoudnessEnhancer
 import android.os.Handler
@@ -74,6 +75,19 @@ class StoryVoice(context: Context) {
     // The line the player is on, and the run it belongs to.
     private var playerLine: Pair<Int, Int>? = null
 
+    // A word, a kana or a line on its own only lowers other apps' sound for a moment, so music
+    // carries on after it. A whole story takes the sound, and the player asks for that itself.
+    private val audio = appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val brief = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+        .setAudioAttributes(
+            android.media.AudioAttributes.Builder()
+                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build(),
+        )
+        .build()
+    private var ducking = false
+
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_ENDED) playerLine?.let { (r, i) -> done(r, i) }
@@ -140,6 +154,7 @@ class StoryVoice(context: Context) {
 
         override fun onDone(utteranceId: String) {
             main.post {
+                if (utteranceId == "word:$run") return@post unduck()
                 val (r, i) = parse(utteranceId) ?: return@post
                 done(r, i)
             }
@@ -148,8 +163,12 @@ class StoryVoice(context: Context) {
         @Deprecated("Deprecated in Java")
         override fun onError(utteranceId: String) {
             main.post {
+                if (utteranceId == "word:$run") return@post unduck()
                 val (r, _) = parse(utteranceId) ?: return@post
-                if (r == run) _state.update { it.copy(playing = false, offset = null) }
+                if (r == run) {
+                    unduck()
+                    _state.update { it.copy(playing = false, offset = null) }
+                }
             }
         }
 
@@ -164,8 +183,12 @@ class StoryVoice(context: Context) {
     /** Line [i] of run [r] has been said: on to the next, if it's still reading. */
     private fun done(r: Int, i: Int) {
         if (r != run || !_state.value.playing) return
-        if (!single && i + 1 < lines.size) speak(i + 1)
-        else _state.update { it.copy(playing = false, line = null, offset = null) }
+        if (!single && i + 1 < lines.size) {
+            speak(i + 1)
+        } else {
+            unduck()
+            _state.update { it.copy(playing = false, line = null, offset = null) }
+        }
     }
 
     private fun parse(id: String): Pair<Int, Int>? {
@@ -186,8 +209,10 @@ class StoryVoice(context: Context) {
         if (from !in made.indices) return@whenReady
         this.lines = made
         this.rate = rate
-        this.single = single
+        // A single line ends after itself either way, and is brief.
+        this.single = single || made.size == 1
         quiet()
+        if (this.single) duck()
         _state.update { it.copy(key = key, playing = true) }
         speak(from)
     }
@@ -214,6 +239,8 @@ class StoryVoice(context: Context) {
             player = it
         }
         tts.stop()
+        // The player takes the sound for a story; a brief line only lowers it, from play().
+        p.setAudioAttributes(p.audioAttributes, !single)
         playerLine = run to i
         // The player can only turn a clip down, so a quiet voice is turned up by the booster, which also stops it clipping.
         val boost = booster
@@ -256,6 +283,17 @@ class StoryVoice(context: Context) {
         main.removeCallbacks(tick)
         player?.stop()
         tts.stop()
+        unduck()
+    }
+
+    /** Lower other apps' sound for something brief. */
+    private fun duck() {
+        if (!ducking) ducking = audio.requestAudioFocus(brief) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    }
+
+    private fun unduck() {
+        if (ducking) audio.abandonAudioFocusRequest(brief)
+        ducking = false
     }
 
     /** Stop reading, keeping the line it stopped at to carry on from. */
@@ -279,6 +317,7 @@ class StoryVoice(context: Context) {
     fun say(text: String, rate: Float, voiceFor: (List<PhoneVoice>) -> SpokenVoice) = whenReady {
         if (_state.value.missing) return@whenReady
         if (_state.value.playing) pause() else quiet()
+        duck()
         val voice = voiceFor(_state.value.voices)
         voice.name?.let(byName::get)?.let { tts.voice = it }
         tts.setPitch(voice.pitch)
@@ -294,5 +333,6 @@ class StoryVoice(context: Context) {
         player = null
         tts.stop()
         tts.shutdown()
+        unduck()
     }
 }
