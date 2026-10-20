@@ -729,12 +729,14 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         // Looking a word up means reading it doesn't count towards its mastery.
         val id = reading.word(key.first, key.second)?.takeIf { it.kind == WordKind.WORD }?.wordId
         if (id != null) vm.lookedUp(id)
+        vm.readerGesture(held = false)
     }
     val hold = { key: Pair<Int, Int> ->
         menu = false
         note = null
         audio = false
         open = Opened(key.first, key.second, sentence = true)
+        vm.readerGesture(held = true)
     }
     val tapNote = { p: Int ->
         menu = false
@@ -808,23 +810,38 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 menu -> ReaderMenu(style, vm::setReaderStyle, direction = reading.unclearKana.isEmpty(), directionNew = directionNew)
                 audio -> AudioMenu(speech, voice.missing && reading.clips.all { it == null }, vm::setSpeechRate)
                 n != null -> NoteCard(n)
-                o == null -> Text(
-                    // A chapter that teaches a topic says what's in indigo; the rest say how the pane works.
-                    reading.teaches?.let { topic ->
-                        buildAnnotatedString {
-                            append("New in this chapter: ")
-                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) { append(topic.page.title) }
-                            patternRomaji(topic.page.title, reading.unclearKana)?.let {
-                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary)) { append(" ($it)") }
-                            }
-                            append(", shown in blue.")
-                        }
-                    } ?: AnnotatedString("Tap a word to see what it means. Hold one to read its sentence in English."),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
-                )
+                o == null -> Column(
+                    Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    val topic = reading.teaches
+                    // How the pane works; in a chapter that teaches a topic, until you've tapped a word and held one.
+                    if (topic == null || !(state.hasTapped && state.hasHeld)) {
+                        Text(
+                            "Tap a word to see what it means. Hold one to read its sentence in English.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    // A chapter that teaches a topic says what's in indigo.
+                    if (topic != null) {
+                        Text(
+                            buildAnnotatedString {
+                                append("New in this chapter: ")
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) { append(topic.page.title) }
+                                patternRomaji(topic.page.title, reading.unclearKana)?.let {
+                                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary)) { append(" ($it)") }
+                                }
+                                append(", shown in blue.")
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
                 o.sentence -> {
                     // Its own line of the narration, when it has something to say and something to say it with.
                     val sentenceLine = reading.narration.indexOfFirst { it.p == o.p && o.i in it.words }

@@ -235,6 +235,12 @@ sealed interface Screen {
         val knewNew: Set<Long> = emptySet(),
         /** Vertical text just came back, with every kana clear: the reader's gear marks it until its menu is opened. */
         val verticalNew: Boolean = false,
+        /**
+         * Whether you've ever tapped a word in the reader, and held one for its sentence. Until
+         * you've done both, a chapter that teaches a topic says how the pane works too.
+         */
+        val hasTapped: Boolean = true,
+        val hasHeld: Boolean = true,
     ) : Screen
 }
 
@@ -778,6 +784,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         launchIo { repo.setReaderStyle(style) }
     }
 
+    /** A word tapped in the reader, or held for its sentence ([held]): saved the first time, for the empty pane's how-to line. */
+    fun readerGesture(held: Boolean) {
+        val state = _screen.value as? Screen.StoryReader ?: return
+        if (if (held) state.hasHeld else state.hasTapped) return
+        _screen.update { if (it !is Screen.StoryReader) it else if (held) it.copy(hasHeld = true) else it.copy(hasTapped = true) }
+        launchIo { repo.markReaderGesture(held) }
+    }
+
     /** The reader's settings menu opened: vertical text is no longer new. */
     fun readerMenuOpened() {
         val state = _screen.value as? Screen.StoryReader ?: return
@@ -1004,9 +1018,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             readerPage = startPage
         }
         val chapter = repo.chapterEntry(reading.story)
+        val (tapped, held) = repo.readerGestures()
         _screen.value = Screen.StoryReader(
             reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage, startAt = startAt,
-            verticalNew = repo.verticalNew(),
+            verticalNew = repo.verticalNew(), hasTapped = tapped, hasHeld = held,
         )
     }
 

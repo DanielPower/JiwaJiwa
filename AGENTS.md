@@ -355,7 +355,10 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   underline, the rest keeps its own colour (a new verb stays vermilion and
   underlined: 勝っ|たら). The split comes from the tokenizer: core
   `GrammarUse.from`/`to`, written by the story tools. The empty pane says
-  "New in this chapter: ～たら, shown in blue." A new word that is all
+  "New in this chapter: ～たら, shown in blue.", under the how-to line
+  other chapters show ("Tap a word… Hold one…") until you've tapped a word
+  and held one (the `reader_tapped` and `reader_held` values; review 09,
+  2026-10-20: chapters 1 to 3 all teach a topic). A new word that is all
   pattern (なる in 暑くなる) stays vermilion, as any new word does. It's only
   on a first reading, and not in a chapter whose topic another chapter
   you've read already taught (core `StoryCatalog.teaches`).

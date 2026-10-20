@@ -1219,6 +1219,11 @@ class Repository private constructor(context: Context) {
 
     fun markVerticalSeen() = store.setValues(mapOf("vertical_seen" to "1"))
 
+    /** Whether you've ever tapped a word in the reader, and held one for its sentence. */
+    fun readerGestures(): Pair<Boolean, Boolean> = (store.getValue("reader_tapped") != null) to (store.getValue("reader_held") != null)
+
+    fun markReaderGesture(held: Boolean) = store.setValues(mapOf((if (held) "reader_held" else "reader_tapped") to "1"))
+
     /** A kana's recorded sound, if the app has one. */
     fun kanaClip(text: String): Recording? {
         val voices = catalog.voices
