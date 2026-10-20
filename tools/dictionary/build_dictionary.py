@@ -57,8 +57,8 @@ CREATE TABLE word (
     freq_rank INTEGER,
     study_order INTEGER
 );
-CREATE UNIQUE INDEX index_word_study_order ON word (study_order);
-CREATE INDEX index_word_jlpt ON word (jlpt);
+CREATE UNIQUE INDEX index_word_study_order ON word (study_order) WHERE study_order IS NOT NULL;
+CREATE INDEX index_word_jlpt ON word (jlpt) WHERE jlpt > 0;
 
 CREATE TABLE form (
     word_id INTEGER NOT NULL,
