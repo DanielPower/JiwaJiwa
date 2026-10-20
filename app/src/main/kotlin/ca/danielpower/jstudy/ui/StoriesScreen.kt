@@ -775,8 +775,10 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::storyBackPressed)
             Box(Modifier.weight(1f)) {
-                // A chapter's English title, or a grammar page's pattern, isn't read like the story.
-                Text(reading.story.title, style = MaterialTheme.typography.headlineSmall, fontFamily = if (reading.lesson != null) Gothic else null)
+                // A chapter's English title, or a grammar page's pattern, isn't read like the story;
+                // a pattern has its sound after it while a kana in it hasn't been practised.
+                val title = if (reading.lesson == null) AnnotatedString(reading.story.title) else patternName(reading.story.title, patternRomaji(reading.story.title, reading.unreadKana))
+                Text(title, style = MaterialTheme.typography.headlineSmall, fontFamily = if (reading.lesson != null) Gothic else null)
             }
             CompositionLocalProvider(LocalContentColor provides if (menu) MaterialTheme.colorScheme.primary else LocalContentColor.current) {
                 Box {
@@ -812,6 +814,9 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                         buildAnnotatedString {
                             append("New in this chapter: ")
                             withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) { append(topic.page.title) }
+                            patternRomaji(topic.page.title, reading.unclearKana)?.let {
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary)) { append(" ($it)") }
+                            }
                             append(", shown in blue.")
                         }
                     } ?: AnnotatedString("Tap a word to see what it means. Hold one to read its sentence in English."),
@@ -1450,6 +1455,23 @@ private fun StoryReading.unclear(kana: String) = KanaCourse.unitsIn(kana).any { 
 
 private fun sounds(kana: String) = Romaji.split(kana).mapNotNull { it.second }.joinToString(" · ")
 
+/** A grammar pattern's sound, ta for ～た, while it has a kana in [kana]; none for one with kanji ([Romaji.pattern]). */
+internal fun patternRomaji(pattern: String, kana: Set<String>): String? =
+    pattern.takeIf { p -> KanaCourse.unitsIn(p).any { it.text in kana } }?.let { Romaji.pattern(it) }
+
+/** [pattern] with its [romaji] after it, small and indigo like the pane's romaji line: ～た ta. */
+@Composable
+internal fun patternName(pattern: String, romaji: String?): AnnotatedString = buildAnnotatedString {
+    append(pattern)
+    if (romaji != null) {
+        withStyle(MaterialTheme.typography.labelLarge.toSpanStyle().copy(color = MaterialTheme.colorScheme.secondary)) { append(" $romaji") }
+    }
+}
+
+/** [point]'s pattern as the pane names it, with its sound while a kana in it isn't clear. */
+@Composable
+private fun StoryReading.paneName(point: GrammarPoint): AnnotatedString = patternName(point.pattern, patternRomaji(point.pattern, unclearKana))
+
 internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME || grammar.isNotEmpty()
 
 /** A tapped word's shading, and the lighter wash on its sentence or the one read aloud. */
@@ -1767,11 +1789,11 @@ private fun WordCard(
     }
     followed?.let { point ->
         BackHandler { followed = null }
-        GrammarCard(point, back = title, onBack = { followed = null }, onLesson = lessonFor(point))
+        GrammarCard(point, reading, back = title, onBack = { followed = null }, onLesson = lessonFor(point))
         return
     }
     if (grammarOnly && points.isNotEmpty()) {
-        ParticleCard(word, points, ::lessonFor)
+        ParticleCard(word, points, reading, ::lessonFor)
         return
     }
     // Always from the top, so the title line and its buttons sit in the same place for every word.
@@ -1864,14 +1886,14 @@ private fun WordCard(
  * except a form of the title's (だ → だった), which first says what it is.
  */
 @Composable
-private fun ParticleCard(word: ReadingWord, points: List<GrammarPoint>, lessonFor: (GrammarPoint) -> (() -> Unit)?) {
+private fun ParticleCard(word: ReadingWord, points: List<GrammarPoint>, reading: StoryReading, lessonFor: (GrammarPoint) -> (() -> Unit)?) {
     val first = points.first()
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(first.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
+            Text(reading.paneName(first), fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
             lessonFor(first)?.let { onLesson ->
                 TextButton(onClick = onLesson) {
                     Text("Grammar lesson →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
@@ -1891,7 +1913,7 @@ private fun ParticleCard(word: ReadingWord, points: List<GrammarPoint>, lessonFo
                 Text("${word.lemma} → ${word.surface}  ·  $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
             }
             GrammarBody(first)
-            for (point in points.drop(1)) GrammarNote(point, lessonFor(point))
+            for (point in points.drop(1)) GrammarNote(point, reading, lessonFor(point))
         }
     }
 }
@@ -1935,7 +1957,7 @@ private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarP
 
 /** A grammar point followed from a word's conjugation line, with ‹ [back] to the word. */
 @Composable
-private fun GrammarCard(point: GrammarPoint, back: String, onBack: () -> Unit, onLesson: (() -> Unit)?) {
+private fun GrammarCard(point: GrammarPoint, reading: StoryReading, back: String, onBack: () -> Unit, onLesson: (() -> Unit)?) {
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1948,7 +1970,7 @@ private fun GrammarCard(point: GrammarPoint, back: String, onBack: () -> Unit, o
                 maxLines = 1,
                 modifier = Modifier.clickable(onClickLabel = "Back to $back", onClick = onBack).padding(vertical = 6.dp),
             )
-            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+            Text(reading.paneName(point), fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp)
             GrammarLevel(point, onLesson)
         }
         Column(
@@ -1962,11 +1984,11 @@ private fun GrammarCard(point: GrammarPoint, back: String, onBack: () -> Unit, o
 
 /** A particle card's second or later grammar point: the pattern, what it means, an example, and [onLesson] for its topic's page. */
 @Composable
-private fun GrammarNote(point: GrammarPoint, onLesson: (() -> Unit)?) {
+private fun GrammarNote(point: GrammarPoint, reading: StoryReading, onLesson: (() -> Unit)?) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 2.dp)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
-            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(reading.paneName(point), fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             GrammarLevel(point, onLesson)
         }
         GrammarBody(point)
@@ -2012,7 +2034,13 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
         state.impact?.topic?.let { topic ->
             SectionLabel("Grammar", Modifier.padding(top = 8.dp))
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(topic.title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.secondary)
+                Text(
+                    patternName(topic.title, patternRomaji(topic.title, state.reading.unreadKana)),
+                    fontFamily = Gothic,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
                 Text(topic.titleEn, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

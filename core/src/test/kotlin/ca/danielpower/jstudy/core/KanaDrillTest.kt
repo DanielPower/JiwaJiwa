@@ -35,6 +35,18 @@ class KanaDrillTest {
     }
 
     @Test
+    fun `a grammar pattern's name reads out as its kana say it`() {
+        assertEquals("ta", Romaji.pattern("～た"))
+        assertEquals("desu / da", Romaji.pattern("です / だ"))
+        assertEquals("wa", Romaji.pattern("は"))
+        assertEquals("temoii / tewaikenai", Romaji.pattern("～てもいい / ～てはいけない"))
+        assertEquals("hazu", Romaji.pattern("～はず"))
+        assertEquals("anoo / eeto", Romaji.pattern("あのー / えーと"))
+        // Kanji have no reading here.
+        assertNull(Romaji.pattern("～と思う"))
+    }
+
+    @Test
     fun `teaches the kana the first chapters use most, first`() {
         val order = KanaCourse.order(listOf("ついについに", "たいした", "いい"))
         assertEquals(listOf("い", "つ", "に", "た", "し"), order.take(5))

@@ -356,6 +356,11 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   pattern (なる in 暑くなる) stays vermilion, as any new word does. It's only
   on a first reading, and not in a chapter whose topic another chapter
   you've read already taught (core `StoryCatalog.teaches`).
+- A pattern's name has its sound after it while a kana in it is unread
+  (core `Romaji.pattern`; not for patterns with kanji): "～た (ta)" in the
+  empty pane, and a small indigo "～た ta" on the pane's grammar cards, a
+  lesson's title and the end page's grammar line (review 09, 2026-10-20).
+  In the pane, as with words, that lasts until the kana is clear.
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.

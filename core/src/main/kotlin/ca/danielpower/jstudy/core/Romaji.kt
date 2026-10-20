@@ -32,6 +32,23 @@ object Romaji {
     /** [text] as one word of romaji, with anything that isn't kana left as it is: にほん is nihon. */
     fun of(text: String, particle: Boolean = false): String = split(text, particle).joinToString("") { (piece, sound) -> sound ?: piece }
 
+    /**
+     * A grammar pattern's name read out, as its kana say it: ～た is ta, です / だ
+     * desu / da. Its は and へ are particles, wa and e (～ては is tewa), but for
+     * はず. Null when it has kanji, which have no reading here.
+     */
+    fun pattern(name: String): String? {
+        if (name.any(Kanjis::isKanji)) return null
+        val pieces = split(name.filter { it !in "～〜" })
+        return pieces.mapIndexed { i, (piece, sound) ->
+            when {
+                piece == "は" && pieces.getOrNull(i + 1)?.first != "ず" -> "wa"
+                piece == "へ" -> "e"
+                else -> sound ?: piece
+            }
+        }.joinToString("")
+    }
+
     /** The consonant a small っ doubles before [next]: t for ch, nothing at the end of a word (an apostrophe shows the stop). */
     private fun doubling(next: String?): String = when {
         next == null || next.first() in VOWELS -> "'"

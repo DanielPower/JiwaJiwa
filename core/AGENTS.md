@@ -15,7 +15,7 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 | `Kana.kt` | Romaji → kana for search, hiragana/katakana variants. |
 | `KanaCourse.kt` | The kana as taught: every unit (きゃ and っ are one each) with its Hepburn romaji, splitting text into units, the order the stories need them in, sets of 5 with lookalikes apart (`KanaLooks`). |
 | `KanaDrill.kt` | Kana practice outside FSRS: `KanaProgress` and its stages, `KanaState` (what's due, unread, unclear), `KanaSession` (one sitting's multiple-choice questions) and `Distractors`. |
-| `Romaji.kt` | Romaji for unread kana (っ and ー by their neighbours), and `romajiPieces`, a word's ruby with romaji over the kana you can't read yet. |
+| `Romaji.kt` | Romaji for unread kana (っ and ー by their neighbours), `romajiPieces`, a word's ruby with romaji over the kana you can't read yet, and `pattern`, a grammar pattern's name read out (～た is ta). |
 | `Kanji.kt` | `Kanji` entries, the kanji in a word from its furigana, and which dictionary reading a word uses (allowing for rendaku, small っ and verb stems in compounds). |
 | `Reading.kt` | What a read story is made of: `ReadingWord` (a word, its dictionary entry, conjugation labels, how its form is made, grammar and furigana), `Morpheme` (a token, which `Grammar.kt` patterns match), paragraphs and `Speech` (who's speaking). The reading itself happens at build time, in `src/stories`. |
 | `StoryText.kt` | The stories as the tools read them, a file per story under `stories/read/` (compact JSON, a paragraph a line), which the app parses and shows. |
