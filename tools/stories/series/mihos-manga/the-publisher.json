@@ -1,6 +1,7 @@
 {
   "title": "The publisher",
   "plot": "Miho and Sora take the train to the magazine's publisher to see pages by real pros on show; a woman there asks about Miho's manga and says she'll look forward to it.",
+  "meets": [{"name": "佐藤", "about": "works at the manga magazine's publisher; asked about Miho's manga", "voice": "woman", "pitch": 0.92}],
   "paragraphs": [
     [["今日は、出版社に行く。", "Today I'm going to the publisher."], ["コンテストの雑誌の出版社だ。", "The one that puts out the contest magazine."]],
     [["今、出版社で、プロのマンガの絵が見られる。", "Right now, you can see pages by professional manga artists there."]],
@@ -13,11 +14,11 @@
     [["ミホ|「…すごい。」", "\"…Amazing.\""], ["ソラ|「ミホさん、大丈夫？」", "\"Miho, are you okay?\""], ["ミホ|「プロは、すごいね。」", "\"The pros are amazing.\""]],
     [["ミホ|「この絵、音が聞こえる。」", "\"You can hear this one.\""], ["ソラ|「…本当に。」", "\"…You really can.\""]],
     [["出版社の人が来た。", "Someone from the publisher came over."]],
-    [["出版社の人|「マンガ、好きですか？」", "\"Do you like manga?\""], ["ミホ|「はい！私、この雑誌のコンテストに出ます！」", "\"Yes! I'm entering this magazine's contest!\""]],
-    [["出版社の人|「そうですか。何を描くんですか？」", "\"Oh, are you? What are you drawing?\""]],
+    [["佐藤|「マンガ、好きですか？」", "\"Do you like manga?\""], ["ミホ|「はい！私、この雑誌のコンテストに出ます！」", "\"Yes! I'm entering this magazine's contest!\""]],
+    [["佐藤|「そうですか。何を描くんですか？」", "\"Oh, are you? What are you drawing?\""]],
     [["ミホ|「バンドのマンガです！友達のバンドです。」", "\"A manga about a band! My friend's band.\""]],
-    [["出版社の人|「締め切りは、夏の最後の日までですよ。」", "\"The deadline is the last day of summer.\""], ["ミホ|「はい！頑張ります！」", "\"Yes! I'll do my best!\""]],
-    [["出版社の人|「楽しみにしています。」", "\"I'll look forward to it.\""]],
+    [["佐藤|「締め切りは、夏の最後の日までですよ。」", "\"The deadline is the last day of summer.\""], ["ミホ|「はい！頑張ります！」", "\"Yes! I'll do my best!\""]],
+    [["佐藤|「楽しみにしています。」", "\"I'll look forward to it.\""]],
     [["電車で帰った。", "We took the train home."], ["外は、もう夜だ。", "It was already dark out."]],
     [["ソラ|「ミホさん、静かだね。」", "\"Miho, you're quiet.\""]],
     [["ミホ|「…プロの絵、すごかった。」", "\"…The pros' pages were amazing.\""], ["ミホ|「私の絵は、まだ…」", "\"Mine isn't there yet…\""], ["ミホ|「でも、私も、プロの雑誌に出たい。」", "\"But I want to be in a real magazine too.\""]],
