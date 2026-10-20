@@ -147,6 +147,8 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
     val due = summary.newCards + summary.learning + summary.reviews
     val kanaDue = summary.kana?.due ?: 0
     val answered = summary.reviewedToday.takeIf { it > 0 }?.let { "$it answered so far, ${100 * summary.correctToday / it}% right" }
+    // Before any word's been started there's nothing to review yet, rather than nothing left.
+    val beforeFirst = due == 0 && !summary.started
     // The button stays pinned at the foot and the rest scrolls, so a small screen never squeezes it.
     Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp)) {
         Column(
@@ -158,8 +160,6 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
             // While any kana isn't clear, and on the day the last one comes clear.
             if (summary.kana != null || summary.kanaClearToday) KanaSection(summary, vm)
 
-            // Before any word's been started there's nothing to review yet, rather than nothing left.
-            val beforeFirst = due == 0 && !summary.started
             if (beforeFirst) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
