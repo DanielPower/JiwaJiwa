@@ -3,6 +3,7 @@ package ca.danielpower.jstudy.audio
 import android.content.Context
 import android.media.AudioManager
 import android.media.audiofx.LoudnessEnhancer
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
@@ -20,10 +21,13 @@ import ca.danielpower.jstudy.core.PhoneVoice
 import ca.danielpower.jstudy.core.Recording
 import ca.danielpower.jstudy.core.SpokenVoice
 import ca.danielpower.jstudy.core.Voices
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.pow
 
@@ -33,9 +37,10 @@ data class SpokenLine(val text: String, val voice: SpokenVoice, val clip: Record
 /**
  * Reads a story aloud a line at a time, so each line can have its speaker's
  * voice and playback can start at any of them: the line's recording when it
- * has one, else the phone's text-to-speech.
+ * has one, else the phone's text-to-speech. A recording still downloading is
+ * waited for a moment, so a chapter opened just now still plays in its voices.
  */
-class StoryVoice(context: Context) {
+class StoryVoice(context: Context, private val clips: Clips) {
     data class State(
         /** The engine has started. */
         val ready: Boolean = false,
@@ -51,10 +56,16 @@ class StoryVoice(context: Context) {
         val offset: Int? = null,
     )
 
+    companion object {
+        /** How long a line waits for its recording to download before the phone reads it, in ms. */
+        const val WAIT = 4000L
+    }
+
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
 
     private val main = Handler(Looper.getMainLooper())
+    private val scope = MainScope()
     private var byName: Map<String, Voice> = emptyMap()
     private var lines: List<SpokenLine> = emptyList()
     private var rate = 1f
@@ -191,9 +202,24 @@ class StoryVoice(context: Context) {
         if (clip != null) record(i, clip) else synthesize(i)
     }
 
-    /** Line [i] from its recording, at its voice's gain. */
-    @OptIn(UnstableApi::class)
+    /** Line [i] from its recording, once it's on the phone; read by the phone instead when it can't be had. */
     private fun record(i: Int, clip: Recording) {
+        if (clip.bundled) return playClip(i, clip, "asset:///${clip.file}")
+        clips.local(clip)?.let { return playClip(i, clip, Uri.fromFile(it).toString()) }
+        tts.stop()
+        playerLine = null
+        player?.stop()
+        val r = run
+        scope.launch {
+            val file = clips.await(clip, WAIT)
+            if (r != run) return@launch
+            if (file != null) playClip(i, clip, Uri.fromFile(file).toString()) else synthesize(i)
+        }
+    }
+
+    /** Line [i] from its recording at [uri], at its voice's gain. */
+    @OptIn(UnstableApi::class)
+    private fun playClip(i: Int, clip: Recording, uri: String) {
         val p = player ?: ExoPlayer.Builder(appContext)
             // Takes the sound from other apps while it reads, and stops when the headphones come out.
             .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).build(), true)
@@ -218,7 +244,7 @@ class StoryVoice(context: Context) {
             boost?.enabled = false
             p.volume = 10f.pow(clip.gain.coerceAtMost(0f) / 20)
         }
-        p.setMediaItem(MediaItem.fromUri("asset:///${clip.file}"))
+        p.setMediaItem(MediaItem.fromUri(uri))
         p.setPlaybackSpeed(rate)
         p.prepare()
         p.play()
@@ -281,6 +307,7 @@ class StoryVoice(context: Context) {
 
     fun shutdown() {
         main.removeCallbacksAndMessages(null)
+        scope.cancel()
         booster?.release()
         booster = null
         player?.release()
