@@ -150,7 +150,10 @@ object KanaCourse {
      * they show, chapter by chapter along the path: the ones most used in
      * the first [window] chapters first, so romaji leaves the early stories
      * as fast as it can, then the rest in the order the stories meet them.
-     * Kana no chapter uses aren't in it: they're the [rest] of the chart.
+     * A voiced or combined kana comes just after the one it's built on
+     * ([base]), which joins the course for it if no chapter uses it: フ
+     * before ブ, き before きゃ. Kana no chapter needs aren't in it: they're
+     * the [rest] of the chart.
      */
     fun order(chapters: List<String>, window: Int = 40): List<String> {
         val counts = HashMap<String, Int>()
@@ -161,11 +164,38 @@ object KanaCourse {
                 first.putIfAbsent(unit.text, n)
             }
         }
-        return first.keys.sortedWith(
+        val used = first.keys.sortedWith(
             compareByDescending<String> { counts[it] ?: 0 }
                 .thenBy { first.getValue(it) }
                 .thenBy { chartIndex(it) },
         )
+        val out = LinkedHashSet<String>()
+        fun add(text: String) {
+            if (text in out) return
+            base(text)?.let { add(it) }
+            out.add(text)
+        }
+        for (text in used) add(text)
+        return out.toList()
+    }
+
+    /** The kana [text] is built on: か for が, は for ぱ, き for きゃ, ぎ for ぎゃ, フ for ファ; null for one that isn't. */
+    fun base(text: String): String? {
+        val unit = byText[text] ?: return null
+        if (unit.mark) return null
+        return if (text.length == 2) text.substring(0, 1) else KanaLooks.dakuten(text)
+    }
+
+    /**
+     * How a voiced or combined kana is built, in a line for its intro:
+     * "フ with ゛ · fu → bu", "き + small ゃ · kya". Null for the rest.
+     */
+    fun built(text: String): String? {
+        val unit = byText[text] ?: return null
+        val base = base(text)?.let { byText[it] } ?: return null
+        if (text.length == 2) return "${base.text} + small ${text.substring(1)} · ${unit.romaji}"
+        val mark = if (java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).endsWith("\u309A")) "゜" else "゛"
+        return "${base.text} with $mark · ${base.romaji} → ${unit.romaji}"
     }
 
     /**
@@ -188,7 +218,8 @@ object KanaCourse {
     /**
      * [order] in sets of [size] to learn together, keeping kana that look
      * alike in different sets: learned side by side they get muddled, so
-     * each waits for a later set.
+     * each waits for a later set. A voiced or combined kana waits, too, for
+     * a set after the one with its [base].
      */
     fun sets(order: List<String>, size: Int = SET_SIZE): List<List<String>> {
         val left = order.toMutableList()
@@ -198,7 +229,8 @@ object KanaCourse {
             val it = left.iterator()
             while (it.hasNext() && set.size < size) {
                 val text = it.next()
-                if (set.none { KanaLooks.alike(it, text) }) {
+                val base = base(text)
+                if (set.none { KanaLooks.alike(it, text) } && (base == null || (base !in left && base !in set))) {
                     set.add(text)
                     it.remove()
                 }

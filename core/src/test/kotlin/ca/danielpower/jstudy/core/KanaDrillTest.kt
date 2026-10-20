@@ -112,6 +112,31 @@ class KanaDrillTest {
     }
 
     @Test
+    fun `a voiced or combined kana comes after the one it's built on`() {
+        // フ and ト aren't used, but ブ and ド are: each comes in just before.
+        val order = KanaCourse.order(listOf("ブドウ"))
+        assertEquals(listOf("ウ", "ト", "ド", "フ", "ブ"), order)
+        assertEquals(listOf("き", "きゃ"), KanaCourse.order(listOf("きゃ")))
+        assertEquals(listOf("か", "が", "き", "ぎ", "ぎゃ"), KanaCourse.order(listOf("ぎゃが")))
+        // And in a set after it, whatever the order.
+        for (list in listOf(order, KanaCourse.units.map { it.text }.reversed(), KanaCourse.order(listOf("ぴょんぴょん、パンダ、ジェット")))) {
+            val sets = KanaCourse.sets(list)
+            val setOf = sets.withIndex().flatMap { (i, set) -> set.map { it to i } }.toMap()
+            for (text in list) {
+                val base = KanaCourse.base(text)?.takeIf { it in setOf } ?: continue
+                assertTrue(setOf.getValue(base) < setOf.getValue(text), "$base before $text")
+            }
+        }
+        assertEquals("フ with ゛ · fu → bu", KanaCourse.built("ブ"))
+        assertEquals("は with ゜ · ha → pa", KanaCourse.built("ぱ"))
+        assertEquals("き + small ゃ · kya", KanaCourse.built("きゃ"))
+        assertEquals("フ + small ァ · fa", KanaCourse.built("ファ"))
+        assertNull(KanaCourse.built("か"))
+        assertNull(KanaCourse.built("っ"))
+        assertNull(KanaCourse.base("ー"))
+    }
+
+    @Test
     fun `kana the stories don't use are there to learn if you ask, and nothing waits on them`() {
         var state = none()
         assertTrue(state.toLearn.isNotEmpty())

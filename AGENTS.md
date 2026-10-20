@@ -130,7 +130,10 @@ version 9 deleted the old kana cards):
   voicing pairs and similar sounds, never one that sounds the same.
 - Taught in the order the stories use them (`stories/kana.txt`, built in
   CI; a speaker's name counts once a chapter), lookalikes in different sets,
-  so new kana show up in stories at once.
+  so new kana show up in stories at once. A voiced or combined kana comes
+  in a set after the kana it's built on, which joins the course for it if
+  no story uses it (フ for ブ), and its intro says how it's built: "フ with
+  ゛ · fu → bu", "き + small ゃ · kya" (draft, 2026-10-20).
 - Only kana the stories use are taught and counted (draft, 2026-10-20). The
   rest of the chart is optional: dashed on the chart ("not in your stories
   yet"), learned only when asked for ("5 more" once the stories' sets are

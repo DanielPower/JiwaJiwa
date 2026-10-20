@@ -75,7 +75,7 @@ private fun KanaIntro(step: KanaStep.Intro, vm: AppViewModel) {
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                "${count(step.units.size)} " + (if (step.story) "from your stories" else "your stories don't use yet") + ". Tap one to hear it.",
+                "${count(step.units.size)} " + (if (step.story) "for your stories" else "your stories don't use yet") + ". Tap one to hear it.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -110,6 +110,8 @@ private fun IntroRow(unit: KanaUnit, example: KanaExample?, onSay: () -> Unit) {
         Text(unit.text, fontFamily = Gothic, fontSize = 44.sp, lineHeight = 50.sp, modifier = Modifier.width(76.dp), textAlign = TextAlign.Center)
         Column(Modifier.weight(1f)) {
             Text(soundLabel(unit), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            // How a voiced or combined kana is built on one met already: "フ with ゛ · fu → bu".
+            KanaCourse.built(unit.text)?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             val line = unit.note ?: example?.let { e ->
                 val word = if (unit.text in e.word) e.word else "${e.word} (${e.reading})"
                 "in $word, “${e.meaning}”"
