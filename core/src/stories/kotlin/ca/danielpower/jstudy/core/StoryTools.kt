@@ -288,7 +288,7 @@ class StoryTools(val root: File, private val conn: Connection) : AutoCloseable {
         appendLine("## Grammar left")
         appendLine()
         appendLine("The grammar points the reader knows that the stories don't use yet, by JLPT level as a rough guide. A chapter can only use a point once a topic in grammar.json has it; the ones in a topic already name it.")
-        for ((level, points) in grammarPoints().filter { it.id !in grammar }.groupBy { it.level }.toSortedMap(reverseOrder())) {
+        for ((level, points) in grammarPoints().filter { it.inText && it.id !in grammar }.groupBy { it.level }.toSortedMap(reverseOrder())) {
             appendLine()
             appendLine("### N$level")
             appendLine()

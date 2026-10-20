@@ -345,6 +345,30 @@
     ]
   },
   {
+    "id": "counters", "title": "一つ / 一人 / 一回", "title_en": "Counting", "points": ["counters"],
+    "summary": "A number takes a counter for the kind of thing counted: 一回, once; 一人, one person, or alone; 三つ, three things.",
+    "parts": [
+      ["もう一回！", "One more time! (Encore!)"],
+      "回 counts times, 人 counts people, and つ counts things in general, so it's the safe choice. The number and its counter go after the thing: ラーメンを三つ, three ramen.",
+      ["ユキさんは、もう一人じゃない。", "Yuki isn't alone anymore."],
+      "Some numbers change their sound before a counter (一人 is ひとり, 三本 is さんぼん), so learn each pair as a word."
+    ],
+    "forms": {
+      "head": ["One", "More"],
+      "rows": [
+        ["一つ", "三つ", "things"],
+        ["一人", "二人", "people"],
+        ["一回", "三回", "times"],
+        ["一本", "三本", "long things: bottles, strings"],
+        ["一曲", "三曲", "songs"]
+      ]
+    },
+    "more": [
+      "一人 and 二人 are ひとり and ふたり; from three on, people are 三人, 四人. 三日 is three days, and also the third of the month.",
+      "何 asks how many: 何人, how many people? 何回, how many times?"
+    ]
+  },
+  {
     "id": "mashou", "title": "～ましょう / ～ませんか", "title_en": "Let's, won't you?", "points": ["mashou", "masenka", "mashouka"],
     "summary": "～ましょう is the polite \"let's\": 行きましょう, let's go. ～ませんか invites: 飲みませんか, won't you have some? ～ましょうか offers or suggests: shall we?",
     "parts": [

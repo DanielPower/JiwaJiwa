@@ -162,6 +162,8 @@ same shape, so a reader always knows where to look:
 
 The app adds the rest itself: each line's English under it, and, once the
 lesson has been read, lines from the reader's own chapters that use it.
+A topic about words rather than an ending (counting) gets neither the
+lines nor a link from the reader, so its lesson has to stand on its own.
 
 Japanese written in notes, the summary and forms is read like the
 examples, so it can be tapped: keep it to words a reader can look up, and
