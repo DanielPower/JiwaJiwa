@@ -459,7 +459,7 @@
     "id": "naru", "title": "～くなる / ～になる / ～く", "title_en": "Become; -ly", "points": ["naru", "ku-adverb"],
     "summary": "なる means become: 暑くなる, get hot; 上手になる, get good. An adjective's く form on its own says how something's done: 早く起きる, get up early.",
     "parts": [
-      ["夏が、暑くなった。", "Summer has got hot."],
+      ["外は、毎日、暑くなる。", "Outside, it gets hotter every day."],
       ["歌が、上手になった。", "Your singing's got good."],
       "An i-adjective swaps い for く before なる. A noun or na-adjective takes に.",
       ["今は、うまく歌える。", "Now I can sing it well."],

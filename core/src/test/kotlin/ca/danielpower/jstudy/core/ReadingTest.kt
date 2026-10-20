@@ -293,4 +293,18 @@ class ReadingTest {
         // And the app reads back what the tools wrote.
         assertEquals(listOf(words), StoryText.parse(StoryText.write(mapOf("a/b" to listOf(words))).values.single()).getValue("a/b"))
     }
+
+    @Test
+    fun `the particles は and へ are marked where they're said wa and e`() {
+        val words = reader.words("こんばんは。母は元気。実は、学校へ行ってはいけない。")
+        fun particles(surface: String) = words.first { it.surface == surface }.particles
+        assertEquals(listOf(4), particles("こんばんは"))
+        assertEquals(listOf(1), particles("実は"))
+        assertEquals(emptyList(), particles("母"))
+        assertEquals(listOf(0), particles("は"))
+        assertEquals(listOf(0), particles("へ"))
+        assertEquals(listOf(0), words.first { it.surface.startsWith("はいけ") }.particles)
+        // And the app reads them back.
+        assertEquals(listOf(words), StoryText.parse(StoryText.write(mapOf("a/b" to listOf(words))).values.single()).getValue("a/b"))
+    }
 }

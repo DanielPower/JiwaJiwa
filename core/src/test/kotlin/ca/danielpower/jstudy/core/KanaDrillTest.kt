@@ -1,5 +1,7 @@
 package ca.danielpower.jstudy.core
 
+import java.time.LocalDateTime
+import java.time.ZoneId
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,10 +30,71 @@ class KanaDrillTest {
         assertEquals("a'", Romaji.of("あっ"))
         assertEquals("tsuini", Romaji.of("ついに"))
         assertEquals(listOf("tsu", "i", "ni"), Romaji.split("ついに").map { it.second })
-        assertEquals("wa", Romaji.of("は", particle = true))
+        assertEquals("wa", Romaji.of("は", particles = listOf(0)))
         assertEquals("ha", Romaji.of("は"))
-        assertEquals("niwa", Romaji.of("には", particle = true))
+        assertEquals("niwa", Romaji.of("には", particles = listOf(1)))
         assertNull(Romaji.split("雨").single().second)
+    }
+
+    @Test
+    fun `a small tsu at the end of a piece doubles the sound after it`() {
+        assertEquals("nat", Romaji.of("なっ", next = "た"))
+        assertEquals("it", Romaji.of("いっ", next = "ちゃ"))
+        assertEquals("a'", Romaji.of("あっ", next = "。"))
+        val all = setOf("な", "っ", "た")
+        // なった is read なっ and た.
+        assertEquals(
+            listOf(RubyPiece("な", "na", true), RubyPiece("っ", "t", true), RubyPiece("た", "ta", true)),
+            romajiPieces(word("なっ" to null, "た" to null), all),
+        )
+        // 笑った: the kanji's reading, then っ before た.
+        assertEquals(
+            listOf(RubyPiece("笑", "わら"), RubyPiece("っ", "t", true), RubyPiece("た", null)),
+            romajiPieces(word("笑" to "わら", "っ" to null, "た" to null), setOf("っ")),
+        )
+        // At the end of a word, the next word's sound: 言っ before ちゃ.
+        assertEquals(
+            listOf(RubyPiece("言", "い"), RubyPiece("っ", "t", true)),
+            romajiPieces(word("言" to "い", "っ" to null), setOf("っ"), next = "ちゃ"),
+        )
+    }
+
+    @Test
+    fun `the particle は is said wa wherever it is in a word, and only there`() {
+        val ha = setOf("は")
+        assertEquals(
+            listOf(RubyPiece("こんばん", null), RubyPiece("は", "wa", true)),
+            romajiPieces(word("こんばんは" to null, particles = listOf(4)), ha),
+        )
+        assertEquals(
+            listOf(RubyPiece("実", "じつ"), RubyPiece("は", "wa", true)),
+            romajiPieces(word("実" to "じつ", "は" to null, particles = listOf(1)), ha),
+        )
+        assertEquals(
+            listOf(RubyPiece("は", "wa", true), RubyPiece("いけ", null), RubyPiece("ませ", null), RubyPiece("ん", null)),
+            romajiPieces(word("は" to null, "いけ" to null, "ませ" to null, "ん" to null, kind = WordKind.GRAMMAR, particles = listOf(0)), ha),
+        )
+        // 母 is haha, and はず (a grammar word) is hazu.
+        assertEquals(listOf(RubyPiece("母", "haha", true)), romajiPieces(word("母" to "はは"), ha))
+        assertEquals(listOf(RubyPiece("は", "ha", true), RubyPiece("ず", null)), romajiPieces(word("はず" to null, kind = WordKind.GRAMMAR), ha))
+        // A word on its own, as on a card: the greetings that end in the particle.
+        assertEquals("konbanwa", Romaji.of("こんばんは"))
+        assertEquals("jitsuwa", Romaji.of("じつは"))
+        assertEquals("haha", Romaji.of("はは"))
+        assertEquals(listOf("ko", "n", "ba", "n", "wa"), Romaji.split("こんばんは").map { it.second })
+    }
+
+    @Test
+    fun `n before a vowel or y takes an apostrophe`() {
+        assertEquals("kon'ya", Romaji.of("こんや"))
+        assertEquals("kin'en", Romaji.of("きんえん"))
+        assertEquals("hon'ya", Romaji.of("ほんや"))
+        assertEquals("annai", Romaji.of("あんない"))
+        assertEquals("shinbun", Romaji.of("しんぶん"))
+        assertEquals("ten'in", Romaji.of("テンイン"))
+        assertEquals(listOf(RubyPiece("今夜", "kon'ya", true)), romajiPieces(word("今夜" to "こんや"), setOf("ん")))
+        // The reader shows a sound a kana, so there's nothing to split there.
+        assertEquals(listOf("ko", "n", "ya"), Romaji.split("こんや").map { it.second })
     }
 
     @Test
@@ -41,6 +104,22 @@ class KanaDrillTest {
         // Everything else follows, in chart order.
         assertEquals(KanaCourse.units.size, order.size)
         assertEquals("あ", order[5])
+    }
+
+    @Test
+    fun `classic lookalikes and voicing pairs are alike`() {
+        for ((a, b) in listOf("ツ" to "ソ", "シ" to "ン", "シ" to "ツ", "ぬ" to "ね", "ば" to "ぱ", "ブ" to "プ", "は" to "ば", "しゃ" to "じゃ", "きゅ" to "きょ", "ティ" to "ディ")) {
+            assertTrue(KanaLooks.alike(a, b), "$a and $b")
+            assertTrue(KanaLooks.alike(b, a), "$b and $a")
+        }
+        assertTrue(KanaLooks.alike("か", "が"))
+        assertFalse(KanaLooks.alike("あ", "ア"))
+        assertFalse(KanaLooks.alike("ば", "ば"))
+        assertFalse(KanaLooks.alike("が", "ぎ"))
+        assertFalse(KanaLooks.alike("きゃ", "きゅ"))
+        val sets = KanaCourse.sets(listOf("ツ", "ソ", "シ", "ン", "ア", "イ", "ば", "ぱ"))
+        fun where(t: String) = sets.indexOfFirst { t in it }
+        assertTrue(where("ツ") != where("ソ") && where("シ") != where("ン") && where("ば") != where("ぱ"))
     }
 
     @Test
@@ -181,6 +260,64 @@ class KanaDrillTest {
     }
 
     @Test
+    fun `the second look never falls in the night, and kana learned before the rollover wait three hours`() {
+        val zone = ZoneId.of("America/St_Johns")
+        val clock = StudyClock(zone)
+        fun at(text: String) = LocalDateTime.parse(text).atZone(zone).toInstant().toEpochMilli()
+        // In the afternoon: three hours on, the same day.
+        assertEquals(at("2026-10-20T17:00"), KanaRules.lateCheckAt(at("2026-10-20T14:00"), clock))
+        // At 10pm it would fall after midnight, so it's the next study day's check.
+        assertEquals(at("2026-10-21T04:00"), KanaRules.lateCheckAt(at("2026-10-20T22:00"), clock))
+        // At 3:30am, just before the rollover: not before 6:30.
+        assertEquals(at("2026-10-21T06:30"), KanaRules.lateCheckAt(at("2026-10-21T03:30"), clock))
+
+        fun learnAt(time: String): KanaState {
+            val now = at(time)
+            val day = clock.dayOf(now)
+            val state = none()
+            val set = state.nextSet()!!.map { KanaCourse.unit(it)!! }
+            val s = KanaSession(state, day, now, set, random = Random(9), lateCheck = { KanaRules.lateCheckAt(it, clock) })
+            while (true) {
+                val q = s.next() ?: break
+                s.answer(q, q.answer, 1000, now)
+            }
+            return state.copy(progress = s.practised.associateWith { s.progress(it) }, lastSetDay = day)
+        }
+        fun counts(state: KanaState, time: String): KanaCounts {
+            val now = at(time)
+            val day = clock.dayOf(now)
+            return state.counts(day, now, clock.startOf(day + 1))
+        }
+
+        val afternoon = learnAt("2026-10-20T14:00")
+        assertEquals(5, counts(afternoon, "2026-10-20T15:00").later)
+        assertEquals(5, counts(afternoon, "2026-10-20T17:00").check)
+
+        // At 10pm: nothing later that night, and the next day's check from the rollover.
+        val evening = learnAt("2026-10-20T22:00")
+        assertEquals(0, counts(evening, "2026-10-20T22:30").later)
+        assertEquals(0, counts(evening, "2026-10-21T02:00").check)
+        assertEquals(5, counts(evening, "2026-10-21T04:01").check)
+
+        // At 3:30am: not due just after the rollover, half an hour on, but by 6:30.
+        val night = learnAt("2026-10-21T03:30")
+        assertEquals(0, counts(night, "2026-10-21T03:45").later)
+        assertEquals(0, counts(night, "2026-10-21T04:05").check)
+        assertEquals(5, counts(night, "2026-10-21T06:31").check)
+        // And that check counts a day's pass.
+        val now = at("2026-10-21T06:31")
+        val s = KanaSession(night, clock.dayOf(now), now, emptyList(), random = Random(10))
+        while (true) {
+            val q = s.next() ?: break
+            s.answer(q, q.answer, 1000, now)
+        }
+        for (text in s.practised) {
+            assertEquals(1, s.progress(text).passDays, text)
+            assertNull(s.progress(text).lateCheckAt, text)
+        }
+    }
+
+    @Test
     fun `i know these clears each kana answered quickly`() {
         val state = none()
         val set = state.nextSet()!!.map { KanaCourse.unit(it)!! }
@@ -217,6 +354,19 @@ class KanaDrillTest {
     }
 
     @Test
+    fun `a mark's wrong answers differ only in what the marks do`() {
+        // Each answer is the same sounds, doubled or held in different places: bedo, beedo, beddoo for beddo.
+        fun bare(romaji: String) = romaji.replace(Regex("(.)\\1+"), "$1")
+        for ((mark, words) in KanaSession.MARK_WORDS) {
+            for ((word, options) in words) {
+                assertEquals(Romaji.of(word), options.first(), word)
+                assertEquals(4, options.distinct().size, word)
+                assertEquals(1, options.map(::bare).distinct().size, "$mark: $word $options")
+            }
+        }
+    }
+
+    @Test
     fun `marks are asked in a word`() {
         val state = KanaState(KanaKnown.NONE, listOf("っ") + KanaCourse.units.map { it.text }.filter { it != "っ" }, emptyMap())
         val set = state.nextSet()!!.map { KanaCourse.unit(it)!! }
@@ -228,8 +378,8 @@ class KanaDrillTest {
         assertNotNull(q.options.single { it == q.answer })
     }
 
-    private fun word(vararg ruby: Pair<String, String?>, kind: WordKind = WordKind.WORD) =
-        ReadingWord(ruby.joinToString("") { it.first }, "", "", kind, null, emptyList(), ruby.map { Ruby(it.first, it.second) })
+    private fun word(vararg ruby: Pair<String, String?>, kind: WordKind = WordKind.WORD, particles: List<Int> = emptyList()) =
+        ReadingWord(ruby.joinToString("") { it.first }, "", "", kind, null, emptyList(), ruby.map { Ruby(it.first, it.second) }, particles = particles)
 
     @Test
     fun `romaji sits over unread kana, and over a kanji's whole reading`() {
@@ -247,6 +397,6 @@ class KanaDrillTest {
         assertNull(romajiPieces(word("いた" to null), unread))
         assertNull(romajiPieces(word("ついに" to null), emptySet()))
         // The topic particle is said "wa".
-        assertEquals(listOf(RubyPiece("は", "wa", true)), romajiPieces(word("は" to null, kind = WordKind.GRAMMAR), setOf("は")))
+        assertEquals(listOf(RubyPiece("は", "wa", true)), romajiPieces(word("は" to null, kind = WordKind.GRAMMAR, particles = listOf(0)), setOf("は")))
     }
 }

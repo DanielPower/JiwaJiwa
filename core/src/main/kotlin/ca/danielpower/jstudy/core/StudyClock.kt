@@ -26,4 +26,8 @@ class StudyClock(
     /** The instant study day [day] begins. */
     fun startOf(day: Long): Long =
         LocalDate.ofEpochDay(day).atTime(rolloverHour, 0).atZone(zone).toInstant().toEpochMilli()
+
+    /** The midnight that ends the date study day [day] begins on: where its evening ends and its night starts. */
+    fun midnightOf(day: Long): Long =
+        LocalDate.ofEpochDay(day + 1).atStartOfDay(zone).toInstant().toEpochMilli()
 }

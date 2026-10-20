@@ -65,17 +65,26 @@ tasks.register<JavaExec>("storyAssets") {
     args(rootDir, out.get().asFile)
 }
 
-// Records the stories' sentences with Fish Audio into the app's assets
-// (audio/), only those not recorded yet, and deletes clips nothing uses. Says
-// what it would record and cost unless -Precord; stops over -Plimit dollars
-// (5 unless given). Needs the dictionary built, FISH_API_KEY and ffmpeg.
+// Records the stories' sentences with Fish Audio into build/audio, for CI to
+// upload to the audio server: only those not listed in -Phave (a file of the
+// keys already there, one a line). Says what it would record and cost unless
+// -Precord; stops over -Plimit dollars (5 unless given). Needs the dictionary
+// built, FISH_API_KEY and ffmpeg.
 tasks.register<JavaExec>("storyAudio") {
     group = "stories"
-    description = "Records the stories' new sentences with Fish Audio (-Precord to spend, -Plimit=dollars). Needs the dictionary built and FISH_API_KEY."
+    description = "Records the stories' new sentences with Fish Audio into build/audio (-Phave=listed keys, -Precord to spend, -Plimit=dollars). Needs the dictionary built and FISH_API_KEY."
     classpath = stories.runtimeClasspath
     mainClass.set("ca.danielpower.jstudy.core.StoryAudioToolKt")
     // project's, as a task has its own hasProperty.
-    args(listOfNotNull(rootDir.path, project.findProperty("limit")?.toString() ?: "5", if (project.hasProperty("record")) "record" else null))
+    args(
+        listOfNotNull(
+            rootDir.path,
+            project.findProperty("limit")?.toString() ?: "5",
+            rootProject.layout.buildDirectory.dir("audio").get().asFile.path,
+            project.findProperty("have")?.toString() ?: "",
+            if (project.hasProperty("record")) "record" else null,
+        ),
+    )
 }
 
 tasks.test {

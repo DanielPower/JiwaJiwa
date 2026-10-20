@@ -17,13 +17,17 @@ data class RecordedVoices(
     val gains: Map<String, Double> = emptyMap(),
 )
 
-/** A line's recording: its asset's path, and the gain to play it at, in dB. */
-data class Recording(val file: String, val gain: Float)
+/**
+ * A line's recording: its path (audio/<key>.opus, on the audio server, or
+ * in the app's assets when it's [bundled]), and the gain to play it at, in dB.
+ */
+data class Recording(val file: String, val gain: Float, val bundled: Boolean = false)
 
 /**
- * Recorded sentences: each is a clip in the app's assets (audio/), named by a
+ * Recorded sentences: each is a clip on the audio server (audio/), named by a
  * hash of what was recorded, so a sentence is recorded again only when its
- * text, voice or model changes, and clips no sentence uses can be told apart.
+ * text, voice or model changes, and the app can find a line's clip from its
+ * text alone. Kana's clips come with the app, in its assets' audio/.
  */
 object Recordings {
     const val DIR = "audio"
@@ -52,11 +56,16 @@ object Recordings {
         return voices.labels[kind]?.ifBlank { null }
     }
 
-    /** The clip of a kana's sound for kana practice, said on its own in the narrator's voice. Null when there's none. */
-    fun kana(text: String, voices: RecordedVoices): Pair<String, String>? {
-        if (voices.model.isBlank() || voices.narrator.isBlank()) return null
-        return key(text, voices.narrator, voices.model) to voices.narrator
-    }
+    /**
+     * The voice and model kana's sounds were recorded in, once: the clips come
+     * with the app and aren't recorded again, so they keep these even if the
+     * stories' narrator changes.
+     */
+    const val KANA_VOICE = "92c556e1a13e4ac7add3d1a8665c3cb8"
+    const val KANA_MODEL = "s2.1-pro"
+
+    /** The clip of a kana's sound for kana practice, said on its own, and the voice it's in. */
+    fun kana(text: String): Pair<String, String> = key(text, KANA_VOICE, KANA_MODEL) to KANA_VOICE
 
     /** Each line's clip, or null where it isn't recorded. */
     fun keys(lines: List<NarrationLine>, voices: RecordedVoices, cast: Map<String, CastMember>, narrator: String? = null): List<String?> =
