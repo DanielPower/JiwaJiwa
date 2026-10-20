@@ -119,15 +119,18 @@ version 9 deleted the old kana cards):
 
 - Kana don't go through FSRS. Their own drill (core `KanaDrill.kt`): sets
   of 5, each right 3 times in the first sitting (a miss means 2 more), a
-  quick check 3 hours later, then once a day until quick (under 3 s) and
-  right on 3 days. Then Clear, with a weekly check for a month; a miss sends
-  a kana back to Learning.
+  quick check 3 hours later (when that would be after midnight, the next
+  day's check instead, and never under 3 hours on), then once a day until
+  quick (under 3 s) and right on 3 days. Then Clear, with a weekly check
+  for a month; a miss sends a kana back to Learning.
 - Multiple choice, four answers, mostly kana → sound, one in four sound →
   kana. Wrong answers come from past mix-ups, lookalikes (`KanaLooks`),
   voicing pairs and similar sounds, never one that sounds the same.
 - Taught in the order the stories use them (`stories/kana.txt`, built in
   CI), lookalikes in different sets, so new kana show up in stories at once.
-- No kana gating. Stories show romaji (Hepburn, indigo) over kana not
+- No kana gating. Stories show romaji (Hepburn without macrons: koohii,
+  kon'ya; the particles は and へ as wa and e, from the tokenizer's
+  pronunciation, `ReadingWord.particles`; indigo) over kana not
   practised yet; it goes after a kana's first drill. Furigana over a kanji
   turns to romaji as a whole if any of its kana is unread. The word pane
   and the review card show romaji while a kana isn't Clear.
@@ -139,8 +142,10 @@ version 9 deleted the old kana cards):
 - Kana practice lives on the Review tab: a Kana section above Today, and
   Start studying runs due kana first, then the cards. Home's Next card
   offers it first while kana are due. The Dictionary has a Kana chart tab.
-- Each kana has a Fish clip in the narrator's voice (`Recordings.kana`),
-  else the phone's voice says it.
+- Each kana has a Fish clip, recorded once in the narrator's voice and
+  committed in `app/src/main/assets/audio` (`Recordings.kana`), so kana
+  practice works offline from the first launch. They aren't recorded again,
+  and there's no tooling for them (Daniel, 2026-10-20).
 
 Other features (all shipped):
 
@@ -214,20 +219,28 @@ Other features (all shipped):
   has their own voice. Speed opens in the pane like the reader settings.
   Word cards and word pages have a speaker button that says the word's
   reading with the phone's text-to-speech.
-- Recorded story audio (Daniel, 2026-10-19): sentences are recorded with
-  Fish Audio and the clips are committed in `app/src/main/assets/audio`
-  and bundled with the app, an exception to "no committed generated files"
-  because each recording costs money (hosting them may come later, as the
-  app grows). Each clip is named by a hash of the model, voice and sentence
-  (core `Recordings`), so only new or changed sentences are recorded and
-  unused clips are deleted. The voices are in `tools/stories/voices.json`:
-  the model, the narrator, each of the cast by name and one for each kind
-  of voice for unnamed speakers; a story's `story.json` may set its own
-  `narrator`. The "Record story audio" workflow records on pull requests
-  that change the stories (`FISH_API_KEY` secret, stopping over $5 unless
-  run by hand with a higher limit) and commits the clips to the branch.
-  Each voice is measured once and played at a gain from `tools/stories/levels.json`
-  (Daniel, 2026-10-19: per voice, not per clip, so shouts stay loud).
+- Recorded story audio (Daniel, 2026-10-19; moved off the repo 2026-10-20):
+  sentences are recorded with Fish Audio and the clips live in a
+  DigitalOcean Spaces bucket, not the repo, served from its CDN. Each clip
+  is named by a hash of the model, voice and sentence (core `Recordings`),
+  so the app finds a line's clip from its text, with no list of clips, and
+  only new or changed sentences are recorded. The voices are in
+  `tools/stories/voices.json`: the model, the narrator, each of the cast by
+  name and one for each kind of voice for unnamed speakers; a story's
+  `story.json` may set its own `narrator`. The "Record story audio" workflow
+  runs on pushes to main that change the stories, alongside the release,
+  records what the bucket lacks and uploads it (`FISH_API_KEY`,
+  `SPACES_ACCESS_KEY_ID`, `SPACES_SECRET_ACCESS_KEY` secrets, `SPACES_BUCKET`
+  and `SPACES_REGION` variables; stops over $5 unless run by hand with a
+  higher limit). Old clips stay in the bucket for older app versions.
+  Each voice is measured once and played at a gain from `levels.json`
+  (Daniel, 2026-10-19: per voice, not per clip, so shouts stay loud), which
+  lives in the bucket too: CI builds download it into `tools/stories`.
+  The app downloads a chapter's clips when it opens (`audio/Clips.kt`, kept
+  in the app's files), the next chapter's when one ends, and waits a few
+  seconds for a line's clip before the phone reads it. It doesn't ask on
+  mobile data: a chapter's clips are under 1 MB (Daniel, 2026-10-20). A missing clip (not recorded,
+  offline) is never an error: the phone's voice reads the line.
   A line with no clip is read by the phone's voice (`voice` and `pitch` in
   `meets`, unnamed speakers by `Voices.forLabel`); there's no voice picker.
 - Claude-written stories, and the story server they went through, were

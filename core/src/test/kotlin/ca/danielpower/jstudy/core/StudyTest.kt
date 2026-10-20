@@ -21,6 +21,7 @@ class StudyTest {
         assertEquals(day, clock.dayOf(at("2026-10-11T03:59")))
         assertEquals(day + 1, clock.dayOf(at("2026-10-11T04:00")))
         assertEquals(at("2026-10-11T04:00"), clock.startOf(day + 1))
+        assertEquals(at("2026-10-11T00:00"), clock.midnightOf(day))
     }
 
     @Test

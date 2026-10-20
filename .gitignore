@@ -17,3 +17,6 @@ __pycache__/
 # Signing material is provided by CI secrets, never committed
 *.jks
 *.keystore
+
+# Each recorded voice's gain: kept in the audio bucket by the recorder, downloaded by CI builds
+tools/stories/levels.json
