@@ -38,6 +38,21 @@ data class ReadingWord(
     /** A verb or adjective stem on its own, waiting for what follows it: 見 in 見に行く, 暑く in 暑くなる. */
     val stem get() = conjugation.singleOrNull() in setOf("stem (continuing)", "stem", "adverb (-ly)")
 
+    /**
+     * The characters of this word, word [i] of its paragraph, that are part
+     * of any of [points]: たら in 勝ったら for ～たら. Null when there are none.
+     */
+    fun grammarChars(i: Int, points: Set<String>): IntRange? {
+        var start = surface.length
+        var end = 0
+        for (use in grammar) {
+            if (use.point.id !in points || i !in use.first..use.last) continue
+            start = minOf(start, if (i == use.first) use.from else 0)
+            end = maxOf(end, if (i == use.last) use.to ?: surface.length else surface.length)
+        }
+        return if (start < end) start until end else null
+    }
+
     /** Identifies the word for counting: its dictionary entry, or its dictionary form if it has none. */
     val key: String get() = wordId?.toString() ?: lemma
 }

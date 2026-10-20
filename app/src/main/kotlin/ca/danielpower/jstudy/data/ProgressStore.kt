@@ -93,6 +93,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             """,
         )
         db.execSQL("CREATE INDEX review_log_day ON review_log (day)")
+        db.execSQL("CREATE INDEX review_log_card ON review_log (card_id)")
         db.execSQL("CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
         createStories(db)
     }
@@ -109,6 +110,14 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         // Also version 10: reads in stories and known words are logged apart from answers.
         if (oldVersion < 10 && hasColumn(db, "review_log", "id") && !hasColumn(db, "review_log", "kind")) {
             db.execSQL("ALTER TABLE review_log ADD COLUMN kind INTEGER NOT NULL DEFAULT 0")
+        }
+        // Version 11: a word's history (its page, resetting it) is looked up by card.
+        // Settings that were removed from the app are cleared too.
+        if (oldVersion < 11 && hasColumn(db, "review_log", "id")) {
+            db.execSQL("CREATE INDEX IF NOT EXISTS review_log_card ON review_log (card_id)")
+        }
+        if (oldVersion < 11 && hasColumn(db, "kv", "key")) {
+            db.execSQL("DELETE FROM kv WHERE key = 'retention' OR key LIKE 'mastery\\_%' ESCAPE '\\'")
         }
     }
 
@@ -551,7 +560,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 10
+        const val VERSION = 11
         private const val CARD_COLUMNS =
             "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, start_source"
     }

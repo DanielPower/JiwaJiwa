@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12 and later. Progress and settings are backed up. -->
+<!-- Android 12 and later. Progress and settings are backed up. The dictionary
+     is copied from the app on first launch, and at 85 MB it would put the backup
+     over Android's 25 MB limit, so nothing would be backed up at all. -->
 <data-extraction-rules>
-    <cloud-backup />
-    <device-transfer />
+    <cloud-backup>
+        <exclude domain="database" path="dictionary.db" />
+        <exclude domain="database" path="dictionary.db.tmp" />
+        <exclude domain="database" path="dictionary.db-journal" />
+        <exclude domain="sharedpref" path="dictionary.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="dictionary.db" />
+        <exclude domain="database" path="dictionary.db.tmp" />
+        <exclude domain="database" path="dictionary.db-journal" />
+        <exclude domain="sharedpref" path="dictionary.xml" />
+    </device-transfer>
 </data-extraction-rules>

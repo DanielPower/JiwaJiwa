@@ -119,20 +119,50 @@ object StorySource {
         }
     }
 
-    /** A grammar topic: its parts are Japanese lines with their English, and notes (plain strings) between them. */
+    /**
+     * A grammar topic: its parts are Japanese lines with their English, and
+     * notes (plain strings) between them; `more` is the same, folded under
+     * "More on …" after them; `forms` is a table of forms shown after the
+     * first line (see the lesson guide in tools/stories/AGENTS.md).
+     */
     private fun topic(t: JsonObject): JsonObject {
+        val id = t.text("id")
         val lines = ArrayList<Pair<String, String>>()
+        val more = t["more"]?.jsonArray
+        var moreAt: Int? = null
         return buildJsonObject {
             for (key in listOf("id", "title", "title_en", "points", "summary")) put(key, t.getValue(key))
             val notes = buildJsonArray {
-                for (part in t.getValue("parts").jsonArray) {
-                    if (part is JsonPrimitive) addJsonObject { put("before", lines.size); put("text", part.content) }
-                    else lines += pair(part)
+                fun parts(parts: JsonArray, folded: Boolean) {
+                    for (part in parts) {
+                        if (part is JsonPrimitive) {
+                            addJsonObject {
+                                put("before", lines.size)
+                                put("text", part.content)
+                                if (folded) put("more", true)
+                            }
+                        } else {
+                            lines += pair(part)
+                        }
+                    }
+                }
+                parts(t.getValue("parts").jsonArray, folded = false)
+                require(lines.isNotEmpty()) { "grammar/$id: its parts start with the chapter's line" }
+                if (more != null) {
+                    moreAt = lines.size
+                    parts(more, folded = true)
                 }
             }
+            moreAt?.let { put("more_at", it) }
             put("body", lines.joinToString("\n") { it.first })
             putJsonArray("translations") { for ((_, en) in lines) add(en) }
             put("notes", notes)
+            t["forms"]?.let { forms ->
+                val rows = forms.jsonObject.getValue("rows").jsonArray
+                require(forms.jsonObject.getValue("head").jsonArray.size == 2) { "grammar/$id: forms has two headings" }
+                for (r in rows) require(r.jsonArray.size == 3) { "grammar/$id: a forms row is [form, new form, English]: $r" }
+                put("forms", forms)
+            }
         }
     }
 
@@ -151,7 +181,8 @@ object StorySource {
             }
         }
         for (t in read(File(dir, "grammar.json")).jsonArray) {
-            out["grammar/${t.jsonObject.text("id")}"] = t.jsonObject.getValue("parts").jsonArray.filterIsInstance<JsonArray>().map { pair(it).first }
+            val parts = t.jsonObject.getValue("parts").jsonArray + t.jsonObject["more"]?.jsonArray.orEmpty()
+            out["grammar/${t.jsonObject.text("id")}"] = parts.filterIsInstance<JsonArray>().map { pair(it).first }
         }
         return out
     }

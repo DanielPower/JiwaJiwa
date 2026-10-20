@@ -46,10 +46,11 @@ import kotlin.math.roundToInt
 
 /**
  * A run of characters set together: a kanji run with its furigana, which
- * shouldn't break across columns, or a single character. A [note] piece is
- * the marker for paragraph [p]'s note, after its words.
+ * shouldn't break across columns, or a single character. [at] is where it
+ * starts in its word, in characters. A [note] piece is the marker for
+ * paragraph [p]'s note, after its words.
  */
-private class Piece(val chars: List<String>, val ruby: List<String>?, val p: Int, val i: Int, val paragraphStart: Boolean, val note: Boolean = false)
+private class Piece(val chars: List<String>, val ruby: List<String>?, val p: Int, val i: Int, val paragraphStart: Boolean, val note: Boolean = false, val at: Int = 0)
 
 /** Vertical forms of punctuation, brackets and the long vowel mark. */
 private val Vertical = TextStyle(fontFeatureSettings = "vert")
@@ -68,16 +69,21 @@ private fun pieces(reading: StoryReading): List<Piece> = buildList {
         var start = true
         words.forEachIndexed { i, word ->
             val showRuby = reading.showsRuby(word)
+            var at = 0
             for (part in word.ruby) {
+                val partStart = at
+                at += part.base.length
                 val chars = part.base.characters().filter { it.isNotBlank() }
                 if (chars.isEmpty()) continue
                 val furigana = part.ruby
                 if (showRuby && furigana != null) {
-                    add(Piece(chars, furigana.characters(), p, i, start))
+                    add(Piece(chars, furigana.characters(), p, i, start, at = partStart))
                     start = false
                 } else {
+                    var k = partStart
                     for (c in chars) {
-                        add(Piece(listOf(c), null, p, i, start))
+                        add(Piece(listOf(c), null, p, i, start, at = k))
+                        k += c.length
                         start = false
                     }
                 }
@@ -111,6 +117,7 @@ fun VerticalStory(
     startPage: Int,
     onPageShown: (page: Int, pages: Int, first: Pair<Int, Int>?) -> Unit,
     modifier: Modifier = Modifier,
+    startAt: Pair<Int, Int>? = null,
 ) {
     val pieces = remember(reading) { pieces(reading) }
     BoxWithConstraints(modifier) {
@@ -130,9 +137,8 @@ fun VerticalStory(
         // Script style: a line of dialogue starts with its speaker's name at the
         // top of the column, and the quotes in a run of dialogue all start level,
         // below its longest name. A quote that runs on carries on a cell lower.
-        val nameRows = remember(reading) {
-            Speech.columns(reading.speakers) { it.characters().size * NAME_RATIO }.map { it?.let { r -> ceil(r + NAME_GAP).toInt() } }
-        }
+        val nameLengths = remember(reading) { Speech.columns(reading.speakers) { it.characters().size * NAME_RATIO } }
+        val nameRows = remember(nameLengths) { nameLengths.map { it?.let { r -> ceil(r + NAME_GAP).toInt() } } }
         val spots = remember(pieces, rows) {
             VerticalText.place(
                 pieces.map { piece ->
@@ -156,29 +162,26 @@ fun VerticalStory(
         val rubyDp = with(density) { rubyCell.toDp() }
         val ink = LocalContentColor.current
         val seal = MaterialTheme.colorScheme.primary
+        val indigo = MaterialTheme.colorScheme.secondary
         val highlight = seal.copy(alpha = HIGHLIGHT)
         val wash = seal.copy(alpha = WASH)
         val nameColor = speakerColor()
         val nameCell = cell * NAME_RATIO
         val nameCellDp = with(density) { nameCell.toDp() }
 
-        // The finish stamp stands in the column after the text, or on a page of its own when that's full.
-        val lastCol = spots.maxOfOrNull { it.col }
-        val stampWidth = with(density) { STAMP_DOWN_WIDTH.toPx() }
-        val stampX = lastCol?.let { right - (it % perPage + 1) * (colWidth + gap) - stampWidth }
-        val stampPage = stampX == null || stampX < 0f
-        val count = pages.size + if (stampPage) 1 else 0
+        // The finish stamp has the last page to itself.
+        val count = pages.size + 1
 
+        val pageOf = { (p, i): Pair<Int, Int> -> pages.indexOfFirst { page -> page.any { pieces[it].p == p && pieces[it].i == i } }.takeIf { it >= 0 } }
         // The page with the word being read aloud, to turn to.
-        val followPage = follow?.let { (p, i) -> pages.indexOfFirst { page -> page.any { pieces[it].p == p && pieces[it].i == i } } }?.takeIf { it >= 0 }
+        val followPage = follow?.let(pageOf)
         val shown = { page: Int ->
             onPageShown(page, count, pages.getOrNull(page)?.firstOrNull { !pieces[it].note }?.let { pieces[it].p to pieces[it].i })
         }
-        StoryPager(count, reverse = true, startPage, shown, followPage) { page ->
+        StoryPager(count, reverse = true, startAt?.let(pageOf) ?: startPage, shown, followPage, onFinish) { page ->
             val onPage = pages.getOrNull(page).orEmpty()
             // Speakers whose lines start on this page, by the piece their line starts with.
             val names = onPage.filter { pieces[it].paragraphStart && reading.speakers.getOrNull(pieces[it].p) != null }
-            val hasStamp = page == count - 1
             Layout(
                 modifier = Modifier.fillMaxSize().padding(PAGE_PADDING),
                 content = {
@@ -200,6 +203,8 @@ fun VerticalStory(
                         val word = reading.paragraphs[piece.p][piece.i]
                         val isSelected = selected == (piece.p to piece.i)
                         val unknown = reading.isUnknown(word)
+                        // The grammar the chapter teaches, in indigo with an indigo line beside it.
+                        val newGrammar = reading.newGrammar(piece.p, piece.i)?.let { piece.at in it } == true
                         PieceView(
                             piece = piece,
                             textSize = size.sp,
@@ -207,8 +212,8 @@ fun VerticalStory(
                             family = family,
                             cell = cellDp,
                             rubyCell = rubyDp,
-                            color = if (unknown || isSelected) seal else ink,
-                            sideline = unknown,
+                            color = if (newGrammar) indigo else if (unknown || isSelected) seal else ink,
+                            sideline = unknown || newGrammar,
                             spoken = spoken == (piece.p to piece.i),
                             background = when {
                                 isSelected || (piece.p to piece.i) in lit -> highlight
@@ -228,7 +233,6 @@ fun VerticalStory(
                             }
                         }
                     }
-                    if (hasStamp) FinishStamp(vertical = true, onClick = onFinish)
                 },
             ) { measurables, constraints ->
                 fun left(spot: VerticalSpot): Float {
@@ -245,22 +249,19 @@ fun VerticalStory(
                     m.measure(Constraints.fixed(colWidth.roundToInt(), height))
                 }
                 val nameables = measurables.drop(onPage.size).take(names.size).map { it.measure(Constraints()) }
-                val stamp = measurables.getOrNull(onPage.size + names.size)?.measure(Constraints())
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeables.forEachIndexed { n, placeable ->
                         val spot = spots[onPage[n]]
                         placeable.place(left(spot).roundToInt(), top(spot.row))
                     }
                     // Each name at the top of its line's first column, centred on the text's cells.
+                    // The quotes start on a whole cell, so the run's names drop by what's
+                    // left over, keeping the gap after the longest one at NAME_GAP.
                     nameables.forEachIndexed { n, placeable ->
+                        val line = pieces[names[n]].p
                         val x = left(spots[names[n]]) + (cell - nameCell) / 2
-                        placeable.place(x.roundToInt(), 0)
-                    }
-                    if (stamp != null) {
-                        // Centred in its room, a row down from the top, as a seal sits beside the text.
-                        val room = if (stampPage) (width - stampWidth) / 2 else stampX!!
-                        val x = room + (stampWidth - stamp.width) / 2
-                        stamp.place(x.roundToInt(), cell.roundToInt())
+                        val drop = (nameRows[line]!! - nameLengths[line]!! - NAME_GAP) * cell
+                        placeable.place(x.roundToInt(), drop.roundToInt())
                     }
                 }
             }

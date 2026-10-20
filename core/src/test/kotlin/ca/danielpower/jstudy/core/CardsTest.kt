@@ -47,6 +47,17 @@ class CardsTest {
     }
 
     @Test
+    fun `marking a word known at any mastery gives a card with that mastery`() {
+        val now = at("2026-10-10T20:00")
+        val card = Card(id = 1, wordId = 7, direction = Direction.RECOGNITION)
+        for (m in 0..MasteryRules.MAX) {
+            val known = reviewer.markKnown(card, WordProgress(7), m, now, Random(1))
+            assertEquals(m, known.progress.mastery)
+            assertEquals(m, MasteryRules.fromStability(known.card.stability), "stability disagrees at mastery $m")
+        }
+    }
+
+    @Test
     fun `reading a due word in a story raises mastery less than a right answer`() {
         val now = at("2026-10-14T12:00")
         val card = Card(1, 7, Direction.RECOGNITION, CardState.REVIEW, stability = 10.0, difficulty = 5.0,

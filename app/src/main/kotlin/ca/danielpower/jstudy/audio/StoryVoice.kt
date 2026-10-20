@@ -8,6 +8,8 @@ import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.annotation.OptIn
@@ -40,7 +42,7 @@ class StoryVoice(context: Context) {
         /** Started, but with no Japanese voice to speak in. */
         val missing: Boolean = false,
         val voices: List<PhoneVoice> = emptyList(),
-        /** What's being read, by whoever asked: a story's id. */
+        /** What's being read, by whoever asked: a story's id, or null for a line read away from its story. */
         val key: Long? = null,
         /** The line being read, or the one reading stopped at. */
         val line: Int? = null,
@@ -56,6 +58,8 @@ class StoryVoice(context: Context) {
     private var byName: Map<String, Voice> = emptyMap()
     private var lines: List<SpokenLine> = emptyList()
     private var rate = 1f
+    // Reading one line, not on from it.
+    private var single = false
     // Counts each start, so callbacks from lines already stopped are ignored.
     private var run = 0
     // Asked for before the engine had started.
@@ -73,6 +77,13 @@ class StoryVoice(context: Context) {
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_ENDED) playerLine?.let { (r, i) -> done(r, i) }
+        }
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            // Another app took the sound (a call, music), or the headphones came out.
+            val lost = reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS ||
+                reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY
+            if (!playWhenReady && lost && playerLine != null) pause()
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -146,7 +157,7 @@ class StoryVoice(context: Context) {
     /** Line [i] of run [r] has been said: on to the next, if it's still reading. */
     private fun done(r: Int, i: Int) {
         if (r != run || !_state.value.playing) return
-        if (i + 1 < lines.size) speak(i + 1)
+        if (!single && i + 1 < lines.size) speak(i + 1)
         else _state.update { it.copy(playing = false, line = null, offset = null) }
     }
 
@@ -160,14 +171,15 @@ class StoryVoice(context: Context) {
         if (_state.value.ready) block() else pending = block
     }
 
-    /** Read the [lines] made for the phone's voices, for [key], from line [from] on. */
-    fun play(key: Long, from: Int, rate: Float, lines: (List<PhoneVoice>) -> List<SpokenLine>) = whenReady {
+    /** Read the [lines] made for the phone's voices, for [key], from line [from] on, or only that line when [single]. */
+    fun play(key: Long?, from: Int, rate: Float, single: Boolean = false, lines: (List<PhoneVoice>) -> List<SpokenLine>) = whenReady {
         val made = lines(_state.value.voices)
         // With no Japanese voice on the phone, only recordings can be read.
         if (_state.value.missing && made.all { it.clip == null }) return@whenReady
         if (from !in made.indices) return@whenReady
         this.lines = made
         this.rate = rate
+        this.single = single
         quiet()
         _state.update { it.copy(key = key, playing = true) }
         speak(from)
@@ -182,7 +194,11 @@ class StoryVoice(context: Context) {
     /** Line [i] from its recording, at its voice's gain. */
     @OptIn(UnstableApi::class)
     private fun record(i: Int, clip: Recording) {
-        val p = player ?: ExoPlayer.Builder(appContext).build().also {
+        val p = player ?: ExoPlayer.Builder(appContext)
+            // Takes the sound from other apps while it reads, and stops when the headphones come out.
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).build(), true)
+            .setHandleAudioBecomingNoisy(true)
+            .build().also {
             it.addListener(playerListener)
             // Its own audio session, for the booster to turn up quiet voices in.
             val session = (appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager).generateAudioSessionId()

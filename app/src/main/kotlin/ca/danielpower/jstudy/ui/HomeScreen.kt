@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -92,16 +93,34 @@ fun HomeScreen(d: Dashboard, vm: AppViewModel) {
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .heightIn(min = maxHeight)
-                .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 8.dp),
             verticalArrangement = FillSpacing(min = 18.dp, max = 36.dp),
         ) {
             HomeHeader(d.today, vm::openSettings)
             NextCard(d, vm)
             StreakWeek(d.activeDays, d.streak, d.today)
             WordsSection(d.words)
-            RecentSection(d, vm)
+            // The version keeps close to Recent rather than taking a gap of its own.
+            Column {
+                RecentSection(d, vm)
+                VersionLine()
+            }
         }
     }
+}
+
+/** The installed build's version, small at the foot of Home. */
+@Composable
+private fun VersionLine() {
+    val context = LocalContext.current
+    val version = remember { context.packageManager.getPackageInfo(context.packageName, 0).versionName } ?: return
+    Text(
+        "v$version",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+    )
 }
 
 /**
@@ -257,7 +276,7 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
                     "Nothing new to learn",
                     green,
                     chapterName(e),
-                    "$newToday new words today · side story",
+                    "${newWords(newToday)} today · side story",
                     open,
                     reviewAlt(next.orReview),
                     vm::startReview,
@@ -266,25 +285,41 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
         }
         is NextUp.Review -> if (next.backlog) {
             NextContent(
-                "${next.due} reviews waiting",
+                "Reviews waiting",
                 colors.tertiary,
                 "Catch up on reviews",
-                "The words you've started are slipping",
+                if (d.reviewsLater > 0) "${next.due} today · ${d.reviewsLater} more after that" else "${next.due} due today",
                 vm::startReview,
                 next.orRead?.let { "keep reading ${shortName(it.item)}" },
                 { next.orRead?.let { vm.openStory(it.item.story.id) } },
             )
         } else {
-            NextContent("$newToday new words today", colors.secondary, "Review ${next.due} due", "Today's new words are in", vm::startReview)
+            NextContent("${newWords(newToday)} today", colors.secondary, "Review ${next.due} due", "Today's new words are in", vm::startReview)
         }
         is NextUp.Done -> NextContent(
             "Done for today",
             green,
             next.tomorrow?.let { "${shortName(it.item)} tomorrow" } ?: "See you tomorrow",
-            "$newToday new words, every review done",
+            "${newWords(newToday)}, every review done",
             null,
         )
-        NextUp.AllRead -> NextContent("All read", green, "You've read every story", "More stories are on the way", null)
+        NextUp.AllRead -> d.readAgain?.let { again ->
+            val e = again.entry
+            NextContent(
+                "Read again",
+                colors.primary,
+                chapterName(e),
+                listOfNotNull(
+                    e.series.title.takeIf { !e.series.single },
+                    when (again.due) {
+                        0 -> null
+                        1 -> "1 word to review"
+                        else -> "${again.due} words to review"
+                    },
+                ).joinToString(" · "),
+                { vm.openStory(e.story.id) },
+            )
+        } ?: NextContent("All read", green, "You've read every story", "More stories are on the way", null)
     }
 }
 
@@ -589,6 +624,8 @@ private fun WordsChart(days: List<WordDay>) {
         }
     }
 }
+
+private fun newWords(n: Int) = if (n == 1) "1 new word" else "$n new words"
 
 /** The next round number at or above [n]: 1, 2 or 5 times a power of ten, and even, so its half is whole. */
 private fun niceCeiling(n: Int): Int {

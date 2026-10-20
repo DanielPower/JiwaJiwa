@@ -15,8 +15,13 @@ data class GrammarPoint(
     val exampleMeaning: String,
 )
 
-/** A grammar point found in a paragraph, covering the words [first] to [last] (indexes into the paragraph). */
-data class GrammarUse(val point: GrammarPoint, val first: Int, val last: Int)
+/**
+ * A grammar point found in a paragraph, covering the words [first] to [last]
+ * (indexes into the paragraph). Inside them it starts [from] characters into
+ * its first word and ends [to] characters into its last (null: at its end),
+ * so the たら of 勝ったら is 2 until the end of 勝ったら.
+ */
+data class GrammarUse(val point: GrammarPoint, val first: Int, val last: Int, val from: Int = 0, val to: Int? = null)
 
 /**
  * Finds grammar points in tokenized text. Each point has one or more token

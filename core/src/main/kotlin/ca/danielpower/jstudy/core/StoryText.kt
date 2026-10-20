@@ -57,7 +57,15 @@ object StoryText {
         if (w.wordId != null) out["id"] = JsonPrimitive(w.wordId)
         if (w.conjugation.isNotEmpty()) out["c"] = JsonArray(w.conjugation.map(::JsonPrimitive))
         if (w.ruby != listOf(Ruby(w.surface, null))) out["ruby"] = JsonArray(w.ruby.map { JsonArray(listOf(JsonPrimitive(it.base), it.ruby?.let(::JsonPrimitive) ?: JsonNull)) })
-        if (w.grammar.isNotEmpty()) out["g"] = JsonArray(w.grammar.map { JsonArray(listOf(JsonPrimitive(it.point.id), JsonPrimitive(it.first), JsonPrimitive(it.last))) })
+        if (w.grammar.isNotEmpty()) out["g"] = JsonArray(w.grammar.map { g ->
+            // Where it starts and ends inside its words, when not at their edges.
+            val inside = when {
+                g.to != null -> listOf(g.from, g.to)
+                g.from != 0 -> listOf(g.from)
+                else -> emptyList()
+            }
+            JsonArray(listOf(JsonPrimitive(g.point.id)) + (listOf(g.first, g.last) + inside).map { JsonPrimitive(it) })
+        })
         return JsonObject(out)
     }
 
@@ -75,8 +83,15 @@ object StoryText {
                 Ruby(base.jsonPrimitive.content, (ruby as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content)
             } ?: listOf(Ruby(surface, null)),
             grammar = o["g"]?.jsonArray?.map { g ->
-                val (id, first, last) = g.jsonArray.map { it.jsonPrimitive }
-                GrammarUse(grammarPoint(id.content) ?: error("no grammar point ${id.content}"), first.int, last.int)
+                val parts = g.jsonArray.map { it.jsonPrimitive }
+                val (id, first, last) = parts
+                GrammarUse(
+                    grammarPoint(id.content) ?: error("no grammar point ${id.content}"),
+                    first.int,
+                    last.int,
+                    from = parts.getOrNull(3)?.int ?: 0,
+                    to = parts.getOrNull(4)?.int,
+                )
             }.orEmpty(),
         )
     }

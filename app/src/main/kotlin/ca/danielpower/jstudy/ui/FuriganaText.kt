@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,7 +43,8 @@ fun FuriganaText(
                     textAlign = TextAlign.Center,
                     fontFamily = Gothic,
                     color = LocalContentColor.current.copy(alpha = 0.8f),
-                    modifier = Modifier.alpha(if (showFurigana && segment.ruby != null) 1f else 0f),
+                    // Hidden furigana is still there for layout; keep screen readers from reading it out.
+                    modifier = if (showFurigana && segment.ruby != null) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
                 )
                 Text(
                     text = segment.base,

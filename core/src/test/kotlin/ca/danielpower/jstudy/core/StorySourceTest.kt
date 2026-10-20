@@ -9,11 +9,11 @@ import kotlin.test.assertTrue
 
 class StorySourceTest {
     /** A tools/stories tree with one story, "trip", whose story.json lists [listed] and which has a file for each of [files]. */
-    private fun root(listed: List<String>, files: List<String> = listed, chapter: String = """{"title": "T", "plot": "P", "paragraphs": [[["来た。", "I'm here."]]]}"""): File {
+    private fun root(listed: List<String>, files: List<String> = listed, chapter: String = """{"title": "T", "plot": "P", "paragraphs": [[["来た。", "I'm here."]]]}""", grammar: String = "[]"): File {
         val root = Files.createTempDirectory("stories").toFile()
         val dir = File(root, "tools/stories/series/trip").apply { mkdirs() }
         File(root, "tools/stories/stories.json").writeText("""["trip"]""")
-        File(root, "tools/stories/grammar.json").writeText("[]")
+        File(root, "tools/stories/grammar.json").writeText(grammar)
         File(dir, "story.json").writeText("""{"title": "Trip", "blurb": "B", "chapters": [${listed.joinToString { "\"$it\"" }}]}""")
         for (f in files) File(dir, "$f.json").writeText(chapter)
         return root
@@ -49,5 +49,33 @@ class StorySourceTest {
         val chapter = """{"title": "T", "plot": "P", "readings": {"方": "かた"}, "paragraphs": [[["あの方だ。", "It's that person."]]]}"""
         val story = StoryPath.parse(StorySource.pathJson(root(listOf("a"), chapter = chapter))).chapters.single().second.story
         assertEquals(mapOf("方" to "かた"), story.readings)
+    }
+
+    @Test
+    fun `a lesson's forms come after its first line and its more is folded after the rest`() {
+        val grammar = """[{"id": "ta", "title": "～た", "title_en": "Did", "points": ["ta"], "summary": "Past: 来た.",
+            "parts": [["来た。", "I'm here."], "Plain past.", ["見た。", "I saw it."]],
+            "forms": {"head": ["Verb", "Past"], "rows": [["来る", "来た", "come"]]},
+            "more": ["Polite: 来ました.", ["食べた。", "I ate."]]}]"""
+        val topic = StoryPath.parse(StorySource.pathJson(root(listOf("a"), grammar = grammar))).grammar.single()
+        assertEquals(2, topic.moreAt)
+        assertEquals(listOf(LessonNote(1, "Plain past."), LessonNote(2, "Polite: 来ました.", more = true)), topic.page.notes)
+        assertEquals(LessonForms(listOf("Verb", "Past"), listOf(FormRow("来る", "来た", "come"))), topic.forms)
+        val blocks = Lessons.blocks(topic)
+        assertEquals(
+            listOf(LessonBlock.Summary::class, LessonBlock.Line::class, LessonBlock.Forms::class, LessonBlock.Note::class, LessonBlock.Line::class, LessonBlock.Note::class, LessonBlock.Line::class),
+            blocks.map { it::class },
+        )
+        assertEquals(listOf(false, false, false, false, false, true, true), blocks.map { it.more })
+        // Runs are numbered in the order they're shown: the summary's, the table's, then the notes'.
+        assertEquals(listOf("来た", "来る", "来た", "来ました"), Lessons.runs(topic))
+    }
+
+    @Test
+    fun `japanese in a lesson's english is split into runs`() {
+        assertEquals(
+            listOf(false to "Add ", true to "ら", false to ": ", true to "勝ったら", false to ", if we win; ", true to "～ましょう", false to "."),
+            Lessons.split("Add ら: 勝ったら, if we win; ～ましょう."),
+        )
     }
 }
