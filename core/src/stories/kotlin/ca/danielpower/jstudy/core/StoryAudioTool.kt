@@ -18,28 +18,28 @@ import kotlinx.serialization.json.put
 import kotlin.system.exitProcess
 
 /**
- * Records the stories' sentences, and each kana's sound for kana practice,
- * with Fish Audio into the app's assets
- * (app/src/main/assets/audio), for the repository at the first argument.
- * Only sentences without a clip are recorded, since each costs money, and
- * clips no sentence uses any more are deleted. Without "record" it only says
- * what it would do. It stops before spending more than the second argument,
- * in dollars. The key comes from FISH_API_KEY. Fish's voices differ a lot
- * in loudness, so each voice is measured once on the same passage, and the
- * gain that evens them out goes in tools/stories/levels.json for the app to
- * play every clip in that voice at: a shout stays louder than a whisper, and
- * a gain can be changed without recording again. Needs ffmpeg.
+ * Records the stories' sentences with Fish Audio, for the repository at the
+ * first argument, into the folder at the third (build/audio), to be uploaded
+ * to the audio server: only sentences whose clip isn't there yet, as listed
+ * one key a line in the file at the fourth argument. Without "record" it only
+ * says what it would do. It stops before spending more than the second
+ * argument, in dollars. The key comes from FISH_API_KEY. Fish's voices differ
+ * a lot in loudness, so each voice is measured once on the same passage, and
+ * the gain that evens them out goes in tools/stories/levels.json (kept on the
+ * audio server too) for the app to play every clip in that voice at: a shout
+ * stays louder than a whisper, and a gain can be changed without recording
+ * again. Needs ffmpeg.
  */
 fun main(args: Array<String>) {
     val root = File(args[0])
     val limit = args.getOrNull(1)?.toDoubleOrNull() ?: 5.0
+    val dir = File(args[2])
+    val listed = File(args[3])
     val record = "record" in args
-    val dir = File(root, "app/src/main/assets/${Recordings.DIR}")
 
     val (model, wanted) = StoryTools.open(root).use { tools -> tools.catalog.voices.model to StoryAudio.wanted(tools) }
-    val have = dir.listFiles { f -> f.name.endsWith(".${Recordings.EXTENSION}") }.orEmpty().associateBy { it.name.substringBefore('.') }
+    val have = if (listed.exists()) listed.readLines().map { it.trim() }.filter { it.isNotEmpty() }.toSet() else emptySet()
     val missing = wanted.filterKeys { it !in have }
-    val unused = have.filterKeys { it !in wanted }
     val levels = File(root, "tools/stories/levels.json")
     val gains = StoryAudio.readGains(levels, model).toMutableMap()
     val unmeasured = wanted.values.map { it.voice }.distinct().filter { it !in gains }
@@ -47,12 +47,10 @@ fun main(args: Array<String>) {
     val cost = bytes * StoryAudio.DOLLARS_PER_BYTE
     println(
         "${wanted.size} sentences recorded or to record: ${missing.size} to record and ${unmeasured.size} voices to measure " +
-            "(${bytes} bytes, about $%.2f), ${unused.size} clips unused".format(cost),
+            "(${bytes} bytes, about $%.2f)".format(cost),
     )
 
-    if (!record) return
-    for (file in unused.values) file.delete()
-    if (missing.isEmpty() && unmeasured.isEmpty()) return
+    if (!record || (missing.isEmpty() && unmeasured.isEmpty())) return
     val key = System.getenv("FISH_API_KEY").orEmpty()
     if (key.isBlank()) {
         println("No FISH_API_KEY, so nothing is recorded.")
@@ -69,7 +67,7 @@ fun main(args: Array<String>) {
         gains[voice] = gain
         StoryAudio.writeGains(levels, model, gains)
     }
-    // The clips that were recorded are kept and committed whatever else failed, as they're paid for.
+    // The clips that were recorded are uploaded whatever else failed, as they're paid for.
     // The rest are tried again on the next run.
     val failed = StoryAudio.record(missing, model, key, dir)
     if (failed > 0) println("::warning::$failed sentences couldn't be recorded; the next run tries them again.")
@@ -82,7 +80,7 @@ object StoryAudio {
     /** A sentence to record: what to say, and in which voice. */
     data class Take(val text: String, val voice: String, val page: String)
 
-    /** Every sentence the stories and grammar pages read aloud, and each kana's sound, by its clip's key. */
+    /** Every sentence the stories and grammar pages read aloud, by its clip's key. (Kana's clips come with the app.) */
     fun wanted(tools: StoryTools): Map<String, Take> {
         val catalog = tools.catalog
         val cast = catalog.cast.associateBy { it.name }
@@ -96,11 +94,6 @@ object StoryAudio {
                 val key = keys[i] ?: return@forEachIndexed
                 out.getOrPut(key) { Take(line.text, Recordings.voice(line.speaker, catalog.voices, cast, narrator)!!, page.id) }
             }
-        }
-        for (unit in KanaCourse.units) {
-            if (unit.mark) continue
-            val (key, voice) = Recordings.kana(unit.text, catalog.voices) ?: break
-            out.getOrPut(key) { Take(unit.text, voice, "kana") }
         }
         return out
     }

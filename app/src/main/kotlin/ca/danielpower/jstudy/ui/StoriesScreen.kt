@@ -1048,8 +1048,8 @@ private fun HorizontalStory(
         val base = TextStyle(fontSize = size.sp, fontFamily = family)
         val ruby = TextStyle(fontSize = rubySize.sp, fontFamily = family)
         reading.paragraphs.mapIndexed { p, words ->
-            words.map { word ->
-                val width = reading.pieces(word).sumOf { piece ->
+            words.mapIndexed { i, word ->
+                val width = reading.pieces(word, words.getOrNull(i + 1)).sumOf { piece ->
                     maxOf(
                         measurer.measure(piece.base, base, softWrap = false).size.width,
                         measurer.measure(piece.ruby ?: " ", ruby, softWrap = false).size.width,
@@ -1133,6 +1133,7 @@ private fun HorizontalStory(
                             }
                             StoryWord(
                                 word = word,
+                                next = reading.paragraphs[p].getOrNull(i + 1),
                                 reading = reading,
                                 selected = selected == (p to i),
                                 lit = (p to i) in lit,
@@ -1191,6 +1192,7 @@ private fun LessonPage(
             Box(modifier) {
                 StoryWord(
                     word = word,
+                    next = words.getOrNull(i + 1),
                     reading = reading,
                     selected = selected == (p to i),
                     lit = (p to i) in lit,
@@ -1443,9 +1445,12 @@ internal fun StoryReading.showsRuby(word: ReadingWord): Boolean {
     return isUnknown(word) || word.kind == WordKind.NAME || MasteryRules.furigana(mastery) == FuriganaMode.SHOWN
 }
 
-/** A word's pieces as drawn: its furigana, or romaji over the kana you haven't practised yet. */
-internal fun StoryReading.pieces(word: ReadingWord): List<RubyPiece> =
-    romajiPieces(word, unreadKana) ?: word.ruby.map { RubyPiece(it.base, it.ruby) }
+/**
+ * A word's pieces as drawn: its furigana, or romaji over the kana you haven't
+ * practised yet. [next] is the word after it, for a small っ at its end.
+ */
+internal fun StoryReading.pieces(word: ReadingWord, next: ReadingWord? = null): List<RubyPiece> =
+    romajiPieces(word, unreadKana, next?.ruby?.firstOrNull()?.let { it.ruby ?: it.base }) ?: word.ruby.map { RubyPiece(it.base, it.ruby) }
 
 /** Paragraph [p]'s speaker's name in romaji, while it has a kana you haven't practised. */
 internal fun StoryReading.speakerRomaji(p: Int): String? =
@@ -1509,6 +1514,8 @@ internal fun Modifier.storyWordGestures(onTap: () -> Unit, onHold: () -> Unit): 
 @Composable
 private fun StoryWord(
     word: ReadingWord,
+    /** The word after it, for romaji over a small っ at its end. */
+    next: ReadingWord?,
     reading: StoryReading,
     selected: Boolean,
     lit: Boolean,
@@ -1541,7 +1548,7 @@ private fun StoryWord(
     Box(modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             var at = 0
-            for (piece in reading.pieces(word)) {
+            for (piece in reading.pieces(word, next)) {
                 val start = at
                 at += piece.base.length
                 // The new grammar is the word's ending, never inside a kanji, so a piece's furigana follows where it starts.
@@ -1560,7 +1567,8 @@ private fun StoryWord(
                         fontFamily = family,
                         maxLines = 1,
                         softWrap = false,
-                        color = rubyColor.copy(alpha = 0.75f),
+                        // Romaji is read, not glanced at like furigana, so it's full strength.
+                        color = if (piece.romaji) indigo else rubyColor.copy(alpha = 0.75f),
                         modifier = if (piece.romaji || (showRuby && piece.ruby != null)) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
                     )
                     Text(
