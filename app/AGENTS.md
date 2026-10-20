@@ -45,7 +45,8 @@ Warm unbleached paper `#F6ECDA`, brown-black ink `#2A1F17`, seal red
 `#B5381C`; dark mode is a tea-brown `#1E1711` with cream text `#F1E5CF` and
 red `#E8704F`. Keep every text colour at 4.5:1 or better on its background. No dynamic colour. Zen Kaku Gothic New (sans serif) is the font
 for Japanese, headings and UI. The story reader also offers Zen Old Mincho
-(serif) and Zen Maru Gothic (rounded) for story text only; all three are OFL,
+(serif) and Zen Maru Gothic (rounded) for story text only, in their regular
+weight alone (a note's bold 注 is in the gothic); all three are OFL,
 with licences in `assets/licenses`. Use the shared components
 in `ui/Washi.kt` (`PrimaryButton`, `SealButton`, `SecondaryButton`,
 `WashiChip`, `LevelSeal`, bottom nav, line icons) for new screens rather than

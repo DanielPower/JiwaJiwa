@@ -1040,8 +1040,8 @@ private fun HorizontalStory(
     // Words measured as StoryWord draws them: each piece as wide as its text or its furigana, shown or not.
     val rubySize = size * RUBY_RATIO
     // A note's marker, with a little room before it, ends its paragraph and never starts a line.
-    val markerWidth = remember(density, size, family) {
-        val style = TextStyle(fontSize = (size * MARKER_RATIO).sp, fontFamily = family, fontWeight = FontWeight.Bold)
+    val markerWidth = remember(density, size) {
+        val style = TextStyle(fontSize = (size * MARKER_RATIO).sp, fontFamily = Gothic, fontWeight = FontWeight.Bold)
         measurer.measure("注", style, softWrap = false).size.width + with(density) { (MARKER_PADDING * 2 + MARKER_BORDER * 2).toPx() + (size * 0.4f).sp.toPx() }
     }
     val flows = remember(reading, density, size, family) {
@@ -1124,7 +1124,6 @@ private fun HorizontalStory(
                                 // Past the paragraph's words: its note's marker.
                                 NoteMarker(
                                     textSize = size.sp,
-                                    family = family,
                                     open = openNote == p,
                                     onClick = { onNote(p) },
                                     modifier = Modifier.width(with(density) { markerWidth.toDp() }).height(with(density) { (size * 1.5f).sp.toDp() }),
@@ -1710,7 +1709,7 @@ private fun NoteCard(text: String) {
  * which is all tappable, and is shaded while its note is open.
  */
 @Composable
-internal fun NoteMarker(textSize: TextUnit, family: FontFamily, open: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun NoteMarker(textSize: TextUnit, open: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val indigo = MaterialTheme.colorScheme.secondary
     val shape = RoundedCornerShape(3.dp)
     Box(modifier.clickable(interactionSource = null, indication = null, onClickLabel = "Show note", onClick = onClick), contentAlignment = Alignment.Center) {
@@ -1718,7 +1717,7 @@ internal fun NoteMarker(textSize: TextUnit, family: FontFamily, open: Boolean, o
             "注",
             fontSize = textSize * MARKER_RATIO,
             lineHeight = textSize * MARKER_RATIO * 1.25f,
-            fontFamily = family,
+            fontFamily = Gothic,
             fontWeight = FontWeight.Bold,
             color = indigo,
             softWrap = false,
