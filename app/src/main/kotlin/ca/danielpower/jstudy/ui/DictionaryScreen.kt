@@ -84,11 +84,19 @@ fun DictionaryScreen(state: Screen.Dictionary, vm: AppViewModel, listState: Lazy
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 4.dp),
         )
         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            WashiChip(selected = state.grammar == null, onClick = { vm.showGrammar(false) }, label = "Words")
+            WashiChip(selected = state.grammar == null && state.kana == null, onClick = { vm.showGrammar(false) }, label = "Words")
             WashiChip(selected = state.grammar != null, onClick = { vm.showGrammar(true) }, label = "Grammar")
+            WashiChip(selected = state.kana != null, onClick = { vm.showKana(true) }, label = "Kana")
         }
         val grammar = state.grammar
-        if (grammar != null) {
+        val kana = state.kana
+        if (kana != null) {
+            KanaChartView(
+                kana,
+                vm::sayKana,
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+        } else if (grammar != null) {
             GrammarList(grammar, vm)
         } else {
             OutlinedTextField(

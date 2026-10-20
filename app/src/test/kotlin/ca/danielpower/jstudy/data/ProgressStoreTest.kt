@@ -7,6 +7,8 @@ import androidx.test.core.app.ApplicationProvider
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
+import ca.danielpower.jstudy.core.KanaProgress
+import ca.danielpower.jstudy.core.KanaStage
 import ca.danielpower.jstudy.core.LogKind
 import ca.danielpower.jstudy.core.ReviewLog
 import ca.danielpower.jstudy.core.StartSource
@@ -366,5 +368,26 @@ class ProgressStoreTest {
         assertEquals(listOf(10L), store.studyDays())
         assertEquals(3, store.masteryChanges().size)
         assertEquals("the word page lists answers only", 1, store.logs(7).size)
+    }
+
+    @Test
+    fun upgradingToVersion12AddsKanaPractice() {
+        store.close()
+        context.deleteDatabase(ProgressStore.NAME)
+        val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(path, null).use { db ->
+            ProgressStore(context).onCreate(db)
+            // A version 11 database, from before kana practice.
+            db.execSQL("DROP TABLE kana")
+            db.execSQL("DROP TABLE kana_log")
+            db.version = 11
+        }
+
+        store = ProgressStore(context)
+        assertTrue(store.kanaProgress().isEmpty())
+        val p = KanaProgress("か", KanaStage.LEARNING, introducedDay = 5, lastDay = 5, lateCheckAt = 1000, confusions = listOf("が", "さ"))
+        store.saveKana(p, answeredAt = 900, day = 5, correct = false, millis = 2400)
+        assertEquals(mapOf("か" to p), store.kanaProgress())
+        assertEquals(listOf(5L), store.kanaDays())
     }
 }

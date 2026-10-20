@@ -107,6 +107,7 @@ fun App(vm: AppViewModel, screen: Screen) {
                         vm,
                     )
                     is Screen.Setup -> SetupScreen(screen, vm)
+                    is Screen.Kana -> KanaScreen(screen, vm)
                     is Screen.StatsPage -> StatsScreen(screen, vm)
                     is Screen.Dictionary -> DictionaryScreen(screen, vm, dictionaryList)
                     is Screen.WordPage -> WordScreen(screen, vm)
@@ -144,12 +145,16 @@ fun App(vm: AppViewModel, screen: Screen) {
 @Composable
 private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
     val due = summary.newCards + summary.learning + summary.reviews
+    val kanaDue = summary.kana?.due ?: 0
     val answered = summary.reviewedToday.takeIf { it > 0 }?.let { "$it answered so far, ${100 * summary.correctToday / it}% right" }
     Column(
         modifier = Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(22.dp),
     ) {
         Text("Review", style = MaterialTheme.typography.headlineMedium)
+
+        // While any kana isn't clear, and on the day the last one comes clear.
+        if (summary.kana != null || summary.kanaClearToday) KanaSection(summary, vm)
 
         // Before any word's been started there's nothing to review yet, rather than nothing left.
         val beforeFirst = due == 0 && !summary.started
@@ -168,6 +173,8 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
                     textAlign = TextAlign.Center,
                 )
             }
+        } else if (due == 0 && kanaDue > 0) {
+            Text("No cards due", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else if (due == 0) {
             // Nothing due: the same 済 as Home's Done card.
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -218,7 +225,15 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
         ComingUp(summary.comingUp, summary.today)
 
         Spacer(Modifier.weight(1f))
-        if (beforeFirst) {
+        if (kanaDue > 0) {
+            // Kana first, then the cards, so a beginner always has the one thing to press.
+            PrimaryButton(onClick = vm::startStudy, modifier = Modifier.fillMaxWidth().height(58.dp)) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Start studying", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    if (due > 0) Text("Kana first, then ${if (due == 1) "1 card" else "$due cards"}", fontSize = 12.sp)
+                }
+            }
+        } else if (beforeFirst) {
             PrimaryButton(onClick = vm::openStories, modifier = Modifier.fillMaxWidth().height(58.dp)) {
                 Text("Read your first story", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
@@ -243,6 +258,55 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+        }
+    }
+}
+
+/** Kana practice while you learn them: what's due, and how many are clear. Start studying runs it. */
+@Composable
+private fun KanaSection(summary: Summary, vm: AppViewModel) {
+    val kana = summary.kana
+    val colors = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("Kana", Modifier.weight(1f))
+            Text(
+                "Chart ›",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.primary,
+                modifier = Modifier.clickable { vm.openDictionary(kana = true) }.padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+        if (kana == null) {
+            // The day the last kana came clear.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                Box(Modifier.size(44.dp).stampGrain().border(2.dp, colors.primary, RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
+                    Text("済", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 26.sp, color = colors.primary)
+                }
+                Text("All ${summary.kanaLearned} kana clear", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            return@Column
+        }
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                listOfNotNull(
+                    kana.new.takeIf { it > 0 }?.let { "$it new" },
+                    kana.check.takeIf { it > 0 }?.let { "$it to check" },
+                ).joinToString(", ").ifEmpty { if (kana.later > 0) "A quick check later today" else "Done for today" },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
+            Text("${kana.clear} of ${kana.total} clear", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+        }
+        // Clear in ink, learning in gold, the rest not started.
+        Row(Modifier.fillMaxWidth().height(4.dp).background(colors.surfaceVariant)) {
+            val total = kana.total.coerceAtLeast(1).toFloat()
+            if (kana.clear > 0) Box(Modifier.weight(kana.clear / total).fillMaxHeight().background(colors.onSurface))
+            if (kana.learning > 0) Box(Modifier.weight(kana.learning / total).fillMaxHeight().background(colors.tertiary))
+            val rest = kana.total - kana.clear - kana.learning
+            if (rest > 0) Spacer(Modifier.weight(rest / total))
         }
     }
 }
@@ -331,6 +395,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                             WordFace(word, showFurigana = true)
                             if (speakerBeside) SayButton(Modifier.padding(start = 8.dp, bottom = 14.dp), onClick = say)
                         }
+                        CardRomaji(state.current, revealed = true)
                     }
                 } else {
                     Column(
@@ -350,6 +415,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                             }
                             if (speakerBeside) SayButton(Modifier.padding(start = 8.dp, bottom = 14.dp), onClick = say)
                         }
+                        CardRomaji(state.current, revealed)
                         if (!revealed && word.showsKanji && state.current.furigana == FuriganaMode.HIDDEN) {
                             Text(
                                 "Tap the word for its reading",
@@ -405,6 +471,20 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             }
         }
     }
+}
+
+/** The word's reading in romaji, for kana you're still learning: on the answer, and on the front for kana not practised yet. */
+@Composable
+private fun CardRomaji(card: ReviewCard, revealed: Boolean) {
+    val romaji = card.romaji ?: return
+    if (!revealed && !card.romajiOnFront) return
+    Text(
+        romaji,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.secondary,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+    )
 }
 
 @Composable

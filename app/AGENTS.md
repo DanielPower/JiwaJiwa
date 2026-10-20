@@ -26,7 +26,8 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 - Plain `SQLiteOpenHelper`, not Room (avoids KSP and prepackaged-DB schema
   validation). Settings live in the progress DB's `kv` table, not DataStore,
   so a backup carries them.
-- `ProgressStore.VERSION` is 10. Schema changes need an `onUpgrade` step, and
+- `ProgressStore.VERSION` is 12 (11 dropped old settings, 12 added the
+  `kana` and `kana_log` tables). Schema changes need an `onUpgrade` step, and
   backups from older versions must still restore (they're upgraded when
   reopened). A backup from a newer version is refused.
 - SharedPreferences hold only what must not go in a backup or must load

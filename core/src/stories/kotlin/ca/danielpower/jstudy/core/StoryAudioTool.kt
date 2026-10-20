@@ -18,7 +18,8 @@ import kotlinx.serialization.json.put
 import kotlin.system.exitProcess
 
 /**
- * Records the stories' sentences with Fish Audio into the app's assets
+ * Records the stories' sentences, and each kana's sound for kana practice,
+ * with Fish Audio into the app's assets
  * (app/src/main/assets/audio), for the repository at the first argument.
  * Only sentences without a clip are recorded, since each costs money, and
  * clips no sentence uses any more are deleted. Without "record" it only says
@@ -81,7 +82,7 @@ object StoryAudio {
     /** A sentence to record: what to say, and in which voice. */
     data class Take(val text: String, val voice: String, val page: String)
 
-    /** Every sentence the stories and grammar pages read aloud, by its clip's key. */
+    /** Every sentence the stories and grammar pages read aloud, and each kana's sound, by its clip's key. */
     fun wanted(tools: StoryTools): Map<String, Take> {
         val catalog = tools.catalog
         val cast = catalog.cast.associateBy { it.name }
@@ -95,6 +96,11 @@ object StoryAudio {
                 val key = keys[i] ?: return@forEachIndexed
                 out.getOrPut(key) { Take(line.text, Recordings.voice(line.speaker, catalog.voices, cast, narrator)!!, page.id) }
             }
+        }
+        for (unit in KanaCourse.units) {
+            if (unit.mark) continue
+            val (key, voice) = Recordings.kana(unit.text, catalog.voices) ?: break
+            out.getOrPut(key) { Take(unit.text, voice, "kana") }
         }
         return out
     }

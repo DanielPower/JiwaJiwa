@@ -114,13 +114,32 @@ Study and scheduling:
   "Full entry →" to the word's page (2026-10-19). No example sentences or
   pitch accent yet.
 
-Kana:
+Kana (back 2026-10-20, Daniel; first removed 2026-10-17, progress DB
+version 9 deleted the old kana cards):
 
-- Not taught (Daniel, 2026-10-17): kana cards, the kana setup page and
-  setting were removed to keep the focus on stories. The app assumes you
-  read hiragana and katakana. Progress DB version 9 deletes old kana cards
-  (direction 2, negative word ids) and their history.
-- No romaji on vocabulary cards.
+- Kana don't go through FSRS. Their own drill (core `KanaDrill.kt`): sets
+  of 5, each right 3 times in the first sitting (a miss means 2 more), a
+  quick check 3 hours later, then once a day until quick (under 3 s) and
+  right on 3 days. Then Clear, with a weekly check for a month; a miss sends
+  a kana back to Learning.
+- Multiple choice, four answers, mostly kana → sound, one in four sound →
+  kana. Wrong answers come from past mix-ups, lookalikes (`KanaLooks`),
+  voicing pairs and similar sounds, never one that sounds the same.
+- Taught in the order the stories use them (`stories/kana.txt`, built in
+  CI), lookalikes in different sets, so new kana show up in stories at once.
+- No kana gating. Stories show romaji (Hepburn, indigo) over kana not
+  practised yet; it goes after a kana's first drill. Furigana over a kanji
+  turns to romaji as a whole if any of its kana is unread. The word pane
+  and the review card show romaji while a kana isn't Clear.
+- Setup asks Both / Hiragana only / Neither; unset (older installs) is
+  Both. Settings has the same row. The Direction page and the reader's
+  Direction row only show once every kana is Clear (vertical text is off
+  until then, and the gear marks it new once).
+- Kana practice lives on the Review tab: a Kana section above Today, and
+  Start studying runs due kana first, then the cards. Home's Next card
+  offers it first while kana are due. The Dictionary has a Kana chart tab.
+- Each kana has a Fish clip in the narrator's voice (`Recordings.kana`),
+  else the phone's voice says it.
 
 Other features (all shipped):
 
@@ -306,7 +325,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - Grammar pace (Daniel, 2026-10-17): don't teach too much too fast. Keep
   chapters with no new grammar, using what came before, between the ones
   that teach a topic, and reuse each topic in the chapters after it.
-  Stories no longer follow a kana order (kana aren't taught).
+  Stories don't follow a kana order: kana are taught in the order stories use them.
 - Grammar lessons (Daniel, 2026-10-19): every topic's page has one shape:
   summary, the teaching chapter's line with its English, a forms table for
   patterns that change a word, at most two notes and three lines, and the

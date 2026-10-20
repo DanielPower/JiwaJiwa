@@ -38,14 +38,15 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.ReadLevel
 
-/** First run, a page at a time: welcome, your level, reading direction, reminder. */
+/** First run, a page at a time: welcome, kana, your level, reading direction, reminder. */
 @Composable
 fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
-    val pages = SetupPage.entries
-    val index = state.page.ordinal
+    val pages = state.pages
+    val index = pages.indexOf(state.page)
     val last = index == pages.lastIndex
 
     Column(Modifier.fillMaxSize()) {
@@ -60,6 +61,7 @@ fun SetupScreen(state: Screen.Setup, vm: AppViewModel) {
             )
             when (state.page) {
                 SetupPage.WELCOME -> WelcomePage()
+                SetupPage.KANA -> KanaPage(state, vm)
                 SetupPage.LEVEL -> LevelPage(state, vm)
                 SetupPage.DIRECTION -> DirectionPage(state, vm)
                 SetupPage.REMINDER -> ReminderPage(state, vm)
@@ -125,6 +127,61 @@ private fun ColumnScope.WelcomePage() {
             "and some grammar, and the words you meet come back as flashcards, just before you'd forget them.",
     )
     Body("A couple of questions first, so it starts at the right place for you.")
+}
+
+@Composable
+private fun ColumnScope.KanaPage(state: Screen.Setup, vm: AppViewModel) {
+    Title("Kana")
+    Help(
+        "Japanese is written with two sets of sound letters, hiragana and katakana, plus kanji. " +
+            "Stories use all three from the start.",
+    )
+    Example("あい", "Hiragana", "Endings, small words, most of a sentence.")
+    Example("アイ", "Katakana", "Names and words from other languages.")
+
+    SectionLabel("Which can you already read?", Modifier.padding(top = 8.dp))
+    KanaKnownChips(state.kana) { known -> vm.editSetup { it.copy(kana = known) } }
+    if (state.kana != KanaKnown.BOTH) {
+        Help(
+            "You'll learn them five at a time, a few minutes a day. Until you've practised a kana, stories " +
+                "write its sound above it in English letters, called romaji.",
+        )
+        RomajiExample()
+    }
+}
+
+/** Both, Hiragana only, Neither. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun KanaKnownChips(selected: KanaKnown, onSelect: (KanaKnown) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (known in KanaKnown.entries) WashiChip(selected = selected == known, onClick = { onSelect(known) }, label = known.label)
+    }
+}
+
+/** つい に with its romaji over it while new, then plain once practised. */
+@Composable
+private fun RomajiExample() {
+    val word = listOf("つ" to "tsu", "い" to "i", "に" to "ni")
+    Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row { for ((kana, sound) in word) RomajiGlyph(kana, sound) }
+            Help("new kana")
+        }
+        Text("→", fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 26.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row { for ((kana, _) in word) RomajiGlyph(kana, null) }
+            Help("once practised")
+        }
+    }
+}
+
+@Composable
+private fun RomajiGlyph(kana: String, sound: String?) {
+    Column(Modifier.width(34.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(sound ?: " ", fontSize = 12.sp, lineHeight = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+        Text(kana, fontSize = 28.sp, lineHeight = 34.sp, fontFamily = Mincho)
+    }
 }
 
 @Composable
@@ -370,3 +427,11 @@ private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
             "words from the dictionary.",
     )
 }
+
+/** How [KanaKnown] reads on its chips. */
+internal val KanaKnown.label: String
+    get() = when (this) {
+        KanaKnown.BOTH -> "Both"
+        KanaKnown.HIRAGANA -> "Hiragana only"
+        KanaKnown.NONE -> "Neither"
+    }

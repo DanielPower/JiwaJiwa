@@ -12,6 +12,12 @@ import ca.danielpower.jstudy.core.DailyLimits
 import ca.danielpower.jstudy.core.Direction
 import ca.danielpower.jstudy.core.Fsrs
 import ca.danielpower.jstudy.core.ImportPlan
+import ca.danielpower.jstudy.core.KanaCounts
+import ca.danielpower.jstudy.core.KanaCourse
+import ca.danielpower.jstudy.core.KanaKnown
+import ca.danielpower.jstudy.core.KanaResult
+import ca.danielpower.jstudy.core.KanaSession
+import ca.danielpower.jstudy.core.KanaState
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.LocalWord
@@ -26,6 +32,7 @@ import ca.danielpower.jstudy.core.StudyAhead
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
+import ca.danielpower.jstudy.core.WordKind
 import ca.danielpower.jstudy.core.WordProgress
 import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.ReadingWord
@@ -74,6 +81,12 @@ data class Summary(
     val comingUp: List<Int>,
     /** Whether any word has been started, so there's ever been anything to review. */
     val started: Boolean = true,
+    /** Kana practice, while any kana isn't clear; null once they all are. */
+    val kana: KanaCounts? = null,
+    /** Once all are clear, how many kana you learned here (none if you read them all already). */
+    val kanaLearned: Int = 0,
+    /** Whether the last of them came clear today. */
+    val kanaClearToday: Boolean = false,
 ) {
     val anythingDue get() = newCards + learning + reviews > 0
 }
@@ -94,7 +107,12 @@ data class Dashboard(
     val reviewsLater: Int = 0,
     /** Once every chapter's read and nothing is due, one to read again. */
     val readAgain: ReadAgain? = null,
+    /** Kana practice, while any kana isn't clear. */
+    val kana: KanaCounts? = null,
 )
+
+/** A word showing a kana: as written, as read (the kana may be in a kanji's reading), and what it means. */
+data class KanaExample(val word: String, val reading: String, val meaning: String)
 
 /** A chapter you've read to read again, and how many of its words reading it would review. */
 data class ReadAgain(val entry: ChapterEntry, val due: Int)
@@ -191,6 +209,10 @@ data class StoryReading(
     val fromStories: List<StoryLine> = emptyList(),
     /** For a chapter that teaches a grammar topic: the topic, drawn in indigo wherever it's used. */
     val teaches: GrammarTopic? = null,
+    /** Kana you've never practised, with romaji over them. */
+    val unreadKana: Set<String> = emptySet(),
+    /** Kana that aren't clear yet, whose words' panes show their romaji. */
+    val unclearKana: Set<String> = emptySet(),
 ) {
     private val newPoints = teaches?.points.orEmpty().toSet()
 
@@ -692,7 +714,8 @@ class Repository private constructor(context: Context) {
         return ReaderStyle(
             size = store.getValue("story_text_size")?.toIntOrNull()?.takeIf { it in ReaderStyle.SIZES } ?: default.size,
             font = ReaderFont.entries.firstOrNull { it.name == store.getValue("story_font") } ?: default.font,
-            vertical = store.getValue("story_vertical") == "1",
+            // Vertical text waits until every kana is clear: romaji doesn't sit well beside a column.
+            vertical = store.getValue("story_vertical") == "1" && kanaState().done,
         )
     }
 
@@ -739,6 +762,7 @@ class Repository private constructor(context: Context) {
         val extra = runs + fromStories.map { it.words }
         val ids = (paragraphs + extra).flatten().mapNotNull { it.wordId }.toSet()
         val statuses = store.wordStatuses()
+        val kana = kanaState()
         return StoryReading(
             story = story,
             paragraphs = paragraphs,
@@ -753,6 +777,8 @@ class Repository private constructor(context: Context) {
             fromStories = fromStories,
             teaches = catalog.chapters.firstOrNull { it.second.story.id == story.pathId }?.second?.topic
                 ?.let { id -> catalog.grammar.firstOrNull { it.id == id } },
+            unreadKana = kana.unread,
+            unclearKana = kana.unclear,
         ).let { it.copy(clips = clips(story, it.narration)) }
     }
 
@@ -1104,11 +1130,96 @@ class Repository private constructor(context: Context) {
     fun levelCounts(): Map<Int, Int> = dictionary.levelCounts()
 
     /** Finish the first run: the level you read at, filled in, and the reminder. */
-    fun finishSetup(readLevel: Int, vertical: Boolean, reminderMinute: Int?, now: Long) {
+    fun finishSetup(readLevel: Int, kana: KanaKnown, vertical: Boolean, reminderMinute: Int?, now: Long) {
         if (reminderMinute != null) saveReminder(Reminder(enabled = true, minuteOfDay = reminderMinute))
-        setReaderStyle(readerStyle().copy(vertical = vertical))
+        setKanaKnown(kana)
+        setReaderStyle(readerStyle().copy(vertical = vertical && kana == KanaKnown.BOTH))
         setReadLevel(readLevel, now)
         store.setValues(mapOf("setup_done" to "1"))
+    }
+
+    // ------------------------------------------------------------ kana
+
+    /** Which kana you read already (setup's Kana page, or Settings). Unset is both, as for installs from before kana practice. */
+    fun kanaKnown(): KanaKnown = KanaKnown.of(store.getValue("kana_known"))
+
+    fun setKanaKnown(known: KanaKnown) = store.setValues(mapOf("kana_known" to known.value))
+
+    /** The order the stories need kana in (the app build's stories/kana.txt), then any it leaves out, in chart order. */
+    private val kanaOrder: List<String> by lazy {
+        val listed = runCatching {
+            appContext.assets.open("stories/kana.txt").bufferedReader().use { it.readLines() }
+        }.getOrDefault(emptyList()).map { it.trim() }.filter { KanaCourse.unit(it) != null }.distinct()
+        listed + KanaCourse.units.map { it.text }.filter { it !in listed }
+    }
+
+    fun kanaState(): KanaState =
+        KanaState(kanaKnown(), kanaOrder, store.kanaProgress(), store.getValue("kana_set_day")?.toLongOrNull())
+
+    /** What kana practice would ask now, or null once every kana is clear. */
+    fun kanaCounts(now: Long, state: KanaState = kanaState()): KanaCounts? =
+        if (state.done) null else state.counts(clock().dayOf(now), now)
+
+    /**
+     * A sitting of kana practice: today's checks, and today's new set if none
+     * has been started on yet today ([kanaSetStarted]). With [more], the next set whatever the day.
+     */
+    fun kanaSession(now: Long, more: Boolean = false): KanaSession {
+        val state = kanaState()
+        val today = clock().dayOf(now)
+        val set = if (more || state.lastSetDay != today) state.nextSet().orEmpty() else emptyList()
+        return KanaSession(state, today, now, set.mapNotNull { KanaCourse.unit(it) }, canListen = { kanaClip(it) != null || hasJapaneseVoice })
+    }
+
+    /** Today's new set has been started on, so another comes in by itself only tomorrow. */
+    fun kanaSetStarted(now: Long) = store.setValues(mapOf("kana_set_day" to clock().dayOf(now).toString()))
+
+    /** Whether the phone has a Japanese voice to say a kana that has no recording; the view model says. */
+    @Volatile var hasJapaneseVoice = true
+
+    fun saveKana(result: KanaResult, now: Long, millis: Long) {
+        val wasDone = kanaState().done
+        val day = clock().dayOf(now)
+        store.saveKana(result.progress, now, day, result.correct, millis)
+        if (!wasDone && kanaState().done) store.setValues(mapOf("kana_clear_day" to day.toString()))
+    }
+
+    /** Whether the reader's gear should mark vertical text as new: it came back when the last kana you learned came clear. */
+    fun verticalNew(): Boolean = store.getValue("kana_clear_day") != null && store.getValue("vertical_seen") == null && kanaState().done
+
+    fun markVerticalSeen() = store.setValues(mapOf("vertical_seen" to "1"))
+
+    /** A kana's recorded sound, if the app has one. */
+    fun kanaClip(text: String): Recording? {
+        val voices = catalog.voices
+        val (key, voice) = Recordings.kana(text, voices) ?: return null
+        if ("$key.${Recordings.EXTENSION}" !in recorded) return null
+        return Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f)
+    }
+
+    /**
+     * A word from the first stories with each kana in it, and what it means,
+     * for introducing a new set: "た in 来た, came".
+     */
+    fun kanaExamples(texts: Collection<String>): Map<String, KanaExample> {
+        val out = HashMap<String, KanaExample>()
+        val left = texts.toMutableSet()
+        for ((_, chapter) in catalog.chapters.take(KANA_EXAMPLE_CHAPTERS)) {
+            if (left.isEmpty()) break
+            for (word in text(chapter.story.id).flatten()) {
+                val id = word.wordId ?: continue
+                if (word.kind != WordKind.WORD) continue
+                val spelled = word.ruby.joinToString("") { it.ruby ?: it.base }
+                val found = KanaCourse.unitsIn(spelled).map { it.text }.filter { it in left }
+                if (found.isEmpty()) continue
+                val gloss = dictionary.word(id)?.senses?.firstOrNull()?.glosses?.firstOrNull() ?: continue
+                for (t in found) {
+                    out[t] = KanaExample(word.surface, spelled, gloss)
+                    left.remove(t)
+                }
+            }
+        }
+        return out
     }
 
     // ------------------------------------------------------------ backup
@@ -1265,6 +1376,7 @@ class Repository private constructor(context: Context) {
             recent = recent,
             reviewsLater = queue(settings, clock(settings), now).later,
             readAgain = if (next is NextUp.AllRead) readAgain(now) else null,
+            kana = kanaCounts(now),
         )
     }
 
@@ -1283,7 +1395,8 @@ class Repository private constructor(context: Context) {
     }
 
     /** Study days with a review answered or a chapter finished. */
-    private fun activeDays(clock: StudyClock): Set<Long> = (store.studyDays() + store.storyReadTimes().map(clock::dayOf)).toSet()
+    private fun activeDays(clock: StudyClock): Set<Long> =
+        (store.studyDays() + store.storyReadTimes().map(clock::dayOf) + store.kanaDays()).toSet()
 
     /** What Home suggests: see [Suggest.next]. */
     private fun nextUp(now: Long): NextUp<ChapterEntry> {
@@ -1380,8 +1493,11 @@ class Repository private constructor(context: Context) {
         return forecast.toList()
     }
 
-    /** Cards waiting now, as the Review tab's badge shows them. */
-    fun dueCount(now: Long): Int {
+    /** Cards and kana waiting now, as the Review tab's badge shows them. */
+    fun dueCount(now: Long): Int = cardsDue(now) + (kanaCounts(now)?.due ?: 0)
+
+    /** Word cards waiting now. */
+    fun cardsDue(now: Long): Int {
         val settings = settings()
         return queue(settings, clock(settings), now).total
     }
@@ -1391,6 +1507,7 @@ class Repository private constructor(context: Context) {
         val clock = clock(settings)
         val today = clock.dayOf(now)
         val queue = queue(settings, clock, now)
+        val kana = kanaState()
         return Summary(
             newCards = queue.newCards,
             learning = queue.learning,
@@ -1404,6 +1521,9 @@ class Repository private constructor(context: Context) {
             readDays = store.storyReadTimes().map(clock::dayOf).toSet(),
             comingUp = forecast(clock, today, 8).drop(1),
             started = store.count("SELECT COUNT(*) FROM card WHERE state != ?", CardState.NEW.value) > 0,
+            kana = kanaCounts(now, kana),
+            kanaLearned = if (kana.done) kana.toLearn.size else 0,
+            kanaClearToday = kana.done && store.getValue("kana_clear_day")?.toLongOrNull() == today,
         )
     }
 
@@ -1427,6 +1547,9 @@ class Repository private constructor(context: Context) {
 
         /** Words you haven't started to list on a kanji's page. */
         private const val MORE_WORDS = 12
+
+        /** How far into the stories to look for a word to show a new kana in. */
+        private const val KANA_EXAMPLE_CHAPTERS = 120
 
         /** Lines from your stories to show on a grammar page. */
         private const val STORY_LINES = 20
