@@ -785,19 +785,20 @@ class Repository private constructor(context: Context) {
         ).let { it.copy(clips = clips(story, it.narration)) }
     }
 
-    /** The recordings that come with the app, by file name. */
-    private val recorded: Set<String> by lazy { appContext.assets.list(Recordings.DIR).orEmpty().toSet() }
+    /** Kana's recordings, which come with the app, by file name. */
+    private val bundledClips: Set<String> by lazy { appContext.assets.list(Recordings.DIR).orEmpty().toSet() }
 
     /**
-     * Each of [lines]' recording, when it's been recorded: in its story's
-     * narrator's voice, and each of the cast's own, played at its voice's gain.
+     * Each of [lines]' recording, when it has a voice to be recorded in: in
+     * its story's narrator's voice, and each of the cast's own, played at its
+     * voice's gain. It's downloaded when wanted, and a line not recorded yet
+     * is read by the phone.
      */
     private fun clips(story: SavedStory, lines: List<NarrationLine>): List<Recording?> {
         val narrator = catalog.series.firstOrNull { s -> s.chapters.any { it.story.id == story.pathId } }?.narrator
         val voices = catalog.voices
         return Recordings.clips(lines, voices, catalog.cast.associateBy { it.name }, narrator).map { clip ->
-            clip?.takeIf { (key, _) -> "$key.${Recordings.EXTENSION}" in recorded }
-                ?.let { (key, voice) -> Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f) }
+            clip?.let { (key, voice) -> Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f) }
         }
     }
 
@@ -1206,10 +1207,9 @@ class Repository private constructor(context: Context) {
 
     /** A kana's recorded sound, if the app has one. */
     fun kanaClip(text: String): Recording? {
-        val voices = catalog.voices
-        val (key, voice) = Recordings.kana(text, voices) ?: return null
-        if ("$key.${Recordings.EXTENSION}" !in recorded) return null
-        return Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f)
+        val (key, voice) = Recordings.kana(text)
+        if ("$key.${Recordings.EXTENSION}" !in bundledClips) return null
+        return Recording(Recordings.file(key), catalog.voices.gains[voice]?.toFloat() ?: 0f, bundled = true)
     }
 
     /**

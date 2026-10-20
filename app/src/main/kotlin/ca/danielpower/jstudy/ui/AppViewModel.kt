@@ -39,6 +39,7 @@ import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderPlace
 import ca.danielpower.jstudy.data.ReaderStyle
 import ca.danielpower.jstudy.data.SpeechSettings
+import ca.danielpower.jstudy.audio.Clips
 import ca.danielpower.jstudy.audio.SpokenLine
 import ca.danielpower.jstudy.audio.StoryVoice
 import ca.danielpower.jstudy.core.Voices
@@ -293,6 +294,8 @@ data class ReadImpact(
 /** The next chapter to read, and how to name it on the button. */
 data class NextStep(val storyId: Long, val label: String)
 
+
+
 enum class SetupPage { WELCOME, KANA, LEVEL, DIRECTION, REMINDER }
 
 sealed interface ImportStep {
@@ -326,9 +329,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _speech = MutableStateFlow(SpeechSettings())
     val speech: StateFlow<SpeechSettings> = _speech.asStateFlow()
 
+    // The stories' recordings, downloaded as chapters open.
+    private val clips = Clips(app)
+
     // The phone's speech engine, started the first time something is read aloud or a reader opens.
     private var voiceEngine: StoryVoice? = null
-    private val voice: StoryVoice get() = voiceEngine ?: StoryVoice(getApplication()).also { voiceEngine = it }
+    private val voice: StoryVoice get() = voiceEngine ?: StoryVoice(getApplication(), clips).also { voiceEngine = it }
     val voiceState: StateFlow<StoryVoice.State> get() = voice.state
 
     private lateinit var repo: Repository
@@ -1037,6 +1043,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage, startAt = startAt,
             verticalNew = repo.verticalNew(),
         )
+        getClips(reading)
+    }
+
+    // ------------------------------------------------------------ recordings
+
+    /** Downloads [reading]'s recordings that aren't on the phone yet; a chapter's are a few hundred KB. */
+    private fun getClips(reading: StoryReading) {
+        clips.fetch(reading.clips.filterNotNull().filter { !it.bundled && clips.local(it) == null })
+    }
+
+    /** The next chapter's recordings, fetched as one ends so it plays offline too. */
+    private fun prefetchClips(next: NextStep?) {
+        next?.let { repo.readStory(it.storyId) }?.let { clips.fetch(it.clips) }
     }
 
     /**
@@ -1086,6 +1105,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val pace = repo.pace(at)
         _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
         refreshStory()
+        prefetchClips((_screen.value as? Screen.StoryReader)?.next)
     }
 
     /** "Read it again" on a story's end page: it opens again on its first page. */
