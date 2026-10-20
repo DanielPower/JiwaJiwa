@@ -132,8 +132,9 @@ version 9 deleted the old kana cards):
   turns to romaji as a whole if any of its kana is unread. The word pane
   and the review card show romaji while a kana isn't Clear.
 - Setup asks Both / Hiragana only / Neither; unset (older installs) is
-  Both. Settings has the same row. The Direction page and the reader's
-  Direction row only show once every kana is Clear (vertical text is off
+  Both. Settings has the same row. Unless Both, setup skips the Level page
+  (they start from the first story, no JLPT level) and the Direction page;
+  the reader's Direction row only shows once every kana is Clear (vertical text is off
   until then, and the gear marks it new once).
 - Kana practice lives on the Review tab: a Kana section above Today, and
   Start studying runs due kana first, then the cards. Home's Next card

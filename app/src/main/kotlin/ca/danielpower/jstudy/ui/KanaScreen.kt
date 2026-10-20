@@ -89,7 +89,7 @@ private fun KanaIntro(step: KanaStep.Intro, vm: AppViewModel) {
                 Text("I know these", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             PrimaryButton(onClick = { vm.practiseKana() }, modifier = Modifier.weight(1f).height(58.dp)) {
-                Text("Practise", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Practice", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -154,8 +154,15 @@ sealed interface Screen {
         val reminderMinute: Int?,
         val page: SetupPage = SetupPage.WELCOME,
     ) : Screen {
-        /** The pages this setup shows: the reading direction only for someone who reads both kana, as vertical text waits until then. */
-        val pages: List<SetupPage> get() = SetupPage.entries.filter { it != SetupPage.DIRECTION || kana == KanaKnown.BOTH }
+        /**
+         * The pages this setup shows. Your level and the reading direction
+         * only for someone who reads both kana: anyone still learning kana
+         * starts from the first story, and vertical text waits until they're done.
+         */
+        val pages: List<SetupPage> get() = SetupPage.entries.filter { (it != SetupPage.LEVEL && it != SetupPage.DIRECTION) || kana == KanaKnown.BOTH }
+
+        /** The level setup saves: none while kana are still to learn, even if one was picked before going back. */
+        val startLevel: Int get() = if (kana == KanaKnown.BOTH) readLevel else ReadLevel.NONE
     }
 
     /** Kana practice: a new set's intro, its questions, then how you did. */
@@ -626,7 +633,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun finishSetup() = launchIo {
         val setup = _screen.value as? Screen.Setup ?: return@launchIo
         _screen.value = Screen.Loading
-        repo.finishSetup(setup.readLevel, setup.kana, setup.vertical, setup.reminderMinute, now())
+        repo.finishSetup(setup.startLevel, setup.kana, setup.vertical, setup.reminderMinute, now())
         DailyReminder.schedule(getApplication(), repo.reminder())
         showHome()
     }
