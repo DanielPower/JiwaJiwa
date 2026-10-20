@@ -2048,9 +2048,10 @@ private fun GrammarBody(point: GrammarPoint, reading: StoryReading) {
     val line = reading.examples[point.id]
     if (line != null) {
         FlowRow(Modifier.padding(top = 2.dp)) {
-            for (word in line.words) {
+            line.words.forEachIndexed { i, word ->
                 StoryWord(
                     word = word,
+                    next = line.words.getOrNull(i + 1),
                     reading = reading,
                     selected = false,
                     lit = false,
