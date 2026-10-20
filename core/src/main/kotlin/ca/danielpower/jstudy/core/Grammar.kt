@@ -211,7 +211,7 @@ internal object Grammar {
         )
         point(
             "ka", "か", 5, "question, or",
-            "At the end of a sentence it makes a question. Between nouns it means \"or\" (コーヒーか紅茶).",
+            "At the end of a sentence it makes a question. Between nouns it means \"or\" (コーヒーか紅茶). After a question word it means \"some-\": 何か, something; 誰か, someone.",
             "これは何ですか。", "What is this?",
             listOf(particle("か")),
         )
@@ -497,7 +497,7 @@ internal object Grammar {
         )
         point(
             "janai", "～じゃない / ではない", 5, "is not",
-            "The negative of だ and です after a noun or na-adjective. ではない and ではありません are more formal than じゃない.",
+            "The negative of だ and です after a noun or na-adjective. ではない and ではありません are more formal than じゃない. After an adjective or verb, or with a rise, じゃない(ですか) asks for agreement instead: うまいじゃないですか, you're good, aren't you!",
             "私は先生じゃないです。", "I'm not a teacher.",
             listOf(particle("じゃ", pos2 = "副助詞"), Step(false) { it.base == "ない" || it.base == "ある" }),
             listOf(base("で"), particle("は"), Step(false) { it.base == "ない" || it.base == "ある" }),
@@ -550,7 +550,7 @@ internal object Grammar {
         )
         point(
             "volitional", "～よう / ～おう", 4, "let's (casual); I'll",
-            "The volitional form: a casual \"let's\" between friends (行こう), or what you've decided to do. ～ましょう is the polite version.",
+            "おう or よう on a verb: a casual \"let's\" between friends (行こう), or what you've decided to do. ～ましょう is the polite version.",
             "一緒に行こう。", "Let's go together.",
             listOf(aux("う", "よう")),
             before = { it.pos == "動詞" },
@@ -711,7 +711,7 @@ internal object Grammar {
         )
         point(
             "potential", "～える / ～られる", 4, "can, be able to",
-            "The potential form: what you can do. う verbs change their last sound to the え row plus る (話す, 話せる; 行く, 行ける), and る verbs take られる (食べられる), often shortened to れる in speech (食べれる). It changes like a る verb: 行けない, 行けた.",
+            "What you can do. る verbs take られる (食べられる), often shortened to れる in speech (食べれる); other verbs change their last sound to the え row plus る (話す, 話せる; 行く, 行ける). It changes like a る verb: 行けない, 行けた.",
             "納豆、食べられる？", "Can you eat natto?",
             // う verbs' potentials are words of their own to the tokenizer (話せる); Reader finds those.
             listOf(Step(false) { it.pos == "動詞" && it.pos2 == "接尾" && it.base in setOf("れる", "られる") }),
@@ -885,7 +885,7 @@ internal object Grammar {
         )
         point(
             "n-desu", "～んです / ～のだ", 4, "explaining, asking why",
-            "の or ん before だ or です explains or asks for an explanation: どうしたんですか, what's wrong?. It sounds softer and more involved than a bare statement. ～んじゃない？ suggests: isn't it that…?",
+            "の or ん before だ or です explains or asks for an explanation: どうしたんですか, what's wrong? It sounds softer and more involved than a bare statement. ～んじゃない？ suggests: isn't it that…?",
             "どうして来なかったんですか。", "Why didn't you come?",
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, Step(false) { it.pos == "助動詞" && it.type in setOf("特殊・ダ", "特殊・デス") }),
             listOf(Step(false) { it.pos == "名詞" && it.pos2 == "非自立" && it.base in setOf("の", "ん") }, particle("か")),
