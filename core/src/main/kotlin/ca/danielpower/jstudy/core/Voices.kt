@@ -53,19 +53,6 @@ object Voices {
         "ja-jp-x-jad" to VoiceKind.MAN,
     )
 
-    /** A name for each voice in a menu: Woman 1, Man 2, or Voice 3 when its kind isn't known. */
-    fun labels(voices: List<PhoneVoice>): List<String> {
-        val counts = HashMap<VoiceKind?, Int>()
-        return voices.map { v ->
-            val n = counts.merge(v.kind, 1, Int::plus)!!
-            when (v.kind) {
-                VoiceKind.WOMAN -> "Woman $n"
-                VoiceKind.MAN -> "Man $n"
-                else -> "Voice ${voices.indexOf(v) + 1}"
-            }
-        }
-    }
-
     /**
      * The voice for someone who isn't in the cast, by the description that
      * labels their line: 子供 sounds like a child everywhere, 男の人 like a man.

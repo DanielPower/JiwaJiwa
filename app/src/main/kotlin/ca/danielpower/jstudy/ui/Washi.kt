@@ -44,7 +44,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.MasteryRules
@@ -163,12 +162,12 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 
 /** The JLPT level, stamped like a seal. */
 @Composable
-fun LevelSeal(label: String, modifier: Modifier = Modifier, tilted: Boolean = false, size: Dp = 40.dp) {
+fun LevelSeal(label: String, modifier: Modifier = Modifier, tilted: Boolean = false) {
     val color = MaterialTheme.colorScheme.primary
     Box(
         modifier = modifier
             .then(if (tilted) Modifier.rotate(-6f) else Modifier)
-            .size(size)
+            .size(40.dp)
             .border(2.dp, color, WashiShape),
         contentAlignment = Alignment.Center,
     ) {

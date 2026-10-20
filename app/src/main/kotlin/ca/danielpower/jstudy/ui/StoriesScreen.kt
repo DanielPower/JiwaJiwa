@@ -669,7 +669,6 @@ fun LimitSheet(prompt: LimitPrompt, vm: AppViewModel) {
 
 // ------------------------------------------------------------------ reader
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val reading = state.reading
@@ -1481,7 +1480,6 @@ private data class Opened(val p: Int, val i: Int, val sentence: Boolean) {
     val key get() = p to i
 }
 
-/** The title, its words tappable like the story's, in [style]'s size and weight. */
 /**
  * A tap opens a word in the pane, or closes the pane on a word with nothing
  * to show; a long press opens the word's sentence. No ripple: vertical text
@@ -1505,7 +1503,6 @@ private fun StoryWord(
     size: TextUnit,
     rubySize: TextUnit,
     family: FontFamily,
-    weight: FontWeight? = null,
     /** Its characters that are the grammar the chapter teaches, drawn and underlined in indigo. */
     newGrammar: IntRange? = null,
 ) {
@@ -1554,7 +1551,6 @@ private fun StoryWord(
                         fontSize = size,
                         lineHeight = size * 1.5f,
                         fontFamily = family,
-                        fontWeight = weight,
                         softWrap = false,
                         color = color,
                         textDecoration = if (unknown) TextDecoration.Underline else null,

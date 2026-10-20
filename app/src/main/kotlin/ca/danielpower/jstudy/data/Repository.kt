@@ -34,7 +34,6 @@ import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.core.WordKind
 import ca.danielpower.jstudy.core.WordProgress
-import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.CastMember
 import ca.danielpower.jstudy.core.CastVoice
@@ -60,7 +59,6 @@ import ca.danielpower.jstudy.core.StepGap
 import ca.danielpower.jstudy.core.StepNeeds
 import ca.danielpower.jstudy.core.StoryPath
 import ca.danielpower.jstudy.core.StoryText
-import ca.danielpower.jstudy.core.coverage
 import ca.danielpower.jstudy.core.sentenceRanges
 import kotlin.random.Random
 
@@ -190,7 +188,6 @@ data class StoryReading(
     /** Dictionary entries for the story's words. */
     val words: Map<Long, Word>,
     val statuses: Map<Long, WordStatus>,
-    val coverage: Coverage,
     /** For a grammar topic's page: the topic, with its notes, forms and what's folded under More. */
     val lesson: GrammarTopic? = null,
     /** A chapter's English notes, by the paragraph whose end has their marker. */
@@ -602,7 +599,7 @@ class Repository private constructor(context: Context) {
         val p = paragraphs.indexOfFirst { words -> words.any { it.wordId == wordId } }.takeIf { it >= 0 } ?: return null
         val i = paragraphs[p].indexOfFirst { it.wordId == wordId }
         // Only its text is needed, not its words' entries or progress.
-        val reading = StoryReading(story, paragraphs, Speech.speakers(story.body), emptyMap(), emptyMap(), coverage(paragraphs) { true })
+        val reading = StoryReading(story, paragraphs, Speech.speakers(story.body), emptyMap(), emptyMap())
         val sentence = reading.sentence(p, i) ?: return null
         val line = Narration.lineOf(reading.narration, p, i)
         return StoryUse(
@@ -785,7 +782,6 @@ class Repository private constructor(context: Context) {
             speakers = Speech.speakers(story.body),
             words = dictionary.words(ids),
             statuses = statuses,
-            coverage = coverage(paragraphs, known(statuses)),
             lesson = topic,
             notes = notes(story),
             lessons = lessons(),
@@ -1063,10 +1059,6 @@ class Repository private constructor(context: Context) {
     }
 
     /**
-     * Finishing a story: its words you haven't started, or said you know,
-     * start as cards, as though just shown. Returns their ids.
-     */
-    /**
      * Finish a chapter in one transaction: mark it read, credit the words read
      * and forgotten, and start its new words. Returns the words started. Done
      * apart, a failure part way left a chapter read whose words never started.
@@ -1080,6 +1072,10 @@ class Repository private constructor(context: Context) {
             startStoryWords(story, now)
         }
 
+    /**
+     * Finishing a story: its words you haven't started, or said you know,
+     * start as cards, as though just shown. Returns their ids.
+     */
     fun startStoryWords(story: SavedStory, now: Long): List<Long> {
         val isKnown = known(store.wordStatuses())
         val unknown = StoryPath.words(paragraphs(story)).mapNotNull { it.wordId }.distinct().filter { !isKnown(it) }

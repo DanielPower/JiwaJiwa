@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
@@ -27,8 +26,6 @@ fun FuriganaText(
     showFurigana: Boolean,
     modifier: Modifier = Modifier,
     fontSize: TextUnit = 44.sp,
-    fontFamily: FontFamily = Gothic,
-    fontWeight: FontWeight = FontWeight.Bold,
 ) {
     val rubySize = fontSize * RUBY_SCALE
     Row(modifier = modifier, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.Bottom) {
@@ -49,8 +46,8 @@ fun FuriganaText(
                 Text(
                     text = segment.base,
                     fontSize = fontSize,
-                    fontFamily = fontFamily,
-                    fontWeight = fontWeight,
+                    fontFamily = Gothic,
+                    fontWeight = FontWeight.Bold,
                     lineHeight = fontSize * 1.2f,
                     softWrap = false,
                 )
