@@ -703,10 +703,10 @@
   },
   {
     "id": "hou-ga-ii", "title": "～ほうがいい / ～すぎる", "title_en": "Had better; too much", "points": ["hou-ga-ii", "sugiru"],
-    "summary": "ほうがいい gives advice: 寝たほうがいい, you'd better get some sleep. ～すぎる after a stem says too much: 飲みすぎた, I drank too much.",
+    "summary": "～ほうがいい gives advice: 寝たほうがいい, you'd better get some sleep. ～すぎる after a stem says too much: 飲みすぎた, I drank too much.",
     "parts": [
       ["今日は、寝たほうがいいよ。", "You'd better get some sleep today."],
-      "For doing something, the verb before ほうがいい is usually past: 行ったほうがいい, you should go. For not doing it, use ～ない: 行かないほうがいい, better not go. It's the ～ほう of のほうが: of the two ways, this one's better.",
+      "For doing something, the verb before ～ほうがいい is usually past: 行ったほうがいい, you should go. For not doing it, use ～ない: 行かないほうがいい, better not go. It's the ～ほう of のほうが: of the two ways, this one's better.",
       ["夜、ビールを飲みすぎた。", "I drank too much beer at night."],
       "～すぎる goes on a verb's stem (飲み, 食べ) or an adjective without its い (高い, 高すぎる; 静か, 静かすぎる), and changes like 食べる: ～すぎた, ～すぎない.",
       ["このラーメン、熱すぎる。", "This ramen's too hot."]

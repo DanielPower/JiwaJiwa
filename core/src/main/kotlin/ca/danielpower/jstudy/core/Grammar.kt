@@ -858,6 +858,8 @@ internal object Grammar {
             "Advice. Usually after the past form (行ったほうがいい) for doing, and after ない for not doing.",
             "早く寝たほうがいいですよ。", "You'd better go to bed early.",
             listOf(dependentNoun("ほう", "方"), particle("が"), good),
+            // Advice follows a verb (寝たほうが, 行かないほうが); after の or な it compares: 『雪』のほうがいい, "Snow" would be better.
+            before = { it.pos == "動詞" || (it.pos == "助動詞" && it.type != "特殊・ダ") },
         )
         point(
             "tsumori", "～つもり", 4, "intend to, plan to",

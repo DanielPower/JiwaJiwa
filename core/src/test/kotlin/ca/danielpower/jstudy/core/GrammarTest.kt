@@ -158,6 +158,15 @@ class GrammarTest {
     }
 
     @Test
+    fun `had better follows a verb, and after a noun it's a comparison`() {
+        assertEquals(listOf("ta", "hou-ga-ii"), points("寝たほうがいい。"))
+        assertEquals(listOf("nai", "hou-ga-ii"), points("行かないほうがいい。"))
+        assertEquals(listOf("ta", "hou-ga-ii"), points("休んだほうがいい。"))
+        assertEquals(listOf("no", "hou-ga"), points("『雪』のほうがいい。"))
+        assertEquals(listOf("na", "hou-ga"), points("静かなほうがいい。"))
+    }
+
+    @Test
     fun `before needs a verb in front of it`() {
         assertEquals(listOf("mae-ni"), points("寝る前に"))
         assertEquals(listOf("no"), points("駅の前に").filter { it != "ni" })
