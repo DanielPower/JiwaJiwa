@@ -35,6 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -89,7 +92,7 @@ private fun KanaIntro(step: KanaStep.Intro, vm: AppViewModel) {
                 Text("I know these", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             PrimaryButton(onClick = { vm.practiseKana() }, modifier = Modifier.weight(1f).height(58.dp)) {
-                Text("Practise", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Practice", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -104,7 +107,8 @@ private fun IntroRow(unit: KanaUnit, example: KanaExample?, onSay: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(unit.text, fontFamily = Gothic, fontSize = 44.sp, lineHeight = 50.sp, modifier = Modifier.width(76.dp), textAlign = TextAlign.Center)
+        // A combined kana (しゃ) is two glyphs wide, too wide for this column at 44sp.
+        Text(unit.text, fontFamily = Gothic, fontSize = if (unit.text.length > 1) 34.sp else 44.sp, lineHeight = 50.sp, modifier = Modifier.width(76.dp), textAlign = TextAlign.Center)
         Column(Modifier.weight(1f)) {
             Text(soundLabel(unit), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             val line = unit.note ?: example?.let { e ->
@@ -131,16 +135,17 @@ private fun KanaAsk(state: Screen.Kana, step: KanaStep.Ask, vm: AppViewModel) {
     val q = step.question
     val result = step.result
     val noRipple = remember { MutableInteractionSource() }
-    // A right answer moves on by itself once its sound has started; a wrong one waits for a tap.
+    // A right answer moves on by itself once its sound has had time to play out; a wrong one waits for a tap.
     LaunchedEffect(step) {
         if (result?.correct == true) {
-            delay(RIGHT_PAUSE)
+            delay(if (q.unit.mark) MARK_PAUSE else RIGHT_PAUSE)
+            vm.awaitKanaSound(SOUND_WAIT)
             vm.nextKana()
         }
     }
     val wrong = result != null && !result.correct
     Column(
-        Modifier.fillMaxSize().clickable(interactionSource = noRipple, indication = null, enabled = wrong) { vm.nextKana() },
+        Modifier.fillMaxSize().clickable(interactionSource = noRipple, indication = null, enabled = wrong, onClickLabel = "Go on", role = if (wrong) Role.Button else null) { vm.nextKana() },
     ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Close, "Close", vm::closeKana)
@@ -250,6 +255,12 @@ private fun Options(q: KanaQuestion, step: KanaStep.Ask, vm: AppViewModel, modif
                         answered && option == step.picked -> colors.error to colors.onError
                         else -> colors.surfaceContainerLow to colors.onSurface.copy(alpha = if (answered) 0.4f else 1f)
                     }
+                    // Said as well as coloured, for TalkBack.
+                    val state = when {
+                        answered && right -> "Right"
+                        answered && option == step.picked -> "Wrong"
+                        else -> null
+                    }
                     Box(
                         Modifier
                             .weight(1f)
@@ -257,7 +268,8 @@ private fun Options(q: KanaQuestion, step: KanaStep.Ask, vm: AppViewModel, modif
                             .clip(WashiShape)
                             .background(container)
                             .border(1.dp, if (answered) container else colors.outline, WashiShape)
-                            .clickable(enabled = !answered) { vm.answerKana(option) },
+                            .semantics { if (state != null) stateDescription = state }
+                            .clickable(enabled = !answered, role = Role.Button) { vm.answerKana(option) },
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -281,8 +293,12 @@ private fun ProgressLine(done: Float, modifier: Modifier = Modifier) {
     }
 }
 
-/** How long a right answer stays up, its sound playing, before the next question. */
+// How long a right answer stays up, its sound playing, before the next question: at least RIGHT_PAUSE
+// (MARK_PAUSE for a mark's word, which the phone's voice is slower to say), then on until its
+// recording ends, but no more than SOUND_WAIT longer.
 private const val RIGHT_PAUSE = 600L
+private const val MARK_PAUSE = 1200L
+private const val SOUND_WAIT = 2500L
 
 // ------------------------------------------------------------------ done
 
@@ -303,7 +319,7 @@ private fun KanaDone(step: KanaStep.Done, vm: AppViewModel) {
                         step.learned.takeIf { it > 0 }?.let { if (it == 1) "1 new kana" else "$it new kana" },
                         step.checked.takeIf { it > 0 }?.let { "$it checked" },
                     ).joinToString(", ").takeIf { it.isNotEmpty() }?.let { "$it." },
-                    "One more quick check of today's new kana later today.".takeIf { step.later > 0 },
+                    "One more quick check of the new kana later today.".takeIf { step.later > 0 },
                 ).joinToString(" "),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -392,6 +408,7 @@ fun KanaChartView(chart: KanaChart, onSay: (String) -> Unit, modifier: Modifier 
                 LegendItem(MaterialTheme.colorScheme.primary, "new today")
                 LegendItem(MaterialTheme.colorScheme.tertiary, "learning")
                 LegendItem(MaterialTheme.colorScheme.onSurface, "clear")
+                LegendItem(MaterialTheme.colorScheme.onSurfaceVariant, "not started")
             }
         }
     }
@@ -416,11 +433,18 @@ private fun ChartCell(unit: KanaUnit, chart: KanaChart, onSay: (String) -> Unit)
     val colors = MaterialTheme.colorScheme
     val stage = chart.state.stage(unit.text)
     val today = chart.state.progress[unit.text]?.introducedDay == chart.today && stage != KanaStage.CLEAR
+    // Not started is muted rather than faded, so its small romaji stays readable.
     val (background, ink) = when {
         today -> colors.primary.copy(alpha = 0.12f) to colors.primary
         stage == KanaStage.LEARNING -> colors.tertiary.copy(alpha = 0.16f) to colors.onSurface
-        stage == KanaStage.NEW -> Color.Transparent to colors.onSurface.copy(alpha = 0.35f)
+        stage == KanaStage.NEW -> Color.Transparent to colors.onSurfaceVariant
         else -> Color.Transparent to colors.onSurface
+    }
+    val said = when {
+        today -> "new today"
+        stage == KanaStage.LEARNING -> "learning"
+        stage == KanaStage.NEW -> "not started"
+        else -> "clear"
     }
     Column(
         Modifier
@@ -429,6 +453,7 @@ private fun ChartCell(unit: KanaUnit, chart: KanaChart, onSay: (String) -> Unit)
             .clip(WashiShape)
             .background(background)
             .border(1.dp, colors.outlineVariant, WashiShape)
+            .semantics { stateDescription = said }
             .clickable(enabled = !unit.mark) { onSay(unit.text) }
             .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -438,7 +463,7 @@ private fun ChartCell(unit: KanaUnit, chart: KanaChart, onSay: (String) -> Unit)
         Text(
             if (unit.mark) "" else unit.romaji,
             style = MaterialTheme.typography.labelSmall,
-            color = if (stage == KanaStage.NEW && !today) ink else colors.onSurfaceVariant,
+            color = colors.onSurfaceVariant,
         )
     }
 }

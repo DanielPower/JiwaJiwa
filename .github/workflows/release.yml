@@ -16,6 +16,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
+      # Where the app downloads the stories' recordings from (see audio.yml); empty without the bucket set up.
+      AUDIO_URL: ${{ vars.SPACES_BUCKET && format('https://{0}.{1}.cdn.digitaloceanspaces.com', vars.SPACES_BUCKET, vars.SPACES_REGION) || '' }}
       PLAY_UPLOAD: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
     steps:
       - uses: actions/checkout@v4
@@ -45,6 +47,13 @@ jobs:
         run: |
           python3 tools/dictionary/build_dictionary.py
           git diff --exit-code tools/dictionary/build_report.md
+
+      # Each recorded voice's gain, kept in the audio bucket by audio.yml. Without
+      # it every voice plays as recorded.
+      - name: Get the voices' gains
+        run: |
+          curl -fsSL "https://${{ vars.SPACES_BUCKET }}.${{ vars.SPACES_REGION }}.digitaloceanspaces.com/levels.json" -o tools/stories/levels.json \
+            || { rm -f tools/stories/levels.json; echo "::warning::Couldn't get levels.json from the audio bucket; voices play without their gains."; }
 
       # The tests also run in test.yml; running them here keeps a failing
       # build from being published.

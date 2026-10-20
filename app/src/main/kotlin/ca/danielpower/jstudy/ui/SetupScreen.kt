@@ -143,7 +143,7 @@ private fun ColumnScope.KanaPage(state: Screen.Setup, vm: AppViewModel) {
     KanaKnownChips(state.kana) { known -> vm.editSetup { it.copy(kana = known) } }
     if (state.kana != KanaKnown.BOTH) {
         Help(
-            "You'll learn them five at a time, a few minutes a day. Until you've practised a kana, stories " +
+            "You'll learn them five at a time, a few minutes a day. Until you've practiced a kana, stories " +
                 "write its sound above it in English letters, called romaji.",
         )
         RomajiExample()
@@ -171,7 +171,7 @@ private fun RomajiExample() {
         Text("→", fontSize = 22.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 26.dp))
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Row { for ((kana, _) in word) RomajiGlyph(kana, null) }
-            Help("once practised")
+            Help("once practiced")
         }
     }
 }
