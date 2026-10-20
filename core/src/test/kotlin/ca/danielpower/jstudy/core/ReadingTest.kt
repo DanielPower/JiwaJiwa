@@ -91,6 +91,7 @@ class ReadingTest {
         val verbs = mapOf(
             "話す" to verb(50, "はなす", true), "帰る" to verb(51, "かえる", true), "行く" to verb(52, "いく", true),
             "売る" to verb(53, "うる", true), "来る" to verb(54, "くる", false),
+            "弾く" to verb(55, "ひく", true), "歌う" to verb(56, "うたう", true),
             // The dictionary's own entries for some of the forms.
             "話せる" to verb(60, "はなせる", false, potential = true), "行ける" to verb(61, "いける", false, usuallyKana = true),
             "売れる" to verb(62, "うれる", false),
@@ -108,6 +109,10 @@ class ReadingTest {
         }
         // A う verb's potential is one token: what it shares with 話す is the word, the rest the point.
         assertEquals(1..2, read("話せる").grammarChars(0, setOf("potential")))
+        // It stops where the word's next point starts: け in 弾けて (て is ～て), え in 歌えなかった.
+        assertEquals(1..1, read("弾けて").grammarChars(0, setOf("potential")))
+        assertEquals(2..2, read("弾けて").grammarChars(0, setOf("te")))
+        assertEquals(1..1, read("歌えなかった").grammarChars(0, setOf("potential")))
         // 売れる sells well: a verb of its own, not "can sell".
         assertEquals(62L, read("売れる").wordId)
         assertTrue(read("売れる").grammar.isEmpty())

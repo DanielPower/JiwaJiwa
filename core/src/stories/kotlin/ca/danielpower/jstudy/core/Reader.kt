@@ -330,7 +330,11 @@ class Reader(private val lexicon: Lexicon) {
         val uses = (
             joined + words.indices.filter { w ->
                 "potential" in words[w].conjugation && joined.none { it.point == potential && w in it.first..it.last }
-            }.map { GrammarUse(potential, it, it, from = from(words[it], 0)) }
+            }.map { w ->
+                // It ends where the word's next point starts: け in 弾けて is "can", て is ～て.
+                val from = from(words[w], 0)
+                GrammarUse(potential, w, w, from = from, to = joined.filter { it.first == w && it.from > from }.minOfOrNull { it.from })
+            }
             ).sortedBy { it.first }
         return words.mapIndexed { w, word ->
             val mine = uses.filter { w in it.first..it.last }

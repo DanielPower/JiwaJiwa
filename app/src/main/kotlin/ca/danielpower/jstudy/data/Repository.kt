@@ -207,7 +207,7 @@ data class StoryReading(
     val extra: List<List<ReadingWord>> = emptyList(),
     /** For a grammar page: lines using its topic from the chapters you've read, the latest read first. */
     val fromStories: List<StoryLine> = emptyList(),
-    /** For a chapter that teaches a grammar topic: the topic, drawn in indigo wherever it's used. */
+    /** For a chapter that teaches a grammar topic, on a first reading: the topic, drawn in indigo wherever it's used ([StoryCatalog.teaches]). */
     val teaches: GrammarTopic? = null,
     /** Kana you've never practised, with romaji over them. */
     val unreadKana: Set<String> = emptySet(),
@@ -216,9 +216,26 @@ data class StoryReading(
 ) {
     private val newPoints = teaches?.points.orEmpty().toSet()
 
-    /** The characters of word [i] in paragraph [p] that are the grammar this chapter teaches, if any. */
-    fun newGrammar(p: Int, i: Int): IntRange? =
-        if (newPoints.isEmpty() || p >= paragraphs.size) null else word(p, i)?.grammarChars(i, newPoints)
+    /** Whether word [id] is one you've started (or set aside), rather than new to you. */
+    fun isKnown(id: Long?): Boolean {
+        val s = id?.let { statuses[it] } ?: return false
+        return s.state != CardState.NEW || s.suspended
+    }
+
+    /** A word to learn that you haven't started: drawn in vermilion and underlined. */
+    fun isUnknown(word: ReadingWord) = word.kind == WordKind.WORD && !isKnown(word.wordId)
+
+    /**
+     * The characters of word [i] in paragraph [p] that are the grammar this
+     * chapter teaches, if any. A new word that is all pattern (なる in
+     * 暑くなる, when なる is new) has none, so it stays a new word.
+     */
+    fun newGrammar(p: Int, i: Int): IntRange? {
+        if (newPoints.isEmpty() || p >= paragraphs.size) return null
+        val word = word(p, i) ?: return null
+        val chars = word.grammarChars(i, newPoints) ?: return null
+        return chars.takeUnless { it.first == 0 && it.last == word.surface.length - 1 && isUnknown(word) }
+    }
 
     /** The text as sentences to read aloud. */
     val narration: List<NarrationLine> by lazy { Narration.lines(paragraphs, speakers) }
@@ -775,8 +792,7 @@ class Repository private constructor(context: Context) {
             lessons = lessons(),
             extra = extra,
             fromStories = fromStories,
-            teaches = catalog.chapters.firstOrNull { it.second.story.id == story.pathId }?.second?.topic
-                ?.let { id -> catalog.grammar.firstOrNull { it.id == id } },
+            teaches = catalog.teaches(story.pathId, store.pathStories().filterValues { it.readAt != null }.keys),
             unreadKana = kana.unread,
             unclearKana = kana.unclear,
         ).let { it.copy(clips = clips(story, it.narration)) }

@@ -5,6 +5,7 @@ import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class StoryPathTest {
@@ -60,6 +61,24 @@ class StoryPathTest {
         val far = needs("犬は魚と好きです。")
         assertEquals(listOf(1, 0), StoryPath.solve(listOf(story, lesson)))
         assertEquals(listOf(0, 1), StoryPath.solve(listOf(lesson, story, far)))
+    }
+
+    @Test
+    fun `a chapter's topic is new in it on a first reading, in whichever chapter that lists it you reach first`() {
+        fun chapter(id: String, n: Int, topic: String?) = Chapter(PathStory(id, id, "", emptyList()), n, topic, emptyList())
+        val ta = GrammarTopic("ta", "～た", "Did", listOf("ta"), "", PathStory("grammar/ta", "～た", "来た。", listOf("Came.")))
+        val catalog = StoryCatalog(
+            series = listOf(PathSeries("s", "S", "", emptyList(), listOf(chapter("s/1", 1, "ta"), chapter("s/2", 2, "ta"), chapter("s/3", 3, null)))),
+            grammar = listOf(ta),
+        )
+        assertEquals(ta, catalog.teaches("s/1", emptySet()))
+        assertEquals(ta, catalog.teaches("s/2", emptySet()))
+        // Read again, it's nothing new.
+        assertNull(catalog.teaches("s/1", setOf("s/1")))
+        // Learned in one chapter, it isn't new in the other.
+        assertNull(catalog.teaches("s/2", setOf("s/1")))
+        assertNull(catalog.teaches("s/3", emptySet()))
+        assertNull(catalog.teaches("grammar/ta", emptySet()))
     }
 
     @Test

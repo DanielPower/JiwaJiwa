@@ -129,6 +129,18 @@ data class StoryCatalog(
     /** The chapters that introduce [topic], in order. */
     fun teaching(topic: String): List<Pair<PathSeries, Chapter>> = chapters.filter { it.second.topic == topic }
 
+    /**
+     * The topic chapter [id] teaches as you read it, shown as new there: only
+     * on a first reading ([read] holds the chapters you've finished), and
+     * only while no other chapter that lists the topic is read, since
+     * whichever you reach first teaches it.
+     */
+    fun teaches(id: String, read: Set<String>): GrammarTopic? {
+        if (id in read) return null
+        val topic = topic(chapters.firstOrNull { it.second.story.id == id }?.second?.topic) ?: return null
+        return topic.takeIf { teaching(topic.id).none { it.second.story.id in read } }
+    }
+
     /** Everyone in the stories, each once, in the order the stories list them. */
     val cast: List<CastMember> get() = chapters.flatMap { it.second.meets }.distinctBy { it.name }
 }
