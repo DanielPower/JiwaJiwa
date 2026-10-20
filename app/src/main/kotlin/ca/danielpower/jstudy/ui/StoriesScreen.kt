@@ -759,7 +759,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         Unit
     }
     val pageShown = { page: Int, pages: Int, first: Pair<Int, Int>? ->
-        vm.readerAt(page, pages)
+        vm.readerAt(page, pages, first)
         pageFirst = first
         // Turned by hand while stopped: play starts from the new page.
         if (!voice.playing) vm.forgetPlaybackPlace()
@@ -881,7 +881,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     startPage = state.startPage,
                     onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
-                    startAt = state.startAt,
+                    startAt = state.startAt ?: state.resumeAt,
                 )
             } else {
                 HorizontalStory(
@@ -902,7 +902,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     startPage = state.startPage,
                     onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
-                    startAt = state.startAt,
+                    startAt = state.startAt ?: state.resumeAt,
                 )
             }
             if (state.impact == null) {

@@ -123,8 +123,11 @@ sealed interface RecentItem {
     data class NewGrammar(val topic: GrammarTopic, val pageId: Long) : RecentItem
 }
 
-/** Where you left a chapter: its page and how many it has, in the reader style the pages were laid out with. */
-data class ReaderPlace(val storyId: Long, val page: Int, val pages: Int, val style: String)
+/**
+ * Where you left a chapter: the page and how many pages of text it had then, for Home, and the first
+ * word on that page ([at], by paragraph and index), so it reopens there however the pages fall now.
+ */
+data class ReaderPlace(val storyId: Long, val page: Int, val pages: Int, val at: Pair<Int, Int>?)
 
 data class WordDetail(
     val word: Word,
@@ -1430,17 +1433,23 @@ class Repository private constructor(context: Context) {
     }
 
     fun readerPlace(): ReaderPlace? {
-        val parts = store.getValue("reader_place")?.split(':', limit = 4) ?: return null
-        if (parts.size < 4) return null
+        val parts = store.getValue("reader_place")?.split(':') ?: return null
+        if (parts.size < 3) return null
+        // One saved before the first word was (with the reader style in its place) has only its page.
+        val p = parts.getOrNull(3)?.toIntOrNull()
+        val i = parts.getOrNull(4)?.toIntOrNull()
         return ReaderPlace(
             parts[0].toLongOrNull() ?: return null,
             parts[1].toIntOrNull() ?: return null,
             parts[2].toIntOrNull() ?: return null,
-            parts[3],
+            if (p != null && i != null) p to i else null,
         )
     }
 
-    fun saveReaderPlace(place: ReaderPlace) = store.setValues(mapOf("reader_place" to "${place.storyId}:${place.page}:${place.pages}:${place.style}"))
+    fun saveReaderPlace(place: ReaderPlace) {
+        val at = place.at?.let { (p, i) -> ":$p:$i" } ?: ""
+        store.setValues(mapOf("reader_place" to "${place.storyId}:${place.page}:${place.pages}$at"))
+    }
 
     fun clearReaderPlace() = store.deleteValue("reader_place")
 
