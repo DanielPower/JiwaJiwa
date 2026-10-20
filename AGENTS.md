@@ -227,8 +227,12 @@ Other features (all shipped):
   the pane has no way to mark one known. Stories show a page at a time, swiping between
   pages (no scrolling); horizontal pages are top-aligned, vertical pages
   are centred and turn right to left. The text ends with a 読了 seal stamp
-  (`FinishStamp`, grained like the icon), under the last line or beside the
-  last column, or on a page of its own if the last is full. Tapping it
+  (`FinishStamp`, grained like the icon), always on a page of its own after
+  the text (Daniel, 2026-10-20: bigger, and never tapped by mistake while
+  reading). The last page of text has a "Finish ›" link by the page
+  number that turns to it. The stamp starts as an empty dashed outline over "Finish"; tapping it
+  stamps the seal in (a short drop, a haptic tick, a random 2 to 7° tilt;
+  it just appears with animations off), then it
   marks the story read (timed from opening it) and puts the summary in
   the text's place, showing the
   read's stats (characters, share of words known, time, characters a

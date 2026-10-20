@@ -15,11 +15,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
@@ -44,7 +49,6 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
@@ -58,20 +62,11 @@ import kotlin.random.Random
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Room kept for [FinishStamp] under the last line of horizontal text, with a wide gap above it. */
-internal val STAMP_ACROSS_HEIGHT = 160.dp
-
-/** Room kept for [FinishStamp] beside the last column of vertical text. */
-internal val STAMP_DOWN_WIDTH = 128.dp
-
-/** Gap between the last line of horizontal text and [FinishStamp]. */
-internal val STAMP_GAP = 40.dp
-
 /**
- * The end of a story's text: an empty dashed outline with "Finish" under it.
- * Tapping it stamps a 読了 ("finished reading") seal in vermilion, grained like
- * the app icon and a little askew, then marks the story read. In [vertical]
- * text the seal stands upright, one column wide.
+ * The end of a story, on a page of its own after the text: an empty dashed
+ * outline with "Finish" under it. Tapping it stamps a 読了 ("finished reading")
+ * seal in vermilion, grained like the app icon and a little askew, then marks
+ * the story read. For [vertical] text the seal stands upright.
  */
 @Composable
 internal fun FinishStamp(vertical: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -109,9 +104,9 @@ internal fun FinishStamp(vertical: Boolean, onClick: () -> Unit, modifier: Modif
             }
             .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        val shape = RoundedCornerShape(5.dp)
+        val shape = RoundedCornerShape(6.dp)
         Box(
             Modifier
                 .graphicsLayer {
@@ -121,15 +116,15 @@ internal fun FinishStamp(vertical: Boolean, onClick: () -> Unit, modifier: Modif
                 .drawBehind {
                     val t = clock.value
                     val dash = 1f - ((t - 160f) / 40f).coerceIn(0f, 1f)
-                    val radius = CornerRadius(5.dp.toPx())
-                    val width = 2.dp.toPx()
+                    val radius = CornerRadius(6.dp.toPx())
+                    val width = 3.dp.toPx()
                     if (dash > 0f) {
                         drawRoundRect(
                             seal.copy(alpha = 0.7f * dash),
                             topLeft = Offset(width / 2, width / 2),
                             size = Size(size.width - width, size.height - width),
                             cornerRadius = radius,
-                            style = Stroke(width, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))),
+                            style = Stroke(width, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10.dp.toPx(), 6.dp.toPx()))),
                         )
                     }
                     // A faint ring of ink spreading out as it lands.
@@ -152,32 +147,32 @@ internal fun FinishStamp(vertical: Boolean, onClick: () -> Unit, modifier: Modif
                     alpha = drop
                     scaleX = s
                     scaleY = s
-                    translationY = -14.dp.toPx() * (1f - drop)
+                    translationY = -18.dp.toPx() * (1f - drop)
                     rotationZ = tilt * drop
                 }
                 .stampGrain()
-                .border(3.dp, seal, shape)
+                .border(4.dp, seal, shape)
             if (vertical) {
-                Column(box.padding(horizontal = 12.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(box.padding(horizontal = 18.dp, vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     for (c in "読了") {
-                        Text(c.toString(), fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 40.sp, lineHeight = 46.sp, color = seal)
+                        Text(c.toString(), fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 60.sp, lineHeight = 68.sp, color = seal)
                     }
                 }
             } else {
                 Text(
                     "読了",
-                    modifier = box.padding(horizontal = 18.dp, vertical = 6.dp),
+                    modifier = box.padding(horizontal = 28.dp, vertical = 16.dp),
                     fontFamily = Gothic,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 40.sp,
-                    lineHeight = 48.sp,
-                    letterSpacing = 4.sp,
+                    fontSize = 60.sp,
+                    lineHeight = 64.sp,
+                    letterSpacing = 6.sp,
                     color = seal,
                 )
             }
         }
-        // Left clean of grain, so the small English stays easy to read.
-        Text("Finish", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = seal)
+        // Left clean of grain, so the English stays easy to read.
+        Text("Finish", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = seal)
     }
 }
 
@@ -199,6 +194,26 @@ private fun sealScale(t: Float): Float = when {
 /** The phone's "Remove animations" setting: the stamp then appears at once. */
 private fun reduceMotion(context: Context): Boolean =
     Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+
+/** "Finish ›" by the page number on the last page of text, pointing to the stamp's page. */
+@Composable
+internal fun FinishLink(toLeft: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val seal = MaterialTheme.colorScheme.primary
+    Row(
+        modifier
+            .fillMaxHeight()
+            .padding(horizontal = 8.dp)
+            .clip(WashiShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (toLeft) Icon(WashiIcons.Back, contentDescription = null, tint = seal, modifier = Modifier.size(16.dp))
+        Text("Finish", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = seal)
+        if (!toLeft) Icon(WashiIcons.Next, contentDescription = null, tint = seal, modifier = Modifier.size(16.dp))
+    }
+}
 
 /** Knocks speckles out of whatever it draws, like ink that didn't take on a stamp. */
 internal fun Modifier.stampGrain(): Modifier =
