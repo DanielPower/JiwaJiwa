@@ -915,9 +915,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * chapter; its new words you learn by reading.
      * Past today's limit, a chapter that adds more asks first, unless [anyway].
      */
-    fun openStory(id: Long, anyway: Boolean = false) = launchIo {
+    fun openStory(id: Long, anyway: Boolean = false) = launchIo { beginStory(id, anyway) }
+
+    // Opening a chapter asks several things of the story path, so it's worked out once for them.
+    private fun beginStory(id: Long, anyway: Boolean = false) = repo.onePath { startChapter(id, anyway) }
+
+    private fun startChapter(id: Long, anyway: Boolean) {
         _limit.value = null
-        val story = repo.story(id) ?: return@launchIo showStories()
+        val story = repo.story(id) ?: return showStories()
         val learn = repo.stepToLearn(story)
         val adding = learn?.newWords ?: 0
         val pace = repo.pace(now())
@@ -927,7 +932,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 id, story.title, chapter?.takeIf { !it.series.single }?.let { "Chapter ${it.chapter.number}" },
                 adding, pace.newToday, nothingNew(repo.storyPath()).isNotEmpty(),
             )
-            return@launchIo
+            return
         }
         continueChapter(story, learn)
     }

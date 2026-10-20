@@ -40,6 +40,14 @@ data class SavedStory(
 /** Your cards, mastery and review history. This is what a backup saves. */
 class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION) {
 
+    /** How many times the database has been opened: a restore or reset closes and reopens it. */
+    @Volatile var opened = 0
+        private set
+
+    override fun onOpen(db: SQLiteDatabase) {
+        opened++
+    }
+
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             """

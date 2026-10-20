@@ -79,39 +79,41 @@ class Dictionary(context: Context) {
         }
     }
 
-    fun word(id: Long): Word? {
-        val word = db.rawQuery(
-            "SELECT id, kanji, kana, usually_kana, furigana, jlpt FROM word WHERE id = ?",
-            arrayOf(id.toString()),
-        ).use { c ->
-            if (!c.moveToFirst()) return null
-            Word(
-                id = c.getLong(0),
-                kanji = if (c.isNull(1)) null else c.getString(1),
-                kana = c.getString(2),
-                usuallyKana = c.getInt(3) != 0,
-                furigana = if (c.isNull(4)) null else parseFurigana(c.getString(4)),
-                jlpt = c.getInt(5),
-                senses = emptyList(),
-            )
-        }
-        val senses = db.rawQuery(
-            "SELECT pos, gloss, info FROM sense WHERE word_id = ? ORDER BY ord",
-            arrayOf(id.toString()),
-        ).use { c ->
-            buildList {
+    fun word(id: Long): Word? = words(listOf(id))[id]
+
+    /** Several words with their senses, two queries for each 500; ids the dictionary doesn't have are left out. */
+    fun words(ids: Collection<Long>): Map<Long, Word> {
+        val found = HashMap<Long, Word>()
+        for (chunk in ids.distinct().chunked(500)) {
+            val list = chunk.joinToString(",")
+            val senses = HashMap<Long, MutableList<Sense>>()
+            db.rawQuery("SELECT word_id, pos, gloss, info FROM sense WHERE word_id IN ($list) ORDER BY word_id, ord", null).use { c ->
                 while (c.moveToNext()) {
-                    add(
+                    senses.getOrPut(c.getLong(0)) { ArrayList() }.add(
                         Sense(
-                            partsOfSpeech = strings(c.getString(0)),
-                            glosses = strings(c.getString(1)),
-                            info = if (c.isNull(2)) null else c.getString(2),
+                            partsOfSpeech = strings(c.getString(1)),
+                            glosses = strings(c.getString(2)),
+                            info = if (c.isNull(3)) null else c.getString(3),
                         ),
                     )
                 }
             }
+            db.rawQuery("SELECT id, kanji, kana, usually_kana, furigana, jlpt FROM word WHERE id IN ($list)", null).use { c ->
+                while (c.moveToNext()) {
+                    val id = c.getLong(0)
+                    found[id] = Word(
+                        id = id,
+                        kanji = if (c.isNull(1)) null else c.getString(1),
+                        kana = c.getString(2),
+                        usuallyKana = c.getInt(3) != 0,
+                        furigana = if (c.isNull(4)) null else parseFurigana(c.getString(4)),
+                        jlpt = c.getInt(5),
+                        senses = senses[id].orEmpty(),
+                    )
+                }
+            }
         }
-        return word.copy(senses = senses)
+        return found
     }
 
     /** Word count per JLPT level (5 for N5 down to 1 for N1). */
