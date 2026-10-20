@@ -32,6 +32,13 @@ data class ReadingWord(
     val ruby: List<Ruby>,
     /** Grammar points this word is part of, in the order they appear. */
     val grammar: List<GrammarUse> = emptyList(),
+    /**
+     * How a conjugated word's form is made from its dictionary form, for the
+     * pane: "drop る" (負けた), "く becomes い" (すいた), "its own way" (来た).
+     * On grammar, only だった or でした on its own has one, saying what it
+     * is: "was, its past".
+     */
+    val form: String? = null,
 ) {
     val conjugated get() = conjugation.isNotEmpty()
 

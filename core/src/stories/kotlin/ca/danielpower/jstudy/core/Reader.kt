@@ -225,12 +225,15 @@ class Reader(private val lexicon: Lexicon) {
         if (runs.size == words.size) return words
         return runs.map { run ->
             val first = run.first()
+            val surface = run.joinToString("") { it.surface }
             first.copy(
-                surface = run.joinToString("") { it.surface },
+                surface = surface,
                 reading = run.joinToString("") { it.reading },
                 ruby = run.flatMap { it.ruby },
                 // Joined, the last word's end is no longer where a point ends inside it.
                 grammar = first.grammar.map { it.copy(first = newIndex[it.first], last = newIndex[it.last], to = it.to.takeIf { _ -> runs[newIndex[it.last]].size == 1 }) },
+                // だった and でした are explained as だ / です, so they say they're its past.
+                form = if (first.lemma in COPULA && surface != first.lemma && surface.endsWith("た")) "was, its past" else first.form,
             )
         }
     }
@@ -341,7 +344,7 @@ class Reader(private val lexicon: Lexicon) {
             when {
                 // しれない in ～かもしれない is part of the point, not a word to learn.
                 mine.any { it.point.id == "kamoshirenai" } && word.lemma in setOf("しれる", "知れる") ->
-                    word.copy(kind = WordKind.GRAMMAR, wordId = null, grammar = mine)
+                    word.copy(kind = WordKind.GRAMMAR, wordId = null, grammar = mine, form = null)
                 mine.isNotEmpty() -> word.copy(grammar = mine)
                 word.conjugated && !word.stem -> phrase(word)
                 // A time noun the tokenizer files with grammar but no point explains is a word: 日 in 休みの日, 最後の日です.
@@ -360,7 +363,7 @@ class Reader(private val lexicon: Lexicon) {
      */
     private fun phrase(word: ReadingWord): ReadingWord {
         val match = lexicon.find(word.surface, word.reading) ?: return word
-        return word.copy(lemma = word.surface, wordId = match.wordId, reading = match.reading, conjugation = emptyList(), ruby = ruby(word.surface, match.reading))
+        return word.copy(lemma = word.surface, wordId = match.wordId, reading = match.reading, conjugation = emptyList(), ruby = ruby(word.surface, match.reading), form = null)
     }
 
     /** An interjection and the polite ending the dictionary has with it as one phrase: ありがとうございます. */
@@ -481,18 +484,25 @@ class Reader(private val lexicon: Lexicon) {
         } else {
             lexicon.find(head.base, reading, WordClass.of(head))
         }?.wordId
+        val conjugation = labels(group, after)
         val word = ReadingWord(
             surface = group.joinToString("") { it.surface },
             lemma = if (suru) lemma + "する" else lemma,
             reading = group.joinToString("") { it.readingOrSurface },
             kind = WordKind.WORD,
             wordId = id,
-            conjugation = labels(group, after),
+            conjugation = conjugation,
             ruby = group.flatMap { ruby(it.surface, it.readingOrSurface) },
+            form = if (conjugation.isEmpty()) null else form(group, if (suru) lemma + "する" else lemma),
         )
         if (suru || !head.type.startsWith("一段")) return word
         val (verb, verbText) = potential(head.base, reading) ?: return word
-        val potential = word.copy(lemma = verbText, wordId = verb.wordId, conjugation = (listOf("potential") + word.conjugation).distinct())
+        val potential = word.copy(
+            lemma = verbText,
+            wordId = verb.wordId,
+            conjugation = (listOf("potential") + word.conjugation).distinct(),
+            form = form(group, verbText),
+        )
         // Read as that verb's potential: 弾ける as ひける, not はじける.
         val stem = reading.dropLast(1)
         val wanted = verb.reading.dropLast(1) + (U_TO_E[verb.reading.last()] ?: return potential)
@@ -672,6 +682,43 @@ class Reader(private val lexicon: Lexicon) {
                 }
             }
             return out.toList()
+        }
+
+        // What [form] says of 来る and する, whose forms follow no pattern.
+        private const val OWN_WAY = "its own way"
+        private const val SURU_WAY = "する changes its own way"
+        private val COPULA = setOf("だ", "です")
+        private val VOICED = listOf("た" to "だ", "て" to "で", "ちゃ" to "じゃ")
+
+        /**
+         * How a conjugated word, its tokens [group], is made from its
+         * dictionary form [lemma], by the tokenizer's conjugation types:
+         * "drop る" (負けた), "く becomes い" (すいた), "む becomes ん, た
+         * becomes だ" (飲んだ), "its own way" (来た, した), or, where the word
+         * itself doesn't change, what goes after it ("だった goes after it" in
+         * 好きだった). Null when the tokens don't say.
+         */
+        internal fun form(group: List<Morpheme>, lemma: String): String? {
+            val head = group[0]
+            val next = group.getOrNull(1)
+            if (head.isSuruNoun && next?.isSuru == true) return SURU_WAY
+            if (head.type.startsWith("カ変") || lemma == "来る" || lemma == "くる") return OWN_WAY
+            if (head.type.startsWith("サ変")) return if (lemma == "する") OWN_WAY else SURU_WAY
+            // The one く verb with っ before た and て: 行った, not 行いた.
+            if (head.type.startsWith("五段・カ行促音便") && head.form == "連用タ接続") return "$OWN_WAY: く becomes っ"
+            val same = head.surface.commonPrefixWith(lemma).length
+            val from = lemma.substring(same)
+            val to = head.surface.substring(same)
+            return when {
+                from.isEmpty() && to.isEmpty() -> group.drop(1).joinToString("") { it.surface }.takeIf { it.isNotEmpty() }?.let { "$it goes after it" }
+                from.isEmpty() -> null
+                to.isEmpty() -> "drop $from"
+                else -> {
+                    // After the sound change to ん or い, た, て and ちゃ are said だ, で and じゃ: 飲んだ, 泳いで, 死んじゃう.
+                    val voiced = VOICED.firstOrNull { head.form == "連用タ接続" && next?.surface?.startsWith(it.second) == true }
+                    "$from becomes $to" + voiced?.let { (plain, said) -> ", $plain becomes $said" }.orEmpty()
+                }
+            }
         }
 
         private val MUST = listOf("なければなら", "なければいけ", "なくてはなら", "なくてはいけ", "なきゃ", "なくちゃ")

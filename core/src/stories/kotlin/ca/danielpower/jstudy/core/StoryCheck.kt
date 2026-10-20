@@ -53,6 +53,9 @@ class StoryCheck(private val tools: StoryTools) {
             // doesn't have whole (いらっしゃいませ is a word; いいじゃん needs じゃん).
             val unexplained = text.flatten().filter { it.grammar.isEmpty() && (it.kind == WordKind.GRAMMAR || it.conjugated) }
             if (unexplained.isNotEmpty()) problem(s.id, "no grammar point explains " + unexplained.joinToString { it.surface } + " (add one to Grammar.kt)")
+            // Each changed form says in the pane how it's made from its dictionary form (来る, 来た: its own way).
+            val formless = text.flatten().filter { it.kind == WordKind.WORD && it.conjugated && it.form == null }
+            if (formless.isNotEmpty()) problem(s.id, "no form line for " + formless.joinToString { "${it.lemma} → ${it.surface}" } + " (teach Reader.form its kind of change)")
             // A counter after a number (三人) is read as a counter, rightly.
             val doubtful = text.flatMap { p -> p.filterIndexed { i, w -> p.getOrNull(i - 1)?.surface?.all { it in NUMERALS } != true && w.kind == WordKind.WORD } }
                 .filter { it.wordId != null && it.surface.any(Kanjis::isKanji) }

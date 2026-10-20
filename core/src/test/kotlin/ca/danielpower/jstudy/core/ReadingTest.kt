@@ -195,6 +195,38 @@ class ReadingTest {
     }
 
     @Test
+    fun `a conjugated word says how it's made from its dictionary form`() {
+        // 来る and する follow no pattern.
+        assertEquals("its own way", word("来た").form)
+        assertEquals("its own way", word("来ない").form)
+        assertEquals("its own way", word("した").form)
+        assertEquals("する changes its own way", word("勉強します").form)
+        // A る verb drops る; other verbs change their last sound.
+        assertEquals("drop る", word("食べた").form)
+        assertEquals("く becomes い", word("書いた").form)
+        assertEquals("う becomes っ", word("買った").form)
+        assertEquals("む becomes ん, た becomes だ", word("飲んだ").form)
+        assertEquals("む becomes ん, て becomes で", word("飲んで").form)
+        assertEquals("its own way: く becomes っ", word("行った").form)
+        assertEquals("る becomes ら", word("わからない").form)
+        assertEquals("る becomes り", word("やります").form)
+        // An i-adjective changes its い; a na-adjective doesn't change, it takes だ or です.
+        assertEquals("い becomes く", word("高くない").form)
+        assertEquals("い becomes かっ", word("高かった").form)
+        assertEquals("だった goes after it", word("好きだった").form)
+        // Not conjugated, nothing to say.
+        assertNull(word("食べる").form)
+    }
+
+    @Test
+    fun `だった on its own says it's the past`() {
+        val datta = reader.words("本だった。").first { it.surface == "だった" }
+        assertEquals(WordKind.GRAMMAR, datta.kind)
+        assertEquals("was, its past", datta.form)
+        assertNull(reader.words("本だ。").first { it.surface == "だ" }.form)
+    }
+
+    @Test
     fun `a bare なきゃ is must at the end of a clause and if-not before more of it`() {
         assertEquals(listOf("must"), reader.words("もう行かなきゃ。")[1].conjugation)
         assertEquals(listOf("must"), reader.words("行かなきゃね")[0].conjugation)
