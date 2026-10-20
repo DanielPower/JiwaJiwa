@@ -767,7 +767,7 @@ class Repository private constructor(context: Context) {
         s != null && (s.state != CardState.NEW || s.suspended)
     }
 
-    fun markStoryRead(id: Long, now: Long, millis: Long) = store.markStoryRead(id, now, millis)
+    fun markStoryRead(id: Long, now: Long) = store.markStoryRead(id, now)
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
@@ -1071,9 +1071,9 @@ class Repository private constructor(context: Context) {
      * and forgotten, and start its new words. Returns the words started. Done
      * apart, a failure part way left a chapter read whose words never started.
      */
-    fun finishChapter(story: SavedStory, now: Long, millis: Long, lookedUp: Set<Long>, forgotten: Set<Long>): List<Long> =
+    fun finishChapter(story: SavedStory, now: Long, lookedUp: Set<Long>, forgotten: Set<Long>): List<Long> =
         store.transaction {
-            markStoryRead(story.id, now, millis)
+            markStoryRead(story.id, now)
             if (readerPlace()?.storyId == story.id) clearReaderPlace()
             readWords(story, lookedUp, now)
             forgetWords(forgotten, now)
