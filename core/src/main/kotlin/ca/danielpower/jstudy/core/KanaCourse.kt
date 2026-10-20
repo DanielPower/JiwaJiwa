@@ -146,11 +146,11 @@ object KanaCourse {
     fun unitsIn(text: String): List<KanaUnit> = segments(text).mapNotNull { byText[it] }
 
     /**
-     * The order to teach kana in, from the text the stories show, chapter by
-     * chapter along the path: the ones most used in the first [window]
-     * chapters first, so romaji leaves the early stories as fast as it can,
-     * then the rest in the order the stories meet them, then the rest of the
-     * chart.
+     * The kana the stories use, in the order to teach them, from the text
+     * they show, chapter by chapter along the path: the ones most used in
+     * the first [window] chapters first, so romaji leaves the early stories
+     * as fast as it can, then the rest in the order the stories meet them.
+     * Kana no chapter uses aren't in it: they're the [rest] of the chart.
      */
     fun order(chapters: List<String>, window: Int = 40): List<String> {
         val counts = HashMap<String, Int>()
@@ -161,11 +161,28 @@ object KanaCourse {
                 first.putIfAbsent(unit.text, n)
             }
         }
-        return units.map { it.text }.sortedWith(
+        return first.keys.sortedWith(
             compareByDescending<String> { counts[it] ?: 0 }
-                .thenBy { first[it] ?: Int.MAX_VALUE }
+                .thenBy { first.getValue(it) }
                 .thenBy { chartIndex(it) },
         )
+    }
+
+    /**
+     * The kana [order] leaves out, most useful first: the basic ones, then
+     * voiced, then combined, then katakana's spellings for borrowed sounds,
+     * in chart order within each.
+     */
+    fun rest(order: Collection<String>): List<String> {
+        val taught = order.toSet()
+        return units.filter { it.text !in taught }.sortedBy { usefulness(it) }.map { it.text }
+    }
+
+    private fun usefulness(unit: KanaUnit): Int = when {
+        unit.mark -> 3
+        unit.text.length == 2 -> if (unit.text[1] in "ゃゅょャュョ") 2 else 3
+        KanaLooks.dakuten(unit.text) != null -> 1
+        else -> 0
     }
 
     /**

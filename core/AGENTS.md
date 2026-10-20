@@ -13,8 +13,8 @@ and tests on any JVM (`./gradlew -PcoreOnly=true :core:test`).
 | `StudyClock.kt` | Study days with a rollover hour, in a time zone. Review cards fall due at the start of a study day. |
 | `Session.kt` | `StudySettings`, `Pace` (the soft daily limit and review nudge), `StudyAhead` ("study more"), `DailyLimits`, and `StudySession`, the order cards are shown in during one sitting. |
 | `Kana.kt` | Romaji → kana for search, hiragana/katakana variants. |
-| `KanaCourse.kt` | The kana as taught: every unit (きゃ and っ are one each) with its Hepburn romaji, splitting text into units, the order the stories need them in, sets of 5 with lookalikes apart (`KanaLooks`). |
-| `KanaDrill.kt` | Kana practice outside FSRS: `KanaProgress` and its stages, `KanaState` (what's due, unread, unclear), `KanaSession` (one sitting's multiple-choice questions) and `Distractors`. |
+| `KanaCourse.kt` | The kana as taught: every unit (きゃ and っ are one each) with its Hepburn romaji, splitting text into units, the order the stories need them in (only the kana they use; `rest` is the rest of the chart), sets of 5 with lookalikes apart (`KanaLooks`). |
+| `KanaDrill.kt` | Kana practice outside FSRS: `KanaProgress` and its stages, `KanaState` (what's due, unread, unclear; the rest of the chart as `optional`), `KanaSession` (one sitting's multiple-choice questions) and `Distractors`. |
 | `Romaji.kt` | Romaji for unread kana (っ and ー by their neighbours), and `romajiPieces`, a word's ruby with romaji over the kana you can't read yet. |
 | `Kanji.kt` | `Kanji` entries, the kanji in a word from its furigana, and which dictionary reading a word uses (allowing for rendaku, small っ and verb stems in compounds). |
 | `Reading.kt` | What a read story is made of: `ReadingWord` (a word, its dictionary entry, conjugation labels, grammar and furigana), `Morpheme` (a token, which `Grammar.kt` patterns match), paragraphs and `Speech` (who's speaking). The reading itself happens at build time, in `src/stories`. |

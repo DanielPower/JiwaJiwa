@@ -68,14 +68,14 @@ private fun KanaIntro(step: KanaStep.Intro, vm: AppViewModel) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Close, "Close", vm::closeKana)
-            Text("New kana · set ${step.set} of ${step.sets}", style = MaterialTheme.typography.titleMedium)
+            Text((if (step.story) "New kana" else "Rest of the chart") + " · set ${step.set} of ${step.sets}", style = MaterialTheme.typography.titleMedium)
         }
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                "${count(step.units.size)} from your stories. Tap one to hear it.",
+                "${count(step.units.size)} " + (if (step.story) "from your stories" else "your stories don't use yet") + ". Tap one to hear it.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp),
@@ -370,7 +370,14 @@ private val COMBINED_ROWS = "きしちにひみりぎじびぴ".map { c -> "ゃ�
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun KanaChartView(chart: KanaChart, onSay: (String) -> Unit, modifier: Modifier = Modifier, legend: Boolean = false) {
+fun KanaChartView(
+    chart: KanaChart,
+    onSay: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    legend: Boolean = false,
+    /** "Learn the rest of the chart", offered once the stories' sets are all started. */
+    onLearnRest: (() -> Unit)? = null,
+) {
     val state = chart.state
     // Opens on the script you're learning: katakana once you read hiragana.
     var script by rememberSaveable {
@@ -388,6 +395,13 @@ fun KanaChartView(chart: KanaChart, onSay: (String) -> Unit, modifier: Modifier 
         if (learning.isNotEmpty()) {
             val name = if (script == Script.HIRAGANA) "Hiragana" else "Katakana"
             SectionLabel("$name · ${learning.count { state.stage(it) == KanaStage.CLEAR }} of ${learning.size} clear")
+        }
+        if (state.optional.any { KanaCourse.unit(it)?.script == script && state.stage(it) == KanaStage.NEW }) {
+            Text(
+                "Kana with a dashed edge aren't in your stories yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         ChartGrid(BASIC_ROWS.map { row -> row.map { it?.let(::spell) } }, chart, onSay)
         SectionLabel("Voiced ゛ ゜", Modifier.padding(top = 6.dp))
@@ -408,6 +422,11 @@ fun KanaChartView(chart: KanaChart, onSay: (String) -> Unit, modifier: Modifier 
                 LegendItem(MaterialTheme.colorScheme.tertiary, "learning")
                 LegendItem(MaterialTheme.colorScheme.onSurface, "clear")
                 LegendItem(MaterialTheme.colorScheme.onSurfaceVariant, "not started")
+            }
+        }
+        if (onLearnRest != null && state.nextSet() == null && state.nextOptionalSet() != null) {
+            TextButton(onClick = onLearnRest) {
+                Text("Learn the rest of the chart ›", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -432,6 +451,8 @@ private fun ChartCell(unit: KanaUnit, chart: KanaChart, onSay: (String) -> Unit)
     val colors = MaterialTheme.colorScheme
     val stage = chart.state.stage(unit.text)
     val today = chart.state.progress[unit.text]?.introducedDay == chart.today && stage != KanaStage.CLEAR
+    // Not in any story yet, and not started: outside the course, so a dashed edge.
+    val optional = stage == KanaStage.NEW && !chart.state.inStories(unit.text)
     // Not started is muted rather than faded, so its small romaji stays readable.
     val (background, ink) = when {
         today -> colors.primary.copy(alpha = 0.12f) to colors.primary
@@ -442,6 +463,7 @@ private fun ChartCell(unit: KanaUnit, chart: KanaChart, onSay: (String) -> Unit)
     val said = when {
         today -> "new today"
         stage == KanaStage.LEARNING -> "learning"
+        optional -> "not in your stories yet"
         stage == KanaStage.NEW -> "not started"
         else -> "clear"
     }
@@ -451,7 +473,7 @@ private fun ChartCell(unit: KanaUnit, chart: KanaChart, onSay: (String) -> Unit)
             .heightIn(min = 56.dp)
             .clip(WashiShape)
             .background(background)
-            .border(1.dp, colors.outlineVariant, WashiShape)
+            .then(if (optional) Modifier.dashedOutline(colors.outlineVariant, 4.dp) else Modifier.border(1.dp, colors.outlineVariant, WashiShape))
             .semantics { stateDescription = said }
             .clickable(enabled = !unit.mark) { onSay(unit.text) }
             .padding(vertical = 4.dp),

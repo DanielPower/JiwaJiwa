@@ -1146,20 +1146,27 @@ class Repository private constructor(context: Context) {
 
     fun setKanaKnown(known: KanaKnown) = store.setValues(mapOf("kana_known" to known.value))
 
-    /** The order the stories need kana in (the app build's stories/kana.txt), then any it leaves out, in chart order. */
+    /**
+     * The kana the stories use, in the order to teach them: the app build's
+     * stories/kana.txt, so a kana a new chapter uses joins the course with
+     * the update. Without it, the whole chart.
+     */
     private val kanaOrder: List<String> by lazy {
         val listed = runCatching {
             appContext.assets.open("stories/kana.txt").bufferedReader().use { it.readLines() }
         }.getOrDefault(emptyList()).map { it.trim() }.filter { KanaCourse.unit(it) != null }.distinct()
-        listed + KanaCourse.units.map { it.text }.filter { it !in listed }
+        listed.ifEmpty { KanaCourse.units.map { it.text } }
     }
 
     fun kanaState(): KanaState =
         KanaState(kanaKnown(), kanaOrder, store.kanaProgress(), store.getValue("kana_set_day")?.toLongOrNull())
 
-    /** What kana practice would ask now, or null once every kana is clear. */
+    /**
+     * What kana practice would ask now, or null once every kana the stories
+     * use is clear and none you chose from the rest of the chart is still being learned.
+     */
     fun kanaCounts(now: Long, state: KanaState = kanaState()): KanaCounts? {
-        if (state.done) return null
+        if (!state.ongoing) return null
         val clock = clock()
         val today = clock.dayOf(now)
         return state.counts(today, now, clock.startOf(today + 1))
@@ -1167,14 +1174,19 @@ class Repository private constructor(context: Context) {
 
     /**
      * A sitting of kana practice: today's checks, and today's new set if none
-     * has been started on yet today ([kanaSetStarted]). With [more], the next set whatever the day;
+     * has been started on yet today ([kanaSetStarted]). With [more], the next
+     * set whatever the day: the stories', or once they're all started, the rest of the chart's;
      * without [withSet], only the checks.
      */
     fun kanaSession(now: Long, more: Boolean = false, withSet: Boolean = true): KanaSession {
         val state = kanaState()
         val clock = clock()
         val today = clock.dayOf(now)
-        val set = if (more || (withSet && state.lastSetDay != today)) state.nextSet().orEmpty() else emptyList()
+        val set = when {
+            more -> state.nextSet() ?: state.nextOptionalSet()
+            withSet && state.lastSetDay != today -> state.nextSet()
+            else -> null
+        }.orEmpty()
         return KanaSession(
             state,
             today,
