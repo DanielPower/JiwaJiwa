@@ -602,11 +602,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val message = try {
             val input = getApplication<Application>().contentResolver.openInputStream(uri) ?: error("no stream")
             input.use { repo.importBackup(it) }
-            // Everything cached came from the old progress.
-            session = null
-            undo = null
-            statuses = emptyMap()
-            lastDictionary = null
+            forgetProgress()
             DailyReminder.schedule(getApplication(), repo.reminder())
             "Backup restored."
         } catch (e: BackupException) {
@@ -615,6 +611,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             "Couldn't restore the backup: ${e.message}"
         }
         showSettings(message)
+    }
+
+    /** After a restore or reset: everything kept here came from the old progress. */
+    private fun forgetProgress() {
+        session = null
+        undo = null
+        statuses = emptyMap()
+        lastDictionary = null
+        // Back from the screens these lead to would show the old progress.
+        trail.clear()
+        reviewFrom = null
+        beforeGrammar = null
+        kanaSession = null
+        kanaThenCards = false
+        kanaFromReviewTab = false
+        reviewKana = null
+        _speech.value = repo.speechSettings()
     }
 
     // ------------------------------------------------------------ reset
@@ -626,12 +639,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         launchIo {
             _screen.value = Screen.Loading
             repo.resetAll()
-            session = null
-            undo = null
+            forgetProgress()
             entries = null
             entryIds = emptySet()
-            statuses = emptyMap()
-            lastDictionary = null
             display.edit().clear().commit()
             _theme.value = ThemeMode.AUTO
             DailyReminder.schedule(getApplication(), repo.reminder())
