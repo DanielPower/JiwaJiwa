@@ -22,6 +22,9 @@ class StoryCheck(private val tools: StoryTools) {
     private val reader = tools.reader
     private val lexicon = tools.lexicon
 
+    /** Every word the chapters use. */
+    private val storyWords: Set<Long> by lazy { tools.needs.values.flatMap { n -> n.words.mapNotNull { it.wordId } }.toSet() }
+
     /** Each chapter's own step: read in order in its story, after the stories it follows. */
     val steps = LinkedHashMap<String, StoryTools.Step>()
     val problems = ArrayList<Problem>()
@@ -85,6 +88,7 @@ class StoryCheck(private val tools: StoryTools) {
             lesson(t)?.let { problem(t.page.id, it) }
             for (run in tools.runs.getValue(Lessons.runsId(t))) {
                 for (w in run.filter { it.kind == WordKind.WORD && it.wordId == null }) problem(t.page.id, "${w.lemma} in its notes isn't in the dictionary")
+                misread(t, run)?.let { problem(t.page.id, it) }
             }
         }
 
@@ -156,6 +160,23 @@ class StoryCheck(private val tools: StoryTools) {
         }
     }
 
+    /**
+     * Why a short run of Japanese in [topic]'s notes would mislead whoever taps
+     * it, or null: a piece of a word in kana read as a word no story uses
+     * (たい as 対, versus; かも as 鴨, a duck), or bare grammar read as another
+     * lesson's (られる as the passive). Lone kana and ～ endings are shown as
+     * written ([Lessons.fragment]).
+     */
+    private fun misread(topic: GrammarTopic, run: List<ReadingWord>): String? {
+        val text = run.filter { it.kind != WordKind.PUNCTUATION }.joinToString("") { it.surface }
+        if (text.length > SHORT_RUN) return null
+        val word = run.firstOrNull { it.kind == WordKind.WORD && it.wordId != null && it.wordId !in storyWords }?.takeIf { Kana.isKana(text) }
+        val point = run.flatMap { it.grammar }.firstOrNull { it.point.id !in topic.points }?.point
+            ?.takeIf { run.none { it.kind == WordKind.WORD || it.kind == WordKind.NAME } }
+        val read = word?.let { "the word ${lexicon.describe(it.wordId).substringBefore(' ')}" } ?: point?.let { "${it.pattern}, ${it.meaning}" } ?: return null
+        return "$text in its notes reads as $read: write it as ～$text, or as a whole word"
+    }
+
     /** A new word as a writer wants it: 歌 (うた, N5). */
     private fun word(w: StepWord) = w.wordId?.let(lexicon::entry)?.let { e ->
         val level = if (e.jlpt == 0) "not JLPT" else "N${e.jlpt}"
@@ -218,6 +239,9 @@ class StoryCheck(private val tools: StoryTools) {
 
     companion object {
         private const val NUMERALS = "0123456789０１２３４５６７８９一二三四五六七八九十百千万何"
+
+        /** A run of Japanese in a lesson's notes this short is checked for what it reads as. */
+        private const val SHORT_RUN = 3
 
         /** The most a topic's summary may be, in words. */
         const val SUMMARY_WORDS = 35

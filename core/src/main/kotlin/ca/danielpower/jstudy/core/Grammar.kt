@@ -986,7 +986,7 @@ internal object Grammar {
         )
         point(
             "sou-looks", "～そう", 4, "looks like, seems about to",
-            "After a verb stem or adjective stem: how something looks to you (おいしそう, looks tasty), or that it's about to happen (降りそう).",
+            "After a verb stem or adjective stem: how something looks to you (おいしそう, looks tasty), or that it's about to happen (切れそう, about to snap).",
             "このケーキはおいしそうですね。", "This cake looks good.",
             listOf(Step(false) { it.pos == "名詞" && it.base == "そう" && it.pos2 == "接尾" }),
         )

@@ -166,9 +166,15 @@ lesson has been read, lines from the reader's own chapters that use it.
 Japanese written in notes, the summary and forms is read like the
 examples, so it can be tapped: keep it to words a reader can look up, and
 put a run of Japanese next to its English (`待って, wait`) rather than
-inside a sentence of romaji. Write for a reader of the stories, not a
-textbook: no grammar terms a reader hasn't met, and nothing promised for
-"later". When in doubt, fold it under `more`.
+inside a sentence of romaji. A lone kana (た, に) and an ending written
+with ～ (～てる, ～った) are shown as written, not read: on their own they'd
+read as some other word (たい as 対, versus; かも as 鴨, a duck). Write an
+ending that way, or as a whole word (食べたい); the check fails a short run
+that reads as a word no story uses or as another lesson's grammar.
+
+Write for a reader of the stories, not a textbook: no grammar terms a
+reader hasn't met, and nothing promised for "later". When in doubt, fold
+it under `more`.
 
 Changing a line records it again, which costs money; moving a line between
 `parts` and `more` doesn't. The check fails a lesson over any of the limits

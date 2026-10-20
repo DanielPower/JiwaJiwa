@@ -6,7 +6,11 @@ data class FormRow(val from: String, val to: String, val english: String)
 /** A grammar topic's forms table, shown after its first example: column headings for [FormRow.from] and [FormRow.to], and the rows. */
 data class LessonForms(val head: List<String>, val rows: List<FormRow>)
 
-/** A piece of a grammar page's English: plain text, or Japanese in it, read like the examples so it can be tapped. */
+/**
+ * A piece of a grammar page's English: plain text, or Japanese in it, read
+ * like the examples so it can be tapped. A lone kana or a written ending
+ * (た, ～てる) is plain text: read on its own it would be some other word.
+ */
 sealed interface LessonPiece {
     data class English(val text: String) : LessonPiece
 
@@ -44,7 +48,7 @@ object Lessons {
     fun blocks(topic: GrammarTopic): List<LessonBlock> {
         var run = 0
         fun pieces(text: String): List<LessonPiece> = split(text).map { (japanese, part) ->
-            if (japanese) LessonPiece.Japanese(part, run++) else LessonPiece.English(part)
+            if (japanese && !fragment(part)) LessonPiece.Japanese(part, run++) else LessonPiece.English(part)
         }
         val page = topic.page
         val lines = paragraphs(page.body).size
@@ -75,6 +79,18 @@ object Lessons {
         }.filterIsInstance<LessonPiece.Japanese>().map { it.text }
     }
 
+    /**
+     * Whether a run of Japanese in a page's English is a piece of a word, shown
+     * as it's written rather than read for words: a lone kana (た, に, だ), or
+     * an ending written with ～ (～てる, ～った). Read on their own they'd be
+     * some unrelated word (たい as 対, versus) or another lesson's grammar.
+     */
+    fun fragment(run: String): Boolean {
+        if (run.first() in "～〜") return true
+        val text = run.filter { it !in MARKS }
+        return text.length == 1 && Kana.isKana(text)
+    }
+
     /** The id the story tools give [topic]'s runs, read, beside its page (grammar/tara/runs). */
     fun runsId(topic: GrammarTopic) = topic.page.id + "/runs"
 
@@ -94,6 +110,8 @@ object Lessons {
         if (last < text.length) out += false to text.substring(last)
         return out
     }
+
+    private const val MARKS = "～〜「」『』、。！？…"
 
     // Kana, kanji and the marks that go with them; a run needs at least one kana or kanji.
     private val JAPANESE = Regex("[～〜「」『』、。！？…ー]*[\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF々][\\u3040-\\u30FF\\u3400-\\u4DBF\\u4E00-\\u9FFF々～〜「」『』、。！？…ー]*")

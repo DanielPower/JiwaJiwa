@@ -78,6 +78,13 @@ internal object Tokens {
                     Morpheme("た", "助動詞", "*", "*", "基本形", "特殊・タ", "た", "た"),
                     Morpheme("ん", "名詞", "非自立", "一般", "*", "*", "ん", "ん"),
                 ) to 2
+            // よさそう, "looks good", is よ and さ before そう (楽しそう's 楽し), not よ and 誘う, "invite".
+            t.pos == "形容詞" && t.form == "ガル接続" && next?.surface == "さ" && next.pos2 == "接尾" && after?.base == "そう" && after.pos2 == "接尾" ->
+                listOf(t.copy(surface = t.surface + "さ", reading = t.readingOrSurface + "さ")) to 2
+            // 飲んじゃう is ～でしまう said short, as 死んじゃう reads: not じゃ and う, "yes".
+            t.pos == "動詞" && t.form == "連用タ接続" && next?.surface == "じゃ" && next.pos == "助詞" &&
+                after?.surface == "う" && (after.pos == "感動詞" || after.pos == "助動詞") ->
+                listOf(t, Morpheme("じゃう", "動詞", "非自立", "*", "基本形", "五段・ワ行促音便", "じゃう", "じゃう")) to 3
             // 来られる is 来る's "can come" (or passive), not a form of 来る read きたる, "coming".
             t.surface == "来ら" && t.base == "来る" && next?.pos == "動詞" && next.pos2 == "接尾" && next.base == "れる" ->
                 listOf(

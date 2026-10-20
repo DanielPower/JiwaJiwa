@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
@@ -69,6 +70,21 @@ class StorySourceTest {
         assertEquals(listOf(false, false, false, false, false, true, true), blocks.map { it.more })
         // Runs are numbered in the order they're shown: the summary's, the table's, then the notes'.
         assertEquals(listOf("来た", "来る", "来た", "来ました"), Lessons.runs(topic))
+    }
+
+    @Test
+    fun `a lone kana or an ending written with ～ is shown as written, not read`() {
+        for (run in listOf("た", "だ。", "～てる", "～った")) assertTrue(Lessons.fragment(run), run)
+        for (run in listOf("来た", "雨", "いい", "成田？")) assertFalse(Lessons.fragment(run), run)
+        val grammar = """[{"id": "ta", "title": "～た", "title_en": "Did", "points": ["ta"], "summary": "Add た: 来た; polite ～ました.",
+            "parts": [["来た。", "I'm here."]]}]"""
+        val topic = StoryPath.parse(StorySource.pathJson(root(listOf("a"), grammar = grammar))).grammar.single()
+        assertEquals(listOf("来た"), Lessons.runs(topic))
+        val summary = Lessons.blocks(topic).first() as LessonBlock.Summary
+        assertEquals(
+            listOf("Add ", "た", ": ").map(LessonPiece::English) + LessonPiece.Japanese("来た", 0) + listOf("; polite ", "～ました", ".").map(LessonPiece::English),
+            summary.pieces,
+        )
     }
 
     @Test
