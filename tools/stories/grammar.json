@@ -4,20 +4,22 @@
     "summary": "た on the end of a verb puts it in the past, the way friends say it: 来る (come), 来た (came).",
     "parts": [
       ["ついに来た！", "I'm finally here!"],
-      "Verbs change their endings to say when, and whether, something happens. The plain past ends in た, or だ after some verbs.",
-      ["お腹すいた。", "I'm hungry. (My stomach has emptied.)"]
+      "Verbs like 食べる just swap る for た: 食べた. 来る is one of two verbs that change their own way: 来る, 来た (くる, きた)."
     ],
     "forms": {
       "head": ["Verb", "Past"],
       "rows": [
         ["来る", "来た", "come, came"],
-        ["すく", "すいた", "empty out, emptied"]
+        ["食べる", "食べた", "eat, ate"],
+        ["すく", "すいた", "get empty"]
       ]
     },
     "more": [
+      ["お腹すいた。", "I'm hungry. (My stomach has emptied.)"],
+      "Other verbs change their last sound before た: すく, すいた; 買う, 買った; 飲む, 飲んだ.",
       "This plain form is what you use with friends. The polite past is ～ました: 来ました.",
-      "A verb's last sound decides between た and だ. る verbs drop る: 食べた. う, つ and る become った (買った, 待った, わかった); む, ぶ and ぬ become んだ (飲んだ, 呼んだ); く becomes いた (書いた), ぐ becomes いだ; す becomes した (話した). 行く is the odd one: 行った. する is した.",
-      "An i-adjective swaps its い for かった: うまい, うまかった; 高い, 高かった. いい becomes よかった."
+      "A verb's last sound decides between た and だ. いる, 食べる and most verbs ending -iru or -eru are \"る verbs\": they drop る (食べた). For the rest, う, つ and る become ～った (買った, 待った, わかった); む, ぶ and ぬ become ～んだ (飲んだ, 呼んだ); く becomes ～いた (書いた), ぐ becomes ～いだ; す becomes ～した (話した). 行く is the odd one: 行った. する is した, and 来る is 来た (きた).",
+      "An i-adjective changes too: うまい, うまかった; 高い, 高かった. いい becomes よかった."
     ]
   },
   {
@@ -32,7 +34,8 @@
     "more": [
       ["きれいな部屋だ！", "It's a beautiful room!"],
       "Before a noun, だ becomes な. Words like きれい that work this way are called na-adjectives.",
-      "だ never follows an i-adjective (高い, 多い): say 高い。 or 高いよ, not 高いだ."
+      "だ never follows an i-adjective (高い, 多い): say 高い。 or 高いよ, not 高いだ.",
+      "Past: 朝までゲームだった, I was gaming till morning."
     ]
   },
   {
@@ -61,21 +64,22 @@
     "summary": "ない on a verb makes it negative, the way friends say it: わかる (understand), わからない (don't understand).",
     "parts": [
       ["わからない。", "I don't know."],
-      "The verb's ending changes before ない. For る verbs, drop る: 食べる, 食べない. For others, the last sound moves to the \"a\" row: わかる, わからない.",
-      ["いない。", "Nobody's here."]
+      "いる, 食べる and most verbs ending -iru or -eru are \"る verbs\": drop る. The rest move their last sound to the \"a\" row: わかる, わからない; 言う, 言わない.",
+      ["人は多くない。", "It's not crowded."],
+      "An i-adjective changes too: 多い, 多くない."
     ],
     "forms": {
       "head": ["Verb", "Not"],
       "rows": [
         ["わかる", "わからない", "understand, don't"],
-        ["いる", "いない", "be here, not here"],
         ["食べる", "食べない", "eat, don't eat"],
-        ["言う", "言わない", "say, don't say"],
-        ["する", "しない", "do, don't"],
-        ["来る", "来ない", "come, don't come"]
+        ["買う", "買わない", "buy, don't buy"],
+        ["多い", "多くない", "a lot, not a lot"]
       ]
     },
     "more": [
+      "する and 来る change their own way: しない, 来ない (こない).",
+      ["いない。", "Nobody's here."],
       "A final う becomes わ, not あ: 言う, 言わない; 買う, 買わない. ある has no ない form of its own: its negative is just ない.",
       "An i-adjective swaps its い for くない: 多い, 多くない; 高い, 高くない. いい becomes よくない."
     ]
@@ -153,7 +157,7 @@
       "head": ["Plain", "Polite"],
       "rows": [
         ["やる", "やります", "do"],
-        ["やらない", "やりません", "don't"],
+        ["お願いする", "お願いします", "ask; please"],
         ["やった", "やりました", "did"]
       ]
     },
@@ -186,7 +190,7 @@
     "summary": "A verb's て form plus ください politely asks someone to do something. Friends just use the て form, which also links actions: do this, and then that.",
     "parts": [
       ["ちょっと待ってください！", "Just a moment, please!"],
-      "The て form of 待つ is 待って. With friends, 待って on its own is enough.",
+      "て changes a verb just as た does: 待つ, 待った, 待って; 飲む, 飲んだ, 飲んで. With friends, 待って on its own is enough.",
       ["ラーメンを食べて、ビールを飲む。", "I eat ramen and drink a beer."],
       "In the middle of a sentence, the て form means \"and then\": one action, then the next."
     ],

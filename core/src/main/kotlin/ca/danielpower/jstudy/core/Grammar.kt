@@ -470,7 +470,7 @@ internal object Grammar {
         // The copula and sentence endings.
         point(
             "desu", "です / だ", 5, "is",
-            "Ends a sentence that says what something is: \"X is Y\". です is polite and だ is plain. After an i-adjective, です only adds politeness.",
+            "Ends a sentence that says what something is: \"X is Y\". です is polite and だ is plain. After an i-adjective, です only adds politeness. Its past is だった, was (polite: でした).",
             "これは本です。", "This is a book.",
             // Not なら (if), the な after a na-adjective, でしょう / だろう (a guess) or
             // the で that links to what follows, which are other forms of だ.
@@ -504,14 +504,14 @@ internal object Grammar {
         )
         point(
             "nai", "～ない", 5, "not (plain)",
-            "The plain negative of a verb, as friends say it: 食べる, 食べない.",
+            "The plain negative, as friends say it: 食べる, 食べない; わかる, わからない. An i-adjective takes く: 多い, 多くない.",
             "肉は食べない。", "I don't eat meat.",
             // Not なきゃ, which is ～なければ.
             listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・ナイ" && !it.form.startsWith("仮定縮約") }),
         )
         point(
             "ta", "～た", 5, "did (plain past)",
-            "The plain past of a verb or adjective, as friends say it: 食べる, 食べた. After some verbs it's だ (読んだ).",
+            "The plain past, as friends say it: 食べる, 食べた. Other verbs change their last sound first (買った, 飲んだ, すいた), and 来る and する have their own: 来た, した.",
             "もう食べた。", "I already ate.",
             // Not たら, which is its own point.
             listOf(Step(false) { it.pos == "助動詞" && it.type == "特殊・タ" && it.form != "仮定形" }),
