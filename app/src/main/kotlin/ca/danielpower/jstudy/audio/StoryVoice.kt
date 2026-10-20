@@ -111,6 +111,8 @@ class StoryVoice(context: Context) {
     private fun started(status: Int) {
         if (status != TextToSpeech.SUCCESS) {
             _state.update { it.copy(ready = true, missing = true) }
+            // Recordings still play without the phone's voice, so a tap made while it started isn't lost.
+            runPending()
             return
         }
         val language = tts.setLanguage(Locale.JAPAN)
@@ -124,8 +126,13 @@ class StoryVoice(context: Context) {
         val missing = language == TextToSpeech.LANG_MISSING_DATA || language == TextToSpeech.LANG_NOT_SUPPORTED
         _state.update { it.copy(ready = true, missing = missing, voices = japanese.map { v -> PhoneVoice(v.name, Voices.kindOf(v.name)) }) }
         tts.setOnUtteranceProgressListener(listener)
-        pending?.invoke()
+        runPending()
+    }
+
+    private fun runPending() {
+        val block = pending
         pending = null
+        block?.invoke()
     }
 
     private val listener = object : UtteranceProgressListener() {
