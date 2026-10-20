@@ -16,8 +16,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      # Where the app downloads the stories' recordings from (see audio.yml).
-      AUDIO_URL: https://${{ vars.SPACES_BUCKET }}.${{ vars.SPACES_REGION }}.cdn.digitaloceanspaces.com
+      # Where the app downloads the stories' recordings from (see audio.yml); empty without the bucket set up.
+      AUDIO_URL: ${{ vars.SPACES_BUCKET && format('https://{0}.{1}.cdn.digitaloceanspaces.com', vars.SPACES_BUCKET, vars.SPACES_REGION) || '' }}
       PLAY_UPLOAD: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
     steps:
       - uses: actions/checkout@v4
