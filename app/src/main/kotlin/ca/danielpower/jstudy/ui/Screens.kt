@@ -147,84 +147,87 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
     val due = summary.newCards + summary.learning + summary.reviews
     val kanaDue = summary.kana?.due ?: 0
     val answered = summary.reviewedToday.takeIf { it > 0 }?.let { "$it answered so far, ${100 * summary.correctToday / it}% right" }
-    Column(
-        modifier = Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
-    ) {
-        Text("Review", style = MaterialTheme.typography.headlineMedium)
+    // The button stays pinned at the foot and the rest scrolls, so a small screen never squeezes it.
+    Column(Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp)) {
+        Column(
+            modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(22.dp),
+        ) {
+            Text("Review", style = MaterialTheme.typography.headlineMedium)
 
-        // While any kana isn't clear, and on the day the last one comes clear.
-        if (summary.kana != null || summary.kanaClearToday) KanaSection(summary, vm)
+            // While any kana isn't clear, and on the day the last one comes clear.
+            if (summary.kana != null || summary.kanaClearToday) KanaSection(summary, vm)
 
-        // Before any word's been started there's nothing to review yet, rather than nothing left.
-        val beforeFirst = due == 0 && !summary.started
-        if (beforeFirst) {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "Reviews start after your first story",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                )
-                Text(
-                    "The words you meet in it come back here, just before you'd forget them.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        } else if (due == 0 && kanaDue > 0) {
-            Text("No cards due", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else if (due == 0) {
-            // Nothing due: the same 済 as Home's Done card.
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                DoneSeal()
-                Text("Done for today", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                answered?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SectionLabel("Today")
-                Text(
-                    if (due == 1) "1 card" else "$due cards",
-                    fontFamily = Gothic,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 44.sp,
-                    lineHeight = 48.sp,
-                )
-                answered?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            }
-
-            Column {
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface)
-                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                    Count("新 New", summary.newCards, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-                    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Count("習 Learning", summary.learning, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f).padding(start = 16.dp))
-                    VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Count("復 Review", summary.reviews, MaterialTheme.colorScheme.secondary, Modifier.weight(1f).padding(start = 16.dp))
+            // Before any word's been started there's nothing to review yet, rather than nothing left.
+            val beforeFirst = due == 0 && !summary.started
+            if (beforeFirst) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Reviews start after your first story",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        "The words you meet in it come back here, just before you'd forget them.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            } else if (due == 0 && kanaDue > 0) {
+                Text("No cards due", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else if (due == 0) {
+                // Nothing due: the same 済 as Home's Done card.
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    DoneSeal()
+                    Text("Done for today", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    answered?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SectionLabel("Today")
+                    Text(
+                        if (due == 1) "1 card" else "$due cards",
+                        fontFamily = Gothic,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 44.sp,
+                        lineHeight = 48.sp,
+                    )
+                    answered?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+
+                Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface)
+                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                        Count("新 New", summary.newCards, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                        VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Count("習 Learning", summary.learning, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f).padding(start = 16.dp))
+                        VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Count("復 Review", summary.reviews, MaterialTheme.colorScheme.secondary, Modifier.weight(1f).padding(start = 16.dp))
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
             }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SectionLabel("Study days", Modifier.weight(1f))
+                    Text(
+                        "Stats ›",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable(onClick = vm::openStats).padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+                StudyHeatmap(summary.answersPerDay, summary.readDays, summary.today)
+            }
+
+            ComingUp(summary.comingUp, summary.today)
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SectionLabel("Study days", Modifier.weight(1f))
-                Text(
-                    "Stats ›",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable(onClick = vm::openStats).padding(horizontal = 8.dp, vertical = 4.dp),
-                )
-            }
-            StudyHeatmap(summary.answersPerDay, summary.readDays, summary.today)
-        }
-
-        ComingUp(summary.comingUp, summary.today)
-
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(22.dp))
         if (kanaDue > 0) {
             // Kana first, then the cards, so a beginner always has the one thing to press.
             PrimaryButton(onClick = vm::startStudy, modifier = Modifier.fillMaxWidth().height(58.dp)) {
