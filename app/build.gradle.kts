@@ -29,6 +29,9 @@ android {
         targetSdk = 36
         versionCode = buildNumber
         versionName = "0.1.$buildNumber"
+        // Where the stories' recordings are downloaded from (the Spaces bucket's CDN), set by CI.
+        // Without it the app reads stories in the phone's voice.
+        buildConfigField("String", "AUDIO_URL", "\"${System.getenv("AUDIO_URL").orEmpty()}\"")
     }
 
     signingConfigs {
@@ -65,6 +68,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
