@@ -1554,7 +1554,8 @@ private fun StoryWord(
                         fontFamily = family,
                         maxLines = 1,
                         softWrap = false,
-                        color = rubyColor.copy(alpha = 0.75f),
+                        // Romaji is read, not glanced at like furigana, so it's full strength.
+                        color = if (piece.romaji) indigo else rubyColor.copy(alpha = 0.75f),
                         modifier = if (piece.romaji || (showRuby && piece.ruby != null)) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
                     )
                     Text(
