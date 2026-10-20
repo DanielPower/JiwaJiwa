@@ -300,7 +300,7 @@ private fun DirectionOption(
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(190.dp)
+                .height(220.dp)
                 .clip(page)
                 .background(colors.surfaceContainerLowest)
                 .border(1.dp, colors.outlineVariant, page)
@@ -325,7 +325,7 @@ private val Sample = listOf(
     "い" to null, "る" to null, "。" to null,
 )
 
-private val SampleSize = 15.sp
+private val SampleSize = 20.sp
 
 /** Fills lines of [perLine] characters; a full stop may hang past the end rather than start a line. */
 private fun sampleLines(perLine: Int): List<List<Pair<String, String?>>> {
@@ -338,7 +338,7 @@ private fun sampleLines(perLine: Int): List<List<Pair<String, String?>>> {
 }
 
 @Composable
-private fun BoxScope.HorizontalSample() {
+private fun HorizontalSample() {
     val em = with(LocalDensity.current) { SampleSize.toDp() }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         Column(verticalArrangement = Arrangement.spacedBy(em * 0.3f)) {
@@ -354,11 +354,10 @@ private fun BoxScope.HorizontalSample() {
             }
         }
     }
-    DirectionArrows("→ ↓", Modifier.align(Alignment.BottomEnd))
 }
 
 @Composable
-private fun BoxScope.VerticalSample() {
+private fun VerticalSample() {
     val em = with(LocalDensity.current) { SampleSize.toDp() }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Columns run right to left, so the first is drawn at the end of the row.
@@ -367,7 +366,8 @@ private fun BoxScope.VerticalSample() {
                 Column {
                     for ((base, ruby) in column) {
                         Row {
-                            SampleGlyph(base, SampleSize, Modifier.size(em))
+                            // The vertical form of the full stop sits top right, as in a book.
+                            SampleGlyph(if (base == "。") "︒" else base, SampleSize, Modifier.size(em))
                             Column(Modifier.width(em * 0.5f)) {
                                 for (kana in ruby.orEmpty()) SampleGlyph(kana.toString(), SampleSize * 0.5f, Modifier.size(em * 0.5f), ruby = true)
                             }
@@ -377,7 +377,6 @@ private fun BoxScope.VerticalSample() {
             }
         }
     }
-    DirectionArrows("↓ ←", Modifier.align(Alignment.BottomStart))
 }
 
 /** One character centred in its square, in the reader's serif; readings in the gothic, as in the reader. */
@@ -394,11 +393,6 @@ private fun SampleGlyph(text: String, size: TextUnit, modifier: Modifier, ruby: 
             softWrap = false,
         )
     }
-}
-
-@Composable
-private fun DirectionArrows(text: String, modifier: Modifier) {
-    Text(text, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f), modifier = modifier)
 }
 
 @Composable
