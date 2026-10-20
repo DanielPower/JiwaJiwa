@@ -666,6 +666,7 @@ private fun DoneScreen(state: Screen.Done, vm: AppViewModel) {
             Text(if (dayDone) "Home" else nextStepLabel(state.plan), fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         SecondaryButton(onClick = vm::studyMore, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Study more", fontSize = 18.sp) }
+        if (!dayDone) TextButton(onClick = vm::goHome) { Text("Home") }
     }
 }
 

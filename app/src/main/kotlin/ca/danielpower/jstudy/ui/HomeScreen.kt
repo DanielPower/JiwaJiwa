@@ -287,7 +287,7 @@ private fun StepMarker(number: Int, state: StepState) {
         when (state) {
             StepState.NOW -> circle.background(colors.onSurface, CircleShape)
             StepState.DONE -> circle.background(rightGreen(), CircleShape)
-            StepState.LATER -> circle.border(1.5.dp, colors.outlineVariant, CircleShape)
+            StepState.LATER -> circle.border(1.5.dp, colors.onSurfaceVariant, CircleShape)
         },
         contentAlignment = Alignment.Center,
     ) {
@@ -363,11 +363,14 @@ private fun readText(c: Candidate<ChapterEntry>, kind: ReadKind?, green: Color):
         )
         ReadKind.START -> StepText(
             "Read ${chapterTitle(e)}",
-            listOfNotNull("a short grammar lesson first".takeIf { c.teachesGrammar }, wordCount(c.newWords)).joinToString(" · ").sentence(),
+            listOfNotNull(
+                (e.newTopic?.let { "lesson: ${it.title}" } ?: "a short lesson first").takeIf { c.teachesGrammar },
+                wordCount(c.newWords),
+            ).joinToString(" · ").sentence(),
         )
         else -> StepText(
             "Read ${chapterTitle(e)}",
-            listOfNotNull(e.newTopic?.let { "grammar: ${it.title}" }, wordCount(c.newWords)).joinToString(" · ").sentence(),
+            listOfNotNull(e.newTopic?.let { "lesson: ${it.title}" }, wordCount(c.newWords)).joinToString(" · ").sentence(),
         )
     }
 }
@@ -380,7 +383,8 @@ private fun reviewSub(step: PlanStep<ChapterEntry>, d: Dashboard): String {
     return when {
         today == 0 -> ""
         today == step.count -> "Today's new words"
-        else -> "Today's new words and ${step.count - today} from before"
+        // "Today's new words and 3 from before" wraps at 360dp; the count is shorter.
+        else -> "${newWords(today)} and ${step.count - today} from before"
     }
 }
 
