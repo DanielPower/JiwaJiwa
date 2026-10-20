@@ -75,6 +75,8 @@ data class KanaCounts(
     val total: Int,
     /** Kana introduced today whose second look isn't due yet. */
     val later: Int = 0,
+    /** Of [check], kana introduced today whose second look is due now. */
+    val late: Int = 0,
     /** Kana practised but not clear yet. */
     val learning: Int = 0,
 ) {
@@ -135,14 +137,18 @@ data class KanaState(
 
     fun due(today: Long, now: Long): List<String> = toLearn.filter { isDue(it, today, now) }
 
-    fun counts(today: Long, now: Long): KanaCounts = KanaCounts(
-        new = if (lastSetDay == today) 0 else nextSet()?.size ?: 0,
-        check = due(today, now).size,
-        clear = toLearn.count { stage(it) == KanaStage.CLEAR },
-        total = toLearn.size,
-        later = toLearn.count { t -> progress[t]?.let { it.introducedDay == today && it.lateCheckAt != null && it.lateCheckAt > now } == true },
-        learning = toLearn.count { stage(it) == KanaStage.LEARNING },
-    )
+    fun counts(today: Long, now: Long): KanaCounts {
+        val due = due(today, now)
+        return KanaCounts(
+            new = if (lastSetDay == today) 0 else nextSet()?.size ?: 0,
+            check = due.size,
+            clear = toLearn.count { stage(it) == KanaStage.CLEAR },
+            total = toLearn.size,
+            later = toLearn.count { t -> progress[t]?.let { it.introducedDay == today && it.lateCheckAt != null && it.lateCheckAt > now } == true },
+            late = due.count { progress[it]?.introducedDay == today },
+            learning = toLearn.count { stage(it) == KanaStage.LEARNING },
+        )
+    }
 }
 
 /**

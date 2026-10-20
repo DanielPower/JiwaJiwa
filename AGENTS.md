@@ -137,8 +137,9 @@ version 9 deleted the old kana cards):
   the reader's Direction row only shows once every kana is Clear (vertical text is off
   until then, and the gear marks it new once).
 - Kana practice lives on the Review tab: a Kana section above Today, and
-  Start studying runs due kana first, then the cards. Home's Next card
-  offers it first while kana are due. The Dictionary has a Kana chart tab.
+  Start studying runs due kana first, then the cards. On Home it's the
+  Today plan's first step while kana are being learned. The Dictionary has
+  a Kana chart tab.
 - Each kana has a Fish clip in the narrator's voice (`Recordings.kana`),
   else the phone's voice says it.
 
@@ -181,17 +182,30 @@ Other features (all shipped):
   count as a badge on the tab. Before any word is started it says reviews
   start after your first story, with "Read your first story" in place of
   Study more (2026-10-19).
-- Home (Daniel, 2026-10-17, layout "Journal"): one next-step card with a
-  quiet blue "or ..." line under it (`core/Home.kt` `Suggest`): reviews
-  first once due reviews reach the review nudge; else the chapter you left
-  part way, or the next one in the story you read last; past today's
-  new-word limit, an open chapter with nothing new; then reviews alone;
-  then "Done for today" with a grained 済 stamp and no button. With every
-  chapter read and nothing due, "Read again" suggests the read chapter
-  with the most words reading would review, else the one read longest ago
-  (2026-10-19). The reviews card's line says today's reviews and how many
-  wait past the review limit ("200 today · 512 more after that"). Under it: a
-  Mon–Sun streak (a day counts with a review answered or a chapter
+- Home (Daniel, 2026-10-17, layout "Journal"; a Today plan since
+  2026-10-20): one card listing the day's steps (`core/Home.kt`
+  `Today.plan`, which wraps `Suggest`), kana while you're learning them,
+  one chapter, then reviews, with a quiet blue "or ..." line under it.
+  Each step is ticked off once done (done out of order, it just ticks
+  off); the first one left has the arrow and tapping it starts it
+  (`continueToday`). Reviews come before the chapter once due reviews
+  reach the review nudge. The chapter is the one you left part way, or the
+  next one in the story you read last; past today's new-word limit, an
+  open chapter with nothing new, or reading counts as done if none is
+  open. Reading is done after one chapter finished today, with "or keep
+  reading …" under it; today's new kana's 3-hour check doesn't reopen
+  kana, it's the "or" line once the day's done. With every step done,
+  "Done for today" with a grained 済 stamp and no button. With every
+  chapter read there's no reading step, and the "or" line suggests reading
+  again the read chapter with the most words reading would review, else
+  the one read longest ago (2026-10-19). The end of kana practice, of a
+  chapter (outside the nudge) and of reviews each have the plan's next
+  step as their main button ("Next: review 6 cards", or "Done for today");
+  the Review tab's Start studying is still kana then cards. Catching up on
+  reviews says today's reviews and how many wait past the review limit
+  ("200 today · 512 more after that"). The daily reminder lists what's
+  left of the plan and stays quiet once it's done. Under it: a Mon–Sun
+  streak (a day counts with a review answered, kana practiced or a chapter
   finished; arrows go back a week at a time), the words graph (seen, known
   and mastered as nested bands, 30 days or all, replayed from the review
   log by `WordHistory`; every word counts from the day it was started,

@@ -113,6 +113,7 @@ class KanaDrillTest {
         assertEquals(0, after.counts(day, noon).due)
         assertEquals(5, after.counts(day, noon).later)
         assertEquals(5, after.counts(day, noon + KanaRules.LATE_CHECK_MILLIS).check)
+        assertEquals(5, after.counts(day, noon + KanaRules.LATE_CHECK_MILLIS).late)
     }
 
     @Test

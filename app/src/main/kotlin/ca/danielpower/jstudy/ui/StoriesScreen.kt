@@ -2013,6 +2013,7 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
         HorizontalDivider(Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
         val nextStep = state.next
         val pace = state.pace
+        val plan = state.plan
         if (pace?.nudge == true) {
             // At today's limit or behind on reviews: something with nothing new, or reviews, before the next chapter.
             // The New list shows the meter when there is one.
@@ -2040,6 +2041,17 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                }
+            }
+        } else if (plan != null) {
+            // The day's next step, usually the reviews this chapter just added to; the next chapter is there to keep reading.
+            PrimaryButton(onClick = { if (plan.done) vm.goHome() else vm.continueToday() }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                Text(nextStepLabel(plan), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (nextStep != null) {
+                SecondaryButton(onClick = { vm.openStory(nextStep.storyId) }, modifier = Modifier.fillMaxWidth()) {
+                    // "Keep reading: 5. Title" or "Keep reading: Title", from "Next: 5. Title" or "Next story: Title".
+                    Text(nextStep.label.replaceFirst(Regex("^Next( story)?:"), "Keep reading:"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         } else if (nextStep != null) {

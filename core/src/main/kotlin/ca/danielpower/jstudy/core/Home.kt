@@ -74,6 +74,119 @@ object Suggest {
     }
 }
 
+// ------------------------------------------------------------ today's plan
+
+enum class StepKind { KANA, READ, REVIEW }
+
+enum class StepState { DONE, NOW, LATER }
+
+/** One step of the day's plan. */
+data class PlanStep<out T>(
+    val kind: StepKind,
+    val state: StepState,
+    /** Reading: the chapter to read, and how Home words it; null once it's done. */
+    val read: Candidate<T>? = null,
+    val readKind: ReadKind? = null,
+    /** Kana or cards waiting; once done, the kana practised, chapters finished or answers given today. */
+    val count: Int = 0,
+    /** Reviews: past the nudge, so they come before reading. */
+    val backlog: Boolean = false,
+    /** Reading, done: past today's new-word limit with nothing new open, rather than for a chapter read. */
+    val full: Boolean = false,
+)
+
+/** The quiet second option under the plan. */
+sealed interface PlanAlt<out T> {
+    /** The day's done, and today's new kana have their second look due. */
+    data class KanaCheck(val count: Int) : PlanAlt<Nothing>
+
+    /** Today's chapter is read, and another fits. */
+    data class KeepReading<T>(val chapter: Candidate<T>, val kind: ReadKind) : PlanAlt<T>
+
+    /** Every chapter's read: one to read again. */
+    data object ReadAgain : PlanAlt<Nothing>
+}
+
+/** What's been done today: kana practised, chapters finished, and review answers and how many were right. */
+data class DoneToday(val kana: Int = 0, val chapters: Int = 0, val answers: Int = 0, val right: Int = 0) {
+    /** Whether today counts towards the streak yet. */
+    val any get() = kana > 0 || chapters > 0 || answers > 0
+}
+
+data class TodayPlan<out T>(val steps: List<PlanStep<T>>, val alt: PlanAlt<T>?, val soFar: DoneToday) {
+    val done get() = steps.all { it.state == StepState.DONE }
+
+    /** The step to do next, until the day's done. */
+    val now get() = steps.firstOrNull { it.state == StepState.NOW }
+
+    /** The steps with something to do now: reviews waiting on today's chapter have nothing yet. */
+    val left get() = steps.filter { it.state != StepState.DONE && (it.kind != StepKind.REVIEW || it.count > 0) }
+}
+
+object Today {
+    /**
+     * The day as a short plan: kana while you're learning them, one
+     * chapter, then the reviews, which by then include the words the
+     * chapter started. It keeps [Suggest]'s order: past the nudge, reviews
+     * come before reading, and past the new-word limit, reading is a
+     * chapter with nothing new, or done if none is open. The first step
+     * that isn't done is the one to do; steps done out of order just tick
+     * off. Takes [Suggest.next]'s inputs, plus kana practice ([kana], null
+     * once every kana is clear), whether the last kana came clear today,
+     * and what's been done today ([soFar]).
+     */
+    fun <T> plan(
+        pace: Pace,
+        current: Candidate<T>?,
+        side: Candidate<T>?,
+        anyRead: Boolean,
+        kana: KanaCounts?,
+        kanaClearToday: Boolean,
+        soFar: DoneToday,
+    ): TodayPlan<T> {
+        val first = Suggest.next(pace, pace.reviewsDue, current, side, anyRead)
+        val backlog = first is NextUp.Review && first.backlog
+        // What Suggest would have you read if reviews weren't piling up.
+        val reading = Suggest.next(pace.copy(reviewNudge = 0), pace.reviewsDue, current, side, anyRead) as? NextUp.Read
+
+        // The late check never reopens kana: once the rest is done, it's the second option.
+        val kanaStep: PlanStep<T>? = when {
+            kana != null && kana.due - kana.late > 0 -> PlanStep(StepKind.KANA, StepState.LATER, count = kana.due)
+            kana != null || kanaClearToday -> PlanStep(StepKind.KANA, StepState.DONE, count = soFar.kana)
+            else -> null
+        }
+
+        // With every chapter read there's no reading step.
+        val readStep: PlanStep<T>? = when {
+            current == null && side == null -> null
+            reading == null -> PlanStep(StepKind.READ, StepState.DONE, count = soFar.chapters, full = true)
+            soFar.chapters > 0 -> PlanStep(StepKind.READ, StepState.DONE, count = soFar.chapters)
+            else -> PlanStep(StepKind.READ, StepState.LATER, read = reading.chapter, readKind = reading.kind)
+        }
+
+        val due = pace.reviewsDue
+        val reviewStep: PlanStep<T> = when {
+            due > 0 -> PlanStep(StepKind.REVIEW, StepState.LATER, count = due, backlog = backlog)
+            // A chapter still to read brings new words to review, so reviews aren't done before it.
+            (readStep?.read?.newWords ?: 0) > 0 -> PlanStep(StepKind.REVIEW, StepState.LATER)
+            else -> PlanStep(StepKind.REVIEW, StepState.DONE, count = soFar.answers)
+        }
+
+        val ordered = listOfNotNull(kanaStep, if (backlog) reviewStep else readStep, if (backlog) readStep else reviewStep)
+        val nowAt = ordered.indexOfFirst { it.state != StepState.DONE }
+        val steps = ordered.mapIndexed { i, step -> if (i == nowAt) step.copy(state = StepState.NOW) else step }
+
+        val done = nowAt < 0
+        val alt = when {
+            done && kana != null && kana.late > 0 -> PlanAlt.KanaCheck(kana.late)
+            readStep?.state == StepState.DONE && reading != null -> PlanAlt.KeepReading(reading.chapter, reading.kind)
+            readStep == null -> PlanAlt.ReadAgain
+            else -> null
+        }
+        return TodayPlan(steps, alt, soFar)
+    }
+}
+
 // ------------------------------------------------------------ words over time
 
 /** How many words had been seen (started), known and mastered by the end of [day]. Each count includes the next. */
