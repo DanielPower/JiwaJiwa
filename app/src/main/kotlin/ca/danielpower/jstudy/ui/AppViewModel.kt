@@ -406,6 +406,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun goHome() = launchIo { showHome() }
 
+    /**
+     * Back in the app: counts change with the clock (cards fall due, the day rolls over at 4am), so a
+     * tab shows them afresh, and the Review badge with it. A review, a chapter or kana practice is left as it is.
+     */
+    fun onResume() = launchIo {
+        when (val screen = _screen.value) {
+            is Screen.Home -> showHome()
+            is Screen.ReviewTab -> showReviewTab()
+            // Unless a locked story's sheet is open over it.
+            is Screen.Stories -> if (screen.lock == null) showStories() else refreshBadge()
+            is Screen.Series, is Screen.Dictionary -> refreshBadge()
+            else -> {}
+        }
+    }
+
     /** Leave a review: back to the chapter end page it started from, else Home. */
     fun closeReview() = launchIo {
         val from = reviewFrom ?: return@launchIo showHome()
