@@ -1027,10 +1027,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return NextStep(next.story.id, "Next story: ${other.series.title}")
     }
 
-    /** The finish stamp at the end of the text marks the story read, timed from when it was opened, and shows the summary. */
-    fun finishStory() = launchIo {
-        val state = _screen.value as? Screen.StoryReader ?: return@launchIo
-        if (readingFinished) return@launchIo
+    /**
+     * The finish stamp at the end of the text marks the story read, timed from when it was opened. It's saved
+     * straight away, so leaving while the stamp lands still finishes it; the summary follows once the stamp's been seen.
+     */
+    fun finishStory() {
+        val summaryAt = now() + stampShown(getApplication())
+        launchIo { finish(summaryAt) }
+    }
+
+    private fun finish(summaryAt: Long) {
+        val state = _screen.value as? Screen.StoryReader ?: return
+        if (readingFinished) return
         readingFinished = true
         val at = now()
         val story = state.reading.story
@@ -1055,8 +1063,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             NextStep(it.story.id, "Next: $name · nothing new")
         }
         val pace = repo.pace(at)
-        _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
-        refreshStory()
+        viewModelScope.launch {
+            delay(summaryAt - now())
+            launchIo {
+                // Unless you've left it by now.
+                val open = _screen.value as? Screen.StoryReader
+                if (open == null || open.reading.story.id != story.id || open.impact != null) return@launchIo
+                _screen.value = open.copy(impact = impact, pace = pace, rest = rest)
+                refreshStory()
+            }
+        }
     }
 
     /** "Read it again" on a story's end page: it opens again on its first page. */
