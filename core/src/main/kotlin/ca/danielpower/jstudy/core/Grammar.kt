@@ -189,7 +189,7 @@ internal object Grammar {
         )
         point(
             "mo", "も", 5, "also, too, even",
-            "Means \"also\" and takes the place of は, が or を. With a number it stresses how many (三時間も, a whole three hours).",
+            "Means \"also\" and takes the place of は, が or を. With a number it stresses how many (三時間も, a whole three hours). After a question word with a negative it means \"no…\": 何も, nothing; 誰も, nobody.",
             "私も行きます。", "I'm going too.",
             listOf(particle("も", pos2 = "係助詞")),
         )
@@ -703,7 +703,7 @@ internal object Grammar {
         // The に of a na-adjective, or of ～そう, used as an adverb: 静かに, 楽しそうに.
         variant("ku-adverb", listOf(particle("に", pos2 = "副詞化")), before = null)
         point(
-            "imperative", "～ろ / ～え", 3, "do it! (command)",
+            "imperative", "～ろ / ～え", 4, "do it! (command)",
             "The plain command: 食べろ, 行け. Blunt: coaches, manga and close friends use it. ～て and ～なさい are softer.",
             "早く起きろ！", "Get up already!",
             // ください, なさい and いらっしゃい are commands too, but have points or entries of their own.
@@ -719,7 +719,7 @@ internal object Grammar {
         )
         point(
             "passive", "～れる / ～られる", 4, "is done (passive)",
-            "The passive: something is done to the subject, often with に for who did it (先生に言われた, I was told by the teacher). On る verbs the reader takes ～られる to mean \"can\", which is far more common.",
+            "The passive: something is done to the subject, often with に for who did it (先生に言われた, I was told by the teacher).",
             "先生に名前を呼ばれました。", "My name was called by the teacher.",
             listOf(Step(false) { it.pos == "動詞" && it.pos2 == "接尾" && it.base in setOf("れる", "られる") }),
             before = { !(it.pos == "動詞" && it.pos2 != "接尾" && (it.type.startsWith("一段") || it.type.startsWith("カ変"))) },

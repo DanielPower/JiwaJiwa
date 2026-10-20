@@ -126,6 +126,7 @@ The grammar points the reader knows that the stories don't use yet, by JLPT leve
 - `te-kuremasenka` ～てくれませんか: could you…?
 - `te-hoshii` ～てほしい: want someone to
 - `te-mo` ～ても: even if, even though
+- `imperative` ～ろ / ～え: do it! (command)
 - `passive` ～れる / ～られる: is done (passive)
 - `causative` ～せる / ～させる: make or let someone do
 - `ba` ～ば: if
@@ -161,5 +162,4 @@ The grammar points the reader knows that the stories don't use yet, by JLPT leve
 - `niyotte` ～によって: by; depending on
 - `toshite` ～として: as (a role)
 - `nitotte` ～にとって: for, from the point of view of
-- `imperative` ～ろ / ～え: do it! (command)
 - `uchi-ni` ～うちに: while (still)
