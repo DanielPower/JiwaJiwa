@@ -28,10 +28,71 @@ class KanaDrillTest {
         assertEquals("a'", Romaji.of("あっ"))
         assertEquals("tsuini", Romaji.of("ついに"))
         assertEquals(listOf("tsu", "i", "ni"), Romaji.split("ついに").map { it.second })
-        assertEquals("wa", Romaji.of("は", particle = true))
+        assertEquals("wa", Romaji.of("は", particles = listOf(0)))
         assertEquals("ha", Romaji.of("は"))
-        assertEquals("niwa", Romaji.of("には", particle = true))
+        assertEquals("niwa", Romaji.of("には", particles = listOf(1)))
         assertNull(Romaji.split("雨").single().second)
+    }
+
+    @Test
+    fun `a small tsu at the end of a piece doubles the sound after it`() {
+        assertEquals("nat", Romaji.of("なっ", next = "た"))
+        assertEquals("it", Romaji.of("いっ", next = "ちゃ"))
+        assertEquals("a'", Romaji.of("あっ", next = "。"))
+        val all = setOf("な", "っ", "た")
+        // なった is read なっ and た.
+        assertEquals(
+            listOf(RubyPiece("な", "na", true), RubyPiece("っ", "t", true), RubyPiece("た", "ta", true)),
+            romajiPieces(word("なっ" to null, "た" to null), all),
+        )
+        // 笑った: the kanji's reading, then っ before た.
+        assertEquals(
+            listOf(RubyPiece("笑", "わら"), RubyPiece("っ", "t", true), RubyPiece("た", null)),
+            romajiPieces(word("笑" to "わら", "っ" to null, "た" to null), setOf("っ")),
+        )
+        // At the end of a word, the next word's sound: 言っ before ちゃ.
+        assertEquals(
+            listOf(RubyPiece("言", "い"), RubyPiece("っ", "t", true)),
+            romajiPieces(word("言" to "い", "っ" to null), setOf("っ"), next = "ちゃ"),
+        )
+    }
+
+    @Test
+    fun `the particle は is said wa wherever it is in a word, and only there`() {
+        val ha = setOf("は")
+        assertEquals(
+            listOf(RubyPiece("こんばん", null), RubyPiece("は", "wa", true)),
+            romajiPieces(word("こんばんは" to null, particles = listOf(4)), ha),
+        )
+        assertEquals(
+            listOf(RubyPiece("実", "じつ"), RubyPiece("は", "wa", true)),
+            romajiPieces(word("実" to "じつ", "は" to null, particles = listOf(1)), ha),
+        )
+        assertEquals(
+            listOf(RubyPiece("は", "wa", true), RubyPiece("いけ", null), RubyPiece("ませ", null), RubyPiece("ん", null)),
+            romajiPieces(word("は" to null, "いけ" to null, "ませ" to null, "ん" to null, kind = WordKind.GRAMMAR, particles = listOf(0)), ha),
+        )
+        // 母 is haha, and はず (a grammar word) is hazu.
+        assertEquals(listOf(RubyPiece("母", "haha", true)), romajiPieces(word("母" to "はは"), ha))
+        assertEquals(listOf(RubyPiece("は", "ha", true), RubyPiece("ず", null)), romajiPieces(word("はず" to null, kind = WordKind.GRAMMAR), ha))
+        // A word on its own, as on a card: the greetings that end in the particle.
+        assertEquals("konbanwa", Romaji.of("こんばんは"))
+        assertEquals("jitsuwa", Romaji.of("じつは"))
+        assertEquals("haha", Romaji.of("はは"))
+        assertEquals(listOf("ko", "n", "ba", "n", "wa"), Romaji.split("こんばんは").map { it.second })
+    }
+
+    @Test
+    fun `n before a vowel or y takes an apostrophe`() {
+        assertEquals("kon'ya", Romaji.of("こんや"))
+        assertEquals("kin'en", Romaji.of("きんえん"))
+        assertEquals("hon'ya", Romaji.of("ほんや"))
+        assertEquals("annai", Romaji.of("あんない"))
+        assertEquals("shinbun", Romaji.of("しんぶん"))
+        assertEquals("ten'in", Romaji.of("テンイン"))
+        assertEquals(listOf(RubyPiece("今夜", "kon'ya", true)), romajiPieces(word("今夜" to "こんや"), setOf("ん")))
+        // The reader shows a sound a kana, so there's nothing to split there.
+        assertEquals(listOf("ko", "n", "ya"), Romaji.split("こんや").map { it.second })
     }
 
     @Test
@@ -228,8 +289,8 @@ class KanaDrillTest {
         assertNotNull(q.options.single { it == q.answer })
     }
 
-    private fun word(vararg ruby: Pair<String, String?>, kind: WordKind = WordKind.WORD) =
-        ReadingWord(ruby.joinToString("") { it.first }, "", "", kind, null, emptyList(), ruby.map { Ruby(it.first, it.second) })
+    private fun word(vararg ruby: Pair<String, String?>, kind: WordKind = WordKind.WORD, particles: List<Int> = emptyList()) =
+        ReadingWord(ruby.joinToString("") { it.first }, "", "", kind, null, emptyList(), ruby.map { Ruby(it.first, it.second) }, particles = particles)
 
     @Test
     fun `romaji sits over unread kana, and over a kanji's whole reading`() {
@@ -247,6 +308,6 @@ class KanaDrillTest {
         assertNull(romajiPieces(word("いた" to null), unread))
         assertNull(romajiPieces(word("ついに" to null), emptySet()))
         // The topic particle is said "wa".
-        assertEquals(listOf(RubyPiece("は", "wa", true)), romajiPieces(word("は" to null, kind = WordKind.GRAMMAR), setOf("は")))
+        assertEquals(listOf(RubyPiece("は", "wa", true)), romajiPieces(word("は" to null, kind = WordKind.GRAMMAR, particles = listOf(0)), setOf("は")))
     }
 }

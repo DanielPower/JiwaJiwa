@@ -229,6 +229,7 @@ class Reader(private val lexicon: Lexicon) {
                 surface = run.joinToString("") { it.surface },
                 reading = run.joinToString("") { it.reading },
                 ruby = run.flatMap { it.ruby },
+                particles = run.runningFold(0) { at, w -> at + w.surface.length }.zip(run).flatMap { (at, w) -> w.particles.map { at + it } },
                 // Joined, the last word's end is no longer where a point ends inside it.
                 grammar = first.grammar.map { it.copy(first = newIndex[it.first], last = newIndex[it.last], to = it.to.takeIf { _ -> runs[newIndex[it.last]].size == 1 }) },
             )
@@ -485,6 +486,7 @@ class Reader(private val lexicon: Lexicon) {
             wordId = id,
             conjugation = labels(group, after),
             ruby = group.flatMap { ruby(it.surface, it.readingOrSurface) },
+            particles = particles(group),
         )
         if (suru || !head.type.startsWith("一段")) return word
         val (verb, verbText) = potential(head.base, reading) ?: return word
@@ -547,7 +549,35 @@ class Reader(private val lexicon: Lexicon) {
             wordId = id,
             conjugation = emptyList(),
             ruby = if (kind == WordKind.PUNCTUATION) listOf(Ruby(surface, null)) else group.flatMap { ruby(it.surface, it.readingOrSurface) },
+            particles = particles(group),
         )
+    }
+
+    /**
+     * Where in [group]'s text a は or へ is said "wa" or "e", as the particle
+     * is: the tokenizer's pronunciation has ワ or エ where its reading has ハ
+     * or ヘ (は on its own, こんばんは, 実は). Compared from the end of each
+     * token, so a kanji before its kana doesn't throw the count out.
+     */
+    private fun particles(group: List<Morpheme>): List<Int> {
+        val out = ArrayList<Int>()
+        var at = 0
+        for (t in group) {
+            val said = t.pronunciation
+            val read = Kana.toKatakana(t.readingOrSurface)
+            val kana = t.surface.takeLastWhile { Kana.isKana(it.toString()) }
+            if (said != null && said.length == read.length && kana.length <= read.length) {
+                for (back in 1..kana.length) {
+                    val c = kana[kana.length - back]
+                    val heard = said[said.length - back]
+                    val particle = (c == 'は' && heard == 'ワ' && read[read.length - back] == 'ハ') ||
+                        (c == 'へ' && heard == 'エ' && read[read.length - back] == 'ヘ')
+                    if (particle) out += at + t.surface.length - back
+                }
+            }
+            at += t.surface.length
+        }
+        return out.sorted()
     }
 
     companion object {
@@ -751,5 +781,6 @@ internal fun Token.morpheme(): Morpheme {
         base = if (unknown) surface else baseForm,
         reading = reading.takeIf { it != "*" },
         unknown = unknown,
+        pronunciation = pronunciation.takeIf { it != "*" },
     )
 }

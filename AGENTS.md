@@ -127,7 +127,9 @@ version 9 deleted the old kana cards):
   voicing pairs and similar sounds, never one that sounds the same.
 - Taught in the order the stories use them (`stories/kana.txt`, built in
   CI), lookalikes in different sets, so new kana show up in stories at once.
-- No kana gating. Stories show romaji (Hepburn, indigo) over kana not
+- No kana gating. Stories show romaji (Hepburn without macrons: koohii,
+  kon'ya; the particles は and へ as wa and e, from the tokenizer's
+  pronunciation, `ReadingWord.particles`; indigo) over kana not
   practised yet; it goes after a kana's first drill. Furigana over a kanji
   turns to romaji as a whole if any of its kana is unread. The word pane
   and the review card show romaji while a kana isn't Clear.
