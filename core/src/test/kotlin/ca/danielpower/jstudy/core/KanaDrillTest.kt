@@ -278,6 +278,19 @@ class KanaDrillTest {
     }
 
     @Test
+    fun `a mark's wrong answers differ only in what the marks do`() {
+        // Each answer is the same sounds, doubled or held in different places: bedo, beedo, beddoo for beddo.
+        fun bare(romaji: String) = romaji.replace(Regex("(.)\\1+"), "$1")
+        for ((mark, words) in KanaSession.MARK_WORDS) {
+            for ((word, options) in words) {
+                assertEquals(Romaji.of(word), options.first(), word)
+                assertEquals(4, options.distinct().size, word)
+                assertEquals(1, options.map(::bare).distinct().size, "$mark: $word $options")
+            }
+        }
+    }
+
+    @Test
     fun `marks are asked in a word`() {
         val state = KanaState(KanaKnown.NONE, listOf("っ") + KanaCourse.units.map { it.text }.filter { it != "っ" }, emptyMap())
         val set = state.nextSet()!!.map { KanaCourse.unit(it)!! }

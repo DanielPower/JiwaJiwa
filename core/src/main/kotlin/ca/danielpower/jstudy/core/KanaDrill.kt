@@ -335,27 +335,31 @@ class KanaSession(
     companion object {
         private val NEW_KINDS = setOf(Kind.NEW, Kind.KNOW_CHECK)
 
-        /** Words that show a mark at work, each with its sound first and three near misses. */
+        /**
+         * Words that show a mark at work, each with its sound first and three
+         * near misses. The misses differ only in what the marks do (a sound
+         * doubled or held), never in a kana, which may not have been met yet.
+         */
         val MARK_WORDS: Map<String, List<Pair<String, List<String>>>> = mapOf(
             "っ" to listOf(
-                "きって" to listOf("kitte", "kite", "kiite", "kitto"),
-                "ちょっと" to listOf("chotto", "choto", "chooto", "chotte"),
-                "もっと" to listOf("motto", "moto", "mooto", "mutto"),
-                "ずっと" to listOf("zutto", "zuto", "zuuto", "jutto"),
-                "やった" to listOf("yatta", "yata", "yaata", "yotta"),
+                "きって" to listOf("kitte", "kite", "kiite", "kittee"),
+                "ちょっと" to listOf("chotto", "choto", "chooto", "chottoo"),
+                "もっと" to listOf("motto", "moto", "mooto", "mottoo"),
+                "ずっと" to listOf("zutto", "zuto", "zuuto", "zuttoo"),
+                "やった" to listOf("yatta", "yata", "yaata", "yattaa"),
             ),
             "ッ" to listOf(
-                "ベッド" to listOf("beddo", "bedo", "beedo", "betto"),
-                "カップ" to listOf("kappu", "kapu", "kaapu", "koppu"),
-                "ネット" to listOf("netto", "neto", "neeto", "natto"),
-                "ロック" to listOf("rokku", "roku", "rooku", "rakku"),
-                "チケット" to listOf("chiketto", "chiketo", "chikeeto", "chikatto"),
+                "ベッド" to listOf("beddo", "bedo", "beedo", "beddoo"),
+                "カップ" to listOf("kappu", "kapu", "kaapu", "kappuu"),
+                "ネット" to listOf("netto", "neto", "neeto", "nettoo"),
+                "ロック" to listOf("rokku", "roku", "rooku", "rokkuu"),
+                "チケット" to listOf("chiketto", "chiketo", "chikeeto", "chikettoo"),
             ),
             "ー" to listOf(
-                "ラーメン" to listOf("raamen", "ramen", "rameen", "raamon"),
+                "ラーメン" to listOf("raamen", "ramen", "rameen", "raameen"),
                 "コーヒー" to listOf("koohii", "kohi", "koohi", "kohii"),
-                "ゲーム" to listOf("geemu", "gemu", "gemuu", "gaamu"),
-                "ケーキ" to listOf("keeki", "keki", "kekii", "kaaki"),
+                "ゲーム" to listOf("geemu", "gemu", "gemuu", "geemuu"),
+                "ケーキ" to listOf("keeki", "keki", "kekii", "keekii"),
                 "スーパー" to listOf("suupaa", "supa", "suupa", "supaa"),
             ),
         )
