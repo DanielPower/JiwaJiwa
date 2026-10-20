@@ -13,7 +13,7 @@ class GrammarTest {
 
     @Test
     fun `every point's own example sentence shows that point`() {
-        val missing = Grammar.points.filter { it.id !in points(it.example) }
+        val missing = Grammar.points.filter { it.inText && it.id !in points(it.example) }
         assertTrue(missing.isEmpty(), "examples without their point: " + missing.joinToString { "${it.id} ${it.example} -> ${points(it.example)}" })
     }
 

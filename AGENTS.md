@@ -377,7 +377,10 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   learned before it existed have no day). It's
   also on the Grammar list on the Dictionary tab, and a grammar point's note in
   the reader links to its topic's page; Back returns to the same page of
-  the story.
+  the story. A few topics are about words, not endings (counting:
+  三本, 一回): their point has no pattern (`inText = false`), so nothing
+  in the reader links to them and they have no lines from your stories;
+  the lesson is the whole explanation.
 - `StoryPathTest` checks the stories against the built dictionary (skipped
   when it isn't): each story, read in order after the ones it follows,
   opens chapter by chapter, so side stories are never required, and a

@@ -13,6 +13,12 @@ data class GrammarPoint(
     val note: String,
     val example: String,
     val exampleMeaning: String,
+    /**
+     * False for a point no sentence can be searched for, because the reader
+     * reads it as words (三本, いる): only its topic's lesson explains it, and
+     * it's learned by reading that.
+     */
+    val inText: Boolean = true,
 )
 
 /**
@@ -113,6 +119,13 @@ internal object Grammar {
     ) {
         val p = GrammarPoint(id, pattern, level, meaning, note, example, exampleMeaning)
         for (steps in variants) rules += Rule(p, steps, before, after)
+    }
+
+    private val lessonOnly = ArrayList<GrammarPoint>()
+
+    /** A point with no token pattern (see [GrammarPoint.inText]). */
+    private fun lesson(id: String, pattern: String, level: Int, meaning: String, note: String, example: String, exampleMeaning: String) {
+        lessonOnly += GrammarPoint(id, pattern, level, meaning, note, example, exampleMeaning, inText = false)
     }
 
     /** Another pattern for the point [id], with its own [before]. */
@@ -1003,10 +1016,17 @@ internal object Grammar {
             listOf(aux("らしい")),
             listOf(Step(false) { it.pos == "形容詞" && it.pos2 == "接尾" && it.base == "らしい" }),
         )
+
+        // Taught by a lesson only: the reader reads these as words.
+        lesson(
+            "counters", "一つ / 一人 / 一回", 5, "counting",
+            "A number takes a counter for the kind of thing counted: つ for things, 人 for people, 回 for times, 本 for long things like bottles. Some numbers change their sound with a counter: 一人 is ひとり, 三本 is さんぼん.",
+            "ラーメンを三つ買った。", "We bought three bowls of ramen.",
+        )
     }
 
     /** Every point, for listing and tests. */
-    val points: List<GrammarPoint> by lazy { rules.map { it.point }.distinctBy { it.id } }
+    val points: List<GrammarPoint> by lazy { rules.map { it.point }.distinctBy { it.id } + lessonOnly }
 
     val byId: Map<String, GrammarPoint> by lazy { points.associateBy { it.id } }
 }
