@@ -1130,7 +1130,7 @@ private fun HorizontalStory(
                     }
                 }
                 if (page == count - 1) {
-                    FinishStamp(vertical = false, onClick = onFinish, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
+                    FinishStamp(vertical = false, onClick = onFinish, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = STAMP_GAP))
                 }
             }
         }
