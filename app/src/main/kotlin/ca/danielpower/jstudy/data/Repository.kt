@@ -16,6 +16,7 @@ import ca.danielpower.jstudy.core.KanaCounts
 import ca.danielpower.jstudy.core.KanaCourse
 import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.KanaResult
+import ca.danielpower.jstudy.core.KanaRules
 import ca.danielpower.jstudy.core.KanaSession
 import ca.danielpower.jstudy.core.KanaState
 import ca.danielpower.jstudy.core.Kanji
@@ -1157,18 +1158,31 @@ class Repository private constructor(context: Context) {
         KanaState(kanaKnown(), kanaOrder, store.kanaProgress(), store.getValue("kana_set_day")?.toLongOrNull())
 
     /** What kana practice would ask now, or null once every kana is clear. */
-    fun kanaCounts(now: Long, state: KanaState = kanaState()): KanaCounts? =
-        if (state.done) null else state.counts(clock().dayOf(now), now)
+    fun kanaCounts(now: Long, state: KanaState = kanaState()): KanaCounts? {
+        if (state.done) return null
+        val clock = clock()
+        val today = clock.dayOf(now)
+        return state.counts(today, now, clock.startOf(today + 1))
+    }
 
     /**
      * A sitting of kana practice: today's checks, and today's new set if none
-     * has been started on yet today ([kanaSetStarted]). With [more], the next set whatever the day.
+     * has been started on yet today ([kanaSetStarted]). With [more], the next set whatever the day;
+     * without [withSet], only the checks.
      */
-    fun kanaSession(now: Long, more: Boolean = false): KanaSession {
+    fun kanaSession(now: Long, more: Boolean = false, withSet: Boolean = true): KanaSession {
         val state = kanaState()
-        val today = clock().dayOf(now)
-        val set = if (more || state.lastSetDay != today) state.nextSet().orEmpty() else emptyList()
-        return KanaSession(state, today, now, set.mapNotNull { KanaCourse.unit(it) }, canListen = { kanaClip(it) != null || hasJapaneseVoice })
+        val clock = clock()
+        val today = clock.dayOf(now)
+        val set = if (more || (withSet && state.lastSetDay != today)) state.nextSet().orEmpty() else emptyList()
+        return KanaSession(
+            state,
+            today,
+            now,
+            set.mapNotNull { KanaCourse.unit(it) },
+            canListen = { kanaClip(it) != null || hasJapaneseVoice },
+            lateCheck = { KanaRules.lateCheckAt(it, clock) },
+        )
     }
 
     /** Today's new set has been started on, so another comes in by itself only tomorrow. */

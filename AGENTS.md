@@ -119,15 +119,18 @@ version 9 deleted the old kana cards):
 
 - Kana don't go through FSRS. Their own drill (core `KanaDrill.kt`): sets
   of 5, each right 3 times in the first sitting (a miss means 2 more), a
-  quick check 3 hours later, then once a day until quick (under 3 s) and
-  right on 3 days. Then Clear, with a weekly check for a month; a miss sends
-  a kana back to Learning.
+  quick check 3 hours later (when that would be after midnight, the next
+  day's check instead, and never under 3 hours on), then once a day until
+  quick (under 3 s) and right on 3 days. Then Clear, with a weekly check
+  for a month; a miss sends a kana back to Learning.
 - Multiple choice, four answers, mostly kana → sound, one in four sound →
   kana. Wrong answers come from past mix-ups, lookalikes (`KanaLooks`),
   voicing pairs and similar sounds, never one that sounds the same.
 - Taught in the order the stories use them (`stories/kana.txt`, built in
   CI), lookalikes in different sets, so new kana show up in stories at once.
-- No kana gating. Stories show romaji (Hepburn, indigo) over kana not
+- No kana gating. Stories show romaji (Hepburn without macrons: koohii,
+  kon'ya; the particles は and へ as wa and e, from the tokenizer's
+  pronunciation, `ReadingWord.particles`; indigo) over kana not
   practised yet; it goes after a kana's first drill. Furigana over a kanji
   turns to romaji as a whole if any of its kana is unread. The word pane
   and the review card show romaji while a kana isn't Clear.
