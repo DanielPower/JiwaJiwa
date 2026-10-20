@@ -555,29 +555,21 @@ class Reader(private val lexicon: Lexicon) {
 
     /**
      * Where in [group]'s text a は or へ is said "wa" or "e", as the particle
-     * is: the tokenizer's pronunciation has ワ or エ where its reading has ハ
-     * or ヘ (は on its own, こんばんは, 実は). Compared from the end of each
-     * token, so a kanji before its kana doesn't throw the count out.
+     * is: a token ending in one that the tokenizer pronounces ending in ワ or
+     * エ (は on its own, こんばんは, 実は). The particle always ends its token.
      */
     private fun particles(group: List<Morpheme>): List<Int> {
         val out = ArrayList<Int>()
         var at = 0
         for (t in group) {
-            val said = t.pronunciation
-            val read = Kana.toKatakana(t.readingOrSurface)
-            val kana = t.surface.takeLastWhile { Kana.isKana(it.toString()) }
-            if (said != null && said.length == read.length && kana.length <= read.length) {
-                for (back in 1..kana.length) {
-                    val c = kana[kana.length - back]
-                    val heard = said[said.length - back]
-                    val particle = (c == 'は' && heard == 'ワ' && read[read.length - back] == 'ハ') ||
-                        (c == 'へ' && heard == 'エ' && read[read.length - back] == 'ヘ')
-                    if (particle) out += at + t.surface.length - back
-                }
-            }
             at += t.surface.length
+            val said = t.pronunciation?.lastOrNull()
+            when (t.surface.last()) {
+                'は' -> if (said == 'ワ') out += at - 1
+                'へ' -> if (said == 'エ') out += at - 1
+            }
         }
-        return out.sorted()
+        return out
     }
 
     companion object {
