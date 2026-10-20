@@ -16,6 +16,7 @@ import ca.danielpower.jstudy.core.KanaCounts
 import ca.danielpower.jstudy.core.KanaCourse
 import ca.danielpower.jstudy.core.KanaKnown
 import ca.danielpower.jstudy.core.KanaResult
+import ca.danielpower.jstudy.core.KanaRules
 import ca.danielpower.jstudy.core.KanaSession
 import ca.danielpower.jstudy.core.KanaState
 import ca.danielpower.jstudy.core.Kanji
@@ -804,19 +805,20 @@ class Repository private constructor(context: Context) {
         ).let { it.copy(clips = clips(story, it.narration)) }
     }
 
-    /** The recordings that come with the app, by file name. */
-    private val recorded: Set<String> by lazy { appContext.assets.list(Recordings.DIR).orEmpty().toSet() }
+    /** Kana's recordings, which come with the app, by file name. */
+    private val bundledClips: Set<String> by lazy { appContext.assets.list(Recordings.DIR).orEmpty().toSet() }
 
     /**
-     * Each of [lines]' recording, when it's been recorded: in its story's
-     * narrator's voice, and each of the cast's own, played at its voice's gain.
+     * Each of [lines]' recording, when it has a voice to be recorded in: in
+     * its story's narrator's voice, and each of the cast's own, played at its
+     * voice's gain. It's downloaded when wanted, and a line not recorded yet
+     * is read by the phone.
      */
     private fun clips(story: SavedStory, lines: List<NarrationLine>): List<Recording?> {
         val narrator = catalog.series.firstOrNull { s -> s.chapters.any { it.story.id == story.pathId } }?.narrator
         val voices = catalog.voices
         return Recordings.clips(lines, voices, catalog.cast.associateBy { it.name }, narrator).map { clip ->
-            clip?.takeIf { (key, _) -> "$key.${Recordings.EXTENSION}" in recorded }
-                ?.let { (key, voice) -> Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f) }
+            clip?.let { (key, voice) -> Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f) }
         }
     }
 
@@ -1187,18 +1189,31 @@ class Repository private constructor(context: Context) {
         KanaState(kanaKnown(), kanaOrder, store.kanaProgress(), store.getValue("kana_set_day")?.toLongOrNull())
 
     /** What kana practice would ask now, or null once every kana is clear. */
-    fun kanaCounts(now: Long, state: KanaState = kanaState()): KanaCounts? =
-        if (state.done) null else state.counts(clock().dayOf(now), now)
+    fun kanaCounts(now: Long, state: KanaState = kanaState()): KanaCounts? {
+        if (state.done) return null
+        val clock = clock()
+        val today = clock.dayOf(now)
+        return state.counts(today, now, clock.startOf(today + 1))
+    }
 
     /**
      * A sitting of kana practice: today's checks, and today's new set if none
-     * has been started on yet today ([kanaSetStarted]). With [more], the next set whatever the day.
+     * has been started on yet today ([kanaSetStarted]). With [more], the next set whatever the day;
+     * without [withSet], only the checks.
      */
-    fun kanaSession(now: Long, more: Boolean = false): KanaSession {
+    fun kanaSession(now: Long, more: Boolean = false, withSet: Boolean = true): KanaSession {
         val state = kanaState()
-        val today = clock().dayOf(now)
-        val set = if (more || state.lastSetDay != today) state.nextSet().orEmpty() else emptyList()
-        return KanaSession(state, today, now, set.mapNotNull { KanaCourse.unit(it) }, canListen = { kanaClip(it) != null || hasJapaneseVoice })
+        val clock = clock()
+        val today = clock.dayOf(now)
+        val set = if (more || (withSet && state.lastSetDay != today)) state.nextSet().orEmpty() else emptyList()
+        return KanaSession(
+            state,
+            today,
+            now,
+            set.mapNotNull { KanaCourse.unit(it) },
+            canListen = { kanaClip(it) != null || hasJapaneseVoice },
+            lateCheck = { KanaRules.lateCheckAt(it, clock) },
+        )
     }
 
     /** Today's new set has been started on, so another comes in by itself only tomorrow. */
@@ -1226,10 +1241,9 @@ class Repository private constructor(context: Context) {
 
     /** A kana's recorded sound, if the app has one. */
     fun kanaClip(text: String): Recording? {
-        val voices = catalog.voices
-        val (key, voice) = Recordings.kana(text, voices) ?: return null
-        if ("$key.${Recordings.EXTENSION}" !in recorded) return null
-        return Recording(Recordings.file(key), voices.gains[voice]?.toFloat() ?: 0f)
+        val (key, voice) = Recordings.kana(text)
+        if ("$key.${Recordings.EXTENSION}" !in bundledClips) return null
+        return Recording(Recordings.file(key), catalog.voices.gains[voice]?.toFloat() ?: 0f, bundled = true)
     }
 
     /**

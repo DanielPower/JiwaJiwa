@@ -231,6 +231,7 @@ class Reader(private val lexicon: Lexicon) {
                 surface = surface,
                 reading = run.joinToString("") { it.reading },
                 ruby = run.flatMap { it.ruby },
+                particles = run.runningFold(0) { at, w -> at + w.surface.length }.zip(run).flatMap { (at, w) -> w.particles.map { at + it } },
                 // Joined, the last word's end is no longer where a point ends inside it.
                 grammar = first.grammar.map { it.copy(first = newIndex[it.first], last = newIndex[it.last], to = it.to.takeIf { _ -> runs[newIndex[it.last]].size == 1 }) },
                 // だった and でした are explained as だ / です, so they say they're its past.
@@ -551,6 +552,7 @@ class Reader(private val lexicon: Lexicon) {
             conjugation = conjugation,
             ruby = group.flatMap { ruby(it.surface, it.readingOrSurface) },
             form = if (conjugation.isEmpty()) null else form(group, if (suru) lemma + "する" else lemma),
+            particles = particles(group),
         )
         if (suru || !head.type.startsWith("一段")) return word
         val (verb, verbText) = potential(head.base, reading) ?: return word
@@ -619,7 +621,27 @@ class Reader(private val lexicon: Lexicon) {
             wordId = id,
             conjugation = emptyList(),
             ruby = if (kind == WordKind.PUNCTUATION) listOf(Ruby(surface, null)) else group.flatMap { ruby(it.surface, it.readingOrSurface) },
+            particles = particles(group),
         )
+    }
+
+    /**
+     * Where in [group]'s text a は or へ is said "wa" or "e", as the particle
+     * is: a token ending in one that the tokenizer pronounces ending in ワ or
+     * エ (は on its own, こんばんは, 実は). The particle always ends its token.
+     */
+    private fun particles(group: List<Morpheme>): List<Int> {
+        val out = ArrayList<Int>()
+        var at = 0
+        for (t in group) {
+            at += t.surface.length
+            val said = t.pronunciation?.lastOrNull()
+            when (t.surface.last()) {
+                'は' -> if (said == 'ワ') out += at - 1
+                'へ' -> if (said == 'エ') out += at - 1
+            }
+        }
+        return out
     }
 
     companion object {
@@ -860,5 +882,6 @@ internal fun Token.morpheme(): Morpheme {
         base = if (unknown) surface else baseForm,
         reading = reading.takeIf { it != "*" },
         unknown = unknown,
+        pronunciation = pronunciation.takeIf { it != "*" },
     )
 }

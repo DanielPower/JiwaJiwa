@@ -39,6 +39,8 @@ data class ReadingWord(
      * is: "was, its past".
      */
     val form: String? = null,
+    /** Where in [surface] a は or へ is the particle, said "wa" or "e": 0 in は, 4 in こんばんは, 0 in はいけない. */
+    val particles: List<Int> = emptyList(),
 ) {
     val conjugated get() = conjugation.isNotEmpty()
 
@@ -128,6 +130,8 @@ internal class Morpheme(
     val base: String,
     reading: String?,
     val unknown: Boolean = false,
+    /** How it's said, in katakana, where that's more than its reading: は the particle is ワ, こんばんは コンバンワ. */
+    val pronunciation: String? = null,
 ) {
     private val reading: String? = reading?.let(Kana::toHiragana)
 
@@ -150,7 +154,7 @@ internal class Morpheme(
         type: String = this.type,
         base: String = this.base,
         reading: String? = this.reading,
-    ) = Morpheme(surface, pos, pos2, pos3, form, type, base, reading, unknown)
+    ) = Morpheme(surface, pos, pos2, pos3, form, type, base, reading, unknown, pronunciation.takeIf { surface == this.surface })
 
     override fun toString() = "$surface($pos,$pos2,$pos3,$form,$type,$base,$readingOrSurface)"
 }
