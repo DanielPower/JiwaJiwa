@@ -84,7 +84,7 @@ On her day off Miho goes home to her mom's to look at her childhood notebooks, a
 
 ### 9. The ending (`mihos-manga/the-ending`)
 
-Miho can't get her manga's last page right and asks the band; Daichi, since the band didn't win the festival, wants the heroine to, Rin says she doesn't have to, and Yuki remembers her first time on stage.
+Miho can't get her manga's last page right and asks the band; Daichi wants the heroine to win the festival the band didn't, Rin says she doesn't have to, and Yuki remembers her first time on stage.
 
 - 143 words; 4 new of 4 allowed.
 - New: そして (N5), だから (N4), 大事 (だいじ, N4), 心配 (しんぱい, N4).
