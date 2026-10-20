@@ -69,6 +69,8 @@ data class Summary(
     val learning: Int,
     val reviews: Int,
     val streak: Int,
+    /** Whether today already counts towards the streak: a review answered, a chapter finished or kana practised. */
+    val activeToday: Boolean,
     val daysAhead: Int,
     val reviewedToday: Int,
     val correctToday: Int,
@@ -1517,11 +1519,13 @@ class Repository private constructor(context: Context) {
         val today = clock.dayOf(now)
         val queue = queue(settings, clock, now)
         val kana = kanaState()
+        val active = activeDays(clock)
         return Summary(
             newCards = queue.newCards,
             learning = queue.learning,
             reviews = queue.reviews,
-            streak = Streak.current(activeDays(clock), today),
+            streak = Streak.current(active, today),
+            activeToday = today in active,
             daysAhead = ahead().daysAhead,
             reviewedToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND kind = 0", today),
             correctToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND correct = 1 AND kind = 0", today),

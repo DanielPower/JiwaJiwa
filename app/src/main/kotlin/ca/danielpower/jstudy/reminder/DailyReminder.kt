@@ -79,7 +79,8 @@ object DailyReminder {
                 kana > 0 -> append("Kana practice is waiting")
                 else -> append(if (due == 1) "1 card is waiting" else "$due cards are waiting")
             }
-            if (summary.streak > 0 && summary.reviewedToday == 0) {
+            // Only while today doesn't count yet: reading or kana practice keep a streak as well as reviews.
+            if (summary.streak > 0 && !summary.activeToday) {
                 append(if (summary.streak == 1) " · keep your 1-day streak" else " · keep your ${summary.streak}-day streak")
             }
         }
