@@ -52,6 +52,12 @@ object Recordings {
         return voices.labels[kind]?.ifBlank { null }
     }
 
+    /** The clip of a kana's sound for kana practice, said on its own in the narrator's voice. Null when there's none. */
+    fun kana(text: String, voices: RecordedVoices): Pair<String, String>? {
+        if (voices.model.isBlank() || voices.narrator.isBlank()) return null
+        return key(text, voices.narrator, voices.model) to voices.narrator
+    }
+
     /** Each line's clip, or null where it isn't recorded. */
     fun keys(lines: List<NarrationLine>, voices: RecordedVoices, cast: Map<String, CastMember>, narrator: String? = null): List<String?> =
         clips(lines, voices, cast, narrator).map { it?.first }
