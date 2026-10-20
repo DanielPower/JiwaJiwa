@@ -36,15 +36,6 @@
     ]
   },
   {
-    "id": "wa", "title": "は", "title_en": "As for…", "points": ["wa"],
-    "summary": "は marks what you're talking about. It's written は but said \"wa\". On its own with a rising voice, it asks \"what about…?\"",
-    "parts": [
-      ["駅は？", "Where's the station? (What about the station?)"],
-      "The topic comes first, then は, then what you say about it.",
-      ["駅は、あっちだ。", "The station's that way."]
-    ]
-  },
-  {
     "id": "ga", "title": "が", "title_en": "Who or what", "points": ["ga"],
     "summary": "が points at who or what does something, or what a description is about: 人が多い, there are lots of people.",
     "parts": [
@@ -54,6 +45,15 @@
     ],
     "more": [
       "が is also for what you've just noticed (雨が降ってる！), and for what you like, understand or have (ラーメンが好き). は sets one thing against others: コーヒーは飲まない, coffee I don't drink."
+    ]
+  },
+  {
+    "id": "wa", "title": "は", "title_en": "As for…", "points": ["wa"],
+    "summary": "は marks what you're talking about. It's written は but said \"wa\". On its own with a rising voice, it asks \"what about…?\"",
+    "parts": [
+      ["駅は？", "Where's the station? (What about the station?)"],
+      "The topic comes first, then は, then what you say about it.",
+      ["駅は、あっちだ。", "The station's that way."]
     ]
   },
   {
@@ -163,6 +163,25 @@
     ]
   },
   {
+    "id": "kara-made", "title": "から / まで", "title_en": "From, until", "points": ["kara-from", "made"],
+    "summary": "から marks where or when something starts; まで, where or when it ends: 朝まで, until morning.",
+    "parts": [
+      ["朝までゲーム。", "Games until morning."],
+      "They work with places and times, together or apart."
+    ]
+  },
+  {
+    "id": "to", "title": "と", "title_en": "And, with", "points": ["to"],
+    "summary": "と joins nouns, \"A and B\", or marks who you do something with: 店長と, with the manager.",
+    "parts": [
+      ["ユキと、コーヒーを飲んだ。", "I had coffee with Yuki."],
+      "In a list, と goes between each one: これとこれ, this and this."
+    ],
+    "more": [
+      "It joins whole lists, unlike や, which only gives examples. For \"together\", 一緒に often comes after it: ユキと一緒に."
+    ]
+  },
+  {
     "id": "te-kudasai", "title": "～て / ～てください", "title_en": "Please do; and", "points": ["te-kudasai", "te"],
     "summary": "A verb's て form plus ください politely asks someone to do something. Friends just use the て form, which also links actions: do this, and then that.",
     "parts": [
@@ -183,7 +202,8 @@
       ]
     },
     "more": [
-      "How the て form is made depends on the verb's last sound. る verbs drop る: 食べて. Otherwise う, つ and る become って (買って, 待って, わかって); む, ぶ and ぬ become んで (飲んで, 呼んで, 死んで); く becomes いて (書いて), ぐ becomes いで; す becomes して (話して). 行く is the odd one: 行って. する is して, 来る is 来て."
+      "How the て form is made depends on the verb's last sound. る verbs drop る: 食べて. Otherwise う, つ and る become って (買って, 待って, わかって); む, ぶ and ぬ become んで (飲んで, 呼んで, 死んで); く becomes いて (書いて), ぐ becomes いで; す becomes して (話して). 行く is the odd one: 行って. する is して, 来る is 来て.",
+      "Adjectives link the same way. An i-adjective swaps its い for くて: 熱くて、うまい, hot and good. Words like きれい and 静か take で: 静かで、優しい, quiet and gentle."
     ]
   },
   {
@@ -209,7 +229,7 @@
     "id": "de", "title": "で", "title_en": "At, in", "points": ["de"],
     "summary": "で marks where something happens: 公園で食べた, ate in the park. に is where something is or goes; で is where it's done.",
     "parts": [
-      ["公園でラーメンを食べた。", "I ate ramen in the park."],
+      ["ユキと、公園でミホさんを待つ。", "Yuki and I are waiting for Miho in the park."],
       "Compare に: 公園に行く is going to the park; 公園で食べる is eating there."
     ],
     "more": [
@@ -222,22 +242,6 @@
     "parts": [
       ["寒いから、ラーメンがうまい。", "It's cold, so ramen tastes great."],
       "It's the same から as \"from\": the reason is where the rest comes from. It can end a sentence too: ベースだから。, because I play bass."
-    ]
-  },
-  {
-    "id": "to", "title": "と", "title_en": "And, with", "points": ["to"],
-    "summary": "と joins nouns, \"A and B\", or marks who you do something with: 店長と, with the manager.",
-    "parts": [
-      ["店長とラーメンを食べた。", "I ate ramen with the manager."],
-      "It joins whole lists, unlike や, which only gives examples. For \"together\", 一緒に often comes after it."
-    ]
-  },
-  {
-    "id": "kara-made", "title": "から / まで", "title_en": "From, until", "points": ["kara-from", "made"],
-    "summary": "から marks where or when something starts; まで, where or when it ends: 朝まで, until morning.",
-    "parts": [
-      ["朝までゲーム。", "Games until morning."],
-      "They work with places and times, together or apart."
     ]
   },
   {
@@ -561,7 +565,8 @@
       ["春より、上手になった。", "I've got better since spring."]
     ],
     "more": [
-      "To ask which of two, say どっち: どっちがいい？, which is better? The answer often has のほうが, and sometimes より too."
+      "To ask which of two, say どっち: どっちがいい？, which is better? The answer often has のほうが, and sometimes より too.",
+      "For \"the most\", put 一番 (number one) before the adjective: 一番好き, like it best; 一番大事, the most important."
     ]
   },
   {

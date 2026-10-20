@@ -1,13 +1,14 @@
 {
   "title": "Hanami",
   "plot": "Hanami with Miho under the cherry blossoms, and photos; Kenta stays in bed.",
+  "topic": "de",
   "paragraphs": [
-    [["今日は休みだ。", "It's my day off."]],
+    [["今日は休みだ。", "It's my day off."], ["ユキと、公園でミホさんを待つ。", "Yuki and I are waiting for Miho in the park."]],
     [["春の公園は、いい。", "The park in spring is lovely."], ["桜は、今日もきれいだ。", "The cherry blossoms are beautiful again today."]],
     [["ミホさんが来た。", "Miho came."]],
     [["ミホ|「アレックスさん、桜は好きですか？」", "\"Alex, do you like cherry blossoms?\""], ["アレックス|「好きです！」", "\"I do!\""]],
     [["ミホ|「ユキさんも、桜は好きですか？」", "\"Do you like them too, Yuki?\""], ["ユキ|「好きだよ！」", "\"I love them!\""]],
-    [["アレックス|「写真、撮りたい！」", "\"I want to take a picture!\""], ["ユキ|「いいね！撮って！」", "\"Sure! Take one!\""]],
+    [["アレックス|「写真、撮りたい！」", "\"I want to take a picture!\""], ["ユキ|「いいね！ここで撮って！」", "\"Sure! Take it here!\""]],
     [["ミホ|「ケンタさんは、どこですか？」", "\"Where's Kenta?\""], ["ユキ|「…部屋。今日も、眠い。」", "\"…In his room. Sleepy again.\""]],
     [["友達の写真も、撮った。", "I took pictures of my friends, too."]]
   ]
