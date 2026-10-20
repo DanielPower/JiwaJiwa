@@ -290,10 +290,10 @@ class KanaDrillTest {
     }
 
     @Test
-    fun `a missed weekly check sends a kana back to learning`() {
+    fun `a missed weekly check costs a kana one day`() {
         val text = "あ"
-        val p = KanaProgress(text, KanaStage.CLEAR, introducedDay = day - 10, passDays = 3, lastDay = day - 7, checkDue = day)
-        val state = KanaState(KanaKnown.NONE, KanaCourse.units.map { it.text }, mapOf(text to p))
+        val p = KanaProgress(text, KanaStage.CLEAR, introducedDay = day - 17, passDays = 3, lastDay = day - 7, checkDue = day, checks = 2)
+        var state = KanaState(KanaKnown.NONE, KanaCourse.units.map { it.text }, mapOf(text to p))
         assertEquals(listOf(text), state.due(day, noon))
         val s = KanaSession(state, day, noon, emptyList(), random = Random(4))
         val q = s.next()!!
@@ -301,6 +301,18 @@ class KanaDrillTest {
         assertFalse(r.correct)
         assertEquals(KanaStage.LEARNING, r.progress.stage)
         assertNull(r.progress.checkDue)
+        assertEquals(KanaRules.CLEAR_DAYS - 1, r.progress.passDays)
+        // The next day, quick and right: clear again, and its weekly checks carry on from the third.
+        state = state.copy(progress = mapOf(text to r.progress))
+        val next = day + 1
+        val at = noon + 86_400_000L
+        assertEquals(listOf(text), state.due(next, at))
+        val again = KanaSession(state, next, at, emptyList(), random = Random(5))
+        val q2 = again.next()!!
+        val r2 = again.answer(q2, q2.answer, 1000, at)
+        assertEquals(KanaStage.CLEAR, r2.progress.stage)
+        assertEquals(next + KanaRules.CHECK_DAYS, r2.progress.checkDue)
+        assertEquals(2, r2.progress.checks)
     }
 
     @Test

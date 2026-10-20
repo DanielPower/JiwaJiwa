@@ -122,7 +122,9 @@ version 9 deleted the old kana cards):
   quick check 3 hours later (when that would be after midnight, the next
   day's check instead, and never under 3 hours on), then once a day until
   quick (under 3 s) and right on 3 days. Then Clear, with a weekly check
-  for a month; a miss sends a kana back to Learning.
+  for a month; a missed check costs one day (draft, 2026-10-20): back to
+  Learning, one quick day from Clear again, and the checks it passed still
+  count.
 - Multiple choice, four answers, mostly kana → sound, one in four sound →
   kana. Wrong answers come from past mix-ups, lookalikes (`KanaLooks`),
   voicing pairs and similar sounds, never one that sounds the same.
@@ -145,7 +147,8 @@ version 9 deleted the old kana cards):
   Both. Settings has the same row. Unless Both, setup skips the Level page
   (they start from the first story, no JLPT level) and the Direction page;
   the reader's Direction row only shows once every kana the stories use is Clear (vertical text is off
-  until then, and the gear marks it new once).
+  until then, and the gear marks it new once). Once they've all been Clear,
+  it stays, whatever a later check does (`Repository.verticalAllowed`).
 - Kana practice lives on the Review tab: a Kana section above Today, and
   Start studying runs due kana first, then the cards. Home's Next card
   offers it first while kana are due. The Dictionary has a Kana chart tab.

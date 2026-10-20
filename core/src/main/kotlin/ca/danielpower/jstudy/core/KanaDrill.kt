@@ -6,7 +6,8 @@ import kotlin.random.Random
  * Where a kana is. New: not practised yet, so stories show its romaji.
  * Learning: practised, checked once a day until it's quick and right on
  * [KanaRules.CLEAR_DAYS] different days. Clear: learned, and kept fresh by
- * reading, with a weekly check for the first month.
+ * reading, with a weekly check for the first month; a missed check costs
+ * it one day, back in Learning.
  */
 enum class KanaStage(val value: Int) {
     NEW(0),
@@ -348,8 +349,9 @@ class KanaSession(
                     p = when {
                         quick -> {
                             val days = p.passDays + 1
+                            // Clear again after a missed check, its weekly checks carry on where they were.
                             if (days >= KanaRules.CLEAR_DAYS) {
-                                p.copy(stage = KanaStage.CLEAR, passDays = days, checkDue = today + KanaRules.CHECK_DAYS, checks = 0)
+                                p.copy(stage = KanaStage.CLEAR, passDays = days, checkDue = today + KanaRules.CHECK_DAYS)
                             } else {
                                 p.copy(passDays = days)
                             }
@@ -369,7 +371,8 @@ class KanaSession(
                     p = when {
                         quick -> (p.checks + 1).let { n -> p.copy(checks = n, checkDue = if (n >= KanaRules.CHECKS) null else today + KanaRules.CHECK_DAYS) }
                         correct -> p.copy(checkDue = today + 3)
-                        else -> p.copy(stage = KanaStage.LEARNING, passDays = 0, checkDue = null)
+                        // A slip costs a day, not the lot: one quick day makes it clear again.
+                        else -> p.copy(stage = KanaStage.LEARNING, passDays = KanaRules.CLEAR_DAYS - 1, checkDue = null)
                     }.copy(lastDay = today)
                 }
                 item.needed = if (correct) item.needed - 1 else maxOf(item.needed, 1)
