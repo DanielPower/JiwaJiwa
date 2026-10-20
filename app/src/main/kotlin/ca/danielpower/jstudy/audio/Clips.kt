@@ -1,7 +1,6 @@
 package ca.danielpower.jstudy.audio
 
 import android.content.Context
-import android.net.ConnectivityManager
 import ca.danielpower.jstudy.BuildConfig
 import ca.danielpower.jstudy.core.Recording
 import kotlinx.coroutines.CompletableDeferred
@@ -24,26 +23,14 @@ import java.net.URL
  * said, so there's no list of them: a line not recorded yet is simply not
  * there, and the phone's voice reads it. Kana's clips come with the app.
  */
-class Clips(
-    context: Context,
-    /** Whether downloading on mobile data is fine without asking (a setting). */
-    private val onMobileData: () -> Boolean,
-    private val base: String = BuildConfig.AUDIO_URL.trimEnd('/'),
-) {
+class Clips(context: Context, private val base: String = BuildConfig.AUDIO_URL.trimEnd('/')) {
     private val dir = File(context.applicationContext.filesDir, "clips")
-    private val connectivity = context.applicationContext.getSystemService(ConnectivityManager::class.java)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     // A few at a time, in the order asked for, so a chapter's first lines come first.
     private val slots = Semaphore(4)
     private val loading = HashMap<String, Deferred<File?>>()
     // Clips the server said aren't recorded, not asked for again until the app restarts.
     private val missing = HashSet<String>()
-
-    /** Whether the phone is on a connection that may cost money, such as mobile data. */
-    fun metered(): Boolean = connectivity?.isActiveNetworkMetered ?: false
-
-    /** Whether clips can be downloaded now without asking: not on mobile data, or it's allowed. */
-    fun mayDownload(): Boolean = !metered() || onMobileData()
 
     /** [clip] on the phone already, or null. A clip that comes with the app has no file. */
     fun local(clip: Recording): File? = File(dir, clip.file).takeIf { it.isFile }
@@ -53,16 +40,9 @@ class Clips(
         for (clip in clips) if (clip != null && !clip.bundled) load(clip)
     }
 
-    /**
-     * [clip]'s file once it's downloaded, waiting at most [millis], or null
-     * when it can't be had: not recorded, offline, or on mobile data without
-     * leave to download (unless it's already on its way, as [fetch] was asked).
-     */
-    suspend fun await(clip: Recording, millis: Long): File? {
-        local(clip)?.let { return it }
-        val pending = synchronized(loading) { loading[clip.file] } ?: if (mayDownload()) load(clip) else return null
-        return withTimeoutOrNull(millis) { pending.await() }
-    }
+    /** [clip]'s file once it's downloaded, waiting at most [millis], or null when it can't be had: not recorded, or offline. */
+    suspend fun await(clip: Recording, millis: Long): File? =
+        local(clip) ?: withTimeoutOrNull(millis) { load(clip).await() }
 
     private fun load(clip: Recording): Deferred<File?> = synchronized(loading) {
         local(clip)?.let { return CompletableDeferred(it) }

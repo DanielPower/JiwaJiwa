@@ -324,11 +324,7 @@ data class ReaderStyle(
 }
 
 /** How stories are read aloud: the speed. */
-data class SpeechSettings(
-    val rate: Float = 1f,
-    /** Download stories' recordings on mobile data without asking first. */
-    val mobileData: Boolean = false,
-) {
+data class SpeechSettings(val rate: Float = 1f) {
     companion object {
         val RATES = listOf(0.6f, 0.8f, 1f, 1.2f)
     }
@@ -737,12 +733,11 @@ class Repository private constructor(context: Context) {
         val default = SpeechSettings()
         return SpeechSettings(
             rate = store.getValue("speech_rate")?.toFloatOrNull()?.takeIf { it in SpeechSettings.RATES } ?: default.rate,
-            mobileData = store.getValue("audio_mobile_data") == "1",
         )
     }
 
     fun setSpeechSettings(settings: SpeechSettings) {
-        store.setValues(mapOf("speech_rate" to settings.rate.toString(), "audio_mobile_data" to if (settings.mobileData) "1" else "0"))
+        store.setValues(mapOf("speech_rate" to settings.rate.toString()))
     }
 
     /** The stories' cast with their voices, in the order the stories meet them, so each keeps theirs as stories are added. */

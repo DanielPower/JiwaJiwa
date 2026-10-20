@@ -291,8 +291,7 @@ data class ReadImpact(
 /** The next chapter to read, and how to name it on the button. */
 data class NextStep(val storyId: Long, val label: String)
 
-/** On mobile data, a chapter's recordings to download if you say so: [storyId]'s, about [bytes] of them. */
-data class AudioAsk(val storyId: Long, val bytes: Int)
+
 
 enum class SetupPage { WELCOME, KANA, LEVEL, DIRECTION, REMINDER }
 
@@ -327,15 +326,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _speech = MutableStateFlow(SpeechSettings())
     val speech: StateFlow<SpeechSettings> = _speech.asStateFlow()
 
-    // On mobile data, whether you said to download recordings anyway until the app closes; null until asked.
-    @Volatile private var mobileDataNow: Boolean? = null
-
     // The stories' recordings, downloaded as chapters open.
-    private val clips = Clips(app, onMobileData = { _speech.value.mobileData || mobileDataNow == true })
-
-    /** Asking whether to download a chapter's recordings on mobile data. */
-    private val _audioAsk = MutableStateFlow<AudioAsk?>(null)
-    val audioAsk: StateFlow<AudioAsk?> = _audioAsk.asStateFlow()
+    private val clips = Clips(app)
 
     // The phone's speech engine, started the first time something is read aloud or a reader opens.
     private var voiceEngine: StoryVoice? = null
@@ -1027,34 +1019,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------ recordings
 
-    /**
-     * Downloads [reading]'s recordings that aren't on the phone yet. On mobile
-     * data it asks first, once until the app closes, unless Settings says not to.
-     */
+    /** Downloads [reading]'s recordings that aren't on the phone yet; a chapter's are a few hundred KB. */
     private fun getClips(reading: StoryReading) {
-        val missing = reading.clips.filterNotNull().filter { !it.bundled && clips.local(it) == null }
-        if (missing.isEmpty()) return
-        when {
-            clips.mayDownload() -> clips.fetch(missing)
-            mobileDataNow == null -> _audioAsk.value = AudioAsk(reading.story.id, missing.size * CLIP_BYTES)
-        }
+        clips.fetch(reading.clips.filterNotNull().filter { !it.bundled && clips.local(it) == null })
     }
 
-    /** The answer to [audioAsk]: download on mobile data until the app closes, or not; [always] also turns it on in Settings. */
-    fun answerAudioAsk(download: Boolean, always: Boolean = false) = launchIo {
-        _audioAsk.value = null
-        mobileDataNow = download
-        if (always) setSpeech(_speech.value.copy(mobileData = true))
-        if (download) (_screen.value as? Screen.StoryReader)?.let { clips.fetch(it.reading.clips) }
-    }
-
-    /** Settings' switch: download recordings on mobile data without asking. */
-    fun setAudioOnMobileData(on: Boolean) = setSpeech(_speech.value.copy(mobileData = on))
-
-    /** The next chapter's recordings, fetched as one ends so it plays offline too; only off mobile data. */
+    /** The next chapter's recordings, fetched as one ends so it plays offline too. */
     private fun prefetchClips(next: NextStep?) {
-        if (next == null || clips.metered()) return
-        repo.readStory(next.storyId)?.let { clips.fetch(it.clips) }
+        next?.let { repo.readStory(it.storyId) }?.let { clips.fetch(it.clips) }
     }
 
     /**
@@ -1385,8 +1357,5 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
         /** What's played for a kana's sound. */
         private const val KANA_KEY = -2L
-
-        /** A recording's size, about, for saying how much a chapter's are. */
-        private const val CLIP_BYTES = 5_500
     }
 }

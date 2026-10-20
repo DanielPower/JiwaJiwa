@@ -26,8 +26,8 @@ The stories' recorded voices are downloaded from DigitalOcean Spaces as you
 open a chapter, and kept on your device. The request names only the
 recording it wants, so it says which sentences you're about to read, and
 like any download it shows the server your IP address. Nothing about you or
-your progress is sent. On mobile data Jiwa Jiwa asks before downloading,
-unless you've turned that off in Settings. Without the recordings, stories
+your progress is sent. A chapter's recordings are usually under
+1 MB. Without the recordings, stories
 are read in your phone's own voice.
 
 ## Notifications

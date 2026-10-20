@@ -235,8 +235,8 @@ Other features (all shipped):
   lives in the bucket too: CI builds download it into `tools/stories`.
   The app downloads a chapter's clips when it opens (`audio/Clips.kt`, kept
   in the app's files), the next chapter's when one ends, and waits a few
-  seconds for a line's clip before the phone reads it. On mobile data it
-  asks first, unless Settings says not to. A missing clip (not recorded,
+  seconds for a line's clip before the phone reads it. It doesn't ask on
+  mobile data: a chapter's clips are under 1 MB (Daniel, 2026-10-20). A missing clip (not recorded,
   offline) is never an error: the phone's voice reads the line.
   A line with no clip is read by the phone's voice (`voice` and `pitch` in
   `meets`, unnamed speakers by `Voices.forLabel`); there's no voice picker.
