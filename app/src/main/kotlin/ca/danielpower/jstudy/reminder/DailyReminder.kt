@@ -70,10 +70,15 @@ object DailyReminder {
         schedule(context, reminder)
         if (reminder.time == null || !canNotify(context)) return
         val summary = repo.summary(System.currentTimeMillis())
-        if (!summary.anythingDue) return
+        val kana = summary.kana?.due ?: 0
+        if (!summary.anythingDue && kana == 0) return
         val due = summary.newCards + summary.learning + summary.reviews
         val text = buildString {
-            append(if (due == 1) "1 card is waiting" else "$due cards are waiting")
+            when {
+                kana > 0 && due > 0 -> append("Kana practice and ${if (due == 1) "1 card" else "$due cards"} are waiting")
+                kana > 0 -> append("Kana practice is waiting")
+                else -> append(if (due == 1) "1 card is waiting" else "$due cards are waiting")
+            }
             if (summary.streak > 0 && summary.reviewedToday == 0) {
                 append(if (summary.streak == 1) " · keep your 1-day streak" else " · keep your ${summary.streak}-day streak")
             }

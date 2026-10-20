@@ -34,6 +34,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -98,6 +99,10 @@ import ca.danielpower.jstudy.core.LessonBlock
 import ca.danielpower.jstudy.core.LessonPiece
 import ca.danielpower.jstudy.core.Lessons
 import ca.danielpower.jstudy.core.HorizontalText
+import ca.danielpower.jstudy.core.KanaCourse
+import ca.danielpower.jstudy.core.Romaji
+import ca.danielpower.jstudy.core.RubyPiece
+import ca.danielpower.jstudy.core.romajiPieces
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.Narration
 import ca.danielpower.jstudy.core.Pace
@@ -671,6 +676,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val style = state.style
     // The settings menu shares the pane with words and sentences; opening one closes the other.
     var menu by remember { mutableStateOf(false) }
+    var directionNew by remember { mutableStateOf(false) }
     // What the pane shows: a word, or the sentence around it. From a word's page, that word's sentence.
     var open by remember(reading.story.id) { mutableStateOf(state.startAt?.let { Opened(it.first, it.second, sentence = true) }) }
     // Or a chapter's note, by the paragraph whose marker opened it.
@@ -771,12 +777,23 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 Text(reading.story.title, style = MaterialTheme.typography.headlineSmall, fontFamily = if (reading.lesson != null) Gothic else null)
             }
             CompositionLocalProvider(LocalContentColor provides if (menu) MaterialTheme.colorScheme.primary else LocalContentColor.current) {
-                WashiIconButton(WashiIcons.Settings, "Reader settings", {
-                    open = null
-                    note = null
-                    audio = false
-                    menu = !menu
-                })
+                Box {
+                    WashiIconButton(WashiIcons.Settings, "Reader settings", {
+                        open = null
+                        note = null
+                        audio = false
+                        menu = !menu
+                        // The menu marks vertical text as new this once.
+                        if (menu) {
+                            directionNew = state.verticalNew
+                            vm.readerMenuOpened()
+                        }
+                    })
+                    // Vertical text came back with the last kana: a dot on the gear until its menu is opened.
+                    if (state.verticalNew) {
+                        Box(Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 10.dp).size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                    }
+                }
             }
         }
         // Always there, with the story below it, so it never covers the text and nothing moves when it fills.
@@ -784,7 +801,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             val o = open
             val n = note?.let { reading.notes[it] }
             when {
-                menu -> ReaderMenu(style, vm::setReaderStyle)
+                menu -> ReaderMenu(style, vm::setReaderStyle, direction = reading.unclearKana.isEmpty(), directionNew = directionNew)
                 audio -> AudioMenu(speech, voice.missing && reading.clips.all { it == null }, vm::setSpeechRate)
                 n != null -> NoteCard(n)
                 o == null -> Text(
@@ -1032,7 +1049,7 @@ private fun HorizontalStory(
         val ruby = TextStyle(fontSize = rubySize.sp, fontFamily = family)
         reading.paragraphs.mapIndexed { p, words ->
             words.map { word ->
-                val width = word.ruby.sumOf { piece ->
+                val width = reading.pieces(word).sumOf { piece ->
                     maxOf(
                         measurer.measure(piece.base, base, softWrap = false).size.width,
                         measurer.measure(piece.ruby ?: " ", ruby, softWrap = false).size.width,
@@ -1049,8 +1066,13 @@ private fun HorizontalStory(
     val nameStyle = TextStyle(fontSize = (size * NAME_RATIO).sp, lineHeight = (size * 1.5f).sp, fontFamily = family)
     val nameColumns = remember(reading, density, size, family) {
         val space = with(density) { (size * NAME_GAP).sp.toPx() }
-        Speech.columns(reading.speakers) { measurer.measure(it, nameStyle, softWrap = false).size.width.toFloat() }
-            .map { it?.plus(space) }
+        val rubyStyle = TextStyle(fontSize = rubySize.sp, fontFamily = family)
+        val columns = Speech.columns(reading.speakers) { measurer.measure(it, nameStyle, softWrap = false).size.width.toFloat() }
+        // A name with romaji over it is as wide as the wider of the two, and so is its run's column.
+        val romaji = reading.speakers.indices.mapNotNull { p ->
+            reading.speakerRomaji(p)?.let { measurer.measure(it, rubyStyle, softWrap = false).size.width.toFloat() }
+        }.maxOrNull() ?: 0f
+        columns.map { it?.let { w -> maxOf(w, romaji) + space } }
     }
     val charWidth = with(density) { size.sp.toPx() }
     BoxWithConstraints(modifier) {
@@ -1085,13 +1107,12 @@ private fun HorizontalStory(
                         if (column != null) {
                             val columnDp = with(density) { column.toDp() }
                             if (line.words.first == 0) {
-                                Text(
-                                    reading.speakers[line.paragraph].orEmpty(),
-                                    style = nameStyle,
-                                    color = nameColor,
-                                    softWrap = false,
-                                    modifier = Modifier.width(columnDp),
-                                )
+                                Column(Modifier.width(columnDp)) {
+                                    reading.speakerRomaji(line.paragraph)?.let {
+                                        Text(it, fontSize = rubySize.sp, lineHeight = (rubySize * 1.2f).sp, fontFamily = family, softWrap = false, color = MaterialTheme.colorScheme.secondary)
+                                    }
+                                    Text(reading.speakers[line.paragraph].orEmpty(), style = nameStyle, color = nameColor, softWrap = false)
+                                }
                             } else {
                                 Spacer(Modifier.width(columnDp + with(density) { charWidth.toDp() }))
                             }
@@ -1409,6 +1430,19 @@ internal fun StoryReading.showsRuby(word: ReadingWord): Boolean {
     return isUnknown(word) || word.kind == WordKind.NAME || MasteryRules.furigana(mastery) == FuriganaMode.SHOWN
 }
 
+/** A word's pieces as drawn: its furigana, or romaji over the kana you haven't practised yet. */
+internal fun StoryReading.pieces(word: ReadingWord): List<RubyPiece> =
+    romajiPieces(word, unreadKana) ?: word.ruby.map { RubyPiece(it.base, it.ruby) }
+
+/** Paragraph [p]'s speaker's name in romaji, while it has a kana you haven't practised. */
+internal fun StoryReading.speakerRomaji(p: Int): String? =
+    speakers.getOrNull(p)?.takeIf { name -> KanaCourse.unitsIn(name).any { it.text in unreadKana } }?.let { Romaji.of(it) }
+
+/** [kana] in romaji a sound at a time, tsu · i · ni, while it has a kana that isn't clear yet. */
+internal fun StoryReading.paneRomaji(kana: String): String? =
+    kana.takeIf { k -> KanaCourse.unitsIn(k).any { it.text in unclearKana } }
+        ?.let { k -> Romaji.split(k).mapNotNull { it.second }.joinToString(" · ") }
+
 internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME || grammar.isNotEmpty()
 
 /** A tapped word's shading, and the lighter wash on its sentence or the one read aloud. */
@@ -1494,11 +1528,12 @@ private fun StoryWord(
     Box(modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             var at = 0
-            for (piece in word.ruby) {
+            for (piece in reading.pieces(word)) {
                 val start = at
                 at += piece.base.length
                 // The new grammar is the word's ending, never inside a kanji, so a piece's furigana follows where it starts.
-                val rubyColor = if (newGrammar != null && start in newGrammar) indigo else color
+                // Romaji is always shown, in indigo, so it doesn't read as furigana.
+                val rubyColor = if (piece.romaji || (newGrammar != null && start in newGrammar)) indigo else color
                 val base = if (newGrammar == null) AnnotatedString(piece.base) else buildAnnotatedString {
                     piece.base.forEachIndexed { k, c ->
                         if (start + k in newGrammar) withStyle(SpanStyle(color = indigo, textDecoration = TextDecoration.Underline)) { append(c) } else append(c)
@@ -1513,7 +1548,7 @@ private fun StoryWord(
                         maxLines = 1,
                         softWrap = false,
                         color = rubyColor.copy(alpha = 0.75f),
-                        modifier = if (showRuby && piece.ruby != null) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
+                        modifier = if (piece.romaji || (showRuby && piece.ruby != null)) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
                     )
                     Text(
                         text = base,
@@ -1547,7 +1582,7 @@ private val ReaderFont.label: String
 
 /** The reader's settings, laid out to fit the pane without scrolling. Changes apply as you tap. */
 @Composable
-private fun ReaderMenu(style: ReaderStyle, onChange: (ReaderStyle) -> Unit) {
+private fun ReaderMenu(style: ReaderStyle, onChange: (ReaderStyle) -> Unit, direction: Boolean, directionNew: Boolean) {
     Column(
         Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -1567,7 +1602,8 @@ private fun ReaderMenu(style: ReaderStyle, onChange: (ReaderStyle) -> Unit) {
                 }
             }
         }
-        MenuRow("Direction") {
+        // Vertical text waits until every kana is clear: romaji doesn't sit well beside a column.
+        if (direction) MenuRow("Direction", new = directionNew) {
             MenuOption(!style.vertical, { onChange(style.copy(vertical = false)) }) {
                 Text("Horizontal", style = MaterialTheme.typography.labelLarge, maxLines = 1)
             }
@@ -1579,15 +1615,17 @@ private fun ReaderMenu(style: ReaderStyle, onChange: (ReaderStyle) -> Unit) {
 }
 
 @Composable
-private fun MenuRow(label: String, options: @Composable RowScope.() -> Unit) {
+private fun MenuRow(label: String, new: Boolean = false, options: @Composable RowScope.() -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            modifier = Modifier.width(72.dp),
-        )
+        Column(Modifier.width(72.dp)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+            if (new) Text("New", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        }
         options()
     }
 }
@@ -1750,6 +1788,10 @@ private fun WordCard(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            // While a kana in it isn't clear, its sounds: the answer to a kana you're learning, a tap away.
+            if (!grammarOnly) reading.paneRomaji(entry?.kana ?: word.reading)?.let {
+                Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+            }
             if (!grammarOnly && points.isNotEmpty()) {
                 GrammarLinks(word, title, points, onOpen = { followed = it })
             } else if (word.conjugated) {

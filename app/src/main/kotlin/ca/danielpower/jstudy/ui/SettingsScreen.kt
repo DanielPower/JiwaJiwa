@@ -81,7 +81,9 @@ fun SettingsScreen(
             }
 
             Section("Daily study")
-            Text("Level you can already read", style = MaterialTheme.typography.bodyLarge)
+            Text("Kana you can already read", style = MaterialTheme.typography.bodyLarge)
+            KanaKnownChips(state.kana, vm::setKanaKnown)
+            Text("Level you can already read", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
             // Raising the level fills in mastery, so it asks first; lowering it changes nothing.
             var pendingLevel by remember { mutableStateOf<Int?>(null) }
             ReadLevelChips(state.readLevel) { level ->

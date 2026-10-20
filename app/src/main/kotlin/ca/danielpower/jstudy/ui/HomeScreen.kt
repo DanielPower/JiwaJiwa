@@ -181,7 +181,21 @@ private class NextContent(
 
 @Composable
 private fun NextCard(d: Dashboard, vm: AppViewModel) {
-    val c = nextContent(d.next, d, vm)
+    val story = nextContent(d.next, d, vm)
+    // While kana are due, practising them comes first, with the story on the "or" line.
+    val kana = d.kana?.takeIf { it.due > 0 }
+    val c = if (kana == null) story else NextContent(
+        "Kana practice",
+        MaterialTheme.colorScheme.secondary,
+        listOfNotNull(
+            kana.new.takeIf { it > 0 }?.let { "$it new kana" },
+            kana.check.takeIf { it > 0 }?.let { "$it to check" },
+        ).joinToString(", "),
+        "About ${kana.minutes} minute" + if (kana.minutes == 1) "" else "s",
+        vm::startKana,
+        (d.next as? NextUp.Read)?.let { "read ${shortName(it.chapter.item)}" },
+        { (d.next as? NextUp.Read)?.let { vm.openStory(it.chapter.item.story.id) } },
+    )
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         val seal = MaterialTheme.colorScheme.primary
         Row(

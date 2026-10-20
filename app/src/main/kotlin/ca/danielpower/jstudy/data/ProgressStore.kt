@@ -8,6 +8,8 @@ import android.database.sqlite.SQLiteOpenHelper
 import ca.danielpower.jstudy.core.Card
 import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.Direction
+import ca.danielpower.jstudy.core.KanaProgress
+import ca.danielpower.jstudy.core.KanaStage
 import ca.danielpower.jstudy.core.MasteryChange
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.ReviewLog
@@ -96,6 +98,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         db.execSQL("CREATE INDEX review_log_card ON review_log (card_id)")
         db.execSQL("CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
         createStories(db)
+        createKana(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -119,6 +122,40 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         if (oldVersion < 11 && hasColumn(db, "kv", "key")) {
             db.execSQL("DELETE FROM kv WHERE key = 'retention' OR key LIKE 'mastery\\_%' ESCAPE '\\'")
         }
+        // Version 12: kana practice.
+        if (oldVersion < 12) createKana(db)
+    }
+
+    /** Your progress with each kana you've practised (core [KanaProgress]), and every answer. */
+    private fun createKana(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS kana (
+                text TEXT PRIMARY KEY,
+                stage INTEGER NOT NULL,
+                introduced_day INTEGER,
+                pass_days INTEGER NOT NULL,
+                last_day INTEGER,
+                late_check_at INTEGER,
+                check_due INTEGER,
+                checks INTEGER NOT NULL,
+                confusions TEXT NOT NULL DEFAULT ''
+            )
+            """,
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS kana_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT NOT NULL,
+                answered_at INTEGER NOT NULL,
+                day INTEGER NOT NULL,
+                correct INTEGER NOT NULL,
+                millis INTEGER NOT NULL
+            )
+            """,
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS kana_log_day ON kana_log (day)")
     }
 
     /**
@@ -488,6 +525,68 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
             buildList { while (c.moveToNext()) add(c.getLong(0)) }
         }
 
+    // ------------------------------------------------------------ kana
+
+    fun kanaProgress(): Map<String, KanaProgress> =
+        readableDatabase.rawQuery(
+            "SELECT text, stage, introduced_day, pass_days, last_day, late_check_at, check_due, checks, confusions FROM kana",
+            null,
+        ).use { c ->
+            fun long(i: Int) = if (c.isNull(i)) null else c.getLong(i)
+            buildMap {
+                while (c.moveToNext()) {
+                    val text = c.getString(0)
+                    put(
+                        text,
+                        KanaProgress(
+                            text = text,
+                            stage = KanaStage.of(c.getInt(1)),
+                            introducedDay = long(2),
+                            passDays = c.getInt(3),
+                            lastDay = long(4),
+                            lateCheckAt = long(5),
+                            checkDue = long(6),
+                            checks = c.getInt(7),
+                            confusions = c.getString(8).split(' ').filter { it.isNotEmpty() },
+                        ),
+                    )
+                }
+            }
+        }
+
+    /** Save [progress] and log the answer that led to it. */
+    fun saveKana(progress: KanaProgress, answeredAt: Long, day: Long, correct: Boolean, millis: Long) = transaction { db ->
+        val values = ContentValues().apply {
+            put("text", progress.text)
+            put("stage", progress.stage.value)
+            putNullable("introduced_day", progress.introducedDay)
+            put("pass_days", progress.passDays)
+            putNullable("last_day", progress.lastDay)
+            putNullable("late_check_at", progress.lateCheckAt)
+            putNullable("check_due", progress.checkDue)
+            put("checks", progress.checks)
+            put("confusions", progress.confusions.joinToString(" "))
+        }
+        db.insertWithOnConflict("kana", null, values, SQLiteDatabase.CONFLICT_REPLACE)
+        db.insert(
+            "kana_log",
+            null,
+            ContentValues().apply {
+                put("text", progress.text)
+                put("answered_at", answeredAt)
+                put("day", day)
+                put("correct", if (correct) 1 else 0)
+                put("millis", millis)
+            },
+        )
+    }
+
+    /** Study days with kana practice. */
+    fun kanaDays(): List<Long> =
+        readableDatabase.rawQuery("SELECT DISTINCT day FROM kana_log", null).use { c ->
+            buildList { while (c.moveToNext()) add(c.getLong(0)) }
+        }
+
     // ------------------------------------------------------------ settings
 
     fun getValue(key: String): String? =
@@ -560,7 +659,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 11
+        const val VERSION = 12
         private const val CARD_COLUMNS =
             "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, start_source"
     }

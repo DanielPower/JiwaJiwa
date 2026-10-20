@@ -10,6 +10,14 @@ import ca.danielpower.jstudy.core.CardState
 import ca.danielpower.jstudy.core.FuriganaMode
 import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.ImportPlan
+import ca.danielpower.jstudy.core.KanaCourse
+import ca.danielpower.jstudy.core.KanaKnown
+import ca.danielpower.jstudy.core.KanaQuestion
+import ca.danielpower.jstudy.core.KanaResult
+import ca.danielpower.jstudy.core.KanaSession
+import ca.danielpower.jstudy.core.KanaState
+import ca.danielpower.jstudy.core.KanaUnit
+import ca.danielpower.jstudy.core.Romaji
 import ca.danielpower.jstudy.core.Kanji
 import ca.danielpower.jstudy.core.MasteryRules
 import ca.danielpower.jstudy.core.NarrationLine
@@ -25,6 +33,7 @@ import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.Dashboard
 import ca.danielpower.jstudy.data.Entry
 import ca.danielpower.jstudy.data.GrammarRow
+import ca.danielpower.jstudy.data.KanaExample
 import ca.danielpower.jstudy.data.KanjiDetail
 import ca.danielpower.jstudy.data.LockInfo
 import ca.danielpower.jstudy.data.ReaderPlace
@@ -71,6 +80,10 @@ data class ReviewCard(
     val mastery: Int,
     /** The kanji in the word's spelling, linked from the answer side. */
     val kanji: List<Kanji> = emptyList(),
+    /** The reading in romaji, while a kana in it isn't clear yet: on the answer side. */
+    val romaji: String? = null,
+    /** And on the front too, while a kana in it hasn't been practised at all. */
+    val romajiOnFront: Boolean = false,
 )
 
 data class ReviewCounts(val new: Int, val learning: Int, val review: Int)
@@ -125,17 +138,34 @@ sealed interface Screen {
         val backupMessage: String? = null,
         /** When a backup was last saved, if ever. */
         val lastBackup: Long? = null,
+        /** Which kana you read already. */
+        val kana: KanaKnown = KanaKnown.BOTH,
     ) : Screen
 
-    /** First run, a page at a time: the level you can already read, reading direction, and the reminder. */
+    /** First run, a page at a time: the kana and level you can already read, reading direction, and the reminder. */
     data class Setup(
         val levelCounts: Map<Int, Int>,
+        /** Which kana you can read already. */
+        val kana: KanaKnown = KanaKnown.NONE,
         val readLevel: Int = ReadLevel.NONE,
         /** Whether stories are set vertically, as in the reader's settings menu. */
         val vertical: Boolean = false,
         /** The daily reminder's time, if you chose one. */
         val reminderMinute: Int?,
         val page: SetupPage = SetupPage.WELCOME,
+    ) : Screen {
+        /** The pages this setup shows: the reading direction only for someone who reads both kana, as vertical text waits until then. */
+        val pages: List<SetupPage> get() = SetupPage.entries.filter { it != SetupPage.DIRECTION || kana == KanaKnown.BOTH }
+    }
+
+    /** Kana practice: a new set's intro, its questions, then how you did. */
+    data class Kana(
+        val step: KanaStep,
+        /** New kana and kana to check still to get right, as the 新 and 習 counts show. */
+        val newLeft: Int = 0,
+        val checkLeft: Int = 0,
+        /** How far through the sitting, from 0 to 1. */
+        val progress: Float = 0f,
     ) : Screen
 
     data class StatsPage(val stats: Stats) : Screen
@@ -148,6 +178,8 @@ sealed interface Screen {
         val rows: List<DictionaryRow>,
         /** The grammar topics, while the Grammar tab is showing in place of the words. */
         val grammar: List<GrammarRow>? = null,
+        /** The kana chart, while the Kana tab is showing. */
+        val kana: KanaChart? = null,
     ) : Screen
 
     data class WordPage(val detail: WordDetail, val clock: StudyClock) : Screen
@@ -194,8 +226,32 @@ sealed interface Screen {
         val forgotten: Set<Long> = emptySet(),
         /** Words the finished story started that you said you already know. */
         val knewNew: Set<Long> = emptySet(),
+        /** Vertical text just came back, with every kana clear: the reader's gear marks it until its menu is opened. */
+        val verticalNew: Boolean = false,
     ) : Screen
 }
+
+/** What kana practice shows. */
+sealed interface KanaStep {
+    /** A new set: each kana, its sound, and a word from the stories with it in, by kana. */
+    data class Intro(val units: List<KanaUnit>, val examples: Map<String, KanaExample>, val set: Int, val sets: Int) : KanaStep
+
+    /**
+     * A question, shown at [shownAt], about a kana from this sitting's new set
+     * or not ([fresh]); once answered, what you [picked] and how it went.
+     */
+    data class Ask(val question: KanaQuestion, val shownAt: Long, val fresh: Boolean, val picked: String? = null, val result: KanaResult? = null) : KanaStep
+
+    /**
+     * The end: how many kana were new and how many checked, the chart, how
+     * many of today's new kana have their second look later, whether another
+     * set is ready, and the word cards waiting next when Start studying began it.
+     */
+    data class Done(val learned: Int, val checked: Int, val chart: KanaChart, val later: Int, val more: Boolean, val cardsNext: Int) : KanaStep
+}
+
+/** The kana chart: every kana's stage, and today, to pick out the ones met today. */
+data class KanaChart(val state: KanaState, val today: Long)
 
 /** Past today's limit, a story that would add [adding] new words, before it opens. */
 data class LimitPrompt(
@@ -227,7 +283,7 @@ data class ReadImpact(
 /** The next chapter to read, and how to name it on the button. */
 data class NextStep(val storyId: Long, val label: String)
 
-enum class SetupPage { WELCOME, LEVEL, DIRECTION, REMINDER }
+enum class SetupPage { WELCOME, KANA, LEVEL, DIRECTION, REMINDER }
 
 sealed interface ImportStep {
     data class EnterKey(val error: String? = null) : ImportStep
@@ -295,6 +351,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val lookedUpWords: MutableSet<Long> = ConcurrentHashMap.newKeySet()
     // The chapter end page a review was started from, for closing it.
     private var reviewFrom: Screen.StoryReader? = null
+    // Kana practice: the sitting, whether word cards follow it, and the tab it was started from.
+    private var kanaSession: KanaSession? = null
+    private var kanaThenCards = false
+    private var kanaFromReviewTab = false
+    // The kana not clear yet as the review session began, for its cards' romaji.
+    private var reviewKana: KanaState? = null
 
     init {
         launchIo {
@@ -367,15 +429,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             is Screen.RenshuuImport -> closeImport()
             is Screen.StoryReader, is Screen.Series -> storyBack()
             is Screen.Setup -> setupBack()
+            is Screen.Kana -> closeKana()
             is Screen.StatsPage -> openReviewTab()
             else -> goHome()
         }
     }
 
-    fun startReview() = launchIo {
+    fun startReview() = launchIo { beginReview() }
+
+    private fun beginReview() {
         // From a chapter's end page, closing the review comes back to it.
         reviewFrom = (_screen.value as? Screen.StoryReader)?.takeIf { it.impact != null }
         session = repo.session(now())
+        reviewKana = repo.kanaState()
         undo = null
         advance()
     }
@@ -383,6 +449,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun studyMore() = launchIo {
         repo.studyMore(now())
         session = repo.session(now())
+        reviewKana = repo.kanaState()
         undo = null
         advance()
     }
@@ -406,8 +473,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         val mastery = repo.progress(card.wordId).mastery
         val mode = MasteryRules.furigana(mastery)
+        val kana = KanaCourse.unitsIn(word.kana).map { it.text }
+        val unclear = reviewKana?.unclear.orEmpty()
         _screen.value = Screen.Review(
-            current = ReviewCard(card, word, mode, mastery, kanji = repo.kanjiIn(word)),
+            current = ReviewCard(
+                card, word, mode, mastery, kanji = repo.kanjiIn(word),
+                romaji = Romaji.of(word.kana).takeIf { kana.any { it in unclear } },
+                romajiOnFront = reviewKana?.unread.orEmpty().let { unread -> kana.any { it in unread } },
+            ),
             revealed = false,
             furiganaVisible = mode == FuriganaMode.SHOWN,
             counts = counts,
@@ -463,7 +536,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             reminder = repo.reminder(),
             backupMessage = backupMessage,
             lastBackup = repo.lastBackup(),
+            kana = repo.kanaKnown(),
         )
+    }
+
+    /** Which kana you read already, from Settings: ones you read are never practised, and the rest are. */
+    fun setKanaKnown(known: KanaKnown) = launchIo {
+        repo.setKanaKnown(known)
+        refreshBadge()
+        _screen.update { if (it is Screen.Settings) it.copy(kana = known) else it }
     }
 
     /** Read at [level] from now on; raising it fills in that level's words and the easier ones. */
@@ -538,16 +619,137 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun editSetup(change: (Screen.Setup) -> Screen.Setup) = _screen.update { if (it is Screen.Setup) change(it) else it }
 
-    fun setupNext() = editSetup { s -> SetupPage.entries.getOrNull(s.page.ordinal + 1)?.let { s.copy(page = it) } ?: s }
+    fun setupNext() = editSetup { s -> s.pages.getOrNull(s.pages.indexOf(s.page) + 1)?.let { s.copy(page = it) } ?: s }
 
-    fun setupBack() = editSetup { s -> SetupPage.entries.getOrNull(s.page.ordinal - 1)?.let { s.copy(page = it) } ?: s }
+    fun setupBack() = editSetup { s -> s.pages.getOrNull(s.pages.indexOf(s.page) - 1)?.let { s.copy(page = it) } ?: s }
 
     fun finishSetup() = launchIo {
         val setup = _screen.value as? Screen.Setup ?: return@launchIo
         _screen.value = Screen.Loading
-        repo.finishSetup(setup.readLevel, setup.vertical, setup.reminderMinute, now())
+        repo.finishSetup(setup.readLevel, setup.kana, setup.vertical, setup.reminderMinute, now())
         DailyReminder.schedule(getApplication(), repo.reminder())
         showHome()
+    }
+
+    // ------------------------------------------------------------ kana
+
+    /** Start studying, on the Review tab: any kana due first, then the word cards. */
+    fun startStudy() = launchIo {
+        if ((repo.kanaCounts(now())?.due ?: 0) > 0) beginKana(thenCards = true) else beginReview()
+    }
+
+    /** Kana practice on its own, from Home's Next card. */
+    fun startKana() = launchIo { beginKana(thenCards = false) }
+
+    /** "5 more" at the end of kana practice: the next set, now. */
+    fun moreKana() = launchIo { beginKana(thenCards = kanaThenCards, more = true) }
+
+    private fun beginKana(thenCards: Boolean, more: Boolean = false) {
+        if (!more) kanaFromReviewTab = _screen.value is Screen.ReviewTab
+        kanaThenCards = thenCards
+        // Until the phone's speech engine says, assume it has a Japanese voice; it's started here, for the sounds.
+        val phone = voiceEngine?.state?.value
+        repo.hasJapaneseVoice = phone == null || !phone.ready || !phone.missing
+        if (voiceEngine == null) viewModelScope.launch { voice.state }
+        val s = repo.kanaSession(now(), more)
+        kanaSession = s
+        if (s.newSet.isEmpty()) return askKana()
+        val state = repo.kanaState()
+        val texts = s.newSet.map { it.text }
+        _screen.value = Screen.Kana(
+            KanaStep.Intro(s.newSet, repo.kanaExamples(texts), state.setNumber(texts.first()), state.sets.size),
+            s.newRemaining,
+            s.checkRemaining,
+        )
+    }
+
+    /** On from a new set's intro; with [know], "I know these": each is asked once, and quick and right is clear. */
+    fun practiseKana(know: Boolean = false) = launchIo {
+        if (know) kanaSession?.checkKnown()
+        askKana()
+    }
+
+    private fun askKana() {
+        val s = kanaSession ?: return showHome()
+        val q = s.next() ?: return kanaDone()
+        val fresh = s.newSet.any { it.text == q.unit.text }
+        _screen.value = Screen.Kana(KanaStep.Ask(q, now(), fresh), s.newRemaining, s.checkRemaining, kanaProgress(s))
+        // Asked by sound, the sound plays as the question opens.
+        if (q.listen) sayKana(q.unit.text)
+    }
+
+    private fun kanaProgress(s: KanaSession) = s.answered.toFloat() / (s.answered + s.asksLeft).coerceAtLeast(1)
+
+    /** Answer the open kana question with [choice]: timed from when it opened, and saved straight away. */
+    fun answerKana(choice: String) = launchIo {
+        val state = _screen.value as? Screen.Kana ?: return@launchIo
+        val ask = state.step as? KanaStep.Ask ?: return@launchIo
+        if (ask.result != null) return@launchIo
+        val s = kanaSession ?: return@launchIo
+        val at = now()
+        val millis = at - ask.shownAt
+        val result = s.answer(ask.question, choice, millis, at)
+        repo.saveKana(result, at, millis)
+        if (ask.fresh) repo.kanaSetStarted(at)
+        _screen.value = Screen.Kana(ask.copy(picked = choice, result = result), s.newRemaining, s.checkRemaining, kanaProgress(s))
+        if (result.correct) sayKanaAnswer(ask.question)
+    }
+
+    /** On from an answered question: a right one goes by itself, a wrong one on a tap. */
+    fun nextKana() = launchIo {
+        val ask = (_screen.value as? Screen.Kana)?.step as? KanaStep.Ask ?: return@launchIo
+        if (ask.result != null) askKana()
+    }
+
+    private fun kanaDone() {
+        val s = kanaSession ?: return showHome()
+        val at = now()
+        val state = repo.kanaState()
+        val today = repo.clock().dayOf(at)
+        val counts = state.counts(today, at)
+        val brought = s.newSet.map { it.text }.toSet()
+        val practised = s.practised
+        _screen.value = Screen.Kana(
+            KanaStep.Done(
+                learned = practised.count { it in brought },
+                checked = practised.count { it !in brought },
+                chart = KanaChart(state, today),
+                later = counts.later,
+                more = state.nextSet() != null,
+                cardsNext = if (kanaThenCards) repo.cardsDue(at) else 0,
+            ),
+            progress = 1f,
+        )
+    }
+
+    /** After kana practice started from Start studying: on to the word cards. */
+    fun kanaThenReview() = launchIo {
+        kanaSession = null
+        beginReview()
+    }
+
+    /** Leave kana practice: what's answered is saved already. */
+    fun closeKana() = launchIo {
+        kanaSession = null
+        if (kanaFromReviewTab) showReviewTab() else showHome()
+    }
+
+    /** A kana's sound: its recording, else the phone's voice. */
+    fun sayKana(text: String) {
+        viewModelScope.launch {
+            val clip = withContext(Dispatchers.IO) { repo.kanaClip(text) }
+            val rate = _speech.value.rate
+            if (clip == null) {
+                voice.say(text, rate) { voices -> Voices.narrator(voices, null) }
+            } else {
+                voice.play(KANA_KEY, 0, rate, single = true) { voices -> listOf(SpokenLine(text, Voices.narrator(voices, null), clip)) }
+            }
+        }
+    }
+
+    /** The sound of a right answer: the kana's, or for a mark, the word it's in. */
+    private fun sayKanaAnswer(question: KanaQuestion) {
+        if (question.unit.mark) viewModelScope.launch { voice.say(question.prompt, _speech.value.rate) { Voices.narrator(it, null) } } else sayKana(question.unit.text)
     }
 
     // ------------------------------------------------------------ stats
@@ -567,6 +769,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setReaderStyle(style: ReaderStyle) {
         _screen.update { if (it is Screen.StoryReader) it.copy(style = style) else it }
         launchIo { repo.setReaderStyle(style) }
+    }
+
+    /** The reader's settings menu opened: vertical text is no longer new. */
+    fun readerMenuOpened() {
+        val state = _screen.value as? Screen.StoryReader ?: return
+        if (!state.verticalNew) return
+        _screen.update { if (it is Screen.StoryReader) it.copy(verticalNew = false) else it }
+        launchIo { repo.markVerticalSeen() }
     }
 
     // ------------------------------------------------------------ renshuu import
@@ -789,6 +999,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val chapter = repo.chapterEntry(reading.story)
         _screen.value = Screen.StoryReader(
             reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage, startAt = startAt,
+            verticalNew = repo.verticalNew(),
         )
     }
 
@@ -967,14 +1178,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ------------------------------------------------------------ dictionary
 
     /** The Dictionary tab, filtered to [status], or with its Grammar list showing when [grammar]. */
-    fun openDictionary(status: StatusFilter = StatusFilter.ALL, grammar: Boolean = false) = launchIo {
+    fun openDictionary(status: StatusFilter = StatusFilter.ALL, grammar: Boolean = false, kana: Boolean = false) = launchIo {
         trail.clear()
         if (entries == null) {
             entries = repo.dictionary.entries()
             entryIds = entries!!.mapTo(HashSet()) { it.id }
         }
         statuses = repo.wordStatuses()
-        val state = Screen.Dictionary("", emptySet(), status, emptyList(), if (grammar) repo.grammarRows() else null)
+        val state = Screen.Dictionary("", emptySet(), status, emptyList(), if (grammar) repo.grammarRows() else null, if (kana) kanaChart() else null)
         _screen.value = state.copy(rows = rows(state))
     }
 
@@ -1016,8 +1227,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** The Dictionary tab's Grammar list in place of the words, or back to the words. */
     fun showGrammar(show: Boolean) = launchIo {
         val rows = if (show) repo.grammarRows() else null
-        _screen.update { if (it is Screen.Dictionary) it.copy(grammar = rows) else it }
+        _screen.update { if (it is Screen.Dictionary) it.copy(grammar = rows, kana = null) else it }
     }
+
+    /** The Dictionary tab's Kana chart in place of the words, or back to the words. */
+    fun showKana(show: Boolean) = launchIo {
+        val chart = if (show) kanaChart() else null
+        _screen.update { if (it is Screen.Dictionary) it.copy(kana = chart, grammar = null) else it }
+    }
+
+    private fun kanaChart() = KanaChart(repo.kanaState(), repo.clock().dayOf(now()))
 
     fun search(query: String) = filterDictionary(150) { it.copy(query = query) }
 
@@ -1108,5 +1327,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
         /** What's read when a grammar page plays a line from your stories: no story's id. */
         private const val STORY_LINE_KEY = -1L
+
+        /** What's played for a kana's sound. */
+        private const val KANA_KEY = -2L
     }
 }
