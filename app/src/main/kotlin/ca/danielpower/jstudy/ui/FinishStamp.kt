@@ -28,10 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,18 +63,19 @@ import kotlinx.coroutines.launch
 /**
  * The end of a story, on a page of its own after the text: an empty dashed
  * outline with "Finish" under it. Tapping it stamps a 読了 ("finished reading")
- * seal in vermilion, grained like the app icon and a little askew, then marks
- * the story read. For [vertical] text the seal stands upright.
+ * seal in vermilion, grained like the app icon and a little askew, and
+ * [onClick] marks the story read, showing the summary once the seal has been
+ * seen ([stampShown]). Once [stamped] it stays stamped. For [vertical] text
+ * the seal stands upright.
  */
 @Composable
-internal fun FinishStamp(vertical: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun FinishStamp(vertical: Boolean, stamped: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val seal = MaterialTheme.colorScheme.primary
     val context = LocalContext.current
     val view = LocalView.current
     val scope = rememberCoroutineScope()
-    // Milliseconds into the stamping, from 0 (just the outline) to STAMP_END.
-    val clock = remember { Animatable(0f) }
-    var stamped by remember { mutableStateOf(false) }
+    // Milliseconds into the stamping, from 0 (just the outline) to STAMP_END; already there if it was stamped before a rotation.
+    val clock = remember { Animatable(if (stamped) STAMP_END else 0f) }
     // A hand stamp never lands quite straight: 2 to 7 degrees either way.
     val tilt = remember { (2f + Random.nextFloat() * 5f) * if (Random.nextBoolean()) 1 else -1 }
     val presses = remember { MutableInteractionSource() }
@@ -85,21 +84,18 @@ internal fun FinishStamp(vertical: Boolean, onClick: () -> Unit, modifier: Modif
     Column(
         modifier
             .clickable(presses, indication = null, enabled = !stamped, onClickLabel = "Finish reading", role = Role.Button) {
-                stamped = true
+                // The finish itself happens outside this page, so leaving it while the seal lands can't undo it.
+                onClick()
                 scope.launch {
                     if (reduceMotion(context)) {
                         clock.snapTo(STAMP_END)
-                        delay(400)
                     } else {
                         launch { clock.animateTo(STAMP_END, tween(STAMP_END.toInt(), easing = LinearEasing)) }
                         delay(LAND.toLong())
                         view.performHapticFeedback(
                             if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY,
                         )
-                        // Long enough to see the stamp before the summary takes its place.
-                        delay(600 - LAND.toLong())
                     }
-                    onClick()
                 }
             }
             .padding(6.dp),
@@ -179,6 +175,9 @@ internal fun FinishStamp(vertical: Boolean, onClick: () -> Unit, modifier: Modif
 /** When the seal lands, in milliseconds after the tap; the ink ring fades by [STAMP_END]. */
 private const val LAND = 180f
 private const val STAMP_END = 500f
+
+/** How long after the tap the summary takes the stamp's place: long enough to see it, a little less with animations off. */
+internal fun stampShown(context: Context): Long = if (reduceMotion(context)) 400 else 600
 
 /** Falls slowly at first, then fast, like a hand bringing a stamp down. */
 private val DropEasing = CubicBezierEasing(0.5f, 0f, 0.9f, 0.6f)

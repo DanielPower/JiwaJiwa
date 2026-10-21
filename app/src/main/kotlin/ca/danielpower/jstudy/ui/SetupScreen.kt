@@ -416,10 +416,7 @@ private fun ColumnScope.ReminderPage(state: Screen.Setup, vm: AppViewModel) {
             SecondaryButton(onClick = { vm.editSetup { it.copy(reminderMinute = null) } }) { Text("No reminder") }
         }
     }
-    Help(
-        "You can change your level and the reminder later in Settings, and mark single " +
-            "words from the dictionary.",
-    )
+    Help("You can change the kana you know, your level and the reminder later in Settings.")
 }
 
 /** How [KanaKnown] reads on its chips. */

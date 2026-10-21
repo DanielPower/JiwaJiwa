@@ -223,8 +223,9 @@ Other features (all shipped):
   level don't back-fill the past), then "Recent": the week's new words from stories or marked known by hand (gold;
   imported and level-filled words stay out) and grammar topics
   (indigo) in one row, newest first, every topic kept (`Recent.pick`), with
-  a "N of M grammar" link to the Grammar list. A chapter left part way reopens on its page
-  (the `reader_place` value), unless the reader style has changed since.
+  a "N of M grammar" link to the Grammar list. A chapter left part way reopens on the page
+  with the first word of the page you left (the `reader_place` value), however the pages
+  fall now; the finish stamp's page is never saved as the place.
 - Renshuu import: takes the higher of the two masteries per word, skips
   suspended words, never stores the Renshuu key. Renshuu's `edict_ent` is
   the JMdict id, which is jstudy's word id. Entries without one (kana,

@@ -759,7 +759,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         Unit
     }
     val pageShown = { page: Int, pages: Int, first: Pair<Int, Int>? ->
-        vm.readerAt(page, pages)
+        vm.readerAt(page, pages, first)
         pageFirst = first
         // Turned by hand while stopped: play starts from the new page.
         if (!voice.playing) vm.forgetPlaybackPlace()
@@ -881,7 +881,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     startPage = state.startPage,
                     onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
-                    startAt = state.startAt,
+                    startAt = state.startAt ?: state.resumeAt,
                 )
             } else {
                 HorizontalStory(
@@ -902,7 +902,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     startPage = state.startPage,
                     onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
-                    startAt = state.startAt,
+                    startAt = state.startAt ?: state.resumeAt,
                 )
             }
             if (state.impact == null) {
@@ -1370,8 +1370,9 @@ private const val STORY_LINE_SIZE = 20f
  * puts the next page on the left. It opens on [startPage], and tells
  * [onPageShown] each page it settles on, so a story can reopen where you were.
  * The last page is the [FinishStamp], on its own so it isn't tapped by
- * mistake while reading; [page] draws the others. The page before it has a
- * "Finish" link by the page number that turns to it, since its text may not
+ * mistake while reading; [page] draws the others. Once it's stamped the
+ * pages stay put until the summary takes their place. The page before it has
+ * a "Finish" link by the page number that turns to it, since its text may not
  * fill the page and so not show there's more.
  */
 @Composable
@@ -1387,15 +1388,27 @@ internal fun StoryPager(
     val state = rememberPagerState(startPage.coerceIn(0, (count - 1).coerceAtLeast(0))) { count }
     val scope = rememberCoroutineScope()
     val shown by rememberUpdatedState(onPageShown)
+    var stamped by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state) { snapshotFlow { state.settledPage }.collect { shown(it) } }
     // Reading aloud turns the page when it reaches the next one.
     LaunchedEffect(followPage) {
         if (followPage != null && followPage != state.currentPage) state.animateScrollToPage(followPage)
     }
     Column(Modifier.fillMaxSize()) {
-        HorizontalPager(state, Modifier.weight(1f).fillMaxWidth(), reverseLayout = reverse, verticalAlignment = Alignment.Top) {
+        HorizontalPager(
+            state,
+            Modifier.weight(1f).fillMaxWidth(),
+            reverseLayout = reverse,
+            verticalAlignment = Alignment.Top,
+            userScrollEnabled = !stamped,
+        ) {
             if (it == count - 1) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { FinishStamp(vertical = reverse, onClick = onFinish) }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    FinishStamp(vertical = reverse, stamped = stamped, onClick = {
+                        stamped = true
+                        onFinish()
+                    })
+                }
             } else {
                 page(it)
             }
