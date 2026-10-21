@@ -1430,13 +1430,6 @@ internal fun StoryPager(
     }
 }
 
-private fun StoryReading.isKnown(id: Long?): Boolean {
-    val s = id?.let { statuses[it] } ?: return false
-    return s.state != CardState.NEW || s.suspended
-}
-
-internal fun StoryReading.isUnknown(word: ReadingWord) = word.kind == WordKind.WORD && !isKnown(word.wordId)
-
 /** Furigana follows each word's mastery, as on cards; new words and names always have it. */
 internal fun StoryReading.showsRuby(word: ReadingWord): Boolean {
     val mastery = word.wordId?.let { statuses[it]?.mastery } ?: 0
