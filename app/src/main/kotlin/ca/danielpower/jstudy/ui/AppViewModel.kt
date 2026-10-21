@@ -235,6 +235,8 @@ sealed interface Screen {
         val startPage: Int = 0,
         /** Or a word to open on the page of, with its sentence shown: from a word's page. */
         val startAt: Pair<Int, Int>? = null,
+        /** Or the first word of the page you left the chapter on, to open on the page that has it now. */
+        val resumeAt: Pair<Int, Int>? = null,
         /** Words you said you forgot: each gets a Wrong review when you finish. */
         val forgotten: Set<Long> = emptySet(),
         /** Words the finished story started that you said you already know. */
@@ -357,8 +359,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var session: StudySession? = null
     // Where Back goes from a grammar page: the screen it was opened from.
     private var beforeGrammar: Screen? = null
-    // The page the open story is on, set from the main thread.
+    // The page the open story is on, and its first word, set from the main thread.
     @Volatile private var readerPage = 0
+    @Volatile private var readerFirst: Pair<Int, Int>? = null
     private var undo: Undo? = null
     private val lock = Mutex()
 
@@ -430,6 +433,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun goHome() = launchIo { showHome() }
+
+    /**
+     * Back in the app: counts change with the clock (cards fall due, the day rolls over at 4am), so a
+     * tab shows them afresh, and the Review badge with it. A review, a chapter or kana practice is left as it is.
+     */
+    fun onResume() = launchIo {
+        when (val screen = _screen.value) {
+            is Screen.Home -> showHome()
+            is Screen.ReviewTab -> showReviewTab()
+            // Unless a locked story's sheet is open over it.
+            is Screen.Stories -> if (screen.lock == null) showStories() else refreshBadge()
+            is Screen.Series, is Screen.Dictionary -> refreshBadge()
+            else -> {}
+        }
+    }
 
     /** Leave a review: back to the chapter end page it started from, else Home. */
     fun closeReview() = launchIo {
@@ -612,11 +630,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val message = try {
             val input = getApplication<Application>().contentResolver.openInputStream(uri) ?: error("no stream")
             input.use { repo.importBackup(it) }
-            // Everything cached came from the old progress.
-            session = null
-            undo = null
-            statuses = emptyMap()
-            lastDictionary = null
+            forgetProgress()
             DailyReminder.schedule(getApplication(), repo.reminder())
             "Backup restored."
         } catch (e: BackupException) {
@@ -625,6 +639,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             "Couldn't restore the backup: ${e.message}"
         }
         showSettings(message)
+    }
+
+    /** After a restore or reset: everything kept here came from the old progress. */
+    private fun forgetProgress() {
+        session = null
+        undo = null
+        statuses = emptyMap()
+        lastDictionary = null
+        // Back from the screens these lead to would show the old progress.
+        trail.clear()
+        reviewFrom = null
+        beforeGrammar = null
+        kanaSession = null
+        kanaThenCards = false
+        kanaFromReviewTab = false
+        reviewKana = null
+        _speech.value = repo.speechSettings()
     }
 
     // ------------------------------------------------------------ reset
@@ -636,12 +667,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         launchIo {
             _screen.value = Screen.Loading
             repo.resetAll()
-            session = null
-            undo = null
+            forgetProgress()
             entries = null
             entryIds = emptySet()
-            statuses = emptyMap()
-            lastDictionary = null
             display.edit().clear().commit()
             _theme.value = ThemeMode.AUTO
             DailyReminder.schedule(getApplication(), repo.reminder())
@@ -842,7 +870,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setReaderStyle(style: ReaderStyle) {
-        _screen.update { if (it is Screen.StoryReader) it.copy(style = style) else it }
+        // Turned the other way, the text opens again on the page with the word you were at.
+        val first = readerFirst
+        _screen.update {
+            when {
+                it is Screen.StoryReader && first != null -> it.copy(style = style, startAt = null, resumeAt = first)
+                it is Screen.StoryReader -> it.copy(style = style)
+                else -> it
+            }
+        }
         launchIo { repo.setReaderStyle(style) }
     }
 
@@ -1041,17 +1077,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun openGrammar(pageId: Long) = launchIo {
         val screen = _screen.value
         if (screen !is Screen.StoryReader || screen.reading.lesson == null) {
-            beforeGrammar = if (screen is Screen.StoryReader) screen.copy(startPage = readerPage, startAt = null) else screen
+            beforeGrammar = if (screen is Screen.StoryReader) screen.copy(startPage = readerPage, startAt = null, resumeAt = null) else screen
         }
         showStory(pageId)
     }
 
-    /** The page the open story has settled on; for an unfinished chapter, kept so Home can come back to it. */
-    fun readerAt(page: Int, pages: Int) {
+    /**
+     * The page the open story has settled on, of [pages] counting the finish stamp's, and its [first] word
+     * (none on the stamp's page). For an unfinished chapter it's kept, so Home can come back to it.
+     */
+    fun readerAt(page: Int, pages: Int, first: Pair<Int, Int>?) {
         readerPage = page
+        readerFirst = first
         val state = _screen.value as? Screen.StoryReader ?: return
         if (state.reading.lesson != null || state.impact != null || state.reading.story.readAt != null) return
-        val place = ReaderPlace(state.reading.story.id, page, pages, state.style.toString())
+        // The stamp's page isn't a place to come back to: the last page of text, seen just before it, is.
+        if (first == null) return
+        val place = ReaderPlace(state.reading.story.id, page, pages - 1, first)
         viewModelScope.launch(Dispatchers.IO) { repo.saveReaderPlace(place) }
     }
 
@@ -1067,18 +1109,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val reading = repo.readStory(id) ?: return showStories()
         val style = repo.readerStyle()
         var startPage = 0
+        var resumeAt: Pair<Int, Int>? = null
+        readerFirst = null
         if (reading.lesson == null) {
             readingFinished = false
             masteryAtOpen = repo.masteries(reading.words.keys)
             lookedUpWords.clear()
-            // Back where you left it, unless the pages have been laid out differently since.
-            startPage = repo.readerPlace()?.takeIf { it.storyId == id && it.style == style.toString() }?.page ?: 0
+            // Back on the page with the word you'd got to, however the pages are laid out now.
+            // A place saved before words were kept has only its page.
+            val place = repo.readerPlace()?.takeIf { it.storyId == id }
+            resumeAt = place?.at
+            startPage = place?.takeIf { it.at == null }?.page ?: 0
             readerPage = startPage
         }
         val chapter = repo.chapterEntry(reading.story)
         _screen.value = Screen.StoryReader(
             reading, style, chapter = chapter, next = chapter?.let(::nextStep), then = then, startPage = startPage, startAt = startAt,
-            verticalNew = repo.verticalNew(),
+            resumeAt = resumeAt, verticalNew = repo.verticalNew(),
         )
         getClips(reading)
     }
@@ -1112,10 +1159,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return NextStep(next.story.id, "Next story: ${other.series.title}")
     }
 
-    /** The finish stamp at the end of the text marks the story read, timed from when it was opened, and shows the summary. */
-    fun finishStory() = launchIo {
-        val state = _screen.value as? Screen.StoryReader ?: return@launchIo
-        if (readingFinished) return@launchIo
+    /**
+     * The finish stamp at the end of the text marks the story read, timed from when it was opened. It's saved
+     * straight away, so leaving while the stamp lands still finishes it; the summary follows once the stamp's been seen.
+     */
+    fun finishStory() {
+        val summaryAt = now() + stampShown(getApplication())
+        launchIo { finish(summaryAt) }
+    }
+
+    private fun finish(summaryAt: Long) {
+        val state = _screen.value as? Screen.StoryReader ?: return
+        if (readingFinished) return
         readingFinished = true
         val at = now()
         val story = state.reading.story
@@ -1140,9 +1195,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             NextStep(it.story.id, "Next: $name · nothing new")
         }
         val pace = repo.pace(at)
-        _screen.update { if (it is Screen.StoryReader) it.copy(impact = impact, pace = pace, rest = rest) else it }
-        refreshStory()
-        prefetchClips((_screen.value as? Screen.StoryReader)?.next)
+        viewModelScope.launch {
+            delay(summaryAt - now())
+            launchIo {
+                // Unless you've left it by now.
+                val open = _screen.value as? Screen.StoryReader
+                if (open == null || open.reading.story.id != story.id || open.impact != null) return@launchIo
+                _screen.value = open.copy(impact = impact, pace = pace, rest = rest)
+                refreshStory()
+                prefetchClips(open.next)
+            }
+        }
     }
 
     /** "Read it again" on a story's end page: it opens again on its first page. */
@@ -1343,7 +1406,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         when (val current = _screen.value) {
             is Screen.Dictionary -> lastDictionary = current
             // A story comes back on the page you were reading.
-            is Screen.StoryReader -> trail.addLast(current.copy(startPage = readerPage, startAt = null))
+            is Screen.StoryReader -> trail.addLast(current.copy(startPage = readerPage, startAt = null, resumeAt = null))
             // Anywhere else (Home's Recent words, a kanji page) is where Back returns.
             else -> trail.addLast(current)
         }
