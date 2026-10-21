@@ -44,6 +44,6 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         // Counts and due cards change with the clock, e.g. after the day rolls over.
-        if (vm.screen.value is Screen.Home) vm.goHome()
+        vm.onResume()
     }
 }

@@ -131,8 +131,11 @@ sealed interface RecentItem {
     data class NewGrammar(val topic: GrammarTopic, val pageId: Long) : RecentItem
 }
 
-/** Where you left a chapter: its page and how many it has, in the reader style the pages were laid out with. */
-data class ReaderPlace(val storyId: Long, val page: Int, val pages: Int, val style: String)
+/**
+ * Where you left a chapter: the page and how many pages of text it had then, for Home, and the first
+ * word on that page ([at], by paragraph and index), so it reopens there however the pages fall now.
+ */
+data class ReaderPlace(val storyId: Long, val page: Int, val pages: Int, val at: Pair<Int, Int>?)
 
 data class WordDetail(
     val word: Word,
@@ -1262,23 +1265,32 @@ class Repository private constructor(context: Context) {
     /** When a backup was last saved, if ever. */
     fun lastBackup(): Long? = backups.getLong("last_saved", 0).takeIf { it > 0 }
 
+    // Held while a restore or reset swaps the progress database, and by the reminder's receivers,
+    // which don't go through the app's own lock, so they never read it closed or half-copied.
+    private val swapping = Any()
+
+    /** [block], once no restore or reset is swapping the progress database: for the reminder's receivers. */
+    fun <T> settled(block: () -> T): T = synchronized(swapping) { block() }
+
     /** Replace all progress with a backup. The file is checked before anything is replaced. */
     fun importBackup(input: InputStream) {
         val incoming = File(appContext.cacheDir, "import.db")
         try {
             incoming.outputStream().use { input.copyTo(it) }
             checkBackup(incoming)
-            store.close()
-            val target = appContext.getDatabasePath(ProgressStore.NAME)
-            for (suffix in listOf("-wal", "-shm", "-journal")) File(target.path + suffix).delete()
-            incoming.copyTo(target, overwrite = true)
+            synchronized(swapping) {
+                store.close()
+                val target = appContext.getDatabasePath(ProgressStore.NAME)
+                for (suffix in listOf("-wal", "-shm", "-journal")) File(target.path + suffix).delete()
+                incoming.copyTo(target, overwrite = true)
+                // The backup's chapters may be older than the app's.
+                pathSynced = false
+                // The next query reopens the database, upgrading an older backup's schema.
+                store.count("SELECT COUNT(*) FROM card")
+            }
         } finally {
             incoming.delete()
         }
-        // The backup's chapters may be older than the app's.
-        pathSynced = false
-        // The next query reopens the database, upgrading an older backup's schema.
-        store.count("SELECT COUNT(*) FROM card")
     }
 
     private fun checkBackup(file: File) {
@@ -1308,11 +1320,13 @@ class Repository private constructor(context: Context) {
      * app starts again at first-run setup.
      */
     fun resetAll() {
-        store.close()
-        val target = appContext.getDatabasePath(ProgressStore.NAME)
-        SQLiteDatabase.deleteDatabase(target)
-        pathSynced = false
-        store.count("SELECT COUNT(*) FROM card")
+        synchronized(swapping) {
+            store.close()
+            val target = appContext.getDatabasePath(ProgressStore.NAME)
+            SQLiteDatabase.deleteDatabase(target)
+            pathSynced = false
+            store.count("SELECT COUNT(*) FROM card")
+        }
     }
 
     // ------------------------------------------------------------ reminder
@@ -1482,17 +1496,23 @@ class Repository private constructor(context: Context) {
         kana.done && store.getValue("kana_clear_day")?.toLongOrNull() == today
 
     fun readerPlace(): ReaderPlace? {
-        val parts = store.getValue("reader_place")?.split(':', limit = 4) ?: return null
-        if (parts.size < 4) return null
+        val parts = store.getValue("reader_place")?.split(':') ?: return null
+        if (parts.size < 3) return null
+        // One saved before the first word was (with the reader style in its place) has only its page.
+        val p = parts.getOrNull(3)?.toIntOrNull()
+        val i = parts.getOrNull(4)?.toIntOrNull()
         return ReaderPlace(
             parts[0].toLongOrNull() ?: return null,
             parts[1].toIntOrNull() ?: return null,
             parts[2].toIntOrNull() ?: return null,
-            parts[3],
+            if (p != null && i != null) p to i else null,
         )
     }
 
-    fun saveReaderPlace(place: ReaderPlace) = store.setValues(mapOf("reader_place" to "${place.storyId}:${place.page}:${place.pages}:${place.style}"))
+    fun saveReaderPlace(place: ReaderPlace) {
+        val at = place.at?.let { (p, i) -> ":$p:$i" } ?: ""
+        store.setValues(mapOf("reader_place" to "${place.storyId}:${place.page}:${place.pages}$at"))
+    }
 
     fun clearReaderPlace() = store.deleteValue("reader_place")
 

@@ -69,11 +69,11 @@ object DailyReminder {
     /** Post the reminder if anything's left in the day's plan, then set tomorrow's alarm. */
     internal fun fire(context: Context) {
         val repo = Repository.get(context)
-        val reminder = repo.reminder()
+        val reminder = repo.settled { repo.reminder() }
         schedule(context, reminder)
         if (reminder.time == null || !canNotify(context)) return
         val now = System.currentTimeMillis()
-        val text = text(repo.todayPlan(now), repo.summary(now).streak) ?: return
+        val text = repo.settled { text(repo.todayPlan(now), repo.summary(now).streak) } ?: return
         post(context, text)
     }
 
@@ -151,7 +151,8 @@ class ReminderRescheduler : BroadcastReceiver() {
         val result = goAsync()
         thread {
             try {
-                DailyReminder.schedule(context.applicationContext, Repository.get(context).reminder())
+                val repo = Repository.get(context)
+                DailyReminder.schedule(context.applicationContext, repo.settled { repo.reminder() })
             } finally {
                 result.finish()
             }
