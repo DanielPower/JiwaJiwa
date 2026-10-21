@@ -7,8 +7,11 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-// CI passes the run number so every release installs over the previous one.
+// release.yml sets the version (APP_VERSION_CODE keeps rising past every upload to
+// Play); other builds go by their run number.
 val buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInt()
+val appVersionCode = System.getenv("APP_VERSION_CODE")?.takeIf { it.isNotBlank() }?.toInt() ?: buildNumber
+val appVersionName = System.getenv("APP_VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "0.1.$buildNumber"
 
 // Release signing comes from repository secrets (see "Release signing" in the
 // README). Without them the release is signed with the debug key.
@@ -27,8 +30,8 @@ android {
         applicationId = "com.crispyumbrella.jiwajiwa"
         minSdk = 26
         targetSdk = 36
-        versionCode = buildNumber
-        versionName = "0.1.$buildNumber"
+        versionCode = appVersionCode
+        versionName = appVersionName
         // Where the stories' recordings are downloaded from (the Spaces bucket's CDN), set by CI.
         // Without it the app reads stories in the phone's voice.
         buildConfigField("String", "AUDIO_URL", "\"${System.getenv("AUDIO_URL").orEmpty()}\"")
@@ -124,7 +127,6 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
 
-    implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")

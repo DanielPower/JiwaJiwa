@@ -671,7 +671,6 @@ fun LimitSheet(prompt: LimitPrompt, vm: AppViewModel) {
 
 // ------------------------------------------------------------------ reader
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
     val reading = state.reading
@@ -763,7 +762,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         Unit
     }
     val pageShown = { page: Int, pages: Int, first: Pair<Int, Int>? ->
-        vm.readerAt(page, pages)
+        vm.readerAt(page, pages, first)
         pageFirst = first
         // Turned by hand while stopped: play starts from the new page.
         if (!voice.playing) vm.forgetPlaybackPlace()
@@ -905,7 +904,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     startPage = state.startPage,
                     onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
-                    startAt = state.startAt,
+                    startAt = state.startAt ?: state.resumeAt,
                 )
             } else {
                 HorizontalStory(
@@ -926,7 +925,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                     startPage = state.startPage,
                     onPageShown = pageShown,
                     modifier = Modifier.weight(1f).fillMaxWidth().then(tapToClear),
-                    startAt = state.startAt,
+                    startAt = state.startAt ?: state.resumeAt,
                 )
             }
             if (state.impact == null) {
@@ -1064,8 +1063,8 @@ private fun HorizontalStory(
     // Words measured as StoryWord draws them: each piece as wide as its text or its furigana, shown or not.
     val rubySize = size * RUBY_RATIO
     // A note's marker, with a little room before it, ends its paragraph and never starts a line.
-    val markerWidth = remember(density, size, family) {
-        val style = TextStyle(fontSize = (size * MARKER_RATIO).sp, fontFamily = family, fontWeight = FontWeight.Bold)
+    val markerWidth = remember(density, size) {
+        val style = TextStyle(fontSize = (size * MARKER_RATIO).sp, fontFamily = Gothic, fontWeight = FontWeight.Bold)
         measurer.measure("注", style, softWrap = false).size.width + with(density) { (MARKER_PADDING * 2 + MARKER_BORDER * 2).toPx() + (size * 0.4f).sp.toPx() }
     }
     val flows = remember(reading, density, size, family) {
@@ -1148,7 +1147,6 @@ private fun HorizontalStory(
                                 // Past the paragraph's words: its note's marker.
                                 NoteMarker(
                                     textSize = size.sp,
-                                    family = family,
                                     open = openNote == p,
                                     onClick = { onNote(p) },
                                     modifier = Modifier.width(with(density) { markerWidth.toDp() }).height(with(density) { (size * 1.5f).sp.toDp() }),
@@ -1394,8 +1392,9 @@ private const val STORY_LINE_SIZE = 20f
  * puts the next page on the left. It opens on [startPage], and tells
  * [onPageShown] each page it settles on, so a story can reopen where you were.
  * The last page is the [FinishStamp], on its own so it isn't tapped by
- * mistake while reading; [page] draws the others. The page before it has a
- * "Finish" link by the page number that turns to it, since its text may not
+ * mistake while reading; [page] draws the others. Once it's stamped the
+ * pages stay put until the summary takes their place. The page before it has
+ * a "Finish" link by the page number that turns to it, since its text may not
  * fill the page and so not show there's more.
  */
 @Composable
@@ -1411,15 +1410,27 @@ internal fun StoryPager(
     val state = rememberPagerState(startPage.coerceIn(0, (count - 1).coerceAtLeast(0))) { count }
     val scope = rememberCoroutineScope()
     val shown by rememberUpdatedState(onPageShown)
+    var stamped by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state) { snapshotFlow { state.settledPage }.collect { shown(it) } }
     // Reading aloud turns the page when it reaches the next one.
     LaunchedEffect(followPage) {
         if (followPage != null && followPage != state.currentPage) state.animateScrollToPage(followPage)
     }
     Column(Modifier.fillMaxSize()) {
-        HorizontalPager(state, Modifier.weight(1f).fillMaxWidth(), reverseLayout = reverse, verticalAlignment = Alignment.Top) {
+        HorizontalPager(
+            state,
+            Modifier.weight(1f).fillMaxWidth(),
+            reverseLayout = reverse,
+            verticalAlignment = Alignment.Top,
+            userScrollEnabled = !stamped,
+        ) {
             if (it == count - 1) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { FinishStamp(vertical = reverse, onClick = onFinish) }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    FinishStamp(vertical = reverse, stamped = stamped, onClick = {
+                        stamped = true
+                        onFinish()
+                    })
+                }
             } else {
                 page(it)
             }
@@ -1533,7 +1544,6 @@ private data class Opened(val p: Int, val i: Int, val sentence: Boolean) {
     val key get() = p to i
 }
 
-/** The title, its words tappable like the story's, in [style]'s size and weight. */
 /**
  * A tap opens a word in the pane, or closes the pane on a word with nothing
  * to show; a long press opens the word's sentence. No ripple: vertical text
@@ -1559,7 +1569,6 @@ private fun StoryWord(
     size: TextUnit,
     rubySize: TextUnit,
     family: FontFamily,
-    weight: FontWeight? = null,
     /** Its characters that are the grammar the chapter teaches, drawn and underlined in indigo. */
     newGrammar: IntRange? = null,
 ) {
@@ -1609,7 +1618,6 @@ private fun StoryWord(
                         fontSize = size,
                         lineHeight = size * 1.5f,
                         fontFamily = family,
-                        fontWeight = weight,
                         softWrap = false,
                         color = color,
                         textDecoration = if (unknown) TextDecoration.Underline else null,
@@ -1764,7 +1772,7 @@ private fun NoteCard(text: String) {
  * which is all tappable, and is shaded while its note is open.
  */
 @Composable
-internal fun NoteMarker(textSize: TextUnit, family: FontFamily, open: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun NoteMarker(textSize: TextUnit, open: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val indigo = MaterialTheme.colorScheme.secondary
     val shape = RoundedCornerShape(3.dp)
     Box(modifier.clickable(interactionSource = null, indication = null, onClickLabel = "Show note", onClick = onClick), contentAlignment = Alignment.Center) {
@@ -1772,7 +1780,7 @@ internal fun NoteMarker(textSize: TextUnit, family: FontFamily, open: Boolean, o
             "注",
             fontSize = textSize * MARKER_RATIO,
             lineHeight = textSize * MARKER_RATIO * 1.25f,
-            fontFamily = family,
+            fontFamily = Gothic,
             fontWeight = FontWeight.Bold,
             color = indigo,
             softWrap = false,

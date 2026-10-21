@@ -192,7 +192,6 @@ fun VerticalStory(
                             Box {
                                 NoteMarker(
                                     textSize = size.sp,
-                                    family = family,
                                     open = openNote == piece.p,
                                     onClick = { onNote(piece.p) },
                                     modifier = Modifier.size(cellDp),
