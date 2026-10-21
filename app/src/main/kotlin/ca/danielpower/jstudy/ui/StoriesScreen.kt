@@ -99,7 +99,9 @@ import ca.danielpower.jstudy.core.LessonBlock
 import ca.danielpower.jstudy.core.LessonPiece
 import ca.danielpower.jstudy.core.Lessons
 import ca.danielpower.jstudy.core.HorizontalText
+import ca.danielpower.jstudy.core.Kana
 import ca.danielpower.jstudy.core.KanaCourse
+import ca.danielpower.jstudy.core.Kanjis
 import ca.danielpower.jstudy.core.Romaji
 import ca.danielpower.jstudy.core.RubyPiece
 import ca.danielpower.jstudy.core.romajiPieces
@@ -726,12 +728,14 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         // Looking a word up means reading it doesn't count towards its mastery.
         val id = reading.word(key.first, key.second)?.takeIf { it.kind == WordKind.WORD }?.wordId
         if (id != null) vm.lookedUp(id)
+        vm.readerGesture(held = false)
     }
     val hold = { key: Pair<Int, Int> ->
         menu = false
         note = null
         audio = false
         open = Opened(key.first, key.second, sentence = true)
+        vm.readerGesture(held = true)
     }
     val tapNote = { p: Int ->
         menu = false
@@ -772,8 +776,10 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             WashiIconButton(WashiIcons.Back, "Back", vm::storyBackPressed)
             Box(Modifier.weight(1f)) {
-                // A chapter's English title, or a grammar page's pattern, isn't read like the story.
-                Text(reading.story.title, style = MaterialTheme.typography.headlineSmall, fontFamily = if (reading.lesson != null) Gothic else null)
+                // A chapter's English title, or a grammar page's pattern, isn't read like the story;
+                // a pattern has its sound after it while a kana in it hasn't been practised.
+                val title = if (reading.lesson == null) AnnotatedString(reading.story.title) else patternName(reading.story.title, patternRomaji(reading.story.title, reading.unreadKana))
+                Text(title, style = MaterialTheme.typography.headlineSmall, fontFamily = if (reading.lesson != null) Gothic else null)
             }
             CompositionLocalProvider(LocalContentColor provides if (menu) MaterialTheme.colorScheme.primary else LocalContentColor.current) {
                 Box {
@@ -803,20 +809,38 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
                 menu -> ReaderMenu(style, vm::setReaderStyle, direction = reading.verticalAllowed, directionNew = directionNew)
                 audio -> AudioMenu(speech, voice.missing && reading.clips.all { it == null }, vm::setSpeechRate)
                 n != null -> NoteCard(n)
-                o == null -> Text(
-                    // A chapter that teaches a topic says what's in indigo; the rest say how the pane works.
-                    reading.teaches?.let { topic ->
-                        buildAnnotatedString {
-                            append("New in this chapter: ")
-                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) { append(topic.page.title) }
-                            append(", shown in blue.")
-                        }
-                    } ?: AnnotatedString("Tap a word to see what it means. Hold one to read its sentence in English."),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
-                )
+                o == null -> Column(
+                    Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    val topic = reading.teaches
+                    // How the pane works; in a chapter that teaches a topic, until you've tapped a word and held one.
+                    if (topic == null || !(state.hasTapped && state.hasHeld)) {
+                        Text(
+                            "Tap a word to see what it means. Hold one to read its sentence in English.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                    // A chapter that teaches a topic says what's in indigo.
+                    if (topic != null) {
+                        Text(
+                            buildAnnotatedString {
+                                append("New in this chapter: ")
+                                withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) { append(topic.page.title) }
+                                patternRomaji(topic.page.title, reading.unclearKana)?.let {
+                                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary)) { append(" ($it)") }
+                                }
+                                append(", shown in blue.")
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
                 o.sentence -> {
                     // Its own line of the narration, when it has something to say and something to say it with.
                     val sentenceLine = reading.narration.indexOfFirst { it.p == o.p && o.i in it.words }
@@ -1448,9 +1472,38 @@ internal fun StoryReading.speakerRomaji(p: Int): String? =
     speakers.getOrNull(p)?.takeIf { name -> KanaCourse.unitsIn(name).any { it.text in unreadKana } }?.let { Romaji.of(it) }
 
 /** [kana] in romaji a sound at a time, tsu · i · ni, while it has a kana that isn't clear yet. */
-internal fun StoryReading.paneRomaji(kana: String): String? =
-    kana.takeIf { k -> KanaCourse.unitsIn(k).any { it.text in unclearKana } }
-        ?.let { k -> Romaji.split(k).mapNotNull { it.second }.joinToString(" · ") }
+internal fun StoryReading.paneRomaji(kana: String): String? = if (unclear(kana)) sounds(kana) else null
+
+/**
+ * The pane's romaji for [word], whose dictionary form is [kana]: as
+ * [paneRomaji], and for a changed form both, ku · ru → ki · ta, while either
+ * has a kana that isn't clear, so the ki over the text meets the ku of the title.
+ */
+internal fun StoryReading.paneRomaji(kana: String, word: ReadingWord): String? {
+    val form = word.reading.takeIf { word.conjugated && it != Kana.toHiragana(kana) } ?: return paneRomaji(kana)
+    return if (unclear(kana) || unclear(form)) sounds(kana) + " → " + sounds(form) else null
+}
+
+private fun StoryReading.unclear(kana: String) = KanaCourse.unitsIn(kana).any { it.text in unclearKana }
+
+private fun sounds(kana: String) = Romaji.split(kana).mapNotNull { it.second }.joinToString(" · ")
+
+/** A grammar pattern's sound, ta for ～た, while it has a kana in [kana]; none for one with kanji ([Romaji.pattern]). */
+internal fun patternRomaji(pattern: String, kana: Set<String>): String? =
+    pattern.takeIf { p -> KanaCourse.unitsIn(p).any { it.text in kana } }?.let { Romaji.pattern(it) }
+
+/** [pattern] with its [romaji] after it, small and indigo like the grammar it names: ～た ta. */
+@Composable
+internal fun patternName(pattern: String, romaji: String?): AnnotatedString = buildAnnotatedString {
+    append(pattern)
+    if (romaji != null) {
+        withStyle(MaterialTheme.typography.labelLarge.toSpanStyle().copy(color = MaterialTheme.colorScheme.secondary)) { append(" $romaji") }
+    }
+}
+
+/** [point]'s pattern as the pane names it, with its sound while a kana in it isn't clear. */
+@Composable
+private fun StoryReading.paneName(point: GrammarPoint): AnnotatedString = patternName(point.pattern, patternRomaji(point.pattern, unclearKana))
 
 internal fun ReadingWord.tappable() = kind == WordKind.WORD || kind == WordKind.NAME || grammar.isNotEmpty()
 
@@ -1763,14 +1816,19 @@ private fun WordCard(
     // The topic's page, unless that's the page you're on.
     fun lessonFor(point: GrammarPoint): (() -> Unit)? = reading.lessons[point.id]?.takeIf { it != reading.story.id }?.let { id -> { onLesson(id) } }
     var followed by remember { mutableStateOf<GrammarPoint?>(null) }
-    val title = if (grammarOnly) word.surface else entry?.display ?: word.lemma
+    // As the story writes it: a word written in kana is titled in kana (ついに, not 遂に), and its kanji wait on its full entry.
+    val title = when {
+        grammarOnly -> word.surface
+        entry != null && word.surface.none(Kanjis::isKanji) -> word.lemma.takeIf { it.none(Kanjis::isKanji) } ?: entry.kana
+        else -> entry?.display ?: word.lemma
+    }
     followed?.let { point ->
         BackHandler { followed = null }
-        GrammarCard(point, back = title, onBack = { followed = null }, onLesson = lessonFor(point))
+        GrammarCard(point, reading, back = title, onBack = { followed = null }, onLesson = lessonFor(point))
         return
     }
     if (grammarOnly && points.isNotEmpty()) {
-        ParticleCard(points, ::lessonFor)
+        ParticleCard(word, points, reading, ::lessonFor)
         return
     }
     // Always from the top, so the title line and its buttons sit in the same place for every word.
@@ -1782,7 +1840,7 @@ private fun WordCard(
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f, fill = false))
                 val kana = entry?.kana ?: word.reading
-                if (!grammarOnly && kana != title) {
+                if (!grammarOnly && Kana.toHiragana(kana) != Kana.toHiragana(title)) {
                     Text(kana, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 // A particle on its own isn't said as it is in a sentence (は is wa), so it has no button.
@@ -1800,14 +1858,14 @@ private fun WordCard(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             // While a kana in it isn't clear, its sounds: the answer to a kana you're learning, a tap away.
-            if (!grammarOnly) reading.paneRomaji(entry?.kana ?: word.reading)?.let {
+            if (!grammarOnly) reading.paneRomaji(entry?.kana ?: word.reading, word)?.let {
                 Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (!grammarOnly && points.isNotEmpty()) {
                 GrammarLinks(word, title, points, onOpen = { followed = it })
             } else if (word.conjugated) {
                 Text(
-                    "${word.surface}: ${word.conjugation.joinToString(", ")}",
+                    "${word.surface}: ${word.conjugation.joinToString(", ")}" + word.form?.let { "  ·  $it" }.orEmpty(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary,
                 )
@@ -1859,17 +1917,18 @@ private fun WordCard(
 
 /**
  * A particle or ending's card: its grammar points, the first in the title's
- * place. What you tapped is already marked in the text, so it isn't repeated.
+ * place. What you tapped is already marked in the text, so it isn't repeated,
+ * except a form of the title's (だ → だった), which first says what it is.
  */
 @Composable
-private fun ParticleCard(points: List<GrammarPoint>, lessonFor: (GrammarPoint) -> (() -> Unit)?) {
+private fun ParticleCard(word: ReadingWord, points: List<GrammarPoint>, reading: StoryReading, lessonFor: (GrammarPoint) -> (() -> Unit)?) {
     val first = points.first()
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(first.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
+            Text(reading.paneName(first), fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
             lessonFor(first)?.let { onLesson ->
                 TextButton(onClick = onLesson) {
                     Text("Grammar lesson →", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
@@ -1885,8 +1944,11 @@ private fun ParticleCard(points: List<GrammarPoint>, lessonFor: (GrammarPoint) -
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            GrammarBody(first)
-            for (point in points.drop(1)) GrammarNote(point, lessonFor(point))
+            word.form?.let {
+                Text("${word.lemma} → ${word.surface}  ·  $it", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
+            }
+            GrammarBody(first, reading)
+            for (point in points.drop(1)) GrammarNote(point, reading, lessonFor(point))
         }
     }
 }
@@ -1903,7 +1965,8 @@ internal fun SayButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
  * A word's conjugation line naming its grammar points, each a link to its
  * explanation: 食べたい: ～たい want to ›. It takes the place of the word's
  * conjugation labels, except those no point explains, which follow the links:
- * 切れちゃった: ～てしまう … › · past.
+ * 切れちゃった: ～てしまう … › · past. Last, how the form is made from the
+ * title's: すいた: ～た did (plain past) › · く becomes い.
  */
 @Composable
 private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarPoint>, onOpen: (GrammarPoint) -> Unit) {
@@ -1920,6 +1983,7 @@ private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarP
             }
             val rest = word.unexplainedConjugation()
             if (rest.isNotEmpty()) append("  ·  " + rest.joinToString(", "))
+            word.form?.let { append("  ·  $it") }
         },
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.secondary,
@@ -1928,7 +1992,7 @@ private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarP
 
 /** A grammar point followed from a word's conjugation line, with ‹ [back] to the word. */
 @Composable
-private fun GrammarCard(point: GrammarPoint, back: String, onBack: () -> Unit, onLesson: (() -> Unit)?) {
+private fun GrammarCard(point: GrammarPoint, reading: StoryReading, back: String, onBack: () -> Unit, onLesson: (() -> Unit)?) {
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1941,28 +2005,28 @@ private fun GrammarCard(point: GrammarPoint, back: String, onBack: () -> Unit, o
                 maxLines = 1,
                 modifier = Modifier.clickable(onClickLabel = "Back to $back", onClick = onBack).padding(vertical = 6.dp),
             )
-            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+            Text(reading.paneName(point), fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 22.sp)
             GrammarLevel(point, onLesson)
         }
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            GrammarBody(point)
+            GrammarBody(point, reading)
         }
     }
 }
 
 /** A particle card's second or later grammar point: the pattern, what it means, an example, and [onLesson] for its topic's page. */
 @Composable
-private fun GrammarNote(point: GrammarPoint, onLesson: (() -> Unit)?) {
+private fun GrammarNote(point: GrammarPoint, reading: StoryReading, onLesson: (() -> Unit)?) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.padding(top = 2.dp)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 4.dp)) {
-            Text(point.pattern, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(reading.paneName(point), fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 17.sp)
             GrammarLevel(point, onLesson)
         }
-        GrammarBody(point)
+        GrammarBody(point, reading)
     }
 }
 
@@ -1982,13 +2046,46 @@ private fun RowScope.GrammarLevel(point: GrammarPoint, onLesson: (() -> Unit)?) 
     }
 }
 
+/**
+ * What a grammar point means, its note and an example. A point with a topic
+ * shows the topic's own first line, drawn as the lesson draws it, right
+ * under the meaning so it's in view; one without keeps its own, after the note.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GrammarBody(point: GrammarPoint) {
+private fun GrammarBody(point: GrammarPoint, reading: StoryReading) {
     Text(point.meaning, fontSize = 16.sp, lineHeight = 21.sp)
+    val line = reading.examples[point.id]
+    if (line != null) {
+        FlowRow(Modifier.padding(top = 2.dp)) {
+            line.words.forEachIndexed { i, word ->
+                StoryWord(
+                    word = word,
+                    next = line.words.getOrNull(i + 1),
+                    reading = reading,
+                    selected = false,
+                    lit = false,
+                    washed = false,
+                    spoken = false,
+                    onTap = {},
+                    onHold = {},
+                    size = EXAMPLE_SIZE.sp,
+                    rubySize = (EXAMPLE_SIZE * RUBY_RATIO).sp,
+                    family = Gothic,
+                )
+            }
+        }
+        line.english?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+    }
     Text(point.note, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Text(point.example, fontFamily = Gothic, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
-    Text(point.exampleMeaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if (line == null) {
+        Text(point.example, fontFamily = Gothic, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
+        Text(point.exampleMeaning, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
+
+/** A grammar point's example line in the pane, in sp, as a lesson's lines from your stories. */
+private const val EXAMPLE_SIZE = 20f
 
 // ------------------------------------------------------------------ end page
 
@@ -2005,7 +2102,13 @@ private fun StoryEnd(state: Screen.StoryReader, vm: AppViewModel) {
         state.impact?.topic?.let { topic ->
             SectionLabel("Grammar", Modifier.padding(top = 8.dp))
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(topic.title, fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.secondary)
+                Text(
+                    patternName(topic.title, patternRomaji(topic.title, state.reading.unreadKana)),
+                    fontFamily = Gothic,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
                 Text(topic.titleEn, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

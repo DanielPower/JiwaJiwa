@@ -37,6 +37,18 @@ class KanaDrillTest {
     }
 
     @Test
+    fun `a grammar pattern's name reads out as its kana say it`() {
+        assertEquals("ta", Romaji.pattern("～た"))
+        assertEquals("desu / da", Romaji.pattern("です / だ"))
+        assertEquals("wa", Romaji.pattern("は"))
+        assertEquals("temoii / tewaikenai", Romaji.pattern("～てもいい / ～てはいけない"))
+        assertEquals("hazu", Romaji.pattern("～はず"))
+        assertEquals("anoo / eeto", Romaji.pattern("あのー / えーと"))
+        // Kanji have no reading here.
+        assertNull(Romaji.pattern("～と思う"))
+    }
+
+    @Test
     fun `a small tsu at the end of a piece doubles the sound after it`() {
         assertEquals("nat", Romaji.of("なっ", next = "た"))
         assertEquals("it", Romaji.of("いっ", next = "ちゃ"))

@@ -66,6 +66,7 @@ object StoryText {
             }
             JsonArray(listOf(JsonPrimitive(g.point.id)) + (listOf(g.first, g.last) + inside).map { JsonPrimitive(it) })
         })
+        if (w.form != null) out["f"] = JsonPrimitive(w.form)
         if (w.particles.isNotEmpty()) out["pa"] = JsonArray(w.particles.map(::JsonPrimitive))
         return JsonObject(out)
     }
@@ -94,6 +95,7 @@ object StoryText {
                     to = parts.getOrNull(4)?.int,
                 )
             }.orEmpty(),
+            form = o["f"]?.jsonPrimitive?.content,
             particles = o["pa"]?.jsonArray?.map { it.jsonPrimitive.int }.orEmpty(),
         )
     }

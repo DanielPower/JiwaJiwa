@@ -77,7 +77,11 @@ topic must be taught by then; if none does, add the point (with an example
 `GrammarTest` checks) and a topic for it in `grammar.json`, or reword the
 sentence. If the new point explains a conjugation label, add it to that
 label's row in `LABEL_POINTS` too (see core/AGENTS.md). A changed form no point explains but the dictionary lists as one
-entry (いらっしゃいませ) is read as that word instead. でも, けど, だけど and
+entry (いらっしゃいませ) is read as that word instead. Each changed form
+also says, in the word pane, how it's made from its dictionary form ("drop
+る", "く becomes い", "its own way" for 来る and する); the reader works that
+out from the tokenizer (`Reader.form`), and a kind of change it doesn't know
+fails the check with "no form line for …". でも, けど, だけど and
 だって opening a sentence are words, not grammar.
 
 The reader reads ～られる on a る verb (食べられる, 来られる) and spoken

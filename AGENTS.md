@@ -271,11 +271,22 @@ Other features (all shipped):
   bundled ones only. Tapping a word
   shows its meaning (and conjugation, when conjugated), plus any grammar
   point it's part of (`core/Grammar.kt`); particles and endings are tappable
-  for their grammar alone. A word's grammar points are links in its
+  for their grammar alone. A point's example in the pane is its topic's
+  own first line (drawn as the lesson draws it, with its English) right
+  under its meaning; a point with no topic keeps its `Grammar.kt` example
+  (2026-10-20). A word's grammar points are links in its
   conjugation line ("食べたい: ～たい want to ›"), each opening the point in
   the pane with a back link, followed by any conjugation label no point
   explains ("· past" in 切れちゃった); Daniel picked this over tabs,
-  2026-10-17. The meaning opens in a
+  2026-10-17. Last on that line, how the form is made from the
+  dictionary form, worked out by the story tools ("すいた: ～た did
+  (plain past) › · く becomes い", "· its own way" for 来る and する),
+  and while their kana aren't clear the romaji line shows both forms,
+  "ku · ru → ki · ta" (review 09, 2026-10-20). だった or でした on its own
+  starts its card with "だ → だった · was, its past". A word the story
+  writes in kana is titled in kana there (ついに, not the dictionary's
+  遂に; すく for すいた), with its kanji left to Full entry; cards and word
+  pages keep the dictionary's spelling. The meaning opens in a
   pane fixed at the top of the reader, always visible with the story below
   it so it never covers the text (as in Yomu Yomu), not a popover. Long-pressing a word shows its sentence's English,
   bundled with the story. Story
@@ -381,10 +392,18 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   underline, the rest keeps its own colour (a new verb stays vermilion and
   underlined: 勝っ|たら). The split comes from the tokenizer: core
   `GrammarUse.from`/`to`, written by the story tools. The empty pane says
-  "New in this chapter: ～たら, shown in blue." A new word that is all
+  "New in this chapter: ～たら, shown in blue.", under the how-to line
+  other chapters show ("Tap a word… Hold one…") until you've tapped a word
+  and held one (the `reader_tapped` and `reader_held` values; review 09,
+  2026-10-20: chapters 1 to 3 all teach a topic). A new word that is all
   pattern (なる in 暑くなる) stays vermilion, as any new word does. It's only
   on a first reading, and not in a chapter whose topic another chapter
   you've read already taught (core `StoryCatalog.teaches`).
+- A pattern's name has its sound after it while a kana in it is unread
+  (core `Romaji.pattern`; not for patterns with kanji): "～た (ta)" in the
+  empty pane, and a small indigo "～た ta" on the pane's grammar cards, a
+  lesson's title and the end page's grammar line (review 09, 2026-10-20).
+  In the pane, as with words, that lasts until the kana is clear.
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.
