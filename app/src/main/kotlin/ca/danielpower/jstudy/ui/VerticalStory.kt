@@ -211,7 +211,8 @@ fun VerticalStory(
                             family = family,
                             cell = cellDp,
                             rubyCell = rubyDp,
-                            color = if (newGrammar) indigo else if (unknown || isSelected) seal else ink,
+                            // A tapped word keeps its colour; the highlight shows the tap.
+                            color = if (newGrammar) indigo else if (unknown) seal else ink,
                             sideline = unknown || newGrammar,
                             spoken = spoken == (piece.p to piece.i),
                             background = when {
@@ -284,11 +285,12 @@ private fun PieceView(
 ) {
     var modifier = Modifier.background(background).then(gestures)
     if (spoken) {
-        // The word being read aloud: a heavier line down its left side.
-        val seal = MaterialTheme.colorScheme.primary
+        // The word being read aloud: a heavier ink line down its left side,
+        // so it isn't taken for a new word's vermilion one.
+        val ink = MaterialTheme.colorScheme.onSurface
         modifier = modifier.drawBehind {
             val x = 1.dp.toPx()
-            drawLine(seal, Offset(x, 0f), Offset(x, size.height), strokeWidth = 2.5.dp.toPx())
+            drawLine(ink, Offset(x, 0f), Offset(x, size.height), strokeWidth = 2.5.dp.toPx())
         }
     }
     if (sideline) {

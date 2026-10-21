@@ -191,7 +191,7 @@ private fun TodayCard(d: Dashboard, vm: AppViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    CardTag("Done for today", rightGreen())
+                    CardTag("Done for today", MaterialTheme.washi.pine)
                     Text("See you tomorrow", style = MaterialTheme.typography.titleMedium)
                     Text(daySummary(d), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                 }
@@ -264,7 +264,7 @@ private fun StepRow(number: Int, step: PlanStep<ChapterEntry>, d: Dashboard, vm:
                 Text(text.title, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             }
             if (text.sub.isNotEmpty()) {
-                Text(text.sub, style = MaterialTheme.typography.bodySmall, color = text.subColor ?: colors.onSurfaceVariant)
+                Text(text.sub, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
         }
         if (now) {
@@ -278,7 +278,7 @@ private fun StepRow(number: Int, step: PlanStep<ChapterEntry>, d: Dashboard, vm:
     }
 }
 
-/** A step's number in a circle: ink for the one to do now, an outline for later ones, and a green tick once done. */
+/** A step's number in a circle: ink for the one to do now, an outline for later ones, and a pine tick once done. */
 @Composable
 private fun StepMarker(number: Int, state: StepState) {
     val colors = MaterialTheme.colorScheme
@@ -286,7 +286,7 @@ private fun StepMarker(number: Int, state: StepState) {
     Box(
         when (state) {
             StepState.NOW -> circle.background(colors.onSurface, CircleShape)
-            StepState.DONE -> circle.background(rightGreen(), CircleShape)
+            StepState.DONE -> circle.background(MaterialTheme.washi.pine, CircleShape)
             StepState.LATER -> circle.border(1.5.dp, colors.onSurfaceVariant, CircleShape)
         },
         contentAlignment = Alignment.Center,
@@ -300,8 +300,8 @@ private fun StepMarker(number: Int, state: StepState) {
     }
 }
 
-/** What a step's row says; [subColor] is null for the usual muted line. */
-private class StepText(val title: String, val sub: String, val subColor: Color? = null)
+/** What a step's row says. */
+private class StepText(val title: String, val sub: String)
 
 @Composable
 private fun stepText(step: PlanStep<ChapterEntry>, d: Dashboard): StepText {
@@ -330,7 +330,7 @@ private fun stepText(step: PlanStep<ChapterEntry>, d: Dashboard): StepText {
                     d.readToday?.takeIf { step.count == 1 }?.let { "Read ${it.label}" } ?: "Read ${chapters(step.count)}",
                     wordCount(d.pace.newToday).sentence(),
                 )
-                else -> readText(c, step.readKind, rightGreen())
+                else -> readText(c, step.readKind)
             }
         }
         StepKind.REVIEW -> when {
@@ -352,15 +352,11 @@ private fun stepText(step: PlanStep<ChapterEntry>, d: Dashboard): StepText {
 }
 
 /** A chapter to read, by how Home suggests it. */
-private fun readText(c: Candidate<ChapterEntry>, kind: ReadKind?, green: Color): StepText {
+private fun readText(c: Candidate<ChapterEntry>, kind: ReadKind?): StepText {
     val e = c.item
     return when (kind) {
         ReadKind.CONTINUE -> StepText("Continue ${chapterTitle(e)}", "Page ${c.resumePage + 1}" + if (c.pages > 0) " of ${c.pages}" else "")
-        ReadKind.SIDE -> StepText(
-            "Read ${chapterTitle(e)}",
-            "Nothing new to learn" + if (e.series.side) " · side story" else "",
-            green,
-        )
+        ReadKind.SIDE -> StepText("Read ${chapterTitle(e)}", "Nothing new to learn" + if (e.series.side) " · side story" else "")
         ReadKind.START -> StepText(
             "Read ${chapterTitle(e)}",
             listOfNotNull(
@@ -590,8 +586,8 @@ private fun WordsSection(words: List<WordDay>) {
         val weekAgo = words.getOrNull(words.size - 8) ?: WordDay(0, 0, 0, 0)
         Row(Modifier.fillMaxWidth()) {
             Total(last.seen, "seen", last.seen - weekAgo.seen, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
-            Total(last.known, "known", last.known - weekAgo.known, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
-            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, rightGreen(), Modifier.weight(1f))
+            Total(last.known, "known", last.known - weekAgo.known, MaterialTheme.washi.verdigris, Modifier.weight(1f))
+            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, MaterialTheme.washi.pine, Modifier.weight(1f))
         }
     }
 }
@@ -650,8 +646,8 @@ private fun WordsChart(days: List<WordDay>) {
     val grid = MaterialTheme.colorScheme.outlineVariant
     val bands = listOf(
         MaterialTheme.colorScheme.tertiary to { d: WordDay -> d.seen },
-        MaterialTheme.colorScheme.secondary to { d: WordDay -> d.known },
-        rightGreen() to { d: WordDay -> d.mastered },
+        MaterialTheme.washi.verdigris to { d: WordDay -> d.known },
+        MaterialTheme.washi.pine to { d: WordDay -> d.mastered },
     )
     val top = niceCeiling(days.maxOf { it.seen })
     val ink = MaterialTheme.colorScheme.onSurface
@@ -746,17 +742,17 @@ private fun niceCeiling(n: Int): Int {
 
 // ------------------------------------------------------------------ recent
 
-/** The week's new words (gold) and grammar (indigo) together. */
+/** The week's new words (vermilion, as new words are everywhere) and grammar (indigo) together. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RecentSection(d: Dashboard, vm: AppViewModel) {
-    val gold = MaterialTheme.colorScheme.tertiary
+    val seal = MaterialTheme.colorScheme.primary
     val indigo = MaterialTheme.colorScheme.secondary
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SectionLabel("Recent", Modifier.weight(1f))
             if (d.recent.isNotEmpty()) {
-                KeySwatch(gold, "words")
+                KeySwatch(seal, "words")
                 Spacer(Modifier.width(10.dp))
                 KeySwatch(indigo, "grammar")
             }
@@ -792,7 +788,7 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     for (item in d.recent.take(shown)) when (item) {
-                        is RecentItem.NewWord -> Chip(item.word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
+                        is RecentItem.NewWord -> Chip(item.word.display, seal, seal.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
                         is RecentItem.NewGrammar -> Chip(
                             item.topic.title,
                             indigo,
@@ -800,7 +796,8 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                             indigo.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow),
                         ) { vm.openGrammar(item.pageId) }
                     }
-                    if (shown < d.recent.size) Chip("+${d.recent.size - shown}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
+                    // Muted, like "Show less": what it hides may be words or grammar.
+                    if (shown < d.recent.size) Chip("+${d.recent.size - shown}", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = true }
                     if (expanded) Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
                 }
             }

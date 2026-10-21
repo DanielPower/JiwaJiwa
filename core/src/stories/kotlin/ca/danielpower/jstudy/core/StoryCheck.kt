@@ -22,6 +22,9 @@ class StoryCheck(private val tools: StoryTools) {
     private val reader = tools.reader
     private val lexicon = tools.lexicon
 
+    /** Every word the chapters use. */
+    private val storyWords: Set<Long> by lazy { tools.needs.values.flatMap { n -> n.words.mapNotNull { it.wordId } }.toSet() }
+
     /** Each chapter's own step: read in order in its story, after the stories it follows. */
     val steps = LinkedHashMap<String, StoryTools.Step>()
     val problems = ArrayList<Problem>()
@@ -85,6 +88,7 @@ class StoryCheck(private val tools: StoryTools) {
             lesson(t)?.let { problem(t.page.id, it) }
             for (run in tools.runs.getValue(Lessons.runsId(t))) {
                 for (w in run.filter { it.kind == WordKind.WORD && it.wordId == null }) problem(t.page.id, "${w.lemma} in its notes isn't in the dictionary")
+                misread(t, run)?.let { problem(t.page.id, it) }
             }
         }
 
@@ -137,16 +141,21 @@ class StoryCheck(private val tools: StoryTools) {
 
     /**
      * What's wrong with [topic]'s page as a lesson (the lesson guide in
-     * tools/stories/AGENTS.md), or null: a short summary, at most three
-     * examples and two notes before "More", English before "More" in
-     * proportion to the chapter that teaches it, and a short forms table.
+     * tools/stories/AGENTS.md), or null: a first line from the chapter that
+     * teaches it, a short summary, at most three examples and two notes
+     * before "More", English before "More" in proportion to that chapter,
+     * and a short forms table.
      */
     private fun lesson(topic: GrammarTopic): String? {
-        val chapter = catalog.teaching(topic.id).firstOrNull() ?: return null
+        val teaching = catalog.teaching(topic.id)
+        val chapter = teaching.firstOrNull() ?: return null
         val budget = lessonBudget(tools.needs.getValue(chapter.second.story.id).running)
         val shown = topic.page.notes.filter { !it.more }
         val words = shown.sumOf { countWords(it.text) }
+        val first = topic.example?.first
         return when {
+            first != null && teaching.none { (_, c) -> sentences(c.story.id).any { Lessons.sameLine(first, it) } } ->
+                "its first line, $first, isn't a line of ${chapter.second.story.id}; open with one of the chapter's own sentences"
             countWords(topic.summary) > SUMMARY_WORDS -> "its summary is ${countWords(topic.summary)} words; keep it to $SUMMARY_WORDS"
             topic.moreAt > 3 -> "${topic.moreAt} examples before More; keep three at most and fold the rest"
             shown.size > 2 -> "${shown.size} notes before More; keep two at most and fold the rest"
@@ -154,6 +163,28 @@ class StoryCheck(private val tools: StoryTools) {
             (topic.forms?.rows?.size ?: 0) > 6 -> "${topic.forms!!.rows.size} rows of forms; keep six at most"
             else -> null
         }
+    }
+
+    /** Chapter [id]'s sentences, as it's read. */
+    private fun sentences(id: String): List<String> = tools.text.getValue(id).flatMap { words ->
+        sentenceRanges(words).map { r -> r.joinToString("") { words[it].surface } }
+    }
+
+    /**
+     * Why a short run of Japanese in [topic]'s notes would mislead whoever taps
+     * it, or null: a piece of a word in kana read as a word no story uses
+     * (たい as 対, versus; かも as 鴨, a duck), or bare grammar read as another
+     * lesson's (られる as the passive). Lone kana and ～ endings are shown as
+     * written ([Lessons.fragment]).
+     */
+    private fun misread(topic: GrammarTopic, run: List<ReadingWord>): String? {
+        val text = run.filter { it.kind != WordKind.PUNCTUATION }.joinToString("") { it.surface }
+        if (text.length > SHORT_RUN) return null
+        val word = run.firstOrNull { it.kind == WordKind.WORD && it.wordId != null && it.wordId !in storyWords }?.takeIf { Kana.isKana(text) }
+        val point = run.flatMap { it.grammar }.firstOrNull { it.point.id !in topic.points }?.point
+            ?.takeIf { run.none { it.kind == WordKind.WORD || it.kind == WordKind.NAME } }
+        val read = word?.let { "the word ${lexicon.describe(it.wordId).substringBefore(' ')}" } ?: point?.let { "${it.pattern}, ${it.meaning}" } ?: return null
+        return "$text in its notes reads as $read: write it as ～$text, or as a whole word"
     }
 
     /** A new word as a writer wants it: 歌 (うた, N5). */
@@ -219,13 +250,16 @@ class StoryCheck(private val tools: StoryTools) {
     companion object {
         private const val NUMERALS = "0123456789０１２３４５６７８９一二三四五六七八九十百千万何"
 
+        /** A run of Japanese in a lesson's notes this short is checked for what it reads as. */
+        private const val SHORT_RUN = 3
+
         /** The most a topic's summary may be, in words. */
         const val SUMMARY_WORDS = 35
 
         /**
          * The most words of notes a lesson shows before "More": short for the
          * first chapters, which are a dozen words long, and up to 90 once
-         * chapters run past a hundred.
+         * chapters reach 120 words.
          */
         fun lessonBudget(chapterWords: Int) = minOf(90, 30 + chapterWords / 2)
 

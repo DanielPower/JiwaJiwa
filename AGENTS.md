@@ -87,7 +87,7 @@ keys, passwords or API keys in the repo. Daniel may open-source it later.
 
 Study and scheduling:
 
-- Two grade buttons only: **Wrong** (red) and **Right** (green), mapped to
+- Two grade buttons only: **Wrong** (crimson) and **Right** (pine green), mapped to
   FSRS Again and Good. FSRS-6, 90% target retention.
 - Study days roll over at 4am local time (`StudyClock`).
 - **Mastery** (0–100) is derived from the recognition card's FSRS stability:
@@ -150,10 +150,11 @@ version 9 deleted the old kana cards):
   (`KanaLooks.notesFor`; Daniel, 2026-10-20: ぬ and め, ね and れ, る and ろ).
 - No kana gating. Stories show romaji (Hepburn without macrons: koohii,
   kon'ya; the particles は and へ as wa and e, from the tokenizer's
-  pronunciation, `ReadingWord.particles`; indigo) over kana not
-  practised yet; it goes after a kana's first drill. Furigana over a kanji
-  turns to romaji as a whole if any of its kana is unread. The word pane
-  and the review card show romaji while a kana isn't Clear.
+  pronunciation, `ReadingWord.particles`; in its word's colour, indigo
+  over new grammar) over kana not practised yet; it goes after a kana's
+  first drill. Furigana over a kanji turns to romaji as a whole if any of
+  its kana is unread. The word pane and the review card show romaji while
+  a kana isn't Clear.
 - Setup asks Both / Hiragana only / Neither; unset (older installs) is
   Both. Settings has the same row. Unless Both, setup skips the Level page
   (they start from the first story, no JLPT level) and the Direction page;
@@ -236,7 +237,7 @@ Other features (all shipped):
   and mastered as nested bands, 30 days or all, replayed from the review
   log by `WordHistory`; every word counts from the day it was started,
   however it was: words marked known, imported or filled in by reading
-  level don't back-fill the past), then "Recent": the week's new words from stories or marked known by hand (gold;
+  level don't back-fill the past), then "Recent": the week's new words from stories or marked known by hand (vermilion;
   imported and level-filled words stay out) and grammar topics
   (indigo) in one row, newest first, every topic kept (`Recent.pick`), with
   a "N of M grammar" link to the Grammar list. A chapter left part way reopens on the page
@@ -250,8 +251,8 @@ Other features (all shipped):
   on the left, play in the middle) reads the story a sentence at a time,
   each sentence playing on into the next. No skip buttons: tapping a word while it plays moves there.
   Play starts at the tapped word's sentence (washed lightly behind the
-  vermilion word), else where it paused, else the page showing. A line
-  follows the word being said, and the page turns itself. Each of the cast
+  tapped word's tint), else where it paused, else the page showing. An ink
+  line follows the word being said, and the page turns itself. Each of the cast
   has their own voice. Speed opens in the pane like the reader settings.
   Word cards and word pages have a speaker button that says the word's
   reading with the phone's text-to-speech.
@@ -383,8 +384,10 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   rest folded under "More on …". The notes grow with the reader. Japanese
   in the English is tappable (read at build time as the topic's "runs").
   Opened any other time than just before its chapter, a lesson ends with "From your
-  stories": lines using it from chapters you've read, latest first, with
-  play (`stories/lines.json`, built like the rest). How to write one, and
+  stories": up to six lines using it from chapters you've read, two at
+  most from a chapter, short ones and each of its parts first, never its
+  own example line, latest first, with play (`stories/lines.json`, built
+  like the rest; core `TopicLines.pick` chooses). How to write one, and
   the limits the check enforces: "Writing a grammar lesson" in
   `tools/stories/AGENTS.md`.
 - New grammar in its chapter (Daniel, 2026-10-19): in the chapter that
@@ -392,7 +395,10 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   underline, the rest keeps its own colour (a new verb stays vermilion and
   underlined: 勝っ|たら). The split comes from the tokenizer: core
   `GrammarUse.from`/`to`, written by the story tools. The empty pane says
-  "New in this chapter: ～たら, shown in blue."
+  "New in this chapter: ～たら, shown in blue." A new word that is all
+  pattern (なる in 暑くなる) stays vermilion, as any new word does. It's only
+  on a first reading, and not in a chapter whose topic another chapter
+  you've read already taught (core `StoryCatalog.teaches`).
 - Side stories and one-shots (`side`) use only what the stories they
   follow teach: no new words or grammar. They're there so you can
   keep reading something new without learning anything new.

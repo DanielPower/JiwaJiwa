@@ -53,11 +53,27 @@ in `ui/Washi.kt` (`PrimaryButton`, `SealButton`, `SecondaryButton`,
 `WashiChip`, `LevelSeal`, bottom nav, line icons) for new screens rather than
 stock Material ones. New/learning/review counts use 新/習/復.
 
-Colour cues (Daniel, 2026-10-13): review cards have a topper, indigo for
-Japanese → English and vermilion for English → Japanese, with the card's
-新/習/復 stage. Mastery outside the review page is coloured by furigana stage
-(`masteryColor`: gold below 40, indigo to 69, green from 70), with no extra
-labels or legend. The review page's mastery bar stays ink.
+Colour roles (Daniel, 2026-10-21): one job per colour, so a new thing takes
+the colour of what it means.
+
+| Colour | Where it comes from | Means |
+| --- | --- | --- |
+| Vermilion | `primary` | The main action, the selected thing or "this one"; a word you haven't started (and 新); stamps, seals and the streak |
+| Indigo | `secondary` | Quieter links and actions; grammar, conjugation included |
+| Ochre | `tertiary` | Seen (mastery under 40) or still learning (習, kana you're learning) |
+| Verdigris | `MaterialTheme.washi.verdigris` | Known (40 to 69) or due for review (復, Coming up, the Stats forecast) |
+| Pine | `MaterialTheme.washi.pine` | Mastered (70 and up), Right, finished |
+| Plum | `MaterialTheme.washi.plum` | Notes only (注) |
+| Crimson | `error` | Wrong, errors, anything that deletes progress |
+| Ink | `onSurface`, `onSurfaceVariant` | Everything that only needs reading: labels, numerals, Cancel, warnings |
+
+In the reader, a tapped word keeps its own colour and the tint marks it,
+romaji takes its word's colour, and the line under the word being read
+aloud is ink. Review cards have a topper, indigo for Japanese → English
+and vermilion for English → Japanese, with the card's 新/習/復 stage.
+Mastery is coloured by stage everywhere (`masteryColor`), the review
+card's bar too, with no extra labels or legend. Right and Wrong never
+rest on colour alone: they carry ○ and ×, or their names.
 
 ## UI text
 

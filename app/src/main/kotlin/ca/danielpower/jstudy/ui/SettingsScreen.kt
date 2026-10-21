@@ -106,7 +106,7 @@ fun SettingsScreen(
                             vm.setReadLevel(level)
                         }) { Text("Fill in") }
                     },
-                    dismissButton = { TextButton(onClick = { pendingLevel = null }) { Text("Cancel") } },
+                    dismissButton = { TextButton(onClick = { pendingLevel = null }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) } },
                 )
             }
             Text(
@@ -173,7 +173,7 @@ fun SettingsScreen(
                 Text(
                     "Notifications are off for Jiwa Jiwa, so the reminder can't show.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     "Open notification settings ›",
@@ -226,7 +226,11 @@ fun SettingsScreen(
                 )
             }
             state.backupMessage?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    it,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (state.backupFailed) MaterialTheme.colorScheme.error else MaterialTheme.washi.pine,
+                )
             }
             if (restoring) {
                 AlertDialog(
@@ -239,7 +243,7 @@ fun SettingsScreen(
                             restore.launch(arrayOf("*/*"))
                         }) { Text("Choose file") }
                     },
-                    dismissButton = { TextButton(onClick = { restoring = false }) { Text("Cancel") } },
+                    dismissButton = { TextButton(onClick = { restoring = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) } },
                 )
             }
 
@@ -270,7 +274,7 @@ fun SettingsScreen(
                             vm.resetAll()
                         }) { Text("Reset", color = MaterialTheme.colorScheme.error) }
                     },
-                    dismissButton = { TextButton(onClick = { resetting = false }) { Text("Cancel") } },
+                    dismissButton = { TextButton(onClick = { resetting = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) } },
                 )
             }
 

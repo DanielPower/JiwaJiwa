@@ -132,7 +132,7 @@ private fun Preview(plan: ImportPlan, onImport: () -> Unit, onCancel: () -> Unit
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PrimaryButton(onClick = onImport) { Text(if (plan.updates.size == 1) "Import 1 word" else "Import ${plan.updates.size} words") }
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
         }
     }
 }
