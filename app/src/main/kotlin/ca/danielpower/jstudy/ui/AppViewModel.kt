@@ -28,9 +28,11 @@ import ca.danielpower.jstudy.core.Pace
 import ca.danielpower.jstudy.core.PhoneVoice
 import ca.danielpower.jstudy.core.ReadLevel
 import ca.danielpower.jstudy.core.Recording
+import ca.danielpower.jstudy.core.StepKind
 import ca.danielpower.jstudy.core.StudyClock
 import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
+import ca.danielpower.jstudy.core.TodayPlan
 import ca.danielpower.jstudy.data.BackupException
 import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.Dashboard
@@ -132,7 +134,9 @@ sealed interface Screen {
 
     /** Only learning steps remain and none is due yet. */
     data class Waiting(val dueAt: Long, val counts: ReviewCounts) : Screen
-    data class Done(val summary: Summary) : Screen
+
+    /** No cards left; [plan] says whether that ends the day or what's next. */
+    data class Done(val summary: Summary, val plan: TodayPlan<ChapterEntry>) : Screen
     data class Settings(
         val settings: StudySettings,
         val attribution: String,
@@ -245,6 +249,8 @@ sealed interface Screen {
         val knewNew: Set<Long> = emptySet(),
         /** Vertical text just came back, with every kana clear: the reader's gear marks it until its menu is opened. */
         val verticalNew: Boolean = false,
+        /** For a path story, once read: the day's plan, for the end page's next step. */
+        val plan: TodayPlan<ChapterEntry>? = null,
     ) : Screen
 }
 
@@ -275,10 +281,19 @@ sealed interface KanaStep {
     /**
      * The end: how many kana were new and how many checked, the chart, how
      * many of today's new kana have their second look later, how many kana
-     * the next set has ([more], none once they're all in), and the word cards
-     * waiting next when Start studying began it.
+     * the next set has ([more], none once they're all in), the word cards
+     * waiting next when Start studying began it, and otherwise the day's
+     * plan, for its next step.
      */
-    data class Done(val learned: Int, val checked: Int, val chart: KanaChart, val later: Int, val more: Int, val cardsNext: Int) : KanaStep
+    data class Done(
+        val learned: Int,
+        val checked: Int,
+        val chart: KanaChart,
+        val later: Int,
+        val more: Int,
+        val cardsNext: Int,
+        val plan: TodayPlan<ChapterEntry>,
+    ) : KanaStep
 }
 
 /** The kana chart: every kana's stage, and today, to pick out the ones met today. */
@@ -458,7 +473,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         session = null
         undo = null
         refreshBadge()
-        _screen.value = from.copy(pace = from.pace?.let { repo.pace(now()) })
+        _screen.value = from.copy(pace = from.pace?.let { repo.pace(now()) }, plan = from.plan?.let { repo.todayPlan(now()) })
     }
 
     fun openReviewTab() = launchIo { showReviewTab() }
@@ -517,7 +532,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val card = s.next(now())
         if (card == null) {
             val due = s.nextLearningDue
-            _screen.value = if (due != null) Screen.Waiting(due, counts) else Screen.Done(repo.summary(now()))
+            _screen.value = if (due != null) Screen.Waiting(due, counts) else Screen.Done(repo.summary(now()), repo.todayPlan(now()))
             return
         }
         val word = repo.dictionary.word(card.wordId)
@@ -713,8 +728,26 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Kana practice on its own, from Home's Next card. */
+    /** Kana practice on its own: today's new kana's quick check, from under Home's Today card. */
     fun startKana() = launchIo { beginKana(thenCards = false) }
+
+    /**
+     * Home's Today card, and the next-step button at the end of each
+     * activity: the plan's step to do now, else Home.
+     */
+    fun continueToday() = launchIo {
+        // Whatever was open is finished with.
+        kanaSession = null
+        session = null
+        undo = null
+        reviewFrom = null
+        val step = repo.todayPlan(now()).now ?: return@launchIo showHome()
+        when (step.kind) {
+            StepKind.KANA -> beginKana(thenCards = false)
+            StepKind.READ -> step.read?.let { beginStory(it.item.story.id) } ?: showHome()
+            StepKind.REVIEW -> beginReview()
+        }
+    }
 
     /** "5 more" at the end of kana practice: the next set, now. */
     fun moreKana() = launchIo { beginKana(thenCards = kanaThenCards, more = true) }
@@ -808,6 +841,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 later = counts.later,
                 more = state.nextSet()?.size ?: 0,
                 cardsNext = if (kanaThenCards) repo.cardsDue(at) else 0,
+                plan = repo.todayPlan(at),
             ),
             progress = 1f,
         )
@@ -1198,13 +1232,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             NextStep(it.story.id, "Next: $name · nothing new")
         }
         val pace = repo.pace(at)
+        val plan = repo.todayPlan(at)
         viewModelScope.launch {
             delay(summaryAt - now())
             launchIo {
                 // Unless you've left it by now.
                 val open = _screen.value as? Screen.StoryReader
                 if (open == null || open.reading.story.id != story.id || open.impact != null) return@launchIo
-                _screen.value = open.copy(impact = impact, pace = pace, rest = rest)
+                _screen.value = open.copy(impact = impact, pace = pace, rest = rest, plan = plan)
                 refreshStory()
                 prefetchClips(open.next)
             }
@@ -1225,9 +1260,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val knew = wordId in state.knewNew
         if (knew) repo.unknowStartedWord(wordId, at) else repo.knowStartedWord(wordId, at)
         val pace = repo.pace(at)
+        // A word you know isn't one to review, so the plan's next step may change.
+        val plan = repo.todayPlan(at)
         _screen.update {
             if (it !is Screen.StoryReader) it
-            else it.copy(knewNew = if (knew) it.knewNew - wordId else it.knewNew + wordId, pace = pace)
+            else it.copy(knewNew = if (knew) it.knewNew - wordId else it.knewNew + wordId, pace = pace, plan = plan)
         }
     }
 

@@ -50,6 +50,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,7 +98,7 @@ fun App(vm: AppViewModel, screen: Screen) {
                     is Screen.ReviewTab -> ReviewTabScreen(screen.summary, vm)
                     is Screen.Review -> ReviewScreen(screen, vm)
                     is Screen.Waiting -> WaitingScreen(screen, vm)
-                    is Screen.Done -> DoneScreen(screen.summary, vm::studyMore, vm::goHome)
+                    is Screen.Done -> DoneScreen(screen, vm)
                     is Screen.Settings -> SettingsScreen(
                         screen,
                         theme,
@@ -634,20 +635,22 @@ private fun WaitingScreen(state: Screen.Waiting, vm: AppViewModel) {
     }
 }
 
+/**
+ * No cards left. With the rest of the day's plan done too, it's done for
+ * today, with the 済; otherwise the reviews are, and the main button goes
+ * on to the plan's next step.
+ */
 @Composable
-private fun DoneScreen(summary: Summary, onStudyMore: () -> Unit, onHome: () -> Unit) {
+private fun DoneScreen(state: Screen.Done, vm: AppViewModel) {
+    val summary = state.summary
+    val dayDone = state.plan.done
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
-            Modifier.size(88.dp).border(3.dp, MaterialTheme.colorScheme.primary, WashiShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("済", fontFamily = Gothic, fontWeight = FontWeight.Bold, fontSize = 52.sp, color = MaterialTheme.colorScheme.primary)
-        }
-        Text("Done for today", style = MaterialTheme.typography.headlineMedium)
+        if (dayDone) DoneSeal()
+        Text(if (dayDone) "Done for today" else "Reviews done", style = MaterialTheme.typography.headlineMedium)
         if (summary.reviewedToday > 0) {
             val accuracy = 100 * summary.correctToday / summary.reviewedToday
             Text(
@@ -662,8 +665,11 @@ private fun DoneScreen(summary: Summary, onStudyMore: () -> Unit, onHome: () -> 
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(8.dp))
-        PrimaryButton(onClick = onStudyMore, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Study more", fontSize = 18.sp) }
-        SecondaryButton(onClick = onHome, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Home", fontSize = 18.sp) }
+        PrimaryButton(onClick = { if (dayDone) vm.goHome() else vm.continueToday() }, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            Text(if (dayDone) "Home" else nextStepLabel(state.plan), fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        SecondaryButton(onClick = vm::studyMore, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("Study more", fontSize = 18.sp) }
+        if (!dayDone) TextButton(onClick = vm::goHome) { Text("Home") }
     }
 }
 

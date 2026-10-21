@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.Kana
@@ -391,20 +392,24 @@ private fun KanaDone(step: KanaStep.Done, vm: AppViewModel) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (step.cardsNext > 0) {
+                // From Start studying, which is kana then the cards.
                 PrimaryButton(onClick = vm::kanaThenReview, modifier = Modifier.fillMaxWidth().height(58.dp)) {
                     Text(if (step.cardsNext == 1) "Now 1 card" else "Now ${step.cardsNext} cards", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (step.more > 0) {
-                    SecondaryButton(onClick = vm::moreKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("${step.more} more", fontSize = 16.sp) }
-                }
-                if (step.cardsNext > 0) {
-                    SecondaryButton(onClick = vm::closeKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("Done", fontSize = 16.sp) }
-                } else {
-                    PrimaryButton(onClick = vm::closeKana, modifier = Modifier.weight(1f).height(56.dp)) {
-                        Text("Done", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (step.more > 0) {
+                        SecondaryButton(onClick = vm::moreKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("${step.more} more", fontSize = 16.sp) }
                     }
+                    SecondaryButton(onClick = vm::closeKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("Done", fontSize = 16.sp) }
+                }
+            } else {
+                // On to the day's next step; × closes.
+                val dayDone = step.plan.done
+                PrimaryButton(onClick = { if (dayDone) vm.closeKana() else vm.continueToday() }, modifier = Modifier.fillMaxWidth().height(58.dp)) {
+                    Text(nextStepLabel(step.plan), fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (step.more > 0) {
+                    SecondaryButton(onClick = vm::moreKana, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("${step.more} more", fontSize = 16.sp) }
                 }
             }
         }

@@ -13,6 +13,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import ca.danielpower.jstudy.MainActivity
 import ca.danielpower.jstudy.R
+import ca.danielpower.jstudy.core.StepKind
+import ca.danielpower.jstudy.core.TodayPlan
+import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.Reminder
 import ca.danielpower.jstudy.data.Repository
 import java.time.LocalDate
@@ -22,9 +25,9 @@ import java.time.ZonedDateTime
 import kotlin.concurrent.thread
 
 /**
- * A once-a-day notification when cards are waiting. It uses an inexact
- * alarm, so it can arrive a few minutes late, but it needs no special
- * permission and doesn't wake the phone more than Android allows.
+ * A once-a-day notification while something's left in the day's plan. It
+ * uses an inexact alarm, so it can arrive a few minutes late, but it needs
+ * no special permission and doesn't wake the phone more than Android allows.
  */
 object DailyReminder {
     private const val CHANNEL = "daily_reminder"
@@ -63,28 +66,46 @@ object DailyReminder {
     fun notificationsOn(context: Context): Boolean =
         canNotify(context) && context.getSystemService(NotificationManager::class.java).areNotificationsEnabled()
 
-    /** Check the queue and post the reminder if anything is due, then set tomorrow's alarm. */
+    /** Post the reminder if anything's left in the day's plan, then set tomorrow's alarm. */
     internal fun fire(context: Context) {
         val repo = Repository.get(context)
         val reminder = repo.settled { repo.reminder() }
         schedule(context, reminder)
         if (reminder.time == null || !canNotify(context)) return
-        val summary = repo.settled { repo.summary(System.currentTimeMillis()) }
-        val kana = summary.kana?.due ?: 0
-        if (!summary.anythingDue && kana == 0) return
-        val due = summary.newCards + summary.learning + summary.reviews
-        val text = buildString {
-            when {
-                kana > 0 && due > 0 -> append("Kana practice and ${if (due == 1) "1 card" else "$due cards"} are waiting")
-                kana > 0 -> append("Kana practice is waiting")
-                else -> append(if (due == 1) "1 card is waiting" else "$due cards are waiting")
-            }
-            // Only while today doesn't count yet: reading or kana practice keep a streak as well as reviews.
-            if (summary.streak > 0 && !summary.activeToday) {
-                append(if (summary.streak == 1) " · keep your 1-day streak" else " · keep your ${summary.streak}-day streak")
-            }
-        }
+        val now = System.currentTimeMillis()
+        val text = repo.settled { text(repo.todayPlan(now), repo.summary(now).streak) } ?: return
         post(context, text)
+    }
+
+    /**
+     * What's left of the day's plan, as Home shows it: "Today: kana,
+     * Arrival 2 and 6 reviews", or one step on its own. Null once there's
+     * nothing to do now; today's new kana's late check alone isn't worth a
+     * notification. The streak is mentioned while today doesn't count yet.
+     */
+    internal fun text(plan: TodayPlan<ChapterEntry>, streak: Int): String? {
+        val left = plan.left
+        if (left.isEmpty()) return null
+        fun reviews(n: Int) = if (n == 1) "1 review" else "$n reviews"
+        val only = left.singleOrNull()
+        val text = if (only != null) {
+            when (only.kind) {
+                StepKind.KANA -> "Kana practice is waiting"
+                StepKind.READ -> "${only.read?.item?.label ?: "A chapter"} is ready to read"
+                StepKind.REVIEW -> "${reviews(only.count)} left today"
+            }
+        } else {
+            val names = left.map { step ->
+                when (step.kind) {
+                    StepKind.KANA -> "kana"
+                    StepKind.READ -> step.read?.item?.label ?: "a chapter"
+                    StepKind.REVIEW -> reviews(step.count)
+                }
+            }
+            "Today: " + names.dropLast(1).joinToString(", ") + " and " + names.last()
+        }
+        if (streak == 0 || plan.soFar.any) return text
+        return text + if (streak == 1) " · keep your 1-day streak" else " · keep your $streak-day streak"
     }
 
     @SuppressLint("MissingPermission") // fire() checks canNotify first.

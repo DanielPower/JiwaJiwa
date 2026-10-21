@@ -19,7 +19,7 @@ blocked there), so CI is the build check. Keep logic in `core` where you can.
 | `data/Dictionary.kt` | The read-only dictionary DB, copied from assets on install or update. |
 | `data/RenshuuClient.kt` | Renshuu API client (`/list/all/vocab`, 50 per page). |
 | `audio/StoryVoice.kt` | Reads a story a line at a time: each line's recording (assets `audio/`, core `Recordings`) with ExoPlayer, or where it has none, the phone's text-to-speech in the speaker's voice (core `Voices`). The lines are core `Narration`. |
-| `reminder/DailyReminder.kt` | Inexact daily alarm and notification. |
+| `reminder/DailyReminder.kt` | Inexact daily alarm and notification, worded from what's left of the day's plan. |
 
 ## Storage
 

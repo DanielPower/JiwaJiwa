@@ -47,11 +47,13 @@ import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.Lessons
 import ca.danielpower.jstudy.core.TopicLines
 import ca.danielpower.jstudy.core.Candidate
-import ca.danielpower.jstudy.core.NextUp
+import ca.danielpower.jstudy.core.DoneToday
 import ca.danielpower.jstudy.core.Pace
+import ca.danielpower.jstudy.core.PlanAlt
 import ca.danielpower.jstudy.core.Recent
 import ca.danielpower.jstudy.core.Streak
-import ca.danielpower.jstudy.core.Suggest
+import ca.danielpower.jstudy.core.Today
+import ca.danielpower.jstudy.core.TodayPlan
 import ca.danielpower.jstudy.core.WordDay
 import ca.danielpower.jstudy.core.WordHistory
 import ca.danielpower.jstudy.core.PathSeries
@@ -68,8 +70,6 @@ data class Summary(
     val learning: Int,
     val reviews: Int,
     val streak: Int,
-    /** Whether today already counts towards the streak: a review answered, a chapter finished or kana practised. */
-    val activeToday: Boolean,
     val daysAhead: Int,
     val reviewedToday: Int,
     val correctToday: Int,
@@ -92,12 +92,13 @@ data class Summary(
     val anythingDue get() = newCards + learning + reviews > 0
 }
 
-/** Everything Home shows: what to do next, and how far you've come. */
+/** Everything Home shows: the day's plan, and how far you've come. */
 data class Dashboard(
     val today: Long,
-    val next: NextUp<ChapterEntry>,
+    /** Kana, a chapter and reviews, with the step to do now ([Today.plan]). */
+    val plan: TodayPlan<ChapterEntry>,
     val pace: Pace,
-    /** Study days with a review answered or a chapter finished. */
+    /** Study days with a review answered, kana practiced or a chapter finished. */
     val activeDays: Set<Long>,
     val streak: Int,
     /** Words seen, known and mastered at the end of each day, up to today. */
@@ -106,7 +107,11 @@ data class Dashboard(
     val recent: List<RecentItem>,
     /** Reviews due past today's review limit, which wait for the days after. */
     val reviewsLater: Int = 0,
-    /** Once every chapter's read and nothing is due, one to read again. */
+    /** Of the cards due, the ones for words started today. */
+    val newWordsDue: Int = 0,
+    /** The chapter finished last today. */
+    val readToday: ChapterEntry? = null,
+    /** Once every chapter's read, one to read again. */
     val readAgain: ReadAgain? = null,
     /** Kana practice, while any kana isn't clear. */
     val kana: KanaCounts? = null,
@@ -292,6 +297,9 @@ data class ChapterEntry(
 ) {
     val ready get() = gap.ready
     val read get() = story.readAt != null
+
+    /** "Arrival 1", or a one-chapter story's title. */
+    val label get() = if (series.single) series.title else "${series.title} ${chapter.number}"
 
     /** Open, with no new words or grammar: something new to read with nothing to learn. */
     val nothingNew get() = ready && gap.words.isEmpty() && newTopic == null
@@ -1452,18 +1460,28 @@ class Repository private constructor(context: Context) {
             learned[row.topic.id]?.takeIf { row.seen && it > since }?.let { RecentItem.NewGrammar(row.topic, row.pageId) to it }
         }
         val recent = Recent.pick<RecentItem>(newWords, newGrammar, Int.MAX_VALUE).first
-        val next = nextUp(now)
+        val path = storyPath()
+        val pace = pace(now)
+        val plan = todayPlan(now, path, pace)
         val settings = settings()
         return Dashboard(
             today = today,
-            next = next,
-            pace = pace(now),
+            plan = plan,
+            pace = pace,
             activeDays = active,
             streak = Streak.current(active, today),
             words = words,
             recent = recent,
             reviewsLater = queue(settings, clock(settings), now).later,
-            readAgain = if (next is NextUp.AllRead) readAgain(now) else null,
+            newWordsDue = store.count(
+                "SELECT COUNT(*) FROM card WHERE state IN (?, ?) AND suspended = 0 AND introduced_day = ? AND direction != ?",
+                CardState.LEARNING.value,
+                CardState.RELEARNING.value,
+                today,
+                Direction.PRODUCTION.value,
+            ),
+            readToday = path.flatMap { it.chapters }.filter { readOn(it, clock, today) }.maxByOrNull { it.story.readAt ?: 0 },
+            readAgain = if (plan.alt is PlanAlt.ReadAgain) readAgain(now) else null,
             kana = kanaCounts(now),
         )
     }
@@ -1482,13 +1500,17 @@ class Repository private constructor(context: Context) {
             .maxWith(compareBy<ReadAgain> { it.due }.thenByDescending { it.entry.story.readAt ?: 0 })
     }
 
-    /** Study days with a review answered or a chapter finished. */
+    /** Study days with a review answered, kana practiced or a chapter finished. */
     private fun activeDays(clock: StudyClock): Set<Long> =
         (store.studyDays() + store.storyReadTimes().map(clock::dayOf) + store.kanaDays()).toSet()
 
-    /** What Home suggests: see [Suggest.next]. */
-    private fun nextUp(now: Long): NextUp<ChapterEntry> {
-        val path = storyPath()
+    /** Whether [entry] was finished on study day [day]. */
+    private fun readOn(entry: ChapterEntry, clock: StudyClock, day: Long) = entry.story.readAt?.let(clock::dayOf) == day
+
+    /** The day's plan, for Home, the end of each activity and the reminder: see [Today.plan]. */
+    fun todayPlan(now: Long): TodayPlan<ChapterEntry> = todayPlan(now, storyPath(), pace(now))
+
+    private fun todayPlan(now: Long, path: List<SeriesEntry>, pace: Pace): TodayPlan<ChapterEntry> {
         val chapters = path.flatMap { it.chapters }
         val place = readerPlace()
         val open = chapters.filter { it.ready && !it.read }
@@ -1507,15 +1529,28 @@ class Repository private constructor(context: Context) {
             resumePage = place?.takeIf { it.storyId == entry.story.id }?.page ?: 0,
             pages = place?.takeIf { it.storyId == entry.story.id }?.pages ?: 0,
         )
-        val pace = pace(now)
-        return Suggest.next(
+        val clock = clock()
+        val today = clock.dayOf(now)
+        val kana = kanaState()
+        return Today.plan(
             pace,
-            due = pace.reviewsDue,
             current = current?.let(::candidate),
             side = side?.let(::candidate),
             anyRead = chapters.any { it.read },
+            kana = kanaCounts(now, kana),
+            kanaClearToday = kanaClearToday(kana, today),
+            soFar = DoneToday(
+                kana = store.count("SELECT COUNT(DISTINCT text) FROM kana_log WHERE day = ?", today),
+                chapters = chapters.count { readOn(it, clock, today) },
+                answers = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND kind = 0", today),
+                right = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND correct = 1 AND kind = 0", today),
+            ),
         )
     }
+
+    /** Whether the last kana you learned came clear on study day [today]. */
+    private fun kanaClearToday(kana: KanaState, today: Long) =
+        kana.done && store.getValue("kana_clear_day")?.toLongOrNull() == today
 
     fun readerPlace(): ReaderPlace? {
         val parts = store.getValue("reader_place")?.split(':') ?: return null
@@ -1602,13 +1637,11 @@ class Repository private constructor(context: Context) {
         val today = clock.dayOf(now)
         val queue = queue(settings, clock, now)
         val kana = kanaState()
-        val active = activeDays(clock)
         return Summary(
             newCards = queue.newCards,
             learning = queue.learning,
             reviews = queue.reviews,
-            streak = Streak.current(active, today),
-            activeToday = today in active,
+            streak = Streak.current(activeDays(clock), today),
             daysAhead = ahead().daysAhead,
             reviewedToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND kind = 0", today),
             correctToday = store.count("SELECT COUNT(*) FROM review_log WHERE day = ? AND correct = 1 AND kind = 0", today),
@@ -1619,7 +1652,7 @@ class Repository private constructor(context: Context) {
             started = store.count("SELECT COUNT(*) FROM card WHERE state != ?", CardState.NEW.value) > 0,
             kana = kanaCounts(now, kana),
             kanaLearned = if (kana.done) kana.toLearn.size else 0,
-            kanaClearToday = kana.done && store.getValue("kana_clear_day")?.toLongOrNull() == today,
+            kanaClearToday = kanaClearToday(kana, today),
         )
     }
 

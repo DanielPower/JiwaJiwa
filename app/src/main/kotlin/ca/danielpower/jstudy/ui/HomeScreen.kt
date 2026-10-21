@@ -24,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -63,10 +64,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.Candidate
-import ca.danielpower.jstudy.core.NextUp
+import ca.danielpower.jstudy.core.PlanAlt
+import ca.danielpower.jstudy.core.PlanStep
 import ca.danielpower.jstudy.core.ReadKind
 import ca.danielpower.jstudy.core.Recent
+import ca.danielpower.jstudy.core.StepKind
+import ca.danielpower.jstudy.core.StepState
 import ca.danielpower.jstudy.core.Streak
+import ca.danielpower.jstudy.core.TodayPlan
 import ca.danielpower.jstudy.core.WordDay
 import ca.danielpower.jstudy.data.ChapterEntry
 import ca.danielpower.jstudy.data.Dashboard
@@ -80,10 +85,10 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 
 /**
- * Home: what to do next, then how far you've come. The next step is one
- * card with a quieter second option under it; below it the week's streak,
- * the words graph, and the words and grammar met this week. The sections
- * spread out to fill the screen, within limits, before it has to scroll.
+ * Home: the day's plan, then how far you've come. The plan is one card with
+ * a quieter second option under it; below it the week's streak, the words
+ * graph, and the words and grammar met this week. The sections spread out
+ * to fill the screen, within limits, before it has to scroll.
  */
 @Composable
 fun HomeScreen(d: Dashboard, vm: AppViewModel) {
@@ -97,7 +102,7 @@ fun HomeScreen(d: Dashboard, vm: AppViewModel) {
             verticalArrangement = FillSpacing(min = 18.dp, max = 36.dp),
         ) {
             HomeHeader(d.today, vm::openSettings)
-            NextCard(d, vm)
+            TodayCard(d, vm)
             StreakWeek(d.activeDays, d.streak, d.today)
             WordsSection(d.words)
             // The version keeps close to Recent rather than taking a gap of its own.
@@ -163,200 +168,282 @@ private fun HomeHeader(today: Long, onSettings: () -> Unit) {
     }
 }
 
-// ------------------------------------------------------------------ next step
+// ------------------------------------------------------------------ today
 
-/** What the next-step card says, and what tapping it and its second line do. */
-private class NextContent(
-    val tag: String,
-    val tagColor: Color,
-    val title: String,
-    val sub: String,
-    /** Null for a card with nothing to do, which shows a 済 stamp instead of an arrow. */
-    val onClick: (() -> Unit)?,
-    val alt: String? = null,
-    val onAlt: () -> Unit = {},
-    /** How far through a chapter you left part way, from 0 to 1, shown as a bar along the card's foot. */
-    val progress: Float? = null,
-)
-
+/**
+ * The day's plan: kana while you're learning them, a chapter, then
+ * reviews, each ticked off once done. The step to do now has the arrow,
+ * and tapping it starts that step. Once all are done, a 済 instead.
+ */
 @Composable
-private fun NextCard(d: Dashboard, vm: AppViewModel) {
-    val story = nextContent(d.next, d, vm)
-    // While kana are due, practising them comes first, with the story on the "or" line.
-    val kana = d.kana?.takeIf { it.due > 0 }
-    // Its tag is ochre, the colour of what you're still learning, like the 習 count.
-    val c = if (kana == null) story else NextContent(
-        "Kana practice",
-        MaterialTheme.colorScheme.tertiary,
-        listOfNotNull(
-            kana.new.takeIf { it > 0 }?.let { "$it new kana" },
-            kana.check.takeIf { it > 0 }?.let { "$it to check" },
-        ).joinToString(", "),
-        "About ${kana.minutes} minute" + if (kana.minutes == 1) "" else "s",
-        vm::startKana,
-        (d.next as? NextUp.Read)?.let { "read ${shortName(it.chapter.item)}" },
-        { (d.next as? NextUp.Read)?.let { vm.openStory(it.chapter.item.story.id) } },
-    )
+private fun TodayCard(d: Dashboard, vm: AppViewModel) {
+    val plan = d.plan
+    val colors = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        val seal = MaterialTheme.colorScheme.primary
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape)
-                .let { if (c.onClick != null) it.clickable(onClick = c.onClick) else it }
-                .drawBehind {
-                    c.progress?.let { done ->
-                        val bar = 3.dp.toPx()
-                        val inset = 1.dp.toPx()
-                        drawRect(seal, Offset(inset, size.height - inset - bar), Size((size.width - 2 * inset) * done, bar))
-                    }
+        val card = Modifier
+            .fillMaxWidth()
+            .background(colors.surfaceContainerLow, WashiShape)
+            .border(1.dp, colors.outlineVariant, WashiShape)
+        if (plan.done) {
+            Row(
+                card.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    CardTag("Done for today", MaterialTheme.washi.pine)
+                    Text("See you tomorrow", style = MaterialTheme.typography.titleMedium)
+                    Text(daySummary(d), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                 }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    c.tag.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = c.tagColor,
-                )
-                Text(c.title, style = MaterialTheme.typography.titleMedium)
-                if (c.sub.isNotEmpty()) {
-                    Text(c.sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            if (c.onClick != null) {
-                Box(
-                    Modifier.size(44.dp).background(MaterialTheme.colorScheme.onSurface, WashiShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(WashiIcons.Forward, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(22.dp))
-                }
-            } else {
                 DoneStamp()
             }
+        } else {
+            Column(card.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
+                CardTag("Today", colors.primary)
+                plan.steps.forEachIndexed { i, step ->
+                    // Under the text, clear of the markers.
+                    if (i > 0) HorizontalDivider(Modifier.padding(start = 34.dp), color = colors.outlineVariant)
+                    StepRow(i + 1, step, d, vm)
+                }
+            }
         }
-        if (c.alt != null) {
+        altLine(d, vm)?.let { (text, onClick) ->
             Text(
                 buildAnnotatedString {
                     append("or ")
-                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)) { append(c.alt) }
+                    withStyle(SpanStyle(color = colors.secondary, fontWeight = FontWeight.Bold)) { append(text) }
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clickable(onClick = c.onAlt).padding(horizontal = 2.dp, vertical = 4.dp),
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.clickable(onClick = onClick).padding(horizontal = 2.dp, vertical = 4.dp),
             )
         }
     }
 }
 
 @Composable
-private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewModel): NextContent {
-    // The tag takes the colour of what comes next: reading vermilion, a grammar
-    // lesson indigo, reviews verdigris, and pine once there's nothing to do.
+private fun CardTag(text: String, color: Color) {
+    Text(
+        text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.sp,
+        color = color,
+    )
+}
+
+/** One step of the plan: its marker, what it is, and for the step to do now, the arrow. */
+@Composable
+private fun StepRow(number: Int, step: PlanStep<ChapterEntry>, d: Dashboard, vm: AppViewModel) {
     val colors = MaterialTheme.colorScheme
-    val verdigris = MaterialTheme.washi.verdigris
-    val pine = MaterialTheme.washi.pine
-    val newToday = d.pace.newToday
-    fun reviewAlt(due: Int) = if (due > 0) "review $due due" else null
-    return when (next) {
-        is NextUp.Read -> {
-            val c = next.chapter
-            val e = c.item
-            val open: () -> Unit = { vm.openStory(e.story.id) }
-            when (next.kind) {
-                ReadKind.START -> NextContent("Start here", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
-                ReadKind.CONTINUE -> NextContent(
-                    "Continue · page ${c.resumePage + 1}" + if (c.pages > 0) " of ${c.pages}" else "",
-                    colors.primary,
-                    chapterName(e),
-                    seriesLine(e, c),
-                    open,
-                    reviewAlt(next.orReview),
-                    vm::startReview,
-                    progress = if (c.pages > 0) (c.resumePage + 1f) / c.pages else null,
-                )
-                ReadKind.LESSON -> NextContent(
-                    "Next · grammar lesson",
-                    colors.secondary,
-                    "${e.newTopic?.title ?: ""}, then ${shortName(e)}",
-                    seriesLine(e, c),
-                    open,
-                    reviewAlt(next.orReview),
-                    vm::startReview,
-                )
-                ReadKind.NEXT -> NextContent("Next", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
-                ReadKind.SIDE -> NextContent(
-                    "Nothing new to learn",
-                    colors.onSurfaceVariant,
-                    chapterName(e),
-                    "${newWords(newToday)} today · side story",
-                    open,
-                    reviewAlt(next.orReview),
-                    vm::startReview,
-                )
+    val now = step.state == StepState.NOW
+    val text = stepText(step, d)
+    val seal = colors.primary
+    // How far through a chapter you left part way, as a bar along the row's foot.
+    val progress = step.read?.takeIf { now && step.readKind == ReadKind.CONTINUE && it.pages > 0 }?.let { (it.resumePage + 1f) / it.pages }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .let { if (now) it.clickable(onClick = vm::continueToday) else it }
+            .drawBehind {
+                progress?.let { done ->
+                    val bar = 3.dp.toPx()
+                    drawRect(seal, Offset(0f, size.height - bar), Size(size.width * done, bar))
+                }
+            }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        StepMarker(number, step.state)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (now) {
+                Text(text.title, style = MaterialTheme.typography.titleMedium)
+            } else {
+                Text(text.title, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            }
+            if (text.sub.isNotEmpty()) {
+                Text(text.sub, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
         }
-        is NextUp.Review -> if (next.backlog) {
-            NextContent(
-                "Reviews waiting",
-                verdigris,
-                "Catch up on reviews",
-                if (d.reviewsLater > 0) "${next.due} today · ${d.reviewsLater} more after that" else "${next.due} due today",
-                vm::startReview,
-                next.orRead?.let { "keep reading ${shortName(it.item)}" },
-                { next.orRead?.let { vm.openStory(it.item.story.id) } },
-            )
-        } else {
-            NextContent("${newWords(newToday)} today", verdigris, "Review ${next.due} due", "Today's new words are in", vm::startReview)
+        if (now) {
+            Box(
+                Modifier.size(44.dp).background(colors.onSurface, WashiShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(WashiIcons.Forward, contentDescription = null, tint = colors.surface, modifier = Modifier.size(22.dp))
+            }
         }
-        is NextUp.Done -> NextContent(
-            "Done for today",
-            pine,
-            next.tomorrow?.let { "${shortName(it.item)} tomorrow" } ?: "See you tomorrow",
-            "${newWords(newToday)}, every review done",
-            null,
-        )
-        NextUp.AllRead -> d.readAgain?.let { again ->
-            val e = again.entry
-            NextContent(
-                "Read again",
-                colors.primary,
-                chapterName(e),
-                listOfNotNull(
-                    e.series.title.takeIf { !e.series.single },
-                    when (again.due) {
-                        0 -> null
-                        1 -> "1 word to review"
-                        else -> "${again.due} words to review"
-                    },
-                ).joinToString(" · "),
-                { vm.openStory(e.story.id) },
-            )
-        } ?: NextContent("All read", pine, "You've read every story", "More stories are on the way", null)
     }
 }
 
-/** "Ch. 5 · The interview", or a one-chapter story's title. */
-private fun chapterName(e: ChapterEntry) =
-    if (e.series.single) e.series.title else "Ch. ${e.chapter.number} · ${e.chapter.story.title}"
+/** A step's number in a circle: ink for the one to do now, an outline for later ones, and a pine tick once done. */
+@Composable
+private fun StepMarker(number: Int, state: StepState) {
+    val colors = MaterialTheme.colorScheme
+    val circle = Modifier.size(22.dp)
+    Box(
+        when (state) {
+            StepState.NOW -> circle.background(colors.onSurface, CircleShape)
+            StepState.DONE -> circle.background(MaterialTheme.washi.pine, CircleShape)
+            StepState.LATER -> circle.border(1.5.dp, colors.onSurfaceVariant, CircleShape)
+        },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            if (state == StepState.DONE) "✓" else "$number",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (state == StepState.LATER) colors.onSurfaceVariant else colors.surface,
+        )
+    }
+}
 
-/** "Ch. 5", or a one-chapter story's title. */
-private fun shortName(e: ChapterEntry) = if (e.series.single) e.series.title else "Ch. ${e.chapter.number}"
+/** What a step's row says. */
+private class StepText(val title: String, val sub: String)
 
-/** The story it's in and what's new in it: "The Share House · 4 new words". */
-private fun seriesLine(e: ChapterEntry, c: Candidate<ChapterEntry>) = listOfNotNull(
-    e.series.title.takeIf { !e.series.single },
-    when (c.newWords) {
-        0 -> "nothing new"
-        1 -> "1 new word"
-        else -> "${c.newWords} new words"
-    },
-).joinToString(" · ")
+@Composable
+private fun stepText(step: PlanStep<ChapterEntry>, d: Dashboard): StepText {
+    val done = step.state == StepState.DONE
+    return when (step.kind) {
+        StepKind.KANA -> {
+            val kana = d.kana
+            when {
+                // The day the last kana came clear.
+                kana == null -> StepText("All kana clear", "Stories drop the romaji")
+                done -> StepText("Kana practice", if (step.count == 1) "1 kana practiced" else "${step.count} kana practiced")
+                else -> StepText(
+                    "Kana practice",
+                    listOfNotNull(
+                        kana.new.takeIf { it > 0 }?.let { "$it new" },
+                        kana.check.takeIf { it > 0 }?.let { "$it to check" },
+                    ).joinToString(", ") + " · ${kana.minutes} min",
+                )
+            }
+        }
+        StepKind.READ -> {
+            val c = step.read
+            when {
+                step.full -> StepText("Today's new words are in", newWords(d.pace.newToday))
+                done || c == null -> StepText(
+                    d.readToday?.takeIf { step.count == 1 }?.let { "Read ${it.label}" } ?: "Read ${chapters(step.count)}",
+                    wordCount(d.pace.newToday).sentence(),
+                )
+                else -> readText(c, step.readKind)
+            }
+        }
+        StepKind.REVIEW -> when {
+            done -> {
+                val s = d.plan.soFar
+                StepText("Review", if (s.answers > 0) "${answers(s.answers)}, ${100 * s.right / s.answers}% right" else "Nothing was due")
+            }
+            step.backlog -> StepText(
+                "Catch up on reviews",
+                if (d.reviewsLater > 0) "${step.count} today · ${d.reviewsLater} more after that" else "${step.count} due today",
+            )
+            step.count == 0 -> StepText(
+                "Review",
+                if ((d.words.lastOrNull()?.seen ?: 0) == 0) "The words from your story come back here" else "Today's new words come back here",
+            )
+            else -> StepText("Review ${cards(step.count)}", reviewSub(step, d))
+        }
+    }
+}
+
+/** A chapter to read, by how Home suggests it. */
+private fun readText(c: Candidate<ChapterEntry>, kind: ReadKind?): StepText {
+    val e = c.item
+    return when (kind) {
+        ReadKind.CONTINUE -> StepText("Continue ${chapterTitle(e)}", "Page ${c.resumePage + 1}" + if (c.pages > 0) " of ${c.pages}" else "")
+        ReadKind.SIDE -> StepText("Read ${chapterTitle(e)}", "Nothing new to learn" + if (e.series.side) " · side story" else "")
+        ReadKind.START -> StepText(
+            "Read ${chapterTitle(e)}",
+            listOfNotNull(
+                (e.newTopic?.let { "lesson: ${it.title}" } ?: "a short lesson first").takeIf { c.teachesGrammar },
+                wordCount(c.newWords),
+            ).joinToString(" · ").sentence(),
+        )
+        else -> StepText(
+            "Read ${chapterTitle(e)}",
+            listOfNotNull(e.newTopic?.let { "lesson: ${it.title}" }, wordCount(c.newWords)).joinToString(" · ").sentence(),
+        )
+    }
+}
+
+/** What's in the reviews: the words read today and the ones from before, or the chapter's still to come. */
+private fun reviewSub(step: PlanStep<ChapterEntry>, d: Dashboard): String {
+    val ahead = d.plan.steps.firstOrNull { it.kind == StepKind.READ && it.state != StepState.DONE }?.read
+    if (ahead != null && ahead.newWords > 0) return "Plus the new words from ${ahead.item.label}"
+    val today = d.newWordsDue.coerceAtMost(step.count)
+    return when {
+        today == 0 -> ""
+        today == step.count -> "Today's new words"
+        // "Today's new words and 3 from before" wraps at 360dp; the count is shorter.
+        else -> "${newWords(today)} and ${step.count - today} from before"
+    }
+}
+
+/** The Done card's line: what the day held. */
+private fun daySummary(d: Dashboard): String {
+    val s = d.plan.soFar
+    val parts = listOfNotNull(
+        "kana".takeIf { s.kana > 0 },
+        s.chapters.takeIf { it > 0 }?.let { chapters(it) },
+        s.answers.takeIf { it > 0 }?.let { if (it == 1) "1 review" else "$it reviews" },
+    )
+    return when {
+        parts.isEmpty() -> if (d.plan.steps.none { it.kind == StepKind.READ }) "You've read every story" else "Nothing was due today"
+        parts.size == 1 -> parts[0].sentence()
+        else -> (parts.dropLast(1).joinToString(", ") + " and " + parts.last()).sentence()
+    }
+}
+
+/** The line under the card, and what tapping it does. */
+private fun altLine(d: Dashboard, vm: AppViewModel): Pair<String, () -> Unit>? =
+    when (val alt = d.plan.alt) {
+        is PlanAlt.KanaCheck -> "a quick kana check · ${alt.count}" to { vm.startKana() }
+        is PlanAlt.KeepReading -> {
+            val e = alt.chapter.item
+            (if (alt.kind == ReadKind.CONTINUE) "continue ${e.label}" else "keep reading ${e.label}") to { vm.openStory(e.story.id) }
+        }
+        is PlanAlt.ReadAgain -> d.readAgain?.let { again -> "read ${again.entry.label} again" to { vm.openStory(again.entry.story.id) } }
+        null -> null
+    }
+
+/**
+ * The main button at the end of kana practice, a chapter or reviews: on to
+ * the day's next step ("Next: review 6 cards"), or "Done for today".
+ */
+fun nextStepLabel(plan: TodayPlan<ChapterEntry>): String {
+    val step = plan.now ?: return "Done for today"
+    return when (step.kind) {
+        StepKind.KANA -> "Next: kana practice"
+        StepKind.READ -> {
+            val name = step.read?.item?.label
+            when {
+                name == null -> "Next: read"
+                step.readKind == ReadKind.CONTINUE -> "Next: continue $name"
+                else -> "Next: read $name"
+            }
+        }
+        StepKind.REVIEW -> "Next: review ${cards(step.count)}"
+    }
+}
+
+/** "Arrival 1 · I'm here", or a one-chapter story's title. */
+private fun chapterTitle(e: ChapterEntry) = if (e.series.single) e.series.title else "${e.label} · ${e.chapter.story.title}"
+
+private fun wordCount(n: Int) = if (n == 0) "nothing new" else newWords(n)
+
+private fun cards(n: Int) = if (n == 1) "1 card" else "$n cards"
+
+private fun chapters(n: Int) = if (n == 1) "1 chapter" else "$n chapters"
+
+private fun answers(n: Int) = if (n == 1) "1 answer" else "$n answers"
+
+/** Sentence case: the first letter up. */
+private fun String.sentence() = replaceFirstChar { it.uppercase() }
 
 /** A 済 ("done") seal, grained like the reader's 読了, where the card's arrow would be. */
 @Composable
