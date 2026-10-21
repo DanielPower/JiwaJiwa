@@ -87,7 +87,7 @@ keys, passwords or API keys in the repo. Daniel may open-source it later.
 
 Study and scheduling:
 
-- Two grade buttons only: **Wrong** (red) and **Right** (green), mapped to
+- Two grade buttons only: **Wrong** (crimson) and **Right** (pine green), mapped to
   FSRS Again and Good. FSRS-6, 90% target retention.
 - Study days roll over at 4am local time (`StudyClock`).
 - **Mastery** (0–100) is derived from the recognition card's FSRS stability:
@@ -150,10 +150,11 @@ version 9 deleted the old kana cards):
   (`KanaLooks.notesFor`; Daniel, 2026-10-20: ぬ and め, ね and れ, る and ろ).
 - No kana gating. Stories show romaji (Hepburn without macrons: koohii,
   kon'ya; the particles は and へ as wa and e, from the tokenizer's
-  pronunciation, `ReadingWord.particles`; indigo) over kana not
-  practised yet; it goes after a kana's first drill. Furigana over a kanji
-  turns to romaji as a whole if any of its kana is unread. The word pane
-  and the review card show romaji while a kana isn't Clear.
+  pronunciation, `ReadingWord.particles`; in its word's colour, indigo
+  over new grammar) over kana not practised yet; it goes after a kana's
+  first drill. Furigana over a kanji turns to romaji as a whole if any of
+  its kana is unread. The word pane and the review card show romaji while
+  a kana isn't Clear.
 - Setup asks Both / Hiragana only / Neither; unset (older installs) is
   Both. Settings has the same row. Unless Both, setup skips the Level page
   (they start from the first story, no JLPT level) and the Direction page;
@@ -222,7 +223,7 @@ Other features (all shipped):
   and mastered as nested bands, 30 days or all, replayed from the review
   log by `WordHistory`; every word counts from the day it was started,
   however it was: words marked known, imported or filled in by reading
-  level don't back-fill the past), then "Recent": the week's new words from stories or marked known by hand (gold;
+  level don't back-fill the past), then "Recent": the week's new words from stories or marked known by hand (vermilion;
   imported and level-filled words stay out) and grammar topics
   (indigo) in one row, newest first, every topic kept (`Recent.pick`), with
   a "N of M grammar" link to the Grammar list. A chapter left part way reopens on the page
@@ -236,8 +237,8 @@ Other features (all shipped):
   on the left, play in the middle) reads the story a sentence at a time,
   each sentence playing on into the next. No skip buttons: tapping a word while it plays moves there.
   Play starts at the tapped word's sentence (washed lightly behind the
-  vermilion word), else where it paused, else the page showing. A line
-  follows the word being said, and the page turns itself. Each of the cast
+  tapped word's tint), else where it paused, else the page showing. An ink
+  line follows the word being said, and the page turns itself. Each of the cast
   has their own voice. Speed opens in the pane like the reader settings.
   Word cards and word pages have a speaker button that says the word's
   reading with the phone's text-to-speech.

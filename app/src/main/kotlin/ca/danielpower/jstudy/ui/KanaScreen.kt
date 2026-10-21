@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -271,29 +272,30 @@ private fun Feedback(q: KanaQuestion, step: KanaStep.Ask, vm: AppViewModel) {
     if (q.unit.mark) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(q.prompt, fontFamily = Gothic, fontSize = 48.sp, lineHeight = 56.sp)
-            Text(q.answer, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = rightGreen())
+            Text(q.answer, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.washi.pine)
             Text(soundLabel(q.unit).replaceFirstChar { it.uppercase() } + ".", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }
     Row(horizontalArrangement = Arrangement.spacedBy(28.dp), verticalAlignment = Alignment.Top) {
-        FeedbackKana(q.unit, rightGreen()) { vm.sayKana(q.unit.text) }
-        if (picked != null) FeedbackKana(picked, MaterialTheme.colorScheme.error) { vm.sayKana(picked.text) }
+        FeedbackKana(q.unit, "○", MaterialTheme.washi.pine) { vm.sayKana(q.unit.text) }
+        if (picked != null) FeedbackKana(picked, "×", MaterialTheme.colorScheme.error) { vm.sayKana(picked.text) }
     }
 }
 
+/** A kana and its sound, marked ○ for the right one or × for your pick, so colour isn't the only cue. */
 @Composable
-private fun FeedbackKana(unit: KanaUnit, color: Color, onSay: () -> Unit) {
+private fun FeedbackKana(unit: KanaUnit, mark: String, color: Color, onSay: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(unit.text, fontFamily = Gothic, fontSize = 72.sp, lineHeight = 82.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(unit.romaji, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = color)
+            Text("$mark ${unit.romaji}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = color)
             SayButton(onClick = onSay)
         }
     }
 }
 
-/** The four answers, two by two. Once answered, the right one goes green and a wrong pick red. */
+/** The four answers, two by two. Once answered, the right one goes pine with a ○ and a wrong pick crimson with a ×. */
 @Composable
 private fun Options(q: KanaQuestion, step: KanaStep.Ask, vm: AppViewModel, modifier: Modifier) {
     val answered = step.result != null
@@ -304,15 +306,15 @@ private fun Options(q: KanaQuestion, step: KanaStep.Ask, vm: AppViewModel, modif
                     val right = option == q.answer
                     val colors = MaterialTheme.colorScheme
                     val (container, content) = when {
-                        answered && right -> rightGreen() to colors.surface
+                        answered && right -> MaterialTheme.washi.pine to colors.surface
                         answered && option == step.picked -> colors.error to colors.onError
                         else -> colors.surfaceContainerLow to colors.onSurface.copy(alpha = if (answered) 0.4f else 1f)
                     }
-                    // Said as well as coloured, for TalkBack.
-                    val state = when {
-                        answered && right -> "Right"
-                        answered && option == step.picked -> "Wrong"
-                        else -> null
+                    // Marked as well as coloured, so colour isn't the only cue, and said for TalkBack.
+                    val (mark, state) = when {
+                        answered && right -> "○" to "Right"
+                        answered && option == step.picked -> "×" to "Wrong"
+                        else -> null to null
                     }
                     Box(
                         Modifier
@@ -325,13 +327,18 @@ private fun Options(q: KanaQuestion, step: KanaStep.Ask, vm: AppViewModel, modif
                             .clickable(enabled = !answered, role = Role.Button) { vm.answerKana(option) },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            option,
-                            fontFamily = if (q.listen) Gothic else null,
-                            fontSize = if (q.listen) 34.sp else 22.sp,
-                            fontWeight = if (q.listen) null else FontWeight.Bold,
-                            color = content,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            if (mark != null) {
+                                Text(mark, fontFamily = Gothic, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = content, modifier = Modifier.clearAndSetSemantics {})
+                            }
+                            Text(
+                                option,
+                                fontFamily = if (q.listen) Gothic else null,
+                                fontSize = if (q.listen) 34.sp else 22.sp,
+                                fontWeight = if (q.listen) null else FontWeight.Bold,
+                                color = content,
+                            )
+                        }
                     }
                 }
             }

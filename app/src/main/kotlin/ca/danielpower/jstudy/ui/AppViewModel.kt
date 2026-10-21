@@ -142,6 +142,8 @@ sealed interface Screen {
         val reminder: Reminder,
         /** The result of the last backup export or import. */
         val backupMessage: String? = null,
+        /** Whether that export or import failed. */
+        val backupFailed: Boolean = false,
         /** When a backup was last saved, if ever. */
         val lastBackup: Long? = null,
         /** Which kana you read already. */
@@ -584,7 +586,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         showSettings(null)
     }
 
-    private fun showSettings(backupMessage: String?) {
+    private fun showSettings(backupMessage: String?, backupFailed: Boolean = false) {
         refreshBadge()
         val attribution = repo.dictionary.meta("attribution").orEmpty()
         _screen.value = Screen.Settings(
@@ -594,6 +596,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             levelCounts = repo.levelCounts(),
             reminder = repo.reminder(),
             backupMessage = backupMessage,
+            backupFailed = backupFailed,
             lastBackup = repo.lastBackup(),
             kana = repo.kanaKnown(),
         )
@@ -622,29 +625,29 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ------------------------------------------------------------ backup
 
     fun exportBackup(uri: Uri) = launchIo {
-        val message = try {
+        val (message, failed) = try {
             val out = getApplication<Application>().contentResolver.openOutputStream(uri) ?: error("no stream")
             out.use { repo.exportBackup(it, now()) }
-            "Backup saved."
+            "Backup saved." to false
         } catch (e: Exception) {
-            "Couldn't save the backup: ${e.message}"
+            "Couldn't save the backup: ${e.message}" to true
         }
-        _screen.update { if (it is Screen.Settings) it.copy(backupMessage = message, lastBackup = repo.lastBackup()) else it }
+        _screen.update { if (it is Screen.Settings) it.copy(backupMessage = message, backupFailed = failed, lastBackup = repo.lastBackup()) else it }
     }
 
     fun importBackup(uri: Uri) = launchIo {
-        val message = try {
+        val (message, failed) = try {
             val input = getApplication<Application>().contentResolver.openInputStream(uri) ?: error("no stream")
             input.use { repo.importBackup(it) }
             forgetProgress()
             DailyReminder.schedule(getApplication(), repo.reminder())
-            "Backup restored."
+            "Backup restored." to false
         } catch (e: BackupException) {
-            e.message
+            e.message to true
         } catch (e: Exception) {
-            "Couldn't restore the backup: ${e.message}"
+            "Couldn't restore the backup: ${e.message}" to true
         }
-        showSettings(message)
+        showSettings(message, failed)
     }
 
     /** After a restore or reset: everything kept here came from the old progress. */

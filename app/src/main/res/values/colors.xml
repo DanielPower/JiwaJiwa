@@ -1,4 +1,5 @@
 <resources>
     <color name="ic_launcher_background">#F6ECDA</color>
     <color name="window_background">#F6ECDA</color>
+    <color name="accent">#B5381C</color>
 </resources>

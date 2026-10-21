@@ -159,7 +159,7 @@ internal fun KanaKnownChips(selected: KanaKnown, onSelect: (KanaKnown) -> Unit) 
     }
 }
 
-/** つい に with its romaji over it while new, then plain once practised. */
+/** つい に with its romaji over it while new, then plain once practised. Romaji takes its word's colour, as in stories. */
 @Composable
 private fun RomajiExample() {
     val word = listOf("つ" to "tsu", "い" to "i", "に" to "ni")
@@ -179,7 +179,7 @@ private fun RomajiExample() {
 @Composable
 private fun RomajiGlyph(kana: String, sound: String?) {
     Column(Modifier.width(34.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(sound ?: " ", fontSize = 12.sp, lineHeight = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+        Text(sound ?: " ", fontSize = 12.sp, lineHeight = 14.sp, fontWeight = FontWeight.Bold)
         Text(kana, fontSize = 28.sp, lineHeight = 34.sp, fontFamily = Mincho)
     }
 }

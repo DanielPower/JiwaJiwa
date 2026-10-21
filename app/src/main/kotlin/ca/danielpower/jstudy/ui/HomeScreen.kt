@@ -184,9 +184,10 @@ private fun NextCard(d: Dashboard, vm: AppViewModel) {
     val story = nextContent(d.next, d, vm)
     // While kana are due, practising them comes first, with the story on the "or" line.
     val kana = d.kana?.takeIf { it.due > 0 }
+    // Its tag is ochre, the colour of what you're still learning, like the 習 count.
     val c = if (kana == null) story else NextContent(
         "Kana practice",
-        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.tertiary,
         listOfNotNull(
             kana.new.takeIf { it > 0 }?.let { "$it new kana" },
             kana.check.takeIf { it > 0 }?.let { "$it to check" },
@@ -255,8 +256,11 @@ private fun NextCard(d: Dashboard, vm: AppViewModel) {
 
 @Composable
 private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewModel): NextContent {
+    // The tag takes the colour of what comes next: reading vermilion, a grammar
+    // lesson indigo, reviews verdigris, and pine once there's nothing to do.
     val colors = MaterialTheme.colorScheme
-    val green = rightGreen()
+    val verdigris = MaterialTheme.washi.verdigris
+    val pine = MaterialTheme.washi.pine
     val newToday = d.pace.newToday
     fun reviewAlt(due: Int) = if (due > 0) "review $due due" else null
     return when (next) {
@@ -288,7 +292,7 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
                 ReadKind.NEXT -> NextContent("Next", colors.primary, chapterName(e), seriesLine(e, c), open, reviewAlt(next.orReview), vm::startReview)
                 ReadKind.SIDE -> NextContent(
                     "Nothing new to learn",
-                    green,
+                    colors.onSurfaceVariant,
                     chapterName(e),
                     "${newWords(newToday)} today · side story",
                     open,
@@ -300,7 +304,7 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
         is NextUp.Review -> if (next.backlog) {
             NextContent(
                 "Reviews waiting",
-                colors.tertiary,
+                verdigris,
                 "Catch up on reviews",
                 if (d.reviewsLater > 0) "${next.due} today · ${d.reviewsLater} more after that" else "${next.due} due today",
                 vm::startReview,
@@ -308,11 +312,11 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
                 { next.orRead?.let { vm.openStory(it.item.story.id) } },
             )
         } else {
-            NextContent("${newWords(newToday)} today", colors.secondary, "Review ${next.due} due", "Today's new words are in", vm::startReview)
+            NextContent("${newWords(newToday)} today", verdigris, "Review ${next.due} due", "Today's new words are in", vm::startReview)
         }
         is NextUp.Done -> NextContent(
             "Done for today",
-            green,
+            pine,
             next.tomorrow?.let { "${shortName(it.item)} tomorrow" } ?: "See you tomorrow",
             "${newWords(newToday)}, every review done",
             null,
@@ -333,7 +337,7 @@ private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewMod
                 ).joinToString(" · "),
                 { vm.openStory(e.story.id) },
             )
-        } ?: NextContent("All read", green, "You've read every story", "More stories are on the way", null)
+        } ?: NextContent("All read", pine, "You've read every story", "More stories are on the way", null)
     }
 }
 
@@ -495,8 +499,8 @@ private fun WordsSection(words: List<WordDay>) {
         val weekAgo = words.getOrNull(words.size - 8) ?: WordDay(0, 0, 0, 0)
         Row(Modifier.fillMaxWidth()) {
             Total(last.seen, "seen", last.seen - weekAgo.seen, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
-            Total(last.known, "known", last.known - weekAgo.known, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
-            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, rightGreen(), Modifier.weight(1f))
+            Total(last.known, "known", last.known - weekAgo.known, MaterialTheme.washi.verdigris, Modifier.weight(1f))
+            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, MaterialTheme.washi.pine, Modifier.weight(1f))
         }
     }
 }
@@ -555,8 +559,8 @@ private fun WordsChart(days: List<WordDay>) {
     val grid = MaterialTheme.colorScheme.outlineVariant
     val bands = listOf(
         MaterialTheme.colorScheme.tertiary to { d: WordDay -> d.seen },
-        MaterialTheme.colorScheme.secondary to { d: WordDay -> d.known },
-        rightGreen() to { d: WordDay -> d.mastered },
+        MaterialTheme.washi.verdigris to { d: WordDay -> d.known },
+        MaterialTheme.washi.pine to { d: WordDay -> d.mastered },
     )
     val top = niceCeiling(days.maxOf { it.seen })
     val ink = MaterialTheme.colorScheme.onSurface
@@ -651,17 +655,17 @@ private fun niceCeiling(n: Int): Int {
 
 // ------------------------------------------------------------------ recent
 
-/** The week's new words (gold) and grammar (indigo) together. */
+/** The week's new words (vermilion, as new words are everywhere) and grammar (indigo) together. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RecentSection(d: Dashboard, vm: AppViewModel) {
-    val gold = MaterialTheme.colorScheme.tertiary
+    val seal = MaterialTheme.colorScheme.primary
     val indigo = MaterialTheme.colorScheme.secondary
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SectionLabel("Recent", Modifier.weight(1f))
             if (d.recent.isNotEmpty()) {
-                KeySwatch(gold, "words")
+                KeySwatch(seal, "words")
                 Spacer(Modifier.width(10.dp))
                 KeySwatch(indigo, "grammar")
             }
@@ -697,7 +701,7 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     for (item in d.recent.take(shown)) when (item) {
-                        is RecentItem.NewWord -> Chip(item.word.display, gold, gold.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
+                        is RecentItem.NewWord -> Chip(item.word.display, seal, seal.copy(alpha = 0.4f)) { vm.openWord(item.word.id) }
                         is RecentItem.NewGrammar -> Chip(
                             item.topic.title,
                             indigo,
@@ -705,7 +709,8 @@ private fun RecentSection(d: Dashboard, vm: AppViewModel) {
                             indigo.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow),
                         ) { vm.openGrammar(item.pageId) }
                     }
-                    if (shown < d.recent.size) Chip("+${d.recent.size - shown}", gold, gold.copy(alpha = 0.4f)) { expanded = true }
+                    // Muted, like "Show less": what it hides may be words or grammar.
+                    if (shown < d.recent.size) Chip("+${d.recent.size - shown}", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = true }
                     if (expanded) Chip("Show less", muted, MaterialTheme.colorScheme.outlineVariant) { expanded = false }
                 }
             }

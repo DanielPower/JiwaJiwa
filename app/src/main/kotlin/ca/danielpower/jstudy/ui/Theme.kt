@@ -8,6 +8,10 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -17,7 +21,8 @@ import androidx.compose.ui.unit.dp
 import ca.danielpower.jstudy.R
 
 // "Washi": paper and sumi ink, with one vermilion seal colour. New, learning
-// and review counts use primary, tertiary and secondary.
+// and review counts use primary (vermilion), tertiary (ochre) and verdigris;
+// mastery's stages are ochre, verdigris and pine (see masteryColor).
 
 /** Zen Kaku Gothic New, a clean sans serif, for Japanese and UI text alike. */
 val Gothic = FontFamily(
@@ -48,10 +53,10 @@ private val Light = lightColorScheme(
     onTertiary = PaperRaised,
     tertiaryContainer = Color(0xFFF1E0BC),
     onTertiaryContainer = Color(0xFF3A2A05),
-    error = Color(0xFF9A2912),
+    error = Color(0xFF8E2643),
     onError = PaperRaised,
-    errorContainer = Color(0xFFF5D8C8),
-    onErrorContainer = Color(0xFF5A1A0C),
+    errorContainer = Color(0xFFF3D6DC),
+    onErrorContainer = Color(0xFF4A1020),
     background = Paper,
     onBackground = Ink,
     surface = Paper,
@@ -90,10 +95,10 @@ private val Dark = darkColorScheme(
     onTertiary = InkDark,
     tertiaryContainer = Color(0xFF433416),
     onTertiaryContainer = Color(0xFFF3E2B6),
-    error = Color(0xFFF2906F),
+    error = Color(0xFFF1859A),
     onError = InkDark,
-    errorContainer = Color(0xFF52200F),
-    onErrorContainer = Color(0xFFF7D2C2),
+    errorContainer = Color(0xFF4E1A26),
+    onErrorContainer = Color(0xFFF8D9DF),
     background = InkDark,
     onBackground = PaperText,
     surface = InkDark,
@@ -114,6 +119,36 @@ private val Dark = darkColorScheme(
     surfaceContainerHigh = Color(0xFF30261D),
     surfaceContainerHighest = Color(0xFF382D23),
 )
+
+/** The Washi colours Material's scheme has no slot for. Read them as `MaterialTheme.washi`. */
+@Immutable
+class WashiColors(
+    /** Known words (mastery 40 to 69), the 復 review count and reviews due ahead. */
+    val verdigris: Color,
+    /** Mastered words (70 and up), Right, and finished. */
+    val pine: Color,
+    /** Notes: the 注 marker and its tag. */
+    val plum: Color,
+)
+
+private val LightWashi = WashiColors(
+    verdigris = Color(0xFF356160),
+    pine = Color(0xFF3D6936),
+    plum = Color(0xFF7A3A70),
+)
+
+private val DarkWashi = WashiColors(
+    verdigris = Color(0xFF7CA9A5),
+    pine = Color(0xFF97C485),
+    plum = Color(0xFFD0A0CB),
+)
+
+private val LocalWashiColors = staticCompositionLocalOf { LightWashi }
+
+val MaterialTheme.washi: WashiColors
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalWashiColors.current
 
 private fun Typography.withFonts(): Typography {
     fun TextStyle.heading() = copy(fontFamily = Gothic, fontWeight = FontWeight.Bold)
@@ -165,10 +200,13 @@ fun ThemeMode.isDark(): Boolean = when (this) {
 
 @Composable
 fun JStudyTheme(mode: ThemeMode, content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = if (mode.isDark()) Dark else Light,
-        typography = WashiTypography,
-        shapes = WashiShapes,
-        content = content,
-    )
+    val dark = mode.isDark()
+    CompositionLocalProvider(LocalWashiColors provides if (dark) DarkWashi else LightWashi) {
+        MaterialTheme(
+            colorScheme = if (dark) Dark else Light,
+            typography = WashiTypography,
+            shapes = WashiShapes,
+            content = content,
+        )
+    }
 }
