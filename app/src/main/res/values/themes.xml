@@ -2,5 +2,7 @@
     <!-- Paper behind the app while Compose starts, so launch doesn't flash white or black. -->
     <style name="Theme.JStudy" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/window_background</item>
+        <!-- Vermilion, so framework dialogs (the reminder's time picker) aren't Material's default teal. -->
+        <item name="android:colorAccent">@color/accent</item>
     </style>
 </resources>

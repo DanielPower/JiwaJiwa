@@ -220,7 +220,7 @@ private fun LockedRow(entry: SeriesEntry, first: ChapterEntry, onClick: () -> Un
  * A story on the path, by its English title. One chapter shows its first
  * line and what's new in it; more show a bar with a segment per chapter,
  * how far you've read and what's open next, with a seal-red bar down the
- * side. A chapter left part way at [place] fills gold as far as its page.
+ * side. A chapter left part way at [place] fills as far as its page.
  */
 @Composable
 private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit) {
@@ -249,7 +249,6 @@ private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit
                 overflow = TextOverflow.Ellipsis,
             )
             if (!single) {
-                val gold = MaterialTheme.colorScheme.tertiary
                 val line = MaterialTheme.colorScheme.outlineVariant
                 Row(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     for (chapter in entry.chapters) {
@@ -258,7 +257,7 @@ private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit
                             when {
                                 chapter.read -> Box(Modifier.fillMaxSize().background(seal))
                                 partWay != null -> Box(
-                                    Modifier.fillMaxWidth(((partWay.page + 1f) / partWay.pages).coerceIn(0f, 1f)).fillMaxHeight().background(gold),
+                                    Modifier.fillMaxWidth(((partWay.page + 1f) / partWay.pages).coerceIn(0f, 1f)).fillMaxHeight().background(seal),
                                 )
                             }
                         }
@@ -284,8 +283,8 @@ private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium,
                     color = when {
-                        done || (single && next?.nothingNew == true) -> rightGreen()
-                        next == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                        done -> MaterialTheme.washi.pine
+                        next == null || (single && next.nothingNew) -> MaterialTheme.colorScheme.onSurfaceVariant
                         else -> seal
                     },
                 )
@@ -349,10 +348,10 @@ private fun PathProgress(path: List<SeriesEntry>) {
     }
 }
 
-/** Today's new words against the daily limit, gold once it's reached. */
+/** Today's new words against the daily limit, in vermilion like new words everywhere, at the limit too. */
 @Composable
 private fun PaceMeter(pace: Pace) {
-    val color = if (pace.atLimit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+    val color = MaterialTheme.colorScheme.primary
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SectionLabel("New vocabulary", Modifier.weight(1f))
@@ -379,7 +378,8 @@ private fun NudgeCard(pace: Pace, onReview: () -> Unit) {
             .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape),
     ) {
-        Box(Modifier.width(3.dp).fillMaxHeight().background(MaterialTheme.colorScheme.tertiary))
+        // Verdigris for reviews, vermilion for new words.
+        Box(Modifier.width(3.dp).fillMaxHeight().background(if (pace.backlog) MaterialTheme.washi.verdigris else MaterialTheme.colorScheme.primary))
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (pace.backlog) {
                 Text(if (pace.reviewsDue == 1) "1 review waiting" else "${pace.reviewsDue} reviews waiting", style = MaterialTheme.typography.titleMedium)
@@ -429,7 +429,7 @@ private fun NothingNewRow(entry: ChapterEntry, onClick: () -> Unit) {
             "Nothing new",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium,
-            color = rightGreen(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -551,7 +551,7 @@ private fun ChapterRow(entry: ChapterEntry, next: Boolean, onClick: () -> Unit) 
                 }
             }
             when {
-                entry.read -> Text("✓", color = rightGreen(), fontWeight = FontWeight.Bold)
+                entry.read -> Text("✓", color = MaterialTheme.washi.pine, fontWeight = FontWeight.Bold)
                 locked -> Icon(WashiIcons.Lock, contentDescription = "Locked", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 else -> {
                     val words = entry.gap.words.size
@@ -1108,7 +1108,7 @@ private fun HorizontalStory(
                             if (line.words.first == 0) {
                                 Column(Modifier.width(columnDp)) {
                                     reading.speakerRomaji(line.paragraph)?.let {
-                                        Text(it, fontSize = rubySize.sp, lineHeight = (rubySize * 1.2f).sp, fontFamily = family, softWrap = false, color = MaterialTheme.colorScheme.secondary)
+                                        Text(it, fontSize = rubySize.sp, lineHeight = (rubySize * 1.2f).sp, fontFamily = family, softWrap = false, color = nameColor)
                                     }
                                     Text(reading.speakers[line.paragraph].orEmpty(), style = nameStyle, color = nameColor, softWrap = false)
                                 }
@@ -1495,7 +1495,7 @@ private data class Opened(val p: Int, val i: Int, val sentence: Boolean) {
  * A tap opens a word in the pane, or closes the pane on a word with nothing
  * to show; a long press opens the word's sentence. No ripple: vertical text
  * lays words out a character at a time, so it flashed on one character, and
- * the red selection already shows the tap.
+ * the tint already shows the tap.
  */
 @OptIn(ExperimentalFoundationApi::class)
 internal fun Modifier.storyWordGestures(onTap: () -> Unit, onHold: () -> Unit): Modifier =
@@ -1522,16 +1522,18 @@ private fun StoryWord(
     val unknown = reading.isUnknown(word)
     val indigo = MaterialTheme.colorScheme.secondary
     val showRuby = reading.showsRuby(word)
-    val color = if (unknown || selected) MaterialTheme.colorScheme.primary else LocalContentColor.current
+    // A tapped word keeps its colour; the tint shows the tap.
+    val color = if (unknown) MaterialTheme.colorScheme.primary else LocalContentColor.current
 
     val seal = MaterialTheme.colorScheme.primary
+    val ink = MaterialTheme.colorScheme.onSurface
     var modifier: Modifier = Modifier
     if (selected || lit) modifier = modifier.background(seal.copy(alpha = HIGHLIGHT), WashiShape)
     else if (washed) modifier = modifier.background(seal.copy(alpha = WASH), WashiShape)
-    // The word being read aloud: a line under it, below any underline it has.
+    // The word being read aloud: an ink line under it, below any underline it has.
     if (spoken) modifier = modifier.drawBehind {
         val y = this.size.height - 1.dp.toPx()
-        drawLine(seal, Offset(0f, y), Offset(this.size.width, y), strokeWidth = 2.dp.toPx())
+        drawLine(ink, Offset(0f, y), Offset(this.size.width, y), strokeWidth = 2.dp.toPx())
     }
     modifier = modifier.storyWordGestures(onTap, onHold)
     Box(modifier) {
@@ -1541,8 +1543,8 @@ private fun StoryWord(
                 val start = at
                 at += piece.base.length
                 // The new grammar is the word's ending, never inside a kanji, so a piece's furigana follows where it starts.
-                // Romaji is always shown, in indigo, so it doesn't read as furigana.
-                val rubyColor = if (piece.romaji || (newGrammar != null && start in newGrammar)) indigo else color
+                // Romaji takes the word's colour too, so it's indigo only over the new grammar.
+                val rubyColor = if (newGrammar != null && start in newGrammar) indigo else color
                 val base = if (newGrammar == null) AnnotatedString(piece.base) else buildAnnotatedString {
                     piece.base.forEachIndexed { k, c ->
                         if (start + k in newGrammar) withStyle(SpanStyle(color = indigo, textDecoration = TextDecoration.Underline)) { append(c) } else append(c)
@@ -1557,7 +1559,7 @@ private fun StoryWord(
                         maxLines = 1,
                         softWrap = false,
                         // Romaji is read, not glanced at like furigana, so it's full strength.
-                        color = if (piece.romaji) indigo else rubyColor.copy(alpha = 0.75f),
+                        color = if (piece.romaji) rubyColor else rubyColor.copy(alpha = 0.75f),
                         modifier = if (piece.romaji || (showRuby && piece.ruby != null)) Modifier else Modifier.alpha(0f).clearAndSetSemantics {},
                     )
                     Text(
@@ -1707,7 +1709,7 @@ private fun NoteCard(text: String) {
             Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
         ) {
-            Tag("注 · Note", MaterialTheme.colorScheme.secondary)
+            Tag("注 · Note", MaterialTheme.washi.plum)
             Text(text, fontSize = 16.sp, lineHeight = 22.sp)
         }
     }
@@ -1715,12 +1717,12 @@ private fun NoteCard(text: String) {
 
 /**
  * A note's 注 marker, at the end of the paragraph before the note, in
- * indigo so it doesn't read as a new word. It fills [modifier]'s room,
+ * plum so it reads as neither a new word nor grammar. It fills [modifier]'s room,
  * which is all tappable, and is shaded while its note is open.
  */
 @Composable
 internal fun NoteMarker(textSize: TextUnit, open: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val indigo = MaterialTheme.colorScheme.secondary
+    val plum = MaterialTheme.washi.plum
     val shape = RoundedCornerShape(3.dp)
     Box(modifier.clickable(interactionSource = null, indication = null, onClickLabel = "Show note", onClick = onClick), contentAlignment = Alignment.Center) {
         Text(
@@ -1729,11 +1731,11 @@ internal fun NoteMarker(textSize: TextUnit, open: Boolean, onClick: () -> Unit, 
             lineHeight = textSize * MARKER_RATIO * 1.25f,
             fontFamily = Gothic,
             fontWeight = FontWeight.Bold,
-            color = indigo,
+            color = plum,
             softWrap = false,
             modifier = Modifier
-                .background(if (open) indigo.copy(alpha = 0.18f) else Color.Transparent, shape)
-                .border(MARKER_BORDER, indigo, shape)
+                .background(if (open) plum.copy(alpha = 0.18f) else Color.Transparent, shape)
+                .border(MARKER_BORDER, plum, shape)
                 .padding(horizontal = MARKER_PADDING),
         )
     }
@@ -1799,7 +1801,7 @@ private fun WordCard(
         ) {
             // While a kana in it isn't clear, its sounds: the answer to a kana you're learning, a tap away.
             if (!grammarOnly) reading.paneRomaji(entry?.kana ?: word.reading)?.let {
-                Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (!grammarOnly && points.isNotEmpty()) {
                 GrammarLinks(word, title, points, onOpen = { followed = it })
@@ -1807,7 +1809,7 @@ private fun WordCard(
                 Text(
                     "${word.surface}: ${word.conjugation.joinToString(", ")}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.tertiary,
+                    color = MaterialTheme.colorScheme.secondary,
                 )
             }
             if (entry == null) {
@@ -1920,7 +1922,7 @@ private fun GrammarLinks(word: ReadingWord, title: String, points: List<GrammarP
             if (rest.isNotEmpty()) append("  ·  " + rest.joinToString(", "))
         },
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.tertiary,
+        color = MaterialTheme.colorScheme.secondary,
     )
 }
 
@@ -2073,7 +2075,8 @@ private fun WordImpact(impact: ReadImpact, knewNew: Set<Long>, pace: Pace?, onWo
     SectionLabel("Your words", Modifier.padding(top = 8.dp))
     val known = impact.seen.filter { it.id in knewNew } + impact.known
     val groups = listOf(
-        Triple("New", impact.seen, masteryColor(0)),
+        // New words are vermilion, as in the text; the moves up take their new stage's colour.
+        Triple("New", impact.seen, MaterialTheme.colorScheme.primary),
         Triple("Seen → known", known, masteryColor(MasteryRules.HIDE_AT)),
         Triple("Known → mastered", impact.mastered, masteryColor(MasteryRules.OFF_AT)),
     ).filter { it.second.isNotEmpty() }
