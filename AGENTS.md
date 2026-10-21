@@ -119,17 +119,35 @@ Study and scheduling:
 Kana (back 2026-10-20, Daniel; first removed 2026-10-17, progress DB
 version 9 deleted the old kana cards):
 
-- Kana don't go through FSRS. Their own drill (core `KanaDrill.kt`): sets
-  of 5, each right 3 times in the first sitting (a miss means 2 more), a
-  quick check 3 hours later (when that would be after midnight, the next
-  day's check instead, and never under 3 hours on), then once a day until
-  quick (under 3 s) and right on 3 days. Then Clear, with a weekly check
-  for a month; a miss sends a kana back to Learning.
+- Kana don't go through FSRS. Their own drill (core `KanaDrill.kt`): a set
+  a day (a row of the chart), each right 3 times in the first sitting (a
+  miss means 2 more), a quick check 3 hours later (when that would be
+  after midnight, the next day's check instead, and never under 3 hours
+  on), then once a day until quick (under 3 s) and right on 3 days. Then Clear, with a weekly check
+  for a month; a missed check costs one day (draft, 2026-10-20): back to
+  Learning, one quick day from Clear again, and the checks it passed still
+  count.
 - Multiple choice, four answers, mostly kana → sound, one in four sound →
   kana. Wrong answers come from past mix-ups, lookalikes (`KanaLooks`),
   voicing pairs and similar sounds, never one that sounds the same.
-- Taught in the order the stories use them (`stories/kana.txt`, built in
-  CI), lookalikes in different sets, so new kana show up in stories at once.
+- Taught in the standard order, a row of the chart a set (`KanaCourse.sets`,
+  Daniel, 2026-10-20): hiragana's rows (あ row to わ row), then its ゛ and ゜
+  rows, then combinations two rows a set, then っ; then katakana the same
+  way, then ッ and ー, then katakana for borrowed sounds. Voiced kana come
+  only after every plain one, so they're learned as the plain kana with a
+  mark, not as new shapes; a voiced or combined kana's intro says how it's
+  built: "フ with ゛ · fu → bu", "き + small ゃ · kya". Every kana is
+  taught, not only the stories' (Daniel, 2026-10-20: more stories will use
+  them all).
+- A lesson page comes before each new idea (`KanaLesson`, app
+  `KanaLessons.kt`): the vowels and the chart as a grid, ゛, ゜, small
+  ゃ ゅ ょ, small っ, katakana, ー and ッ, borrowed sounds. It shows until
+  one of its set's kana has been practised (`KanaState.nextLesson`), so
+  nothing is stored for it. A set's intro opens with its row's rule,
+  worked out from the chart (`KanaCourse.introLine`: "The s row: s + each
+  vowel, except し, said shi."), and ends with the worst lookalikes, each
+  told apart on the later kana's set whatever row the other is in
+  (`KanaLooks.notesFor`; Daniel, 2026-10-20: ぬ and め, ね and れ, る and ろ).
 - No kana gating. Stories show romaji (Hepburn without macrons: koohii,
   kon'ya; the particles は and へ as wa and e, from the tokenizer's
   pronunciation, `ReadingWord.particles`; indigo) over kana not
@@ -140,7 +158,8 @@ version 9 deleted the old kana cards):
   Both. Settings has the same row. Unless Both, setup skips the Level page
   (they start from the first story, no JLPT level) and the Direction page;
   the reader's Direction row only shows once every kana is Clear (vertical text is off
-  until then, and the gear marks it new once).
+  until then, and the gear marks it new once). Once they've all been Clear,
+  it stays, whatever a later check does (`Repository.verticalAllowed`).
 - Kana practice lives on the Review tab: a Kana section above Today, and
   Start studying runs due kana first, then the cards. Home's Next card
   offers it first while kana are due. The Dictionary has a Kana chart tab.
@@ -341,7 +360,8 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
 - Grammar pace (Daniel, 2026-10-17): don't teach too much too fast. Keep
   chapters with no new grammar, using what came before, between the ones
   that teach a topic, and reuse each topic in the chapters after it.
-  Stories don't follow a kana order: kana are taught in the order stories use them.
+  Stories don't follow a kana order: kana are taught in chart order, and
+  stories show romaji over the ones not practised yet.
 - Grammar lessons (Daniel, 2026-10-19): every topic's page has one shape:
   summary, the teaching chapter's line with its English, a forms table for
   patterns that change a word, at most two notes and three lines, and the

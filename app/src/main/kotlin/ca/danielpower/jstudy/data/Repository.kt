@@ -214,6 +214,8 @@ data class StoryReading(
     val unreadKana: Set<String> = emptySet(),
     /** Kana that aren't clear yet, whose words' panes show their romaji. */
     val unclearKana: Set<String> = emptySet(),
+    /** Whether the reader offers vertical text: once every kana you learn has come clear ([Repository.verticalAllowed]). */
+    val verticalAllowed: Boolean = true,
 ) {
     private val newPoints = teaches?.points.orEmpty().toSet()
 
@@ -715,8 +717,7 @@ class Repository private constructor(context: Context) {
         return ReaderStyle(
             size = store.getValue("story_text_size")?.toIntOrNull()?.takeIf { it in ReaderStyle.SIZES } ?: default.size,
             font = ReaderFont.entries.firstOrNull { it.name == store.getValue("story_font") } ?: default.font,
-            // Vertical text waits until every kana is clear: romaji doesn't sit well beside a column.
-            vertical = store.getValue("story_vertical") == "1" && kanaState().done,
+            vertical = store.getValue("story_vertical") == "1" && verticalAllowed(),
         )
     }
 
@@ -780,6 +781,7 @@ class Repository private constructor(context: Context) {
                 ?.let { id -> catalog.grammar.firstOrNull { it.id == id } },
             unreadKana = kana.unread,
             unclearKana = kana.unclear,
+            verticalAllowed = verticalAllowed(kana),
         ).let { it.copy(clips = clips(story, it.narration)) }
     }
 
@@ -1147,16 +1149,8 @@ class Repository private constructor(context: Context) {
 
     fun setKanaKnown(known: KanaKnown) = store.setValues(mapOf("kana_known" to known.value))
 
-    /** The order the stories need kana in (the app build's stories/kana.txt), then any it leaves out, in chart order. */
-    private val kanaOrder: List<String> by lazy {
-        val listed = runCatching {
-            appContext.assets.open("stories/kana.txt").bufferedReader().use { it.readLines() }
-        }.getOrDefault(emptyList()).map { it.trim() }.filter { KanaCourse.unit(it) != null }.distinct()
-        listed + KanaCourse.units.map { it.text }.filter { it !in listed }
-    }
-
     fun kanaState(): KanaState =
-        KanaState(kanaKnown(), kanaOrder, store.kanaProgress(), store.getValue("kana_set_day")?.toLongOrNull())
+        KanaState(kanaKnown(), store.kanaProgress(), store.getValue("kana_set_day")?.toLongOrNull())
 
     /** What kana practice would ask now, or null once every kana is clear. */
     fun kanaCounts(now: Long, state: KanaState = kanaState()): KanaCounts? {
@@ -1199,8 +1193,15 @@ class Repository private constructor(context: Context) {
         if (!wasDone && kanaState().done) store.setValues(mapOf("kana_clear_day" to day.toString()))
     }
 
+    /**
+     * Vertical text waits until every kana you learn is clear, since romaji
+     * doesn't sit well beside a column. Once they've all been clear it stays,
+     * whatever a later check does.
+     */
+    fun verticalAllowed(kana: KanaState = kanaState()): Boolean = kana.done || store.getValue("kana_clear_day") != null
+
     /** Whether the reader's gear should mark vertical text as new: it came back when the last kana you learned came clear. */
-    fun verticalNew(): Boolean = store.getValue("kana_clear_day") != null && store.getValue("vertical_seen") == null && kanaState().done
+    fun verticalNew(): Boolean = store.getValue("kana_clear_day") != null && store.getValue("vertical_seen") == null
 
     fun markVerticalSeen() = store.setValues(mapOf("vertical_seen" to "1"))
 
