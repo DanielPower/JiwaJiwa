@@ -34,51 +34,63 @@ data class KanaUnit(
     val note: String? = null,
 )
 
-/** Every kana unit, how a text splits into them, and the order the stories need them in. */
+/**
+ * A page before a set, on what's new in it, shown once as the set comes in:
+ * the vowels before the first row, ゛ before the first voiced row, and so on.
+ */
+enum class KanaLesson { VOWELS, DAKUTEN, HANDAKUTEN, SMALL_YA, SMALL_TSU, KATAKANA, LONG_VOWEL, BORROWED }
+
+/** Kana learned together: a row of the chart, or two rows of combinations, after its [lesson] if it has one. */
+data class KanaSet(val kana: List<String>, val script: Script, val lesson: KanaLesson? = null)
+
+/** Every kana unit, how a text splits into them, and the course that teaches them. */
 object KanaCourse {
+    /** The chart's rows: the vowels, then a consonant before each. */
     private val basic = listOf(
-        "あ" to "a", "い" to "i", "う" to "u", "え" to "e", "お" to "o",
-        "か" to "ka", "き" to "ki", "く" to "ku", "け" to "ke", "こ" to "ko",
-        "さ" to "sa", "し" to "shi", "す" to "su", "せ" to "se", "そ" to "so",
-        "た" to "ta", "ち" to "chi", "つ" to "tsu", "て" to "te", "と" to "to",
-        "な" to "na", "に" to "ni", "ぬ" to "nu", "ね" to "ne", "の" to "no",
-        "は" to "ha", "ひ" to "hi", "ふ" to "fu", "へ" to "he", "ほ" to "ho",
-        "ま" to "ma", "み" to "mi", "む" to "mu", "め" to "me", "も" to "mo",
-        "や" to "ya", "ゆ" to "yu", "よ" to "yo",
-        "ら" to "ra", "り" to "ri", "る" to "ru", "れ" to "re", "ろ" to "ro",
-        "わ" to "wa", "を" to "o", "ん" to "n",
+        listOf("あ" to "a", "い" to "i", "う" to "u", "え" to "e", "お" to "o"),
+        listOf("か" to "ka", "き" to "ki", "く" to "ku", "け" to "ke", "こ" to "ko"),
+        listOf("さ" to "sa", "し" to "shi", "す" to "su", "せ" to "se", "そ" to "so"),
+        listOf("た" to "ta", "ち" to "chi", "つ" to "tsu", "て" to "te", "と" to "to"),
+        listOf("な" to "na", "に" to "ni", "ぬ" to "nu", "ね" to "ne", "の" to "no"),
+        listOf("は" to "ha", "ひ" to "hi", "ふ" to "fu", "へ" to "he", "ほ" to "ho"),
+        listOf("ま" to "ma", "み" to "mi", "む" to "mu", "め" to "me", "も" to "mo"),
+        listOf("や" to "ya", "ゆ" to "yu", "よ" to "yo"),
+        listOf("ら" to "ra", "り" to "ri", "る" to "ru", "れ" to "re", "ろ" to "ro"),
+        listOf("わ" to "wa", "を" to "o", "ん" to "n"),
     )
 
+    /** The rows that take ゛, then the one that takes ゜. */
     private val voiced = listOf(
-        "が" to "ga", "ぎ" to "gi", "ぐ" to "gu", "げ" to "ge", "ご" to "go",
-        "ざ" to "za", "じ" to "ji", "ず" to "zu", "ぜ" to "ze", "ぞ" to "zo",
-        "だ" to "da", "ぢ" to "ji", "づ" to "zu", "で" to "de", "ど" to "do",
-        "ば" to "ba", "び" to "bi", "ぶ" to "bu", "べ" to "be", "ぼ" to "bo",
-        "ぱ" to "pa", "ぴ" to "pi", "ぷ" to "pu", "ぺ" to "pe", "ぽ" to "po",
+        listOf("が" to "ga", "ぎ" to "gi", "ぐ" to "gu", "げ" to "ge", "ご" to "go"),
+        listOf("ざ" to "za", "じ" to "ji", "ず" to "zu", "ぜ" to "ze", "ぞ" to "zo"),
+        listOf("だ" to "da", "ぢ" to "ji", "づ" to "zu", "で" to "de", "ど" to "do"),
+        listOf("ば" to "ba", "び" to "bi", "ぶ" to "bu", "べ" to "be", "ぼ" to "bo"),
+        listOf("ぱ" to "pa", "ぴ" to "pi", "ぷ" to "pu", "ぺ" to "pe", "ぽ" to "po"),
     )
 
+    /** Each kana that ends in i, with small ゃ ゅ ょ. */
     private val combined = listOf(
-        "きゃ" to "kya", "きゅ" to "kyu", "きょ" to "kyo",
-        "しゃ" to "sha", "しゅ" to "shu", "しょ" to "sho",
-        "ちゃ" to "cha", "ちゅ" to "chu", "ちょ" to "cho",
-        "にゃ" to "nya", "にゅ" to "nyu", "にょ" to "nyo",
-        "ひゃ" to "hya", "ひゅ" to "hyu", "ひょ" to "hyo",
-        "みゃ" to "mya", "みゅ" to "myu", "みょ" to "myo",
-        "りゃ" to "rya", "りゅ" to "ryu", "りょ" to "ryo",
-        "ぎゃ" to "gya", "ぎゅ" to "gyu", "ぎょ" to "gyo",
-        "じゃ" to "ja", "じゅ" to "ju", "じょ" to "jo",
-        "びゃ" to "bya", "びゅ" to "byu", "びょ" to "byo",
-        "ぴゃ" to "pya", "ぴゅ" to "pyu", "ぴょ" to "pyo",
+        listOf("きゃ" to "kya", "きゅ" to "kyu", "きょ" to "kyo"),
+        listOf("しゃ" to "sha", "しゅ" to "shu", "しょ" to "sho"),
+        listOf("ちゃ" to "cha", "ちゅ" to "chu", "ちょ" to "cho"),
+        listOf("にゃ" to "nya", "にゅ" to "nyu", "にょ" to "nyo"),
+        listOf("ひゃ" to "hya", "ひゅ" to "hyu", "ひょ" to "hyo"),
+        listOf("みゃ" to "mya", "みゅ" to "myu", "みょ" to "myo"),
+        listOf("りゃ" to "rya", "りゅ" to "ryu", "りょ" to "ryo"),
+        listOf("ぎゃ" to "gya", "ぎゅ" to "gyu", "ぎょ" to "gyo"),
+        listOf("じゃ" to "ja", "じゅ" to "ju", "じょ" to "jo"),
+        listOf("びゃ" to "bya", "びゅ" to "byu", "びょ" to "byo"),
+        listOf("ぴゃ" to "pya", "ぴゅ" to "pyu", "ぴょ" to "pyo"),
     )
 
-    /** Katakana spellings for sounds Japanese borrowed, with no hiragana twin. */
+    /** Katakana spellings for sounds Japanese borrowed, with no hiragana twin, a set a row. */
     private val loanSounds = listOf(
-        "ティ" to "ti", "ディ" to "di", "トゥ" to "tu", "ドゥ" to "du",
-        "ファ" to "fa", "フィ" to "fi", "フェ" to "fe", "フォ" to "fo",
-        "ウィ" to "wi", "ウェ" to "we", "ウォ" to "wo",
-        "シェ" to "she", "チェ" to "che", "ジェ" to "je",
-        "ヴ" to "vu",
+        listOf("ファ" to "fa", "フィ" to "fi", "フェ" to "fe", "フォ" to "fo", "ヴ" to "vu"),
+        listOf("ティ" to "ti", "ディ" to "di", "トゥ" to "tu", "ドゥ" to "du"),
+        listOf("シェ" to "she", "チェ" to "che", "ジェ" to "je", "ウィ" to "wi", "ウェ" to "we", "ウォ" to "wo"),
     )
+
+    private val borrowed = loanSounds.flatten().map { it.first }.toSet()
 
     private val notes = mapOf(
         "ぢ" to "Sounds like じ. Rare: mostly in words like はなぢ.",
@@ -95,11 +107,37 @@ object KanaCourse {
         "ヅ" to "Sounds like ズ. Very rare.",
     )
 
-    /** Every unit, in the order of the kana chart: hiragana, then katakana. */
+    /**
+     * The course, a set a day: hiragana's rows, then its ゛ and ゜ rows, so a
+     * voiced kana is learned as a plain one with a mark, not a new shape;
+     * then its combinations, two rows a set, then っ. Then katakana the same
+     * way, then ッ and ー, then its spellings for borrowed sounds. Each new
+     * idea comes after a lesson.
+     */
+    val sets: List<KanaSet> = buildList {
+        for (script in Script.entries) {
+            val hiragana = script == Script.HIRAGANA
+            fun set(kana: List<Pair<String, String>>, lesson: KanaLesson?) =
+                add(KanaSet(kana.map { (text, _) -> if (hiragana) text else Kana.toKatakana(text) }, script, lesson))
+            basic.forEachIndexed { i, row -> set(row, if (i > 0) null else if (hiragana) KanaLesson.VOWELS else KanaLesson.KATAKANA) }
+            voiced.forEachIndexed { i, row ->
+                set(row, if (!hiragana) null else if (i == 0) KanaLesson.DAKUTEN else if (i == voiced.lastIndex) KanaLesson.HANDAKUTEN else null)
+            }
+            combined.chunked(2).forEachIndexed { i, rows -> set(rows.flatten(), if (hiragana && i == 0) KanaLesson.SMALL_YA else null) }
+            if (hiragana) {
+                add(KanaSet(listOf("っ"), script, KanaLesson.SMALL_TSU))
+            } else {
+                add(KanaSet(listOf("ッ", "ー"), script, KanaLesson.LONG_VOWEL))
+                loanSounds.forEachIndexed { i, row -> add(KanaSet(row.map { it.first }, script, if (i == 0) KanaLesson.BORROWED else null)) }
+            }
+        }
+    }
+
+    /** Every unit, in the course's order, which is the chart's: hiragana, then katakana. */
     val units: List<KanaUnit> = buildList {
         for (script in Script.entries) {
             for (group in listOf(basic, voiced, combined)) {
-                for ((hiragana, romaji) in group) {
+                for ((hiragana, romaji) in group.flatten()) {
                     val text = if (script == Script.HIRAGANA) hiragana else Kana.toKatakana(hiragana)
                     add(KanaUnit(text, script, romaji, note = notes[text]))
                 }
@@ -109,18 +147,14 @@ object KanaCourse {
             } else {
                 add(KanaUnit("ッ", script, "small tsu", mark = true, note = notes["ッ"]))
                 add(KanaUnit("ー", script, "long vowel", mark = true, note = notes["ー"]))
-                for ((text, romaji) in loanSounds) add(KanaUnit(text, script, romaji))
+                for ((text, romaji) in loanSounds.flatten()) add(KanaUnit(text, script, romaji))
             }
         }
     }
 
     private val byText = units.associateBy { it.text }
-    private val chartIndex = units.withIndex().associate { (i, u) -> u.text to i }
 
     fun unit(text: String): KanaUnit? = byText[text]
-
-    /** Where [text] sits on the chart, for keeping ties in chart order. */
-    fun chartIndex(text: String): Int = chartIndex[text] ?: Int.MAX_VALUE
 
     /**
      * [text] split into kana units, longest first so きょう is きょ and う,
@@ -145,57 +179,102 @@ object KanaCourse {
     /** The units it takes to read [text]. */
     fun unitsIn(text: String): List<KanaUnit> = segments(text).mapNotNull { byText[it] }
 
-    /**
-     * The order to teach kana in, from the text the stories show, chapter by
-     * chapter along the path: the ones most used in the first [window]
-     * chapters first, so romaji leaves the early stories as fast as it can,
-     * then the rest in the order the stories meet them, then the rest of the
-     * chart.
-     */
-    fun order(chapters: List<String>, window: Int = 40): List<String> {
-        val counts = HashMap<String, Int>()
-        val first = HashMap<String, Int>()
-        chapters.forEachIndexed { n, text ->
-            for (unit in unitsIn(text)) {
-                if (n < window) counts.merge(unit.text, 1, Int::plus)
-                first.putIfAbsent(unit.text, n)
-            }
-        }
-        return units.map { it.text }.sortedWith(
-            compareByDescending<String> { counts[it] ?: 0 }
-                .thenBy { first[it] ?: Int.MAX_VALUE }
-                .thenBy { chartIndex(it) },
-        )
+    /** The kana [text] is built on: か for が, は for ぱ, き for きゃ, ぎ for ぎゃ, フ for ファ; null for one that isn't. */
+    fun base(text: String): String? {
+        val unit = byText[text] ?: return null
+        if (unit.mark) return null
+        return if (text.length == 2) text.substring(0, 1) else KanaLooks.dakuten(text)
     }
 
     /**
-     * [order] in sets of [size] to learn together, keeping kana that look
-     * alike in different sets: learned side by side they get muddled, so
-     * each waits for a later set.
+     * How a voiced or combined kana is built, in a line for its intro:
+     * "フ with ゛ · fu → bu", "き + small ゃ · kya". Null for the rest.
      */
-    fun sets(order: List<String>, size: Int = SET_SIZE): List<List<String>> {
-        val left = order.toMutableList()
-        val out = ArrayList<List<String>>()
-        while (left.isNotEmpty()) {
-            val set = ArrayList<String>()
-            val it = left.iterator()
-            while (it.hasNext() && set.size < size) {
-                val text = it.next()
-                if (set.none { KanaLooks.alike(it, text) }) {
-                    set.add(text)
-                    it.remove()
+    fun built(text: String): String? {
+        val unit = byText[text] ?: return null
+        val base = base(text)?.let { byText[it] } ?: return null
+        if (text.length == 2) return "${base.text} + small ${text.substring(1)} · ${unit.romaji}"
+        return "${base.text} with ${mark(text)} · ${base.romaji} → ${unit.romaji}"
+    }
+
+    /** ゜ for a kana that has one (ぱ), else ゛. */
+    private fun mark(text: String) =
+        if (java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).endsWith("\u309A")) "゜" else "゛"
+
+    /**
+     * A set's first line on its intro: its row and the rule the row follows,
+     * worked out from the chart, so a kana that bends it is named: "The k
+     * row: k + each vowel.", "The s row: s + each vowel, except し, said
+     * shi.", "The k row with ゛: k becomes g.", "き and し with small ゃ ゅ ょ."
+     */
+    fun introLine(set: KanaSet): String {
+        val units = set.kana.mapNotNull { byText[it] }
+        if (units.all { it.mark }) {
+            return units.joinToString(" and ") { if (it.text == "ー") "the dash ー" else "small ${it.text}" }.replaceFirstChar { it.uppercase() } + "."
+        }
+        val first = units.first()
+        val base = base(first.text)?.let { byText[it] }
+        val line = when {
+            units.any { it.text in borrowed } -> "Sounds from other languages"
+            first.text.length == 2 ->
+                "${units.map { it.text.substring(0, 1) }.distinct().joinToString(" and ")} with small ${units.map { it.text.substring(1) }.distinct().joinToString(" ")}"
+            base != null -> {
+                val from = base.romaji.dropLast(1)
+                val to = first.romaji.dropLast(1)
+                "The $from row with ${mark(first.text)}: $from becomes $to" + except(units.filter { it.romaji != to + byText.getValue(base(it.text)!!).romaji.last() })
+            }
+            first.romaji.length == 1 -> "The five vowels"
+            else -> {
+                val consonant = first.romaji.dropLast(1)
+                val n = units.find { it.romaji == "n" }
+                val row = units.filter { it != n }
+                val odd = except(row.filter { it.romaji != consonant + it.romaji.last() })
+                when {
+                    n != null -> "The $consonant row, which keeps only ${row.joinToString(" and ") { it.text }}, then ${n.text}"
+                    row.size == 5 -> "The $consonant row: $consonant + each vowel$odd"
+                    else -> "The $consonant row: $consonant + ${row.map { it.romaji.last() }.let { v -> v.dropLast(1).joinToString(", ") + " and " + v.last() }}$odd"
                 }
             }
-            out.add(set)
         }
-        return out
+        return "$line. Tap one to hear it."
     }
 
-    const val SET_SIZE = 5
+    /** ", except し, said shi", for the kana in a row that don't follow it. */
+    private fun except(odd: List<KanaUnit>) =
+        if (odd.isEmpty()) "" else ", except " + odd.joinToString(", and ") { "${it.text}, said ${it.romaji}" }
 }
 
-/** Kana that are easy to mistake for each other, for choosing wrong answers and keeping them apart when teaching. */
+/** A kana easy to take for [like], met already or in the same set, and how to tell them apart. */
+data class KanaLookNote(val kana: String, val like: List<String>, val tell: String)
+
+/** Kana that are easy to mistake for each other, for choosing wrong answers, and the worst of them pointed out as they come in. */
 object KanaLooks {
+    /**
+     * The worst lookalikes, each told apart on the intro of the set that
+     * brings in the later one, whatever row the other is in (Daniel,
+     * 2026-10-20: ぬ and め differ only in a loop, ね and れ, る and ろ).
+     */
+    private val notes = listOf(
+        KanaLookNote("お", listOf("あ"), "お has a short stroke at the top right; あ doesn't."),
+        KanaLookNote("さ", listOf("き"), "き has two crossbars; さ has one."),
+        KanaLookNote("ち", listOf("さ"), "Their curves face opposite ways: さ's opens to the right, ち's to the left."),
+        KanaLookNote("め", listOf("ぬ"), "ぬ ends in a loop; め doesn't."),
+        KanaLookNote("り", listOf("い"), "In い, the left stroke is the longer; in り, the right one."),
+        KanaLookNote("れ", listOf("ね"), "ね ends in a loop; れ kicks out to the right."),
+        KanaLookNote("ろ", listOf("る"), "る ends in a loop; ろ doesn't."),
+        KanaLookNote("わ", listOf("ね", "れ"), "ね ends in a loop, れ kicks out, and わ curves round."),
+        KanaLookNote("ツ", listOf("シ"), "ツ's short strokes sit on top, and its long one sweeps down; シ's sit on the left, and its long one sweeps up."),
+        KanaLookNote("タ", listOf("ク"), "タ is ク with one more stroke, across the middle."),
+        KanaLookNote("ヌ", listOf("ス"), "ヌ's short stroke cuts across the long one; ス's grows out of it."),
+        KanaLookNote("マ", listOf("ア"), "ア ends in a long stroke down to the left; マ, in a short tick to the right."),
+        KanaLookNote("ユ", listOf("コ"), "ユ's bottom line runs out past its side; コ's stops at the corner."),
+        KanaLookNote("ン", listOf("ソ"), "ソ's long stroke sweeps down from the top; ン's sweeps up from the bottom."),
+        KanaLookNote("ワ", listOf("ウ"), "ウ has a short stroke on top; ワ doesn't."),
+    )
+
+    /** The notes for the new kana in [texts], in their order. */
+    fun notesFor(texts: List<String>): List<KanaLookNote> = notes.filter { it.kana in texts }.sortedBy { texts.indexOf(it.kana) }
+
     private val groups = listOf(
         "さちき", "ぬめの", "ねれわ", "ぬね", "るろ", "はほけ", "いり", "こにた", "あおめ", "うつら", "しつ", "そて", "くへ",
         "まも", "ゆよ", "んそ", "みよ", "なた", "ふう",

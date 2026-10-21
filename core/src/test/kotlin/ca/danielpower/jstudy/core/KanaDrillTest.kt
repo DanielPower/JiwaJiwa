@@ -110,12 +110,90 @@ class KanaDrillTest {
     }
 
     @Test
-    fun `teaches the kana the first chapters use most, first`() {
-        val order = KanaCourse.order(listOf("ついについに", "たいした", "いい"))
-        assertEquals(listOf("い", "つ", "に", "た", "し"), order.take(5))
-        // Everything else follows, in chart order.
-        assertEquals(KanaCourse.units.size, order.size)
-        assertEquals("あ", order[5])
+    fun `teaches the chart a row at a time, the voiced rows after the plain ones`() {
+        val sets = KanaCourse.sets
+        // Every kana once, in the chart's order.
+        assertEquals(KanaCourse.units.map { it.text }, sets.flatMap { it.kana })
+        assertEquals(47, sets.size)
+        assertEquals(listOf("あ", "い", "う", "え", "お"), sets[0].kana)
+        assertEquals(listOf("か", "き", "く", "け", "こ"), sets[1].kana)
+        assertEquals(listOf("わ", "を", "ん"), sets[9].kana)
+        assertEquals(listOf("が", "ぎ", "ぐ", "げ", "ご"), sets[10].kana)
+        assertEquals(listOf("きゃ", "きゅ", "きょ", "しゃ", "しゅ", "しょ"), sets[15].kana)
+        assertEquals(listOf("ア", "イ", "ウ", "エ", "オ"), sets[22].kana)
+        // A voiced or combined kana comes in a set after the one it's built on.
+        val setOf = sets.withIndex().flatMap { (i, set) -> set.kana.map { it to i } }.toMap()
+        for (text in setOf.keys) {
+            val base = KanaCourse.base(text) ?: continue
+            assertTrue(setOf.getValue(base) < setOf.getValue(text), "$base before $text")
+        }
+        // Each new idea comes after its lesson, once.
+        assertEquals(KanaLesson.entries.toList(), sets.mapNotNull { it.lesson })
+        assertEquals(KanaLesson.VOWELS, sets[0].lesson)
+        assertEquals(KanaLesson.DAKUTEN, sets[10].lesson)
+        assertEquals(KanaLesson.KATAKANA, sets[22].lesson)
+        assertNull(sets[32].lesson)
+    }
+
+    @Test
+    fun `a voiced or combined kana's intro says how it's built`() {
+        assertEquals("フ with ゛ · fu → bu", KanaCourse.built("ブ"))
+        assertEquals("は with ゜ · ha → pa", KanaCourse.built("ぱ"))
+        assertEquals("き + small ゃ · kya", KanaCourse.built("きゃ"))
+        assertEquals("フ + small ァ · fa", KanaCourse.built("ファ"))
+        assertNull(KanaCourse.built("か"))
+        assertNull(KanaCourse.built("っ"))
+        assertNull(KanaCourse.base("ー"))
+    }
+
+    @Test
+    fun `a set's intro names its row and the kana that bend it`() {
+        val lines = KanaCourse.sets.map { KanaCourse.introLine(it) }
+        assertEquals("The five vowels. Tap one to hear it.", lines[0])
+        assertEquals("The k row: k + each vowel. Tap one to hear it.", lines[1])
+        assertEquals("The s row: s + each vowel, except し, said shi. Tap one to hear it.", lines[2])
+        assertEquals("The t row: t + each vowel, except ち, said chi, and つ, said tsu. Tap one to hear it.", lines[3])
+        assertEquals("The y row: y + a, u and o. Tap one to hear it.", lines[7])
+        assertEquals("The w row, which keeps only わ and を, then ん. Tap one to hear it.", lines[9])
+        assertEquals("The k row with ゛: k becomes g. Tap one to hear it.", lines[10])
+        assertEquals("The t row with ゛: t becomes d, except ぢ, said ji, and づ, said zu. Tap one to hear it.", lines[12])
+        assertEquals("The h row with ゛: h becomes b. Tap one to hear it.", lines[13])
+        assertEquals("The h row with ゜: h becomes p. Tap one to hear it.", lines[14])
+        assertEquals("き and し with small ゃ ゅ ょ. Tap one to hear it.", lines[15])
+        assertEquals("ぴ with small ゃ ゅ ょ. Tap one to hear it.", lines[20])
+        assertEquals("Small っ.", lines[21])
+        assertEquals("The h row: h + each vowel, except フ, said fu. Tap one to hear it.", lines[27])
+        assertEquals("Small ッ and the dash ー.", lines[43])
+        assertEquals("Sounds from other languages. Tap one to hear it.", lines[44])
+    }
+
+    @Test
+    fun `the worst lookalikes are told apart on the later one's set, and practice mixes them in`() {
+        val setOf = KanaCourse.sets.withIndex().flatMap { (i, set) -> set.kana.map { it to i } }.toMap()
+        val notes = KanaCourse.sets.flatMap { KanaLooks.notesFor(it.kana) }
+        assertEquals(15, notes.size)
+        for (note in notes) {
+            for (like in note.like) {
+                assertTrue(setOf.getValue(like) <= setOf.getValue(note.kana), "$like by ${note.kana}")
+                assertTrue(KanaLooks.alike(note.kana, like), "${note.kana} and $like")
+            }
+        }
+        // ぬ is in the n row, め in the m row.
+        assertEquals(listOf("ぬ"), KanaLooks.notesFor(KanaCourse.sets[6].kana).single().like)
+        assertEquals(listOf("り", "れ", "ろ"), KanaLooks.notesFor(KanaCourse.sets[8].kana).map { it.kana })
+        assertTrue(KanaLooks.notesFor(KanaCourse.sets[1].kana).isEmpty())
+    }
+
+    @Test
+    fun `a set's lesson comes first until one of its kana is practised`() {
+        assertEquals(KanaLesson.VOWELS, none().nextLesson())
+        val started = none().copy(progress = mapOf("い" to KanaProgress("い", KanaStage.LEARNING, introducedDay = day)))
+        assertEquals(listOf("あ", "う", "え", "お"), started.nextSet())
+        assertNull(started.nextLesson())
+        // A set without one.
+        val vowels = KanaCourse.sets[0].kana.associateWith { KanaProgress(it, KanaStage.LEARNING, introducedDay = day) }
+        assertNull(none().copy(progress = vowels).nextLesson())
+        assertEquals(KanaLesson.KATAKANA, KanaState(KanaKnown.HIRAGANA, emptyMap()).nextLesson())
     }
 
     @Test
@@ -129,26 +207,12 @@ class KanaDrillTest {
         assertFalse(KanaLooks.alike("ば", "ば"))
         assertFalse(KanaLooks.alike("が", "ぎ"))
         assertFalse(KanaLooks.alike("きゃ", "きゅ"))
-        val sets = KanaCourse.sets(listOf("ツ", "ソ", "シ", "ン", "ア", "イ", "ば", "ぱ"))
-        fun where(t: String) = sets.indexOfFirst { t in it }
-        assertTrue(where("ツ") != where("ソ") && where("シ") != where("ン") && where("ば") != where("ぱ"))
-    }
-
-    @Test
-    fun `keeps lookalikes in different sets`() {
-        val sets = KanaCourse.sets(listOf("さ", "ち", "き", "か", "た", "な", "い"))
-        assertEquals(listOf("さ", "か", "た", "い"), sets[0].take(4))
-        assertFalse(sets[0].contains("ち"))
-        assertFalse(sets[0].contains("き"))
-        for (set in KanaCourse.sets(KanaCourse.units.map { it.text })) {
-            for (a in set) for (b in set) if (a != b) assertFalse(KanaLooks.alike(a, b), "$a and $b")
-        }
     }
 
     @Test
     fun `unset kana known means both, so older installs don't get kana practice`() {
         assertEquals(KanaKnown.BOTH, KanaKnown.of(null))
-        val state = KanaState(KanaKnown.of(null), KanaCourse.units.map { it.text }, emptyMap())
+        val state = KanaState(KanaKnown.of(null), emptyMap())
         assertTrue(state.done)
         assertTrue(state.unread.isEmpty())
         assertEquals(0, state.counts(day, noon).due)
@@ -156,8 +220,11 @@ class KanaDrillTest {
 
     @Test
     fun `hiragana only leaves katakana to learn`() {
-        val state = KanaState(KanaKnown.HIRAGANA, KanaCourse.units.map { it.text }, emptyMap())
+        val state = KanaState(KanaKnown.HIRAGANA, emptyMap())
         assertTrue(state.toLearn.all { KanaCourse.unit(it)!!.script == Script.KATAKANA })
+        // Starting with the katakana lesson.
+        assertEquals(KanaLesson.KATAKANA, state.sets.first().lesson)
+        assertEquals(1, state.setNumber("ア"))
         assertEquals(KanaStage.CLEAR, state.stage("あ"))
         assertEquals(KanaStage.NEW, state.stage("ア"))
     }
@@ -174,7 +241,7 @@ class KanaDrillTest {
         return session.practised.associateWith { session.progress(it) }
     }
 
-    private fun none() = KanaState(KanaKnown.NONE, KanaCourse.order(listOf("ついに来た")), emptyMap())
+    private fun none() = KanaState(KanaKnown.NONE, emptyMap())
 
     @Test
     fun `a new set is practised until each is right three times, then looked at again later that day`() {
@@ -258,10 +325,10 @@ class KanaDrillTest {
     }
 
     @Test
-    fun `a missed weekly check sends a kana back to learning`() {
+    fun `a missed weekly check costs a kana one day`() {
         val text = "あ"
-        val p = KanaProgress(text, KanaStage.CLEAR, introducedDay = day - 10, passDays = 3, lastDay = day - 7, checkDue = day)
-        val state = KanaState(KanaKnown.NONE, KanaCourse.units.map { it.text }, mapOf(text to p))
+        val p = KanaProgress(text, KanaStage.CLEAR, introducedDay = day - 17, passDays = 3, lastDay = day - 7, checkDue = day, checks = 2)
+        var state = KanaState(KanaKnown.NONE, mapOf(text to p))
         assertEquals(listOf(text), state.due(day, noon))
         val s = KanaSession(state, day, noon, emptyList(), random = Random(4))
         val q = s.next()!!
@@ -269,6 +336,18 @@ class KanaDrillTest {
         assertFalse(r.correct)
         assertEquals(KanaStage.LEARNING, r.progress.stage)
         assertNull(r.progress.checkDue)
+        assertEquals(KanaRules.CLEAR_DAYS - 1, r.progress.passDays)
+        // The next day, quick and right: clear again, and its weekly checks carry on from the third.
+        state = state.copy(progress = mapOf(text to r.progress))
+        val next = day + 1
+        val at = noon + 86_400_000L
+        assertEquals(listOf(text), state.due(next, at))
+        val again = KanaSession(state, next, at, emptyList(), random = Random(5))
+        val q2 = again.next()!!
+        val r2 = again.answer(q2, q2.answer, 1000, at)
+        assertEquals(KanaStage.CLEAR, r2.progress.stage)
+        assertEquals(next + KanaRules.CHECK_DAYS, r2.progress.checkDue)
+        assertEquals(2, r2.progress.checks)
     }
 
     @Test
@@ -380,10 +459,7 @@ class KanaDrillTest {
 
     @Test
     fun `marks are asked in a word`() {
-        val state = KanaState(KanaKnown.NONE, listOf("っ") + KanaCourse.units.map { it.text }.filter { it != "っ" }, emptyMap())
-        val set = state.nextSet()!!.map { KanaCourse.unit(it)!! }
-        assertEquals("っ", set.first().text)
-        val q = KanaSession(state, day, noon, set, random = Random(8)).next()!!
+        val q = KanaSession(none(), day, noon, listOf(KanaCourse.unit("っ")!!), random = Random(8)).next()!!
         assertEquals("っ", q.unit.text)
         assertTrue(q.prompt.contains("っ"))
         assertEquals(Romaji.of(q.prompt), q.answer)
