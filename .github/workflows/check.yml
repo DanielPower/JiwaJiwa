@@ -84,7 +84,6 @@ jobs:
           grep -q "assets/stories/needs.json" apk.txt
           grep -q "assets/stories/read/arrival.json" apk.txt
           grep -q "assets/stories/lines.json" apk.txt
-          grep -q "assets/stories/kana.txt" apk.txt
 
       - uses: actions/upload-artifact@v4
         id: apk

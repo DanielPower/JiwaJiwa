@@ -84,8 +84,8 @@ android {
 }
 
 // The stories (assets' stories/: path.json, needs.json, read/, each
-// chapter split into words, lines.json, where each grammar topic is
-// used, and kana.txt, the order to teach kana in) are written from tools/stories by
+// chapter split into words, and lines.json, where each grammar topic is
+// used) are written from tools/stories by
 // :core:storyAssets on each build, not committed. Like the app itself, that
 // needs the dictionary built.
 abstract class StoryAssets : DefaultTask() {

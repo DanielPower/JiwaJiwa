@@ -51,11 +51,11 @@ tasks.register<JavaExec>("stories") {
 }
 
 // The stories the app bundles (its assets' stories/: path.json, needs.json,
-// read/, lines.json and kana.txt), written for each app build
-// (app/build.gradle.kts) rather than committed. Needs the dictionary built.
+// read/ and lines.json), written for each app build (app/build.gradle.kts)
+// rather than committed. Needs the dictionary built.
 tasks.register<JavaExec>("storyAssets") {
     group = "stories"
-    description = "Writes the stories as the app bundles them (path.json, needs.json, read/, lines.json, kana.txt). Needs the dictionary built."
+    description = "Writes the stories as the app bundles them (path.json, needs.json, read/, lines.json). Needs the dictionary built."
     classpath = stories.runtimeClasspath
     mainClass.set("ca.danielpower.jstudy.core.StoryAssetsToolKt")
     val out = layout.buildDirectory.dir("generated/storyAssets")
