@@ -60,11 +60,13 @@ python3 tools/dictionary/build_dictionary.py   # needed before assembling an APK
 | Workflow | When | What |
 | --- | --- | --- |
 | `test.yml` (Tests) | every PR, every push to main | core tests, app unit tests, dictionary tests, as separate checks |
-| `check.yml` (Check pull request) | every PR, or by hand on any branch | builds the dictionary, runs the core tests with it (so `StoryPathTest` checks the stories, which it skips in Tests), and builds the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it |
-| `release.yml` | every push to main | tests, builds, signs and publishes a GitHub release `v0.1.<run number>` |
+| `check.yml` (Check pull request) | every PR, or by hand on any branch | builds the dictionary, runs the core tests with it (so `StoryPathTest` checks the stories, which it skips in Tests), and builds the release + debug APKs; attaches the debug APK (app id `com.crispyumbrella.jiwajiwa.debug`, installs next to the real app as "Jiwa Jiwa Debug") and comments on the PR with a link to it (a run started by hand updates its branch's PR comment too) |
+| `audio.yml` (Record story audio) | pushes to main that change `tools/stories/` or `Recordings.kt`, or by hand | records the clips the audio bucket lacks with Fish Audio and uploads them (stops over $5 unless run by hand with a higher limit); runs alongside the release, so a new line plays in the phone's voice until its clip is up |
+| `release.yml` | pushes to main that change more than `.md` files, or by hand on main | tests and builds, sends the signed bundle to Google Play internal testing (with `PLAY_SERVICE_ACCOUNT_JSON` and the signing secrets; `PLAY_RELEASE_STATUS` variable, "What's new" is the PR title), then publishes a GitHub release `v0.1.<run number>` (versionCode is ten times that, plus the attempt) |
 | `dictionary.yml` | pushes touching `tools/dictionary/` | rebuilds and checks the digest |
+| `update-dictionary.yml` | monthly, or by hand | pins the newest JMdict, KANJIDIC2 and JmdictFurigana and opens a PR (close and reopen it to run its checks) |
 
-Every push to main ships a release, so main must always be releasable.
+Every push to main that changes more than docs ships a release, so main must always be releasable.
 Release signing comes from repository secrets (see the README); never put
 keys, passwords or API keys in the repo. Daniel may open-source it later.
 
@@ -341,7 +343,7 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   Formal speech comes later as its own topic.
 - Dialogue shows who's speaking, script style (台本形式, Daniel 2026-10-17):
   a cast member's quote is written `ユキ|「でしょ？」` in the story and
-  shown with the name before it (core `Speech`), at 80% size in a quieter
+  shown with the name before it (core `Speech`), at 70% size in a quieter
   colour. In a run of labelled lines the quotes start level, after that
   run's longest name (a long name only widens its own run); a quote that
   wraps carries on one character further in. Same in vertical text, names
@@ -442,4 +444,4 @@ Story path (Daniel, 2026-10-14; chapters since 2026-10-15; merged into main 2026
   seen, moved to known and moved to mastered, the grammar topic, anyone
   you met, and the next chapter.
 
-Not decided or not built yet: example sentences, audio.
+Not decided or not built yet: example sentences.
