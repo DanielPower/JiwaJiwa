@@ -801,7 +801,7 @@ fun StoryReaderScreen(state: Screen.StoryReader, vm: AppViewModel) {
             val o = open
             val n = note?.let { reading.notes[it] }
             when {
-                menu -> ReaderMenu(style, vm::setReaderStyle, direction = reading.unclearKana.isEmpty(), directionNew = directionNew)
+                menu -> ReaderMenu(style, vm::setReaderStyle, direction = reading.verticalAllowed, directionNew = directionNew)
                 audio -> AudioMenu(speech, voice.missing && reading.clips.all { it == null }, vm::setSpeechRate)
                 n != null -> NoteCard(n)
                 o == null -> Text(
@@ -1603,7 +1603,7 @@ private fun ReaderMenu(style: ReaderStyle, onChange: (ReaderStyle) -> Unit, dire
                 }
             }
         }
-        // Vertical text waits until every kana is clear: romaji doesn't sit well beside a column.
+        // Vertical text waits until every kana you learn has been clear: romaji doesn't sit well beside a column.
         if (direction) MenuRow("Direction", new = directionNew) {
             MenuOption(!style.vertical, { onChange(style.copy(vertical = false)) }) {
                 Text("Horizontal", style = MaterialTheme.typography.labelLarge, maxLines = 1)
