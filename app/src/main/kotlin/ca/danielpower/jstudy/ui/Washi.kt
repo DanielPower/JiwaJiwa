@@ -39,7 +39,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.semantics.Role
@@ -71,7 +70,7 @@ fun PrimaryButton(
     )
 }
 
-/** The grade buttons on a revealed card: green for "Right", red for "Wrong". */
+/** The grade buttons on a revealed card: pine for "Right", crimson for "Wrong". */
 @Composable
 fun GradeButton(
     right: Boolean,
@@ -80,7 +79,7 @@ fun GradeButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val container = if (right) rightGreen() else colors.error
+    val container = if (right) MaterialTheme.washi.pine else colors.error
     Button(
         onClick = onClick,
         modifier = modifier,
@@ -194,19 +193,15 @@ fun MasteryBar(mastery: Int, modifier: Modifier = Modifier, color: Color = Mater
     }
 }
 
-/** The "Right" green, which Material's scheme has no slot for. */
-@Composable
-fun rightGreen(): Color =
-    if (MaterialTheme.colorScheme.background.luminance() < 0.5f) Color(0xFF97C485) else Color(0xFF3D6936)
-
 /**
- * Mastery's colour follows the furigana stages: gold while furigana shows,
- * indigo while it's tap to show, green once it's off.
+ * Mastery's colour by stage, the same stages as furigana: ochre while a word
+ * is seen (furigana shows), verdigris once it's known (tap to show), pine
+ * once it's mastered (off).
  */
 @Composable
 fun masteryColor(mastery: Int): Color = when {
-    mastery >= MasteryRules.OFF_AT -> rightGreen()
-    mastery >= MasteryRules.HIDE_AT -> MaterialTheme.colorScheme.secondary
+    mastery >= MasteryRules.OFF_AT -> MaterialTheme.washi.pine
+    mastery >= MasteryRules.HIDE_AT -> MaterialTheme.washi.verdigris
     else -> MaterialTheme.colorScheme.tertiary
 }
 

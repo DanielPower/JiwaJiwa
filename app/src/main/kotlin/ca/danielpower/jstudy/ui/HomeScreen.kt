@@ -256,7 +256,7 @@ private fun NextCard(d: Dashboard, vm: AppViewModel) {
 @Composable
 private fun nextContent(next: NextUp<ChapterEntry>, d: Dashboard, vm: AppViewModel): NextContent {
     val colors = MaterialTheme.colorScheme
-    val green = rightGreen()
+    val green = MaterialTheme.washi.pine
     val newToday = d.pace.newToday
     fun reviewAlt(due: Int) = if (due > 0) "review $due due" else null
     return when (next) {
@@ -496,7 +496,7 @@ private fun WordsSection(words: List<WordDay>) {
         Row(Modifier.fillMaxWidth()) {
             Total(last.seen, "seen", last.seen - weekAgo.seen, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f))
             Total(last.known, "known", last.known - weekAgo.known, MaterialTheme.colorScheme.secondary, Modifier.weight(1f))
-            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, rightGreen(), Modifier.weight(1f))
+            Total(last.mastered, "mastered", last.mastered - weekAgo.mastered, MaterialTheme.washi.pine, Modifier.weight(1f))
         }
     }
 }
@@ -556,7 +556,7 @@ private fun WordsChart(days: List<WordDay>) {
     val bands = listOf(
         MaterialTheme.colorScheme.tertiary to { d: WordDay -> d.seen },
         MaterialTheme.colorScheme.secondary to { d: WordDay -> d.known },
-        rightGreen() to { d: WordDay -> d.mastered },
+        MaterialTheme.washi.pine to { d: WordDay -> d.mastered },
     )
     val top = niceCeiling(days.maxOf { it.seen })
     val ink = MaterialTheme.colorScheme.onSurface

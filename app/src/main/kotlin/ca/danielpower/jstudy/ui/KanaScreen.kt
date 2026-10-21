@@ -271,13 +271,13 @@ private fun Feedback(q: KanaQuestion, step: KanaStep.Ask, vm: AppViewModel) {
     if (q.unit.mark) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(q.prompt, fontFamily = Gothic, fontSize = 48.sp, lineHeight = 56.sp)
-            Text(q.answer, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = rightGreen())
+            Text(q.answer, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.washi.pine)
             Text(soundLabel(q.unit).replaceFirstChar { it.uppercase() } + ".", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }
     Row(horizontalArrangement = Arrangement.spacedBy(28.dp), verticalAlignment = Alignment.Top) {
-        FeedbackKana(q.unit, rightGreen()) { vm.sayKana(q.unit.text) }
+        FeedbackKana(q.unit, MaterialTheme.washi.pine) { vm.sayKana(q.unit.text) }
         if (picked != null) FeedbackKana(picked, MaterialTheme.colorScheme.error) { vm.sayKana(picked.text) }
     }
 }
@@ -304,7 +304,7 @@ private fun Options(q: KanaQuestion, step: KanaStep.Ask, vm: AppViewModel, modif
                     val right = option == q.answer
                     val colors = MaterialTheme.colorScheme
                     val (container, content) = when {
-                        answered && right -> rightGreen() to colors.surface
+                        answered && right -> MaterialTheme.washi.pine to colors.surface
                         answered && option == step.picked -> colors.error to colors.onError
                         else -> colors.surfaceContainerLow to colors.onSurface.copy(alpha = if (answered) 0.4f else 1f)
                     }

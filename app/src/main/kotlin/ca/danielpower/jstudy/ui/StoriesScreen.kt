@@ -284,7 +284,7 @@ private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium,
                     color = when {
-                        done || (single && next?.nothingNew == true) -> rightGreen()
+                        done || (single && next?.nothingNew == true) -> MaterialTheme.washi.pine
                         next == null -> MaterialTheme.colorScheme.onSurfaceVariant
                         else -> seal
                     },
@@ -429,7 +429,7 @@ private fun NothingNewRow(entry: ChapterEntry, onClick: () -> Unit) {
             "Nothing new",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium,
-            color = rightGreen(),
+            color = MaterialTheme.washi.pine,
         )
     }
 }
@@ -551,7 +551,7 @@ private fun ChapterRow(entry: ChapterEntry, next: Boolean, onClick: () -> Unit) 
                 }
             }
             when {
-                entry.read -> Text("✓", color = rightGreen(), fontWeight = FontWeight.Bold)
+                entry.read -> Text("✓", color = MaterialTheme.washi.pine, fontWeight = FontWeight.Bold)
                 locked -> Icon(WashiIcons.Lock, contentDescription = "Locked", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 else -> {
                     val words = entry.gap.words.size
