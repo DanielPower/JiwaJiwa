@@ -391,8 +391,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var searchJob: Job? = null
     private var importJob: Job? = null
 
-    // When the open story was opened, to time the reading, and whether its end has been reached.
-    private var readingSince = 0L
+    // Whether the open story's end has been reached.
     private var readingFinished = false
     // For the open path story: your mastery when it opened, and the words you
     // looked up, which reading doesn't credit.
@@ -1056,7 +1055,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun openStory(id: Long, anyway: Boolean = false) = launchIo { beginStory(id, anyway) }
 
-    private fun beginStory(id: Long, anyway: Boolean = false) {
+    // Opening a chapter asks several things of the story path, so it's worked out once for them.
+    private fun beginStory(id: Long, anyway: Boolean = false) = repo.onePath { startChapter(id, anyway) }
+
+    private fun startChapter(id: Long, anyway: Boolean) {
         _limit.value = null
         val story = repo.story(id) ?: return showStories()
         val learn = repo.stepToLearn(story)
@@ -1144,7 +1146,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         var resumeAt: Pair<Int, Int>? = null
         readerFirst = null
         if (reading.lesson == null) {
-            readingSince = now()
             readingFinished = false
             masteryAtOpen = repo.masteries(reading.words.keys)
             lookedUpWords.clear()
@@ -1208,7 +1209,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val at = now()
         val story = state.reading.story
         val lookedUp = lookedUpWords.toSet()
-        val started = repo.finishChapter(story, at, at - readingSince, lookedUp, state.forgotten)
+        val started = repo.finishChapter(story, at, lookedUp, state.forgotten)
         // The words read and started change what's due.
         refreshBadge()
         val after = repo.masteries(state.reading.words.keys)

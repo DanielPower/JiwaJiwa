@@ -164,9 +164,8 @@ class ProgressStoreTest {
         store.syncPathStories(listOf(SavedStory(0, "path-01", "Cat", "猫だ。", listOf("A cat."))))
         val id = store.pathStories().getValue("path-01").id
         assertNull(store.story(id)!!.readAt)
-        store.markStoryRead(id, 500, 120_000)
+        store.markStoryRead(id, 500)
         assertEquals(500L, store.story(id)!!.readAt)
-        assertEquals(120_000L, store.story(id)!!.readMillis)
     }
 
     @Test
@@ -174,7 +173,7 @@ class ProgressStoreTest {
         fun path(body: String) = SavedStory(0, "path-01", "猫", body, listOf("A cat."))
         store.syncPathStories(listOf(path("猫です。")))
         val saved = store.pathStories().getValue("path-01")
-        store.markStoryRead(saved.id, 500, 1_000)
+        store.markStoryRead(saved.id, 500)
         store.syncPathStories(listOf(path("これは猫です。")))
         val updated = store.pathStories().getValue("path-01")
         assertEquals(saved.id, updated.id)
@@ -212,7 +211,7 @@ class ProgressStoreTest {
         }
         store = ProgressStore(context)
         val story = store.pathStories().values.single()
-        assertEquals(SavedStory(story.id, "path-01", "Cat", "猫だ。", listOf("A cat."), readAt = 2, readMillis = 3), story)
+        assertEquals(SavedStory(story.id, "path-01", "Cat", "猫だ。", listOf("A cat."), readAt = 2), story)
     }
 
     @Test
@@ -389,5 +388,27 @@ class ProgressStoreTest {
         store.saveKana(p, answeredAt = 900, day = 5, correct = false, millis = 2400)
         assertEquals(mapOf("か" to p), store.kanaProgress())
         assertEquals(listOf(5L), store.kanaDays())
+    }
+
+    @Test
+    fun upgradingToVersion13ClearsSettingsTheAppNoLongerReads() {
+        store.close()
+        context.deleteDatabase(ProgressStore.NAME)
+        val path = context.getDatabasePath(ProgressStore.NAME).apply { parentFile!!.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(path, null).use { db ->
+            ProgressStore(context).onCreate(db)
+            // A version 12 database still holding settings from older versions.
+            db.execSQL(
+                "INSERT INTO kv (key, value) VALUES ('new_per_day', '10'), ('production_at', '60'), " +
+                    "('speech_narrator', 'Kyoko'), ('daily_new', '8')",
+            )
+            db.version = 12
+        }
+
+        store = ProgressStore(context)
+        assertNull(store.getValue("new_per_day"))
+        assertNull(store.getValue("production_at"))
+        assertNull(store.getValue("speech_narrator"))
+        assertEquals("8", store.getValue("daily_new"))
     }
 }

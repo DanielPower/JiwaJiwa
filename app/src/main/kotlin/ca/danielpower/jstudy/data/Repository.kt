@@ -35,7 +35,6 @@ import ca.danielpower.jstudy.core.StudySession
 import ca.danielpower.jstudy.core.StudySettings
 import ca.danielpower.jstudy.core.WordKind
 import ca.danielpower.jstudy.core.WordProgress
-import ca.danielpower.jstudy.core.Coverage
 import ca.danielpower.jstudy.core.ReadingWord
 import ca.danielpower.jstudy.core.CastMember
 import ca.danielpower.jstudy.core.CastVoice
@@ -63,7 +62,6 @@ import ca.danielpower.jstudy.core.StepGap
 import ca.danielpower.jstudy.core.StepNeeds
 import ca.danielpower.jstudy.core.StoryPath
 import ca.danielpower.jstudy.core.StoryText
-import ca.danielpower.jstudy.core.coverage
 import ca.danielpower.jstudy.core.sentenceRanges
 import kotlin.random.Random
 
@@ -201,7 +199,6 @@ data class StoryReading(
     /** Dictionary entries for the story's words. */
     val words: Map<Long, Word>,
     val statuses: Map<Long, WordStatus>,
-    val coverage: Coverage,
     /** For a grammar topic's page: the topic, with its notes, forms and what's folded under More. */
     val lesson: GrammarTopic? = null,
     /** A chapter's English notes, by the paragraph whose end has their marker. */
@@ -382,12 +379,27 @@ class BackupException(message: String) : Exception(message)
  */
 class Repository private constructor(context: Context) {
     private val appContext = context.applicationContext
-    val dictionary = Dictionary(context)
+    // Opened (and after an update, copied out of the app) when first asked for, so the reminder's
+    // receivers, which only read progress, never spend their few seconds copying the dictionary.
+    val dictionary by lazy { Dictionary(appContext) }
     private val store = ProgressStore(context)
 
     // ------------------------------------------------------------ settings
 
+    // Asked for many times a screen, so kept until they're saved or the database is reopened (as a
+    // restore or reset does), whichever thread asks.
+    private class KeptSettings(val opened: Int, val saves: Int, val settings: StudySettings)
+    @Volatile private var keptSettings: KeptSettings? = null
+    @Volatile private var settingsSaves = 0
+
     fun settings(): StudySettings {
+        val opened = store.opened
+        val saves = settingsSaves
+        keptSettings?.takeIf { it.opened == opened && it.saves == saves }?.let { return it.settings }
+        return loadSettings().also { keptSettings = KeptSettings(opened, saves, it) }
+    }
+
+    private fun loadSettings(): StudySettings {
         val d = StudySettings()
         fun int(key: String, default: Int) = store.getValue(key)?.toIntOrNull() ?: default
         return runCatching {
@@ -409,6 +421,7 @@ class Repository private constructor(context: Context) {
                 "rollover_hour" to s.rolloverHour.toString(),
             ),
         )
+        settingsSaves++
     }
 
     private fun ahead(): StudyAhead = StudyAhead(
@@ -602,7 +615,7 @@ class Repository private constructor(context: Context) {
         val p = paragraphs.indexOfFirst { words -> words.any { it.wordId == wordId } }.takeIf { it >= 0 } ?: return null
         val i = paragraphs[p].indexOfFirst { it.wordId == wordId }
         // Only its text is needed, not its words' entries or progress.
-        val reading = StoryReading(story, paragraphs, Speech.speakers(story.body), emptyMap(), emptyMap(), coverage(paragraphs) { true })
+        val reading = StoryReading(story, paragraphs, Speech.speakers(story.body), emptyMap(), emptyMap())
         val sentence = reading.sentence(p, i) ?: return null
         val line = Narration.lineOf(reading.narration, p, i)
         return StoryUse(
@@ -766,7 +779,7 @@ class Repository private constructor(context: Context) {
         s != null && (s.state != CardState.NEW || s.suspended)
     }
 
-    fun markStoryRead(id: Long, now: Long, millis: Long) = store.markStoryRead(id, now, millis)
+    fun markStoryRead(id: Long, now: Long) = store.markStoryRead(id, now)
 
     fun readStory(id: Long): StoryReading? {
         val story = store.story(id) ?: return null
@@ -782,9 +795,8 @@ class Repository private constructor(context: Context) {
             story = story,
             paragraphs = paragraphs,
             speakers = Speech.speakers(story.body),
-            words = ids.mapNotNull { dictionary.word(it) }.associateBy { it.id },
+            words = dictionary.words(ids),
             statuses = statuses,
-            coverage = coverage(paragraphs, known(statuses)),
             lesson = topic,
             notes = notes(story),
             lessons = lessons(),
@@ -901,14 +913,37 @@ class Repository private constructor(context: Context) {
     }
     private var pathSynced = false
 
+    // The saved chapters and the path, kept while [onePath] runs on this thread.
+    private class PathOnce {
+        var saved: Map<String, SavedStory>? = null
+        var path: List<SeriesEntry>? = null
+    }
+    private val pathOnce = ThreadLocal<PathOnce>()
+
+    /**
+     * [block], with the story path worked out at most once however often it's asked for: for a screen
+     * that asks several things of it. Only for reading, as anything [block] saves won't show in the path.
+     */
+    fun <T> onePath(block: () -> T): T {
+        if (pathOnce.get() != null) return block()
+        pathOnce.set(PathOnce())
+        try {
+            return block()
+        } finally {
+            pathOnce.remove()
+        }
+    }
+
     /** Saves the chapters and grammar pages on first use, so they can be opened like any story. */
     private fun savedPath(): Map<String, SavedStory> {
+        val once: PathOnce? = pathOnce.get()
+        once?.saved?.let { return it }
         if (!pathSynced) {
             val stories = catalog.chapters.map { it.second.story } + catalog.grammar.map { it.page }
             store.syncPathStories(stories.map { p -> SavedStory(0, p.id, p.title, p.body, p.translations) })
             pathSynced = true
         }
-        return store.pathStories()
+        return store.pathStories().also { once?.saved = it }
     }
 
     /** What's left of a step to learn: words you haven't started, and grammar you haven't seen. */
@@ -920,6 +955,8 @@ class Repository private constructor(context: Context) {
 
     /** Every story that comes with the app, in order, with each chapter and what you haven't learned of it. */
     fun storyPath(): List<SeriesEntry> {
+        val once: PathOnce? = pathOnce.get()
+        once?.path?.let { return it }
         val saved = savedPath()
         val gap = gaps()
         val seen = seenGrammar()
@@ -929,7 +966,7 @@ class Repository private constructor(context: Context) {
                 val topic = catalog.topic(c.topic)?.takeIf { !seen.containsAll(it.points) }
                 ChapterEntry(series, c, story, gap(needs.getValue(c.story.id)), topic)
             })
-        }
+        }.also { once?.path = it }
     }
 
     /** The story a saved chapter belongs to, and the chapter. */
@@ -961,9 +998,10 @@ class Repository private constructor(context: Context) {
             .filter { c -> chapters.firstOrNull { it.chapter === c }?.read == false }
             .flatMap { c -> needs.getValue(c.story.id).words.mapNotNull { it.wordId } }
             .toSet()
+        val found = dictionary.words(missing)
         return LockInfo(
             entry = entry,
-            words = entry.gap.words.mapNotNull { w -> w.wordId?.let { dictionary.word(it) } },
+            words = entry.gap.words.mapNotNull { w -> w.wordId?.let { found[it] } },
             grammar = grammar,
             sources = sources,
             earlierCover = missing.isNotEmpty() && earlier.containsAll(missing),
@@ -1038,27 +1076,28 @@ class Repository private constructor(context: Context) {
     }
 
     /**
-     * Finishing a story: its words you haven't started, or said you know,
-     * start as cards, as though just shown. Returns their ids.
-     */
-    /**
      * Finish a chapter in one transaction: mark it read, credit the words read
      * and forgotten, and start its new words. Returns the words started. Done
      * apart, a failure part way left a chapter read whose words never started.
      */
-    fun finishChapter(story: SavedStory, now: Long, millis: Long, lookedUp: Set<Long>, forgotten: Set<Long>): List<Long> =
+    fun finishChapter(story: SavedStory, now: Long, lookedUp: Set<Long>, forgotten: Set<Long>): List<Long> =
         store.transaction {
-            markStoryRead(story.id, now, millis)
+            markStoryRead(story.id, now)
             if (readerPlace()?.storyId == story.id) clearReaderPlace()
             readWords(story, lookedUp, now)
             forgetWords(forgotten, now)
             startStoryWords(story, now)
         }
 
+    /**
+     * Finishing a story: its words you haven't started, or said you know,
+     * start as cards, as though just shown. Returns their ids.
+     */
     fun startStoryWords(story: SavedStory, now: Long): List<Long> {
         val isKnown = known(store.wordStatuses())
-        val ids = StoryPath.words(paragraphs(story)).mapNotNull { it.wordId }.distinct()
-            .filter { !isKnown(it) && dictionary.word(it) != null }
+        val unknown = StoryPath.words(paragraphs(story)).mapNotNull { it.wordId }.distinct().filter { !isKnown(it) }
+        val found = dictionary.words(unknown)
+        val ids = unknown.filter { it in found }
         for (id in ids) start(id, now)
         return ids
     }
@@ -1382,7 +1421,10 @@ class Repository private constructor(context: Context) {
 
     // ------------------------------------------------------------ home
 
-    fun dashboard(now: Long): Dashboard {
+    /** Everything Home shows, with the story path worked out once for it. */
+    fun dashboard(now: Long): Dashboard = onePath { home(now) }
+
+    private fun home(now: Long): Dashboard {
         val clock = clock()
         val today = clock.dayOf(now)
         val active = activeDays(clock)
@@ -1393,10 +1435,11 @@ class Repository private constructor(context: Context) {
         val words = WordHistory.days(firstDays, started.associate { it.wordId to it.mastery }, store.masteryChanges(), from, today)
         val since = today - RECENT_DAYS
         // Imported and level-filled words count in the graph, but aren't the week's new words.
-        val newWords = started
+        val recentWords = started
             .filter { it.source.recent && it.introducedDay != null && it.introducedDay > since }
             .sortedByDescending { it.introducedDay }
-            .mapNotNull { w -> dictionary.word(w.wordId)?.let { RecentItem.NewWord(it) to w.introducedDay!! } }
+        val entries = dictionary.words(recentWords.map { it.wordId })
+        val newWords = recentWords.mapNotNull { w -> entries[w.wordId]?.let { RecentItem.NewWord(it) to w.introducedDay!! } }
         val rows = grammarRows()
         val learned = grammarDays()
         val newGrammar = rows.mapNotNull { row ->
