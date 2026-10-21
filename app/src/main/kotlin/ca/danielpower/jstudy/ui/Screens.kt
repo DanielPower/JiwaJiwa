@@ -204,7 +204,7 @@ private fun ReviewTabScreen(summary: Summary, vm: AppViewModel) {
                         VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Count("習 Learning", summary.learning, MaterialTheme.colorScheme.tertiary, Modifier.weight(1f).padding(start = 16.dp))
                         VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Count("復 Review", summary.reviews, MaterialTheme.colorScheme.secondary, Modifier.weight(1f).padding(start = 16.dp))
+                        Count("復 Review", summary.reviews, MaterialTheme.washi.verdigris, Modifier.weight(1f).padding(start = 16.dp))
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
@@ -355,7 +355,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally)) {
                 QueueCount("新", state.counts.new, MaterialTheme.colorScheme.primary)
                 QueueCount("習", state.counts.learning, MaterialTheme.colorScheme.tertiary)
-                QueueCount("復", state.counts.review, MaterialTheme.colorScheme.secondary)
+                QueueCount("復", state.counts.review, MaterialTheme.washi.verdigris)
             }
             WashiIconButton(WashiIcons.Undo, "Undo", vm::undoLast, enabled = state.canUndo)
         }
@@ -445,7 +445,7 @@ private fun ReviewScreen(state: Screen.Review, vm: AppViewModel) {
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Text("Mastery", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        MasteryBar(state.current.mastery, Modifier.weight(1f))
+                        MasteryBar(state.current.mastery, Modifier.weight(1f), masteryColor(state.current.mastery))
                         Text("${state.current.mastery}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                     }
                     // The word's page; Back comes back to this card.
@@ -484,7 +484,7 @@ private fun CardRomaji(card: ReviewCard, revealed: Boolean) {
     Text(
         romaji,
         style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.secondary,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
     )
@@ -599,7 +599,7 @@ internal fun MeaningLine(numeral: String?, text: String, info: String? = null, c
                 fontFamily = Gothic,
                 fontWeight = FontWeight.Bold,
                 fontSize = size,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.width(if (compact) 24.dp else 30.dp),
             )
         }
@@ -670,7 +670,7 @@ private fun DoneScreen(summary: Summary, onStudyMore: () -> Unit, onHome: () -> 
 /** Reviews due on each of the next seven days, as bars under their weekdays. */
 @Composable
 private fun ComingUp(days: List<Int>, today: Long) {
-    val indigo = MaterialTheme.colorScheme.secondary
+    val verdigris = MaterialTheme.washi.verdigris
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val max = days.maxOrNull()?.coerceAtLeast(1) ?: 1
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -678,7 +678,7 @@ private fun ComingUp(days: List<Int>, today: Long) {
             SectionLabel("Coming up", Modifier.weight(1f))
             Text(
                 buildAnnotatedString {
-                    withStyle(SpanStyle(color = indigo, fontWeight = FontWeight.Bold)) { append("${days.firstOrNull() ?: 0}") }
+                    withStyle(SpanStyle(color = verdigris, fontWeight = FontWeight.Bold)) { append("${days.firstOrNull() ?: 0}") }
                     append(" tomorrow · ${days.sum()} in 7 days")
                 },
                 style = MaterialTheme.typography.labelMedium,
@@ -690,7 +690,7 @@ private fun ComingUp(days: List<Int>, today: Long) {
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.BottomCenter) {
                     // A hairline for an empty day, so it still shows where it is.
                     val bar = if (n == 0) Modifier.height(2.dp) else Modifier.fillMaxHeight(n / max.toFloat())
-                    Box(bar.fillMaxWidth().background(if (n == 0) MaterialTheme.colorScheme.outlineVariant else indigo, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)))
+                    Box(bar.fillMaxWidth().background(if (n == 0) MaterialTheme.colorScheme.outlineVariant else verdigris, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)))
                 }
             }
         }

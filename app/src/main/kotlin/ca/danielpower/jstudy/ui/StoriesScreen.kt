@@ -220,7 +220,7 @@ private fun LockedRow(entry: SeriesEntry, first: ChapterEntry, onClick: () -> Un
  * A story on the path, by its English title. One chapter shows its first
  * line and what's new in it; more show a bar with a segment per chapter,
  * how far you've read and what's open next, with a seal-red bar down the
- * side. A chapter left part way at [place] fills gold as far as its page.
+ * side. A chapter left part way at [place] fills as far as its page.
  */
 @Composable
 private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit) {
@@ -249,7 +249,6 @@ private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit
                 overflow = TextOverflow.Ellipsis,
             )
             if (!single) {
-                val gold = MaterialTheme.colorScheme.tertiary
                 val line = MaterialTheme.colorScheme.outlineVariant
                 Row(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     for (chapter in entry.chapters) {
@@ -258,7 +257,7 @@ private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit
                             when {
                                 chapter.read -> Box(Modifier.fillMaxSize().background(seal))
                                 partWay != null -> Box(
-                                    Modifier.fillMaxWidth(((partWay.page + 1f) / partWay.pages).coerceIn(0f, 1f)).fillMaxHeight().background(gold),
+                                    Modifier.fillMaxWidth(((partWay.page + 1f) / partWay.pages).coerceIn(0f, 1f)).fillMaxHeight().background(seal),
                                 )
                             }
                         }
@@ -284,8 +283,8 @@ private fun PathRow(entry: SeriesEntry, place: ReaderPlace?, onClick: () -> Unit
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium,
                     color = when {
-                        done || (single && next?.nothingNew == true) -> MaterialTheme.washi.pine
-                        next == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                        done -> MaterialTheme.washi.pine
+                        next == null || (single && next.nothingNew) -> MaterialTheme.colorScheme.onSurfaceVariant
                         else -> seal
                     },
                 )
@@ -349,10 +348,10 @@ private fun PathProgress(path: List<SeriesEntry>) {
     }
 }
 
-/** Today's new words against the daily limit, gold once it's reached. */
+/** Today's new words against the daily limit, in vermilion like new words everywhere, at the limit too. */
 @Composable
 private fun PaceMeter(pace: Pace) {
-    val color = if (pace.atLimit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+    val color = MaterialTheme.colorScheme.primary
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             SectionLabel("New vocabulary", Modifier.weight(1f))
@@ -379,7 +378,8 @@ private fun NudgeCard(pace: Pace, onReview: () -> Unit) {
             .background(MaterialTheme.colorScheme.surfaceContainerLow, WashiShape)
             .border(1.dp, MaterialTheme.colorScheme.outlineVariant, WashiShape),
     ) {
-        Box(Modifier.width(3.dp).fillMaxHeight().background(MaterialTheme.colorScheme.tertiary))
+        // Verdigris for reviews, vermilion for new words.
+        Box(Modifier.width(3.dp).fillMaxHeight().background(if (pace.backlog) MaterialTheme.washi.verdigris else MaterialTheme.colorScheme.primary))
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (pace.backlog) {
                 Text(if (pace.reviewsDue == 1) "1 review waiting" else "${pace.reviewsDue} reviews waiting", style = MaterialTheme.typography.titleMedium)
@@ -429,7 +429,7 @@ private fun NothingNewRow(entry: ChapterEntry, onClick: () -> Unit) {
             "Nothing new",
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.washi.pine,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -2075,7 +2075,8 @@ private fun WordImpact(impact: ReadImpact, knewNew: Set<Long>, pace: Pace?, onWo
     SectionLabel("Your words", Modifier.padding(top = 8.dp))
     val known = impact.seen.filter { it.id in knewNew } + impact.known
     val groups = listOf(
-        Triple("New", impact.seen, masteryColor(0)),
+        // New words are vermilion, as in the text; the moves up take their new stage's colour.
+        Triple("New", impact.seen, MaterialTheme.colorScheme.primary),
         Triple("Seen → known", known, masteryColor(MasteryRules.HIDE_AT)),
         Triple("Known → mastered", impact.mastered, masteryColor(MasteryRules.OFF_AT)),
     ).filter { it.second.isNotEmpty() }

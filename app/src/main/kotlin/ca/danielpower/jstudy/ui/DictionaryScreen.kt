@@ -254,7 +254,7 @@ private fun DictionaryRowItem(row: DictionaryRow, onClick: () -> Unit) {
             val status = row.status
             when {
                 status == null -> {}
-                status.suspended -> Text("Suspended", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                status.suspended -> Text("Suspended", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 status.state == CardState.NEW -> {}
                 else -> MasteryMeter(status.mastery, Modifier.padding(top = 4.dp))
             }
@@ -308,7 +308,7 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                         Text(
                             pos,
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = if (i == 0) 0.dp else 6.dp),
                         )
                     }
@@ -367,11 +367,11 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                 SectionLabel("Actions")
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)) {
                     TextButton(onClick = { vm.setSuspended(!detail.suspended) }) {
-                        Text(if (detail.suspended) "Unsuspend" else "Suspend", color = MaterialTheme.colorScheme.primary)
+                        Text(if (detail.suspended) "Unsuspend" else "Suspend", color = MaterialTheme.colorScheme.onSurface)
                     }
                     if (detail.cards.isNotEmpty() || detail.mastery > 0) {
                         TextButton(onClick = { confirmReset = true }) {
-                            Text("Reset progress", color = MaterialTheme.colorScheme.primary)
+                            Text("Reset progress", color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -418,7 +418,7 @@ fun WordScreen(state: Screen.WordPage, vm: AppViewModel) {
                 TextButton(onClick = {
                     confirmReset = false
                     vm.resetWord()
-                }) { Text("Reset", color = MaterialTheme.colorScheme.primary) }
+                }) { Text("Reset", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
                 TextButton(onClick = { confirmReset = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
@@ -441,7 +441,7 @@ private fun StoryUseRow(use: StoryUse, onOpen: () -> Unit, onPlay: () -> Unit) {
             Text(
                 if (use.series.single) use.series.title else "${use.series.title}, ch. ${use.chapter.number}",
                 style = MaterialTheme.typography.labelMedium,
-                color = seal,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 buildAnnotatedString {
@@ -468,10 +468,10 @@ private fun StoryUseRow(use: StoryUse, onOpen: () -> Unit, onPlay: () -> Unit) {
     }
 }
 
-/** A right answer as a red circle, a wrong one as an ink cross. */
+/** A right answer as a pine circle, a wrong one as a crimson cross, in the grade buttons' colours. */
 @Composable
 private fun AnswerMark(correct: Boolean, size: Dp = 26.dp) {
-    val color = if (correct) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val color = if (correct) MaterialTheme.washi.pine else MaterialTheme.colorScheme.error
     Box(Modifier.size(size).border(2.dp, color, CircleShape), contentAlignment = Alignment.Center) {
         Text(
             if (correct) "○" else "×",
