@@ -6,7 +6,8 @@ import kotlin.random.Random
  * Where a kana is. New: not practised yet, so stories show its romaji.
  * Learning: practised, checked once a day until it's quick and right on
  * [KanaRules.CLEAR_DAYS] different days. Clear: learned, and kept fresh by
- * reading, with a weekly check for the first month.
+ * reading, with a weekly check for the first month; a missed check costs
+ * it one day, back in Learning.
  */
 enum class KanaStage(val value: Int) {
     NEW(0),
@@ -103,23 +104,18 @@ data class KanaCounts(
     val minutes get() = maxOf(1, ((new * KanaRules.FIRST_RIGHTS + check) * 4 + 59) / 60)
 }
 
-/**
- * Where you are with kana: what you read already ([known]), the order the
- * stories need the rest in, and your progress with each.
- */
+/** Where you are with kana: what you read already ([known]), and your progress with each of the rest. */
 data class KanaState(
     val known: KanaKnown,
-    val order: List<String>,
     val progress: Map<String, KanaProgress>,
     /** The study day a new set was last brought in by itself; "5 more" brings in more. */
     val lastSetDay: Long? = null,
 ) {
-    /** The kana to learn, in order: everything you didn't read already. */
-    val toLearn: List<String> by lazy {
-        order.filter { text -> KanaCourse.unit(text)?.let { !known.covers(it.script) } == true }
-    }
+    /** The course's sets for the kana you didn't read already. */
+    val sets: List<KanaSet> by lazy { KanaCourse.sets.filter { !known.covers(it.script) } }
 
-    val sets: List<List<String>> by lazy { KanaCourse.sets(toLearn) }
+    /** The kana to learn, in order. */
+    val toLearn: List<String> by lazy { sets.flatMap { it.kana } }
 
     fun stage(text: String): KanaStage {
         val unit = KanaCourse.unit(text) ?: return KanaStage.CLEAR
@@ -136,11 +132,22 @@ data class KanaState(
     /** Kana that aren't clear yet, whose romaji a word's pane shows. */
     val unclear: Set<String> by lazy { toLearn.filter { stage(it) != KanaStage.CLEAR }.toSet() }
 
+    private fun next(): KanaSet? = sets.firstOrNull { set -> set.kana.any { stage(it) == KanaStage.NEW } }
+
     /** The next set's kana not practised yet. */
-    fun nextSet(): List<String>? = sets.firstOrNull { set -> set.any { stage(it) == KanaStage.NEW } }?.filter { stage(it) == KanaStage.NEW }
+    fun nextSet(): List<String>? = next()?.kana?.filter { stage(it) == KanaStage.NEW }
+
+    /**
+     * The lesson before the next set, while none of its kana has been
+     * practised: closed before practice, it shows again next time.
+     */
+    fun nextLesson(): KanaLesson? = next()?.takeIf { set -> set.kana.all { stage(it) == KanaStage.NEW } }?.lesson
+
+    /** The line its intro opens with, for the set [text] is in. */
+    fun introLine(text: String): String = KanaCourse.introLine(sets.first { text in it.kana })
 
     /** Which set [text] is in, counting from 1. */
-    fun setNumber(text: String): Int = sets.indexOfFirst { text in it } + 1
+    fun setNumber(text: String): Int = sets.indexOfFirst { text in it.kana } + 1
 
     fun isDue(text: String, today: Long, now: Long): Boolean {
         val p = progress[text] ?: return false
@@ -331,8 +338,9 @@ class KanaSession(
                     p = when {
                         quick -> {
                             val days = p.passDays + 1
+                            // Clear again after a missed check, its weekly checks carry on where they were.
                             if (days >= KanaRules.CLEAR_DAYS) {
-                                p.copy(stage = KanaStage.CLEAR, passDays = days, checkDue = today + KanaRules.CHECK_DAYS, checks = 0)
+                                p.copy(stage = KanaStage.CLEAR, passDays = days, checkDue = today + KanaRules.CHECK_DAYS)
                             } else {
                                 p.copy(passDays = days)
                             }
@@ -352,7 +360,8 @@ class KanaSession(
                     p = when {
                         quick -> (p.checks + 1).let { n -> p.copy(checks = n, checkDue = if (n >= KanaRules.CHECKS) null else today + KanaRules.CHECK_DAYS) }
                         correct -> p.copy(checkDue = today + 3)
-                        else -> p.copy(stage = KanaStage.LEARNING, passDays = 0, checkDue = null)
+                        // A slip costs a day, not the lot: one quick day makes it clear again.
+                        else -> p.copy(stage = KanaStage.LEARNING, passDays = KanaRules.CLEAR_DAYS - 1, checkDue = null)
                     }.copy(lastDay = today)
                 }
                 item.needed = if (correct) item.needed - 1 else maxOf(item.needed, 1)

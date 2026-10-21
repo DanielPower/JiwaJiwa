@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ca.danielpower.jstudy.core.Kana
 import ca.danielpower.jstudy.core.KanaCourse
+import ca.danielpower.jstudy.core.KanaLookNote
 import ca.danielpower.jstudy.core.KanaQuestion
 import ca.danielpower.jstudy.core.KanaStage
 import ca.danielpower.jstudy.core.KanaUnit
@@ -52,10 +53,11 @@ import ca.danielpower.jstudy.core.Script
 import ca.danielpower.jstudy.data.KanaExample
 import kotlinx.coroutines.delay
 
-/** Kana practice: a new set's intro, the questions, and the chart at the end. */
+/** Kana practice: a new set's lesson and intro, the questions, and the chart at the end. */
 @Composable
 fun KanaScreen(state: Screen.Kana, vm: AppViewModel) {
     when (val step = state.step) {
+        is KanaStep.Lesson -> KanaLessonPage(step, vm)
         is KanaStep.Intro -> KanaIntro(step, vm)
         is KanaStep.Ask -> KanaAsk(state, step, vm)
         is KanaStep.Done -> KanaDone(step, vm)
@@ -67,21 +69,19 @@ fun KanaScreen(state: Screen.Kana, vm: AppViewModel) {
 @Composable
 private fun KanaIntro(step: KanaStep.Intro, vm: AppViewModel) {
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            WashiIconButton(WashiIcons.Close, "Close", vm::closeKana)
-            Text("New kana · set ${step.set} of ${step.sets}", style = MaterialTheme.typography.titleMedium)
-        }
+        NewKanaBar(step.set, step.sets, vm::closeKana)
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                "${count(step.units.size)} from your stories. Tap one to hear it.",
+                step.line,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp),
             )
             for (unit in step.units) IntroRow(unit, step.examples[unit.text]) { vm.sayKana(unit.text) }
+            if (step.looks.isNotEmpty()) LookAlike(step.looks, vm::sayKana)
         }
         Row(
             Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 4.dp),
@@ -99,26 +99,79 @@ private fun KanaIntro(step: KanaStep.Intro, vm: AppViewModel) {
     }
 }
 
-private fun count(n: Int) = listOf("No kana", "One kana", "Two kana", "Three kana", "Four kana", "Five kana").getOrElse(n) { "$n kana" }
+/** The close button and "New kana · set 2 of 47", over a set's lesson and its intro. */
+@Composable
+internal fun NewKanaBar(set: Int, sets: Int, onClose: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        WashiIconButton(WashiIcons.Close, "Close", onClose)
+        Text("New kana · set $set of $sets", style = MaterialTheme.typography.titleMedium)
+    }
+}
 
 @Composable
 private fun IntroRow(unit: KanaUnit, example: KanaExample?, onSay: () -> Unit) {
+    // How a voiced or combined kana is built on one met already: "フ with ゛ · fu → bu".
+    val lines = listOfNotNull(KanaCourse.built(unit.text), unit.note ?: example?.let { exampleLine(unit.text, it) })
+    KanaRow(unit.text, soundLabel(unit), lines, onSay.takeIf { !unit.mark })
+}
+
+/** "in 来た (きた), “came”": a word with [text] in, with its reading when the word spells it in kanji. */
+internal fun exampleLine(text: String, e: KanaExample): String {
+    val word = if (text in e.word) e.word else "${e.word} (${e.reading})"
+    return "in $word, “${e.meaning}”"
+}
+
+/** A kana large, its [label] and [lines] beside it, and a speaker if it has a sound: tap anywhere on it to hear it. */
+@Composable
+internal fun KanaRow(text: String, label: String, lines: List<String>, onSay: (() -> Unit)?) {
     Row(
-        Modifier.fillMaxWidth().clip(WashiShape).clickable(onClick = onSay).padding(vertical = 8.dp),
+        Modifier.fillMaxWidth().clip(WashiShape).clickable(enabled = onSay != null) { onSay?.invoke() }.padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         // A combined kana (しゃ) is two glyphs wide, too wide for this column at 44sp.
-        Text(unit.text, fontFamily = Gothic, fontSize = if (unit.text.length > 1) 34.sp else 44.sp, lineHeight = 50.sp, modifier = Modifier.width(76.dp), textAlign = TextAlign.Center)
+        Text(text, fontFamily = Gothic, fontSize = if (text.length > 1) 34.sp else 44.sp, lineHeight = 50.sp, modifier = Modifier.width(76.dp), textAlign = TextAlign.Center)
         Column(Modifier.weight(1f)) {
-            Text(soundLabel(unit), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            val line = unit.note ?: example?.let { e ->
-                val word = if (unit.text in e.word) e.word else "${e.word} (${e.reading})"
-                "in $word, “${e.meaning}”"
-            }
-            if (line != null) Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            for (line in lines) Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (!unit.mark) SayButton(onClick = onSay)
+        if (onSay != null) SayButton(onClick = onSay)
+    }
+}
+
+/**
+ * The set's worst lookalikes beside the kana they're taken for, met before or
+ * in this set, each with what tells them apart. Tap a kana to hear it.
+ */
+@Composable
+private fun LookAlike(notes: List<KanaLookNote>, onSay: (String) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        Modifier
+            .padding(top = 8.dp)
+            .fillMaxWidth()
+            .border(1.dp, colors.outlineVariant, WashiShape)
+            .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SectionLabel("Look alike")
+        for (note in notes) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row {
+                    for (text in listOf(note.kana) + note.like) {
+                        Column(
+                            Modifier.width(44.dp).clip(WashiShape).clickable { onSay(text) },
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(text, fontFamily = Gothic, fontSize = 34.sp, lineHeight = 42.sp)
+                            Text(KanaCourse.unit(text)?.romaji.orEmpty(), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                        }
+                    }
+                }
+                Text(note.tell, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f))
+            }
+        }
+        Text("They come up as wrong answers for each other.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
     }
 }
 
@@ -337,8 +390,8 @@ private fun KanaDone(step: KanaStep.Done, vm: AppViewModel) {
                     Text(if (step.cardsNext == 1) "Now 1 card" else "Now ${step.cardsNext} cards", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (step.more) {
-                        SecondaryButton(onClick = vm::moreKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("5 more", fontSize = 16.sp) }
+                    if (step.more > 0) {
+                        SecondaryButton(onClick = vm::moreKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("${step.more} more", fontSize = 16.sp) }
                     }
                     SecondaryButton(onClick = vm::closeKana, modifier = Modifier.weight(1f).height(56.dp)) { Text("Done", fontSize = 16.sp) }
                 }
@@ -348,8 +401,8 @@ private fun KanaDone(step: KanaStep.Done, vm: AppViewModel) {
                 PrimaryButton(onClick = { if (dayDone) vm.closeKana() else vm.continueToday() }, modifier = Modifier.fillMaxWidth().height(58.dp)) {
                     Text(nextStepLabel(step.plan), fontSize = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                if (step.more) {
-                    SecondaryButton(onClick = vm::moreKana, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("5 more", fontSize = 16.sp) }
+                if (step.more > 0) {
+                    SecondaryButton(onClick = vm::moreKana, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text("${step.more} more", fontSize = 16.sp) }
                 }
             }
         }
