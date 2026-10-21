@@ -12,6 +12,9 @@ import ca.danielpower.jstudy.core.GrammarTopic
 import ca.danielpower.jstudy.core.ImportPlan
 import ca.danielpower.jstudy.core.KanaCourse
 import ca.danielpower.jstudy.core.KanaKnown
+import ca.danielpower.jstudy.core.KanaLesson
+import ca.danielpower.jstudy.core.KanaLookNote
+import ca.danielpower.jstudy.core.KanaLooks
 import ca.danielpower.jstudy.core.KanaQuestion
 import ca.danielpower.jstudy.core.KanaResult
 import ca.danielpower.jstudy.core.KanaSession
@@ -243,8 +246,21 @@ sealed interface Screen {
 
 /** What kana practice shows. */
 sealed interface KanaStep {
-    /** A new set: each kana, its sound, and a word from the stories with it in, by kana. */
-    data class Intro(val units: List<KanaUnit>, val examples: Map<String, KanaExample>, val set: Int, val sets: Int) : KanaStep
+    /**
+     * A new set: its row's [line], each kana, its sound, and a word from the
+     * stories with it in, by kana, then any lookalikes to tell apart.
+     */
+    data class Intro(
+        val units: List<KanaUnit>,
+        val examples: Map<String, KanaExample>,
+        val set: Int,
+        val sets: Int,
+        val line: String,
+        val looks: List<KanaLookNote>,
+    ) : KanaStep
+
+    /** A page on what's new in a set, before its [intro]; [examples] for the borrowed sounds' rows, by kana. */
+    data class Lesson(val lesson: KanaLesson, val intro: Intro, val examples: Map<String, KanaExample>) : KanaStep
 
     /**
      * A question, shown at [shownAt], about a kana from this sitting's new set
@@ -254,10 +270,11 @@ sealed interface KanaStep {
 
     /**
      * The end: how many kana were new and how many checked, the chart, how
-     * many of today's new kana have their second look later, whether another
-     * set is ready, and the word cards waiting next when Start studying began it.
+     * many of today's new kana have their second look later, how many kana
+     * the next set has ([more], none once they're all in), and the word cards
+     * waiting next when Start studying began it.
      */
-    data class Done(val learned: Int, val checked: Int, val chart: KanaChart, val later: Int, val more: Boolean, val cardsNext: Int) : KanaStep
+    data class Done(val learned: Int, val checked: Int, val chart: KanaChart, val later: Int, val more: Int, val cardsNext: Int) : KanaStep
 }
 
 /** The kana chart: every kana's stage, and today, to pick out the ones met today. */
@@ -685,12 +702,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (s.newSet.isEmpty()) return askKana()
         val state = repo.kanaState()
         val texts = s.newSet.map { it.text }
-        _screen.value = Screen.Kana(
-            KanaStep.Intro(s.newSet, repo.kanaExamples(texts), state.setNumber(texts.first()), state.sets.size),
-            s.newRemaining,
-            s.checkRemaining,
+        val intro = KanaStep.Intro(
+            s.newSet,
+            repo.kanaExamples(texts),
+            state.setNumber(texts.first()),
+            state.sets.size,
+            state.introLine(texts.first()),
+            KanaLooks.notesFor(texts),
         )
+        val lesson = state.nextLesson()
+        val step = if (lesson == null) intro else KanaStep.Lesson(lesson, intro, if (lesson == KanaLesson.BORROWED) repo.kanaExamples(BORROWED_ROWS) else emptyMap())
+        _screen.value = Screen.Kana(step, s.newRemaining, s.checkRemaining)
     }
+
+    /** On from a set's lesson to its intro. */
+    fun kanaLessonDone() = _screen.update { s -> if (s is Screen.Kana && s.step is KanaStep.Lesson) s.copy(step = s.step.intro) else s }
 
     /** On from a new set's intro; with [know], "I know these": each is asked once, and quick and right is clear. */
     fun practiseKana(know: Boolean = false) = launchIo {
@@ -750,7 +776,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 checked = practised.count { it !in brought },
                 chart = KanaChart(state, today),
                 later = counts.later,
-                more = state.nextSet() != null,
+                more = state.nextSet()?.size ?: 0,
                 cardsNext = if (kanaThenCards) repo.cardsDue(at) else 0,
             ),
             progress = 1f,
@@ -765,7 +791,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Leave kana practice: what's answered is saved already. */
     fun closeKana() = launchIo {
-        if ((_screen.value as? Screen.Kana)?.step is KanaStep.Intro) kanaSetPutOff = repo.clock().dayOf(now())
+        val step = (_screen.value as? Screen.Kana)?.step
+        if (step is KanaStep.Intro || step is KanaStep.Lesson) kanaSetPutOff = repo.clock().dayOf(now())
         kanaSession = null
         if (kanaFromReviewTab) showReviewTab() else showHome()
     }
@@ -780,6 +807,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } else {
                 voice.play(KANA_KEY, 0, rate, single = true) { voices -> listOf(SpokenLine(text, Voices.narrator(voices, null), clip)) }
             }
+        }
+    }
+
+    /** Kana one after the other, as a lesson's か → が row says both. */
+    fun sayKanas(texts: List<String>) {
+        viewModelScope.launch {
+            val clips = withContext(Dispatchers.IO) { texts.map { repo.kanaClip(it) } }
+            voice.play(KANA_KEY, 0, _speech.value.rate) { voices -> texts.mapIndexed { i, text -> SpokenLine(text, Voices.narrator(voices, null), clips[i]) } }
         }
     }
 
