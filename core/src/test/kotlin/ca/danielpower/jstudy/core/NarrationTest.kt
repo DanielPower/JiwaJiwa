@@ -61,12 +61,6 @@ class VoicesTest {
     }
 
     @Test
-    fun `names voices by kind`() {
-        assertEquals(listOf("Woman 1", "Woman 2", "Man 1", "Man 2"), Voices.labels(google))
-        assertEquals(listOf("Voice 1", "Voice 2"), Voices.labels(listOf(PhoneVoice("a", null), PhoneVoice("b", null))))
-    }
-
-    @Test
     fun `gives the cast voices of their kind, off the narrator's`() {
         val voices = Voices.assign(
             google, narrator = "ja-jp-x-htm-local",

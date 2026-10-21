@@ -32,13 +32,20 @@ data class SavedStory(
     val body: String,
     /** English for each sentence of the body, in order. */
     val translations: List<String> = emptyList(),
-    /** When you last reached its end, and how long that reading took. */
+    /** When you last reached its end. */
     val readAt: Long? = null,
-    val readMillis: Long? = null,
 )
 
 /** Your cards, mastery and review history. This is what a backup saves. */
 class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION) {
+
+    /** How many times the database has been opened: a restore or reset closes and reopens it. */
+    @Volatile var opened = 0
+        private set
+
+    override fun onOpen(db: SQLiteDatabase) {
+        opened++
+    }
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -124,6 +131,10 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         }
         // Version 12: kana practice.
         if (oldVersion < 12) createKana(db)
+        // Version 13: settings that were renamed or removed long ago, still left in some databases.
+        if (oldVersion < 13 && hasColumn(db, "kv", "key")) {
+            db.execSQL("DELETE FROM kv WHERE key IN ('new_per_day', 'production_at', 'speech_narrator')")
+        }
     }
 
     /** Your progress with each kana you've practised (core [KanaProgress]), and every answer. */
@@ -224,6 +235,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
                 -- One line per sentence.
                 translations TEXT NOT NULL DEFAULT '',
                 read_at INTEGER,
+                -- How long a reading took, no longer saved. Android 8's SQLite can't drop a column.
                 read_ms INTEGER
             )
             """,
@@ -266,11 +278,8 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
         }
     }
 
-    fun markStoryRead(id: Long, at: Long, millis: Long) {
-        val values = ContentValues().apply {
-            put("read_at", at)
-            put("read_ms", millis)
-        }
+    fun markStoryRead(id: Long, at: Long) {
+        val values = ContentValues().apply { put("read_at", at) }
         writableDatabase.update("story", values, "id = ?", arrayOf(id.toString()))
     }
 
@@ -281,14 +290,14 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     private fun storyRows(where: String?, args: Array<String>?): List<SavedStory> =
         readableDatabase.rawQuery(
-            "SELECT id, path_id, title, body, translations, read_at, read_ms FROM story" + (where?.let { " WHERE $it" } ?: ""),
+            "SELECT id, path_id, title, body, translations, read_at FROM story" + (where?.let { " WHERE $it" } ?: ""),
             args,
         ).use { c ->
             buildList {
                 while (c.moveToNext()) {
                     val translations = c.getString(4).takeIf { it.isNotEmpty() }?.split('\n').orEmpty()
-                    fun long(i: Int) = if (c.isNull(i)) null else c.getLong(i)
-                    add(SavedStory(c.getLong(0), c.getString(1), c.getString(2), c.getString(3), translations, long(5), long(6)))
+                    val readAt = if (c.isNull(5)) null else c.getLong(5)
+                    add(SavedStory(c.getLong(0), c.getString(1), c.getString(2), c.getString(3), translations, readAt))
                 }
             }
         }
@@ -659,7 +668,7 @@ class ProgressStore(context: Context) : SQLiteOpenHelper(context, NAME, null, VE
 
     companion object {
         const val NAME = "progress.db"
-        const val VERSION = 12
+        const val VERSION = 13
         private const val CARD_COLUMNS =
             "id, word_id, direction, state, step, stability, difficulty, due_at, last_review_at, reps, lapses, introduced_day, start_source"
     }
