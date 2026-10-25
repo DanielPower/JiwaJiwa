@@ -30,7 +30,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Saves the Gradle cache on pull requests too, not just on main.
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
 
       # -PcoreOnly leaves the Android app out of the build, so no SDK is needed.
       - run: ./gradlew -PcoreOnly=true :core:test
@@ -54,7 +57,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Saves the Gradle cache on pull requests too, not just on main.
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
 
       # JVM tests with Robolectric (app/src/test). The runner image has the Android SDK.
       - run: ./gradlew :app:testDebugUnitTest

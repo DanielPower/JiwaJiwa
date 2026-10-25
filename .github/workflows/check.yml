@@ -34,7 +34,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Pull requests save the Gradle cache too (by default only main does),
+      # so each run starts from the last one's build cache.
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
 
       - uses: actions/setup-python@v5
         with:
@@ -71,10 +75,10 @@ jobs:
             core/build/reports/story-path.txt
           retention-days: 14
 
-      # The release build runs the same checks as a real release. The debug
-      # build has its own app id, so it installs next to the release app.
-      - name: Build
-        run: ./gradlew :app:assembleRelease :app:bundleRelease :app:assembleDebug
+      # The debug build comes first so its APK is linked as soon as it's
+      # ready. It has its own app id, so it installs next to the release app.
+      - name: Build the debug APK
+        run: ./gradlew :app:assembleDebug
 
       # The stories aren't committed: the build writes them, so check they made it in.
       - name: Check the stories are bundled
@@ -122,3 +126,8 @@ jobs:
             } else {
               await github.rest.issues.createComment({ owner, repo, issue_number, body });
             }
+
+      # The release build runs the same checks as a real release, after the
+      # APK is linked, so it still fails the pull request without delaying the APK.
+      - name: Build the release
+        run: ./gradlew :app:assembleRelease :app:bundleRelease
